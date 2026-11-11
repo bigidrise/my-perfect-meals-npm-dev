@@ -1,4 +1,9 @@
 {
+  "creatorMenuRecovery": {
+    "title": "Tu menú necesita otra comprobación",
+    "checking": "Comprobando las opciones guardadas…",
+    "retry": "Volver a comprobar las opciones guardadas"
+  },
   "organizationPaidSuccess": {
     "title": "¡Tu suscripción empresarial está activa!",
     "linkedDescription": "Tu organización ya está activa. Tu cuenta de afiliado de Rewardful está vinculada, por lo que puedes administrarla y seguir recomendando My Perfect Meals a nuevos suscriptores.",
@@ -302,7 +307,9 @@
     "upgradeItem3": "Orientación y personalización adicionales",
     "upgradeItem4": "Acceso a funciones de nivel superior",
     "heroAlt": "Panel de My Perfect Meals",
-    "mpmLabel": "MPM"
+    "mpmLabel": "MPM",
+    "foodsEnjoyTitle": "Alimentos que disfruto",
+    "foodsEnjoyDescription": "Cuéntanos qué te gusta comer de verdad."
   },
   "builders": {
     "pageTitle": "Constructores de Comidas",
@@ -467,7 +474,8 @@
     "ingredientsServes": "Ingredientes (para {{count}})",
     "noIngredients": "No se proporcionaron ingredientes",
     "noInstructions": "No se proporcionaron instrucciones",
-    "couldNotUpdateFavorites": "No se pudieron actualizar los favoritos. Intenta de nuevo."
+    "couldNotUpdateFavorites": "No se pudieron actualizar los favoritos. Intenta de nuevo.",
+    "sourceSavedMeal": "Comida guardada"
   },
   "shopping": {
     "pageTitle": "Lista de Compras Inteligente",
@@ -541,7 +549,8 @@
       "compareAnother": "Comparar otro",
       "errorGeneric": "No se pudo obtener consejos de producto ahora. Inténtalo de nuevo.",
       "noResults": "No hay consejos de marca disponibles para ese artículo — prueba con un producto envasado más específico.",
-      "avoid": "Evitar"
+      "avoid": "Evitar",
+      "verificationRequired": "Los nombres de las marcas por sí solos no confirman que un producto sea seguro para tu perfil. Cierra este asesor y usa Escanear producto en esta página para fotografiar la etiqueta completa de ingredientes del producto que estás considerando."
     },
     "smartCart": {
       "pick": "Elegir",
@@ -594,7 +603,11 @@
     "howToUseTitle": "Cómo Usar el Asistente de Restaurantes",
     "entryTitle": "Asistente de Restaurantes",
     "entryDesc": "Dime dónde vas a comer y qué te apetece, y te mostraré las mejores opciones de su menú.",
-    "recommendedAt": "Comidas Recomendadas en"
+    "recommendedAt": "Comidas Recomendadas en",
+    "orderingEducationTitle": "Qué pedir y cómo pedirlo.",
+    "orderingEducationBody": "Google Places ayuda a My Perfect Meals a identificar el restaurante, su ubicación y su cocina. Como los menús y los ingredientes pueden cambiar, es posible que una comida sugerida no aparezca exactamente en el menú actual.",
+    "orderingEducationGuidance": "Te mostraremos qué buscar y cómo preguntar por cambios razonables, como otras guarniciones, salsas aparte, quitar ingredientes u otra preparación. El restaurante decide qué puede ofrecer.",
+    "orderingEducationClosing": "No tienes que adivinar cómo seguir tu plan: te mostraremos qué preguntar."
   },
   "upgrade": {
     "viewPlans": "Ver Planes",
@@ -747,7 +760,9 @@
     "errorIngredients": "¡Por favor ingresa algunos ingredientes primero!",
     "allergyAlert": "⚠️ ALERTA DE ALERGIA",
     "generationFailed": "Generación Fallida",
-    "generationFailedDesc": "No se pudieron generar las comidas. Por favor intenta de nuevo."
+    "generationFailedDesc": "No se pudieron generar las comidas. Por favor intenta de nuevo.",
+    "resultsCount_one": "{{count}} resultado de Rescate de nevera",
+    "resultsCount_other": "{{count}} resultados de Rescate de nevera"
   },
   "cravingCreator": {
     "quickCreate": "Crear Rápido",
@@ -788,7 +803,9 @@
     "missingInfo": "Información Faltante",
     "missingInfoDesc": "¡Por favor describe lo que se te antoja primero!",
     "tryDifferentIngredient": "Prueba un ingrediente diferente",
-    "tryDifferentDesc": "Elige algo sin almidones como carne, pescado o verduras."
+    "tryDifferentDesc": "Elige algo sin almidones como carne, pescado o verduras.",
+    "serving1": "1 porción",
+    "servingN": "{{count}} porciones"
   },
   "more": {
     "pageTitle": "Más",
@@ -1112,7 +1129,11 @@
     "foundCount": "Se encontraron {{restaurants}} restaurantes con {{meals}} comidas",
     "searchFailed": "Búsqueda Fallida",
     "searchFailedDesc": "No se pudieron encontrar comidas. Intenta con una búsqueda diferente o código postal.",
-    "locationZip": "Código Postal: {{zip}}"
+    "locationZip": "Código Postal: {{zip}}",
+    "orderingEducationTitle": "Encuentra la cocina y adáptala a tus necesidades.",
+    "orderingEducationBody": "Google Places ayuda a My Perfect Meals a encontrar restaurantes cercanos según la ubicación, el tipo de restaurante y la cocina. Los menús pueden cambiar, así que no todas las comidas sugeridas aparecerán exactamente como se muestran.",
+    "orderingEducationGuidance": "Te mostraremos qué buscar, qué ajustes considerar y cómo pedir una comida que se adapte mejor a tus objetivos. El restaurante decide qué puede ofrecer.",
+    "orderingEducationClosing": "Encuentra el restaurante. Conoce tus opciones. Aprende a pedir."
   },
   "welcomeBack": "Bienvenido de nuevo",
   "whereToTitle": "¿A dónde?",
@@ -2481,7 +2502,9 @@
     "accountMovesFree": "Tu cuenta pasará al plan gratuito esta noche. Todos tus datos quedan seguros.",
     "trialExpires": "La prueba expira el {{date}}",
     "tierFull": "Completo",
-    "keepFullAccess": "Mantener acceso completo →"
+    "keepFullAccess": "Mantener acceso completo →",
+    "pilotProgram": "Programa piloto",
+    "clientAccess": "Acceso para clientes"
   },
   "groceryDashCard": {
     "title": "Lista de compras semanal",
@@ -3238,6 +3261,28 @@
       "savedDesc": "{{name}} está en tus favoritos de compra.",
       "saveFailTitle": "No se pudo guardar",
       "addedToList": "Añadido a tu lista de compra"
+    },
+    "simple": {
+      "matters": "Lo que te importa",
+      "chef": "Aviso del chef",
+      "details": "Más detalles del análisis",
+      "byName": "Análisis por nombre · Etiqueta sin verificar. Revisa la etiqueta actual.",
+      "byLabel": "Análisis de la etiqueta de ingredientes · Evidencia registrada en el momento del análisis.",
+      "noGrade": "No se puede dar una calificación con la información proporcionada.",
+      "restrictions": "Importante para ti",
+      "allPoints": "Puntos personalizados originales",
+      "recommendation": "Motivos y criterios de recomendación guardados",
+      "savedFromCoach": "Guardado desde el asesor de compras",
+      "savedRecommendation": "Recomendación guardada",
+      "whyRecommended": "Por qué se recomendó",
+      "recommendationSource": "Recomendación basada en conocimientos sobre el producto. Revisa la etiqueta actual para conocer los ingredientes y la información nutricional exactos.",
+      "analyzeNotice": "Genera el análisis personalizado de {{name}}. Los resultados guardados se pueden volver a abrir sin solicitar otro análisis.",
+      "analyzingProduct": "Analizando este producto…",
+      "analyzeProduct": "Analizar este producto",
+      "viewSaved": "Ver análisis guardado",
+      "updateSaved": "Actualizar análisis guardado",
+      "removeSaved": "Quitar de alimentos guardados",
+      "saveUnconfirmed": "No se pudo confirmar el guardado. Vuelve a abrir Alimentos guardados para comprobar el resultado actual; no se sustituyó intencionalmente ningún análisis más reciente."
     }
   },
   "athletePicker": {
@@ -3499,7 +3544,8 @@
     },
     "lowerGlycemic": "Menor impacto glucémico",
     "quickMeal": "Comida rápida de {{slot}}",
-    "regularGi": "IG normal"
+    "regularGi": "IG normal",
+    "noOptionsFitPlan": "Ninguna opción se adapta a tu plan actual"
   },
   "mealReminders": {
     "checkIOSReminders": "Comprobar recordatorios del iPhone",
@@ -4240,9 +4286,6 @@
     "unavailable": "Imagen no disponible",
     "generating": "Generando imagen",
     "restoring": "Restaurando imagen…"
-  },
-  "mealPicker": {
-    "noOptionsFitPlan": "Ninguna opción se adapta a tu plan actual"
   },
   "referralTools": {
     "downloadFailed": "No se pudo descargar el código QR. Inténtalo de nuevo."

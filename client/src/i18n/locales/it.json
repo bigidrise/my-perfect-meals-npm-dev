@@ -1,4 +1,9 @@
 {
+  "creatorMenuRecovery": {
+    "title": "Il tuo menu richiede un'altra verifica",
+    "checking": "Verifica delle scelte salvate…",
+    "retry": "Verifica di nuovo le scelte salvate"
+  },
   "organizationPaidSuccess": {
     "title": "Il tuo abbonamento aziendale è attivo!",
     "linkedDescription": "La tua organizzazione è ora attiva. Il tuo account affiliato Rewardful è collegato: puoi gestirlo e continuare a consigliare My Perfect Meals a nuovi abbonati.",
@@ -302,7 +307,9 @@
     "upgradeItem3": "Guida e personalizzazione aggiuntive",
     "upgradeItem4": "Accesso alle funzionalità di livello superiore",
     "heroAlt": "Dashboard di My Perfect Meals",
-    "mpmLabel": "MPM"
+    "mpmLabel": "MPM",
+    "foodsEnjoyTitle": "Cibi che mi piacciono",
+    "foodsEnjoyDescription": "Dicci cosa ti piace davvero mangiare."
   },
   "builders": {
     "pageTitle": "Costruttori di Pasti",
@@ -426,9 +433,10 @@
     "ingredientsServes": "Ingredienti (per {{count}})",
     "noIngredients": "Nessun ingrediente fornito",
     "noInstructions": "Nessuna istruzione fornita",
-    "couldNotUpdateFavorites": "Impossibile aggiornare i preferiti. Riprova."
+    "couldNotUpdateFavorites": "Impossibile aggiornare i preferiti. Riprova.",
+    "sourceSavedMeal": "Pasto salvato"
   },
-"shopping": {
+  "shopping": {
     "pageTitle": "Lista della Spesa Intelligente",
     "syncing": "sincronizzazione…",
     "voiceAdd": "Aggiungi con voce",
@@ -500,7 +508,8 @@
       "compareAnother": "Confronta un altro",
       "errorGeneric": "Impossibile ottenere consigli sul prodotto ora. Riprova.",
       "noResults": "Nessun consiglio di marca disponibile per quell’articolo — prova un prodotto confezionato più specifico.",
-      "avoid": "Evitare"
+      "avoid": "Evitare",
+      "verificationRequired": "I soli nomi delle marche non confermano che un prodotto sia sicuro per il tuo profilo. Chiudi questo consulente e usa Scansione prodotto in questa pagina per fotografare l’etichetta completa degli ingredienti del prodotto che stai considerando."
     },
     "smartCart": {
       "pick": "Scegli",
@@ -553,7 +562,11 @@
     "step3Placeholder": "es. 30303, 90210, 10001",
     "step3Question": "Inserisci il tuo codice ZIP così posso trovare la posizione più vicina.",
     "translationFailed": "Traduzione non riuscita",
-    "whyHealthy": "Perché è salutare:"
+    "whyHealthy": "Perché è salutare:",
+    "orderingEducationTitle": "Sapere cosa ordinare e come chiederlo.",
+    "orderingEducationBody": "Google Places aiuta My Perfect Meals a identificare il ristorante, la posizione e la cucina. Poiché menu e ingredienti possono cambiare, un piatto suggerito potrebbe non comparire esattamente nel menu attuale.",
+    "orderingEducationGuidance": "Ti mostreremo cosa cercare e come chiedere modifiche ragionevoli, come contorni diversi, salse a parte, rimozione di ingredienti o un’altra preparazione. Il ristorante decide cosa può offrire.",
+    "orderingEducationClosing": "Non devi indovinare come seguire il tuo piano: ti mostreremo cosa chiedere."
   },
   "upgrade": {
     "viewPlans": "Visualizza piani",
@@ -725,7 +738,11 @@
     "foundCount": "Trovati {{restaurants}} ristoranti con {{meals}} pasti",
     "searchFailed": "Ricerca Fallita",
     "searchFailedDesc": "Impossibile trovare pasti. Prova una ricerca diversa o un CAP diverso.",
-    "locationZip": "CAP: {{zip}}"
+    "locationZip": "CAP: {{zip}}",
+    "orderingEducationTitle": "Trova la cucina e adattala alle tue esigenze.",
+    "orderingEducationBody": "Google Places aiuta My Perfect Meals a trovare ristoranti vicini in base alla posizione, al tipo di ristorante e alla cucina. I menu possono cambiare, quindi non tutti i piatti suggeriti saranno disponibili esattamente come mostrati.",
+    "orderingEducationGuidance": "Ti mostreremo cosa cercare, quali modifiche considerare e come chiedere un pasto più adatto ai tuoi obiettivi. Il ristorante decide cosa può offrire.",
+    "orderingEducationClosing": "Trova il ristorante. Comprendi le opzioni. Impara a ordinare."
   },
   "desktopNav": {
     "askChef": "Chiedi allo Chef",
@@ -888,7 +905,9 @@
     "errorIngredients": "¡Por favor ingresa algunos ingredientes primero!",
     "allergyAlert": "⚠️ ALERTA DE ALERGIA",
     "generationFailed": "Generación Fallida",
-    "generationFailedDesc": "No se pudieron generar las comidas. Por favor intenta de nuevo."
+    "generationFailedDesc": "No se pudieron generar las comidas. Por favor intenta de nuevo.",
+    "resultsCount_one": "{{count}} risultato di Salva frigo",
+    "resultsCount_other": "{{count}} risultati di Salva frigo"
   },
   "cravingCreator": {
     "quickCreate": "Crear Rápido",
@@ -929,7 +948,9 @@
     "missingInfo": "Información Faltante",
     "missingInfoDesc": "¡Por favor describe lo que se te antoja primero!",
     "tryDifferentIngredient": "Prueba un ingrediente diferente",
-    "tryDifferentDesc": "Elige algo sin almidones como carne, pescado o verduras."
+    "tryDifferentDesc": "Elige algo sin almidones como carne, pescado o verduras.",
+    "serving1": "1 porzione",
+    "servingN": "{{count}} porzioni"
   },
   "more": {
     "pageTitle": "Más",
@@ -2467,7 +2488,9 @@
     "accountMovesFree": "Il tuo account passerà al piano gratuito stanotte. Tutti i tuoi dati restano al sicuro.",
     "trialExpires": "Il periodo di prova scade il {{date}}",
     "keepFullAccess": "Mantieni l'accesso completo →",
-    "tierFull": "Completo"
+    "tierFull": "Completo",
+    "pilotProgram": "Programma pilota",
+    "clientAccess": "Accesso clienti"
   },
   "trialBanner": {
     "lastDayTitle": "Il tuo accesso Pro gratuito termina oggi",
@@ -3238,6 +3261,28 @@
       "savedDesc": "{{name}} è nei tuoi preferiti della spesa.",
       "saveFailTitle": "Impossibile salvare",
       "addedToList": "Aggiunto alla tua lista della spesa"
+    },
+    "simple": {
+      "matters": "Ciò che conta per te",
+      "chef": "Il consiglio dello chef",
+      "details": "Altri dettagli dell’analisi",
+      "byName": "Analisi per nome · Etichetta non verificata. Controlla l’etichetta attuale.",
+      "byLabel": "Analisi dell’etichetta degli ingredienti · Elementi registrati al momento dell’analisi.",
+      "noGrade": "Le informazioni fornite non consentono di assegnare un voto.",
+      "restrictions": "Importante per te",
+      "allPoints": "Punti personalizzati originali",
+      "recommendation": "Motivi e criteri della raccomandazione salvati",
+      "savedFromCoach": "Salvato dal consulente per la spesa",
+      "savedRecommendation": "Raccomandazione salvata",
+      "whyRecommended": "Perché è stato consigliato",
+      "recommendationSource": "Raccomandazione basata sulla conoscenza del prodotto. Controlla l’etichetta attuale per gli ingredienti e i valori nutrizionali esatti.",
+      "analyzeNotice": "Genera l’analisi personalizzata di {{name}}. I risultati salvati possono essere riaperti senza richiedere un’altra analisi.",
+      "analyzingProduct": "Analisi di questo prodotto…",
+      "analyzeProduct": "Analizza questo prodotto",
+      "viewSaved": "Visualizza l’analisi salvata",
+      "updateSaved": "Aggiorna l’analisi salvata",
+      "removeSaved": "Rimuovi dagli alimenti salvati",
+      "saveUnconfirmed": "Non è stato possibile confermare il salvataggio. Riapri gli alimenti salvati per verificare il risultato attuale; nessuna analisi più recente è stata sostituita intenzionalmente."
     }
   },
   "athletePicker": {
@@ -3499,7 +3544,8 @@
     },
     "lowerGlycemic": "Minore impatto glicemico",
     "quickMeal": "Pasto veloce {{slot}}",
-    "regularGi": "IG normale"
+    "regularGi": "IG normale",
+    "noOptionsFitPlan": "Nessuna opzione è adatta al tuo piano attuale"
   },
   "mealReminders": {
     "checkIOSReminders": "Verifica i promemoria dell’iPhone",
@@ -4240,9 +4286,6 @@
     "unavailable": "Immagine non disponibile",
     "generating": "Generazione dell’immagine",
     "restoring": "Ripristino dell’immagine…"
-  },
-  "mealPicker": {
-    "noOptionsFitPlan": "Nessuna opzione è adatta al tuo piano attuale"
   },
   "referralTools": {
     "downloadFailed": "Non è stato possibile scaricare il codice QR. Riprova."

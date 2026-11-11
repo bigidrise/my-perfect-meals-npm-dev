@@ -6,13 +6,14 @@ interface Props {
   generating: boolean;
   selectedConceptId?: string | null;
   completedMealVisible?: boolean;
+  choosingBlocked?: boolean;
   onChoose: (id: string) => void;
   onTryMore: () => void;
   onClear: () => void;
 }
 
 export function CreatorConceptCards({
-  concepts, choosingId, generating, selectedConceptId, completedMealVisible,
+  concepts, choosingId, generating, selectedConceptId, completedMealVisible, choosingBlocked,
   onChoose, onTryMore, onClear,
 }: Props) {
   if (concepts.length !== 3) return null;
@@ -36,7 +37,7 @@ export function CreatorConceptCards({
           <p className="mt-2 text-xs text-white/70">
             Main ingredients: {concept.primaryIngredients.join(", ")}
           </p>
-          <button type="button" disabled={Boolean(choosingId) || generating || concept.id === selectedConceptId}
+          <button type="button" disabled={choosingBlocked || Boolean(choosingId) || generating || concept.id === selectedConceptId}
             onClick={() => onChoose(concept.id)}
             className="mt-4 min-h-11 rounded-xl bg-lime-600 px-5 font-semibold text-white disabled:opacity-50">
             {choosingId === concept.id ? "Completing your recipe…" :

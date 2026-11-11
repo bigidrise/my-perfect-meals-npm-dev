@@ -1,4 +1,9 @@
 {
+  "creatorMenuRecovery": {
+    "title": "Ваше меню нужно проверить ещё раз",
+    "checking": "Проверка сохранённых вариантов…",
+    "retry": "Повторно проверить сохранённые варианты"
+  },
   "organizationPaidSuccess": {
     "title": "Ваша бизнес-подписка активна!",
     "linkedDescription": "Ваша организация теперь активна. Партнёрский аккаунт Rewardful привязан: вы можете управлять им и продолжать привлекать новых подписчиков в My Perfect Meals.",
@@ -302,7 +307,9 @@
     "upgradeItem3": "Дополнительное руководство и персонализация",
     "upgradeItem4": "Доступ к функциям высшего уровня",
     "heroAlt": "Панель My Perfect Meals",
-    "mpmLabel": "MPM"
+    "mpmLabel": "MPM",
+    "foodsEnjoyTitle": "Продукты, которые мне нравятся",
+    "foodsEnjoyDescription": "Расскажите, что вы действительно любите есть."
   },
   "builders": {
     "pageTitle": "Конструкторы питания",
@@ -426,7 +433,8 @@
     "ingredientsServes": "Ингредиенты (на {{count}} порции)",
     "noIngredients": "Ингредиенты не указаны",
     "noInstructions": "Инструкции не указаны",
-    "couldNotUpdateFavorites": "Не удалось обновить избранное. Попробуйте снова."
+    "couldNotUpdateFavorites": "Не удалось обновить избранное. Попробуйте снова.",
+    "sourceSavedMeal": "Сохранённое блюдо"
   },
   "shopping": {
     "pageTitle": "Умный список покупок",
@@ -500,7 +508,8 @@
       "compareAnother": "Сравнить другой",
       "errorGeneric": "Не удалось получить советы по продукту прямо сейчас. Попробуйте ещё раз.",
       "noResults": "Советы по бренду недоступны для этого товара — попробуйте более конкретный упакованный продукт.",
-      "avoid": "Избегать"
+      "avoid": "Избегать",
+      "verificationRequired": "Одного названия бренда недостаточно, чтобы подтвердить безопасность продукта для вашего профиля. Закройте этот помощник и используйте сканирование продукта на этой странице, чтобы сфотографировать полную этикетку с составом рассматриваемого продукта."
     },
     "smartCart": {
       "pick": "Выбрать",
@@ -555,7 +564,11 @@
     "step3Placeholder": "например: 30303, 90210, 10001",
     "step3Question": "Введите ваш ZIP-код, чтобы я мог найти ближайший ресторан.",
     "translationFailed": "Ошибка перевода",
-    "whyHealthy": "Почему это полезно:"
+    "whyHealthy": "Почему это полезно:",
+    "orderingEducationTitle": "Знайте, что заказать и как попросить.",
+    "orderingEducationBody": "Google Places помогает My Perfect Meals определить ресторан, его расположение и кухню. Меню и ингредиенты могут меняться, поэтому предложенное блюдо не всегда есть в текущем меню в точности в таком виде.",
+    "orderingEducationGuidance": "Мы подскажем, на что обратить внимание и как попросить о разумных изменениях: другом гарнире, соусе отдельно, исключении ингредиентов или другом способе приготовления. Ресторан решает, что он может предложить.",
+    "orderingEducationClosing": "Не нужно гадать, как придерживаться плана: мы подскажем, о чём спросить."
   },
   "upgrade": {
     "viewPlans": "Посмотреть планы",
@@ -727,7 +740,11 @@
     "foundCount": "Найдено {{restaurants}} ресторанов с {{meals}} блюдами",
     "searchFailed": "Поиск не удался",
     "searchFailedDesc": "Не удалось найти блюда. Попробуйте другой поиск или индекс.",
-    "locationZip": "Почтовый индекс: {{zip}}"
+    "locationZip": "Почтовый индекс: {{zip}}",
+    "orderingEducationTitle": "Найдите кухню, а затем адаптируйте её под себя.",
+    "orderingEducationBody": "Google Places помогает My Perfect Meals находить ближайшие рестораны по расположению, типу заведения и кухне. Меню может меняться, поэтому не каждое предложенное блюдо будет доступно в точности в указанном виде.",
+    "orderingEducationGuidance": "Мы подскажем, на что обратить внимание, какие изменения рассмотреть и как попросить блюдо, более подходящее вашим целям. Ресторан решает, что он может предложить.",
+    "orderingEducationClosing": "Найдите ресторан. Разберитесь в вариантах. Узнайте, как заказать."
   },
   "desktopNav": {
     "askChef": "Спросить шефа",
@@ -890,7 +907,11 @@
     "errorIngredients": "¡Por favor ingresa algunos ingredientes primero!",
     "allergyAlert": "⚠️ ALERTA DE ALERGIA",
     "generationFailed": "Generación Fallida",
-    "generationFailedDesc": "No se pudieron generar las comidas. Por favor intenta de nuevo."
+    "generationFailedDesc": "No se pudieron generar las comidas. Por favor intenta de nuevo.",
+    "resultsCount_one": "{{count}} результат «Спасения холодильника»",
+    "resultsCount_other": "{{count}} результата «Спасения холодильника»",
+    "resultsCount_few": "{{count}} результата «Спасения холодильника»",
+    "resultsCount_many": "{{count}} результатов «Спасения холодильника»"
   },
   "cravingCreator": {
     "quickCreate": "Crear Rápido",
@@ -931,7 +952,9 @@
     "missingInfo": "Información Faltante",
     "missingInfoDesc": "¡Por favor describe lo que se te antoja primero!",
     "tryDifferentIngredient": "Prueba un ingrediente diferente",
-    "tryDifferentDesc": "Elige algo sin almidones como carne, pescado o verduras."
+    "tryDifferentDesc": "Elige algo sin almidones como carne, pescado o verduras.",
+    "serving1": "1 порция",
+    "servingN": "{{count}} порц."
   },
   "more": {
     "pageTitle": "Más",
@@ -2223,7 +2246,9 @@
     "accountMovesFree": "Ваш аккаунт перейдёт на бесплатный план сегодня ночью. Все ваши данные останутся в целости.",
     "trialExpires": "Пробный период истекает {{date}}",
     "keepFullAccess": "Сохранить полный доступ →",
-    "tierFull": "Полный"
+    "tierFull": "Полный",
+    "pilotProgram": "Пилотная программа",
+    "clientAccess": "Клиентский доступ"
   },
   "trialBanner": {
     "lastDayTitle": "Ваш бесплатный доступ Pro заканчивается сегодня",
@@ -2994,6 +3019,28 @@
       "savedDesc": "{{name}} в ваших закладках покупок.",
       "saveFailTitle": "Не удалось сохранить",
       "addedToList": "Добавлено в ваш список покупок"
+    },
+    "simple": {
+      "matters": "Что важно для вас",
+      "chef": "Совет шеф-повара",
+      "details": "Подробнее об анализе",
+      "byName": "Анализ по названию · Этикетка не проверена. Проверьте актуальную этикетку.",
+      "byLabel": "Анализ этикетки с составом · Данные зафиксированы на момент анализа.",
+      "noGrade": "Предоставленных данных недостаточно для оценки.",
+      "restrictions": "Важно для вас",
+      "allPoints": "Исходные персональные замечания",
+      "recommendation": "Сохранённые причины и критерии рекомендации",
+      "savedFromCoach": "Сохранено из помощника по покупкам",
+      "savedRecommendation": "Сохранённая рекомендация",
+      "whyRecommended": "Почему это рекомендовано",
+      "recommendationSource": "Рекомендация основана на знаниях о продукте. Точный состав и пищевую ценность уточняйте по актуальной этикетке.",
+      "analyzeNotice": "Создайте персональный анализ для {{name}}. Сохранённые результаты можно открыть повторно без нового запроса на анализ.",
+      "analyzingProduct": "Анализируем этот продукт…",
+      "analyzeProduct": "Проанализировать этот продукт",
+      "viewSaved": "Посмотреть сохранённый анализ",
+      "updateSaved": "Обновить сохранённый анализ",
+      "removeSaved": "Удалить из сохранённых продуктов",
+      "saveUnconfirmed": "Не удалось подтвердить сохранение. Снова откройте сохранённые продукты, чтобы проверить текущий результат; более новый анализ не заменялся намеренно."
     }
   },
   "athletePicker": {
@@ -3255,7 +3302,8 @@
     },
     "lowerGlycemic": "Более низкое гликемическое влияние",
     "quickMeal": "Быстрый приём пищи {{slot}}",
-    "regularGi": "Обычный ГИ"
+    "regularGi": "Обычный ГИ",
+    "noOptionsFitPlan": "Нет вариантов, подходящих вашему текущему плану"
   },
   "mealReminders": {
     "checkIOSReminders": "Проверить напоминания iPhone",
@@ -3997,9 +4045,6 @@
     "unavailable": "Изображение недоступно",
     "generating": "Создание изображения",
     "restoring": "Восстановление изображения…"
-  },
-  "mealPicker": {
-    "noOptionsFitPlan": "Нет вариантов, подходящих вашему текущему плану"
   },
   "referralTools": {
     "downloadFailed": "Не удалось скачать QR-код. Попробуйте еще раз."

@@ -100,6 +100,7 @@ import { ExpandIngredientResponseSchema } from "../../../../shared/createDishIng
 import OneTouchCreateModal from "@/components/one-touch/OneTouchCreateModal";
 import { CreatorConceptCards } from "@/components/one-touch/CreatorConceptCards";
 import { CreatorMenuRestorationProgress } from "@/components/one-touch/CreatorMenuRestorationProgress";
+import { CreatorMenuRecovery } from "@/components/one-touch/CreatorMenuRecovery";
 import { useCreatorConceptMenu } from "@/hooks/useCreatorConceptMenu";
 import {
   ONE_TOUCH_CREATE_ENABLED,
@@ -558,7 +559,7 @@ export default function CreateDishPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [oneTouchOpen, setOneTouchOpen] = useState(false);
   const [oneTouchBusy, setOneTouchBusy] = useState(false);
-  const conceptMenu = useCreatorConceptMenu("create_a_dish", user?.id);
+  const conceptMenu = useCreatorConceptMenu("create_a_dish", user?.id, { recoverSavedChoices: true });
   const [oneTouchLastRequest, setOneTouchLastRequest] = useState<{
     servings: number;
     cuisine: OneTouchCuisine;
@@ -2403,11 +2404,17 @@ export default function CreateDishPage() {
               )}
             </div>
           )}
+          <CreatorMenuRecovery
+            error={conceptMenu.restoreError}
+            busy={conceptMenu.restoring || conceptMenu.generating || Boolean(conceptMenu.choosingId)}
+            onRetry={conceptMenu.retryRestore}
+          />
           {!conceptMenu.restoring && !isPlatingMeal && !oneTouchBusy && (
             <CreatorConceptCards
               concepts={conceptMenu.concepts}
               choosingId={conceptMenu.choosingId}
               generating={conceptMenu.generating}
+              choosingBlocked={Boolean(conceptMenu.restoreError)}
               selectedConceptId={visibleMeals.length > 0 && conceptMenu.concepts.some((concept) => concept.id === selectedConceptId) ? selectedConceptId : null}
               completedMealVisible={visibleMeals.length > 0}
               onChoose={(id) => void handleOneTouchChoose(id)}
