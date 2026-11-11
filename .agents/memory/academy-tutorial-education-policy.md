@@ -65,3 +65,13 @@ manual Copilot voice, chat, help, and Chef buttons.
 educational presentation, never required operational work or user-requested help.
 Verify in Development without unnecessary paid AI calls; publication and release
 still follow the existing approval gates.
+
+The smiley Chef buttons in the bottom navigation and left sidebar must open
+`/coach-corner/home`, not trigger instructional Copilot cards.
+
+**Why:** The founder clarified that pressing either navigation smiley should open
+the actual Ask Chef page, not a card. This overrides retaining card triggers on
+those two navigation controls; it does not request disabling voice or chat.
+
+**How to apply:** Keep these navigation buttons independent of Copilot opening
+and explanation timers; preserve the destination page's existing access checks.
