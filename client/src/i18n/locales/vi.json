@@ -307,7 +307,9 @@
     "upgradeItem3": "Hướng dẫn và cá nhân hóa bổ sung",
     "upgradeItem4": "Truy cập các tính năng cấp cao hơn",
     "heroAlt": "Bảng điều khiển My Perfect Meals",
-    "mpmLabel": "MPM"
+    "mpmLabel": "MPM",
+    "foodsEnjoyTitle": "Món ăn tôi thích",
+    "foodsEnjoyDescription": "Cho chúng tôi biết bạn thực sự thích ăn gì."
   },
   "builders": {
     "pageTitle": "Trình tạo bữa ăn",
@@ -431,7 +433,8 @@
     "ingredientsServes": "Nguyên liệu (phục vụ {{count}})",
     "noIngredients": "Không có nguyên liệu được cung cấp",
     "noInstructions": "Không có hướng dẫn được cung cấp",
-    "couldNotUpdateFavorites": "Không thể cập nhật sở thích. Thử lại."
+    "couldNotUpdateFavorites": "Không thể cập nhật sở thích. Thử lại.",
+    "sourceSavedMeal": "Bữa ăn đã lưu"
   },
   "shopping": {
     "pageTitle": "Danh sách mua sắm thông minh",
@@ -505,7 +508,8 @@
       "compareAnother": "So sánh cái khác",
       "errorGeneric": "Không thể lấy tư vấn sản phẩm ngay bây giờ. Vui lòng thử lại.",
       "noResults": "Không có tư vấn thương hiệu nào cho mặt hàng đó — hãy thử một sản phẩm đóng gói cụ thể hơn.",
-      "avoid": "Tránh"
+      "avoid": "Tránh",
+      "verificationRequired": "Chỉ tên thương hiệu không thể xác nhận sản phẩm có an toàn cho hồ sơ của bạn hay không. Hãy đóng trợ lý này và dùng tính năng quét sản phẩm trên trang để chụp toàn bộ nhãn thành phần của sản phẩm bạn đang cân nhắc."
     },
     "smartCart": {
       "pick": "Chọn",
@@ -558,7 +562,11 @@
     "step3Placeholder": "ví dụ: 30303, 90210, 10001",
     "step3Question": "Nhập mã ZIP của bạn để tôi tìm địa điểm gần nhất.",
     "translationFailed": "Dịch thất bại",
-    "whyHealthy": "Tại sao món này tốt cho sức khỏe:"
+    "whyHealthy": "Tại sao món này tốt cho sức khỏe:",
+    "orderingEducationTitle": "Biết gọi món gì và hỏi như thế nào.",
+    "orderingEducationBody": "Google Places giúp My Perfect Meals xác định nhà hàng, vị trí và nền ẩm thực. Thực đơn và nguyên liệu có thể thay đổi, nên món ăn được gợi ý có thể không xuất hiện đúng như vậy trong thực đơn hiện tại.",
+    "orderingEducationGuidance": "Chúng tôi sẽ hướng dẫn bạn tìm gì và hỏi về những thay đổi hợp lý, như đổi món ăn kèm, để sốt riêng, bỏ nguyên liệu hoặc đổi cách chế biến. Nhà hàng quyết định có thể đáp ứng yêu cầu nào.",
+    "orderingEducationClosing": "Bạn không cần đoán cách bám sát kế hoạch — chúng tôi sẽ hướng dẫn bạn cần hỏi gì."
   },
   "upgrade": {
     "viewPlans": "Xem các gói",
@@ -730,7 +738,11 @@
     "foundCount": "Tìm thấy {{restaurants}} nhà hàng với {{meals}} bữa ăn",
     "searchFailed": "Tìm Kiếm Thất Bại",
     "searchFailedDesc": "Không thể tìm bữa ăn. Thử tìm kiếm hoặc mã ZIP khác.",
-    "locationZip": "Mã ZIP: {{zip}}"
+    "locationZip": "Mã ZIP: {{zip}}",
+    "orderingEducationTitle": "Tìm nền ẩm thực, rồi điều chỉnh cho phù hợp với bạn.",
+    "orderingEducationBody": "Google Places giúp My Perfect Meals tìm nhà hàng gần bạn theo vị trí, loại nhà hàng và nền ẩm thực. Thực đơn có thể thay đổi, nên không phải món ăn gợi ý nào cũng có đúng như hình thức được mô tả.",
+    "orderingEducationGuidance": "Chúng tôi sẽ hướng dẫn bạn tìm gì, cân nhắc điều chỉnh nào và cách yêu cầu bữa ăn phù hợp hơn với mục tiêu. Nhà hàng quyết định có thể đáp ứng yêu cầu nào.",
+    "orderingEducationClosing": "Tìm nhà hàng. Hiểu các lựa chọn. Biết cách gọi món."
   },
   "desktopNav": {
     "askChef": "Hỏi Đầu Bếp",
@@ -893,7 +905,9 @@
     "errorIngredients": "¡Por favor ingresa algunos ingredientes primero!",
     "allergyAlert": "⚠️ ALERTA DE ALERGIA",
     "generationFailed": "Generación Fallida",
-    "generationFailedDesc": "No se pudieron generar las comidas. Por favor intenta de nuevo."
+    "generationFailedDesc": "No se pudieron generar las comidas. Por favor intenta de nuevo.",
+    "resultsCount_one": "{{count}} kết quả Giải cứu tủ lạnh",
+    "resultsCount_other": "{{count}} kết quả Giải cứu tủ lạnh"
   },
   "cravingCreator": {
     "quickCreate": "Crear Rápido",
@@ -934,7 +948,9 @@
     "missingInfo": "Información Faltante",
     "missingInfoDesc": "¡Por favor describe lo que se te antoja primero!",
     "tryDifferentIngredient": "Prueba un ingrediente diferente",
-    "tryDifferentDesc": "Elige algo sin almidones como carne, pescado o verduras."
+    "tryDifferentDesc": "Elige algo sin almidones como carne, pescado o verduras.",
+    "serving1": "1 khẩu phần",
+    "servingN": "{{count}} khẩu phần"
   },
   "more": {
     "pageTitle": "Más",
@@ -2248,7 +2264,9 @@
     "accountMovesFree": "Tài khoản của bạn sẽ chuyển sang gói miễn phí tối nay. Tất cả dữ liệu của bạn vẫn an toàn.",
     "trialExpires": "Dùng thử hết hạn vào {{date}}",
     "tierFull": "Đầy đủ",
-    "keepFullAccess": "Giữ quyền truy cập đầy đủ →"
+    "keepFullAccess": "Giữ quyền truy cập đầy đủ →",
+    "pilotProgram": "Chương trình thí điểm",
+    "clientAccess": "Quyền truy cập của khách hàng"
   },
   "groceryDashCard": {
     "title": "Danh sách mua sắm hàng tuần",
@@ -3008,6 +3026,28 @@
       "savedDesc": "{{name}} có trong danh sách đánh dấu thực phẩm của bạn.",
       "saveFailTitle": "Không thể lưu",
       "addedToList": "Đã thêm vào danh sách thực phẩm của bạn"
+    },
+    "simple": {
+      "matters": "Điều quan trọng với bạn",
+      "chef": "Lưu ý từ đầu bếp",
+      "details": "Thêm chi tiết phân tích",
+      "byName": "Phân tích theo tên · Chưa xác minh nhãn. Hãy kiểm tra nhãn hiện tại.",
+      "byLabel": "Phân tích nhãn thành phần · Bằng chứng được ghi nhận tại thời điểm phân tích.",
+      "noGrade": "Không đủ thông tin được cung cấp để chấm điểm.",
+      "restrictions": "Quan trọng với bạn",
+      "allPoints": "Các điểm cá nhân hóa ban đầu",
+      "recommendation": "Lý do và tiêu chí đề xuất đã lưu",
+      "savedFromCoach": "Đã lưu từ trợ lý mua sắm",
+      "savedRecommendation": "Đề xuất đã lưu",
+      "whyRecommended": "Lý do được đề xuất",
+      "recommendationSource": "Đề xuất dựa trên kiến thức về sản phẩm. Hãy kiểm tra nhãn hiện tại để biết chính xác thành phần và dinh dưỡng.",
+      "analyzeNotice": "Tạo phân tích cá nhân hóa riêng cho {{name}}. Có thể mở lại kết quả đã lưu mà không cần yêu cầu phân tích mới.",
+      "analyzingProduct": "Đang phân tích sản phẩm này…",
+      "analyzeProduct": "Phân tích sản phẩm này",
+      "viewSaved": "Xem phân tích đã lưu",
+      "updateSaved": "Cập nhật phân tích đã lưu",
+      "removeSaved": "Xóa khỏi thực phẩm đã lưu",
+      "saveUnconfirmed": "Không thể xác nhận việc lưu. Hãy mở lại thực phẩm đã lưu để kiểm tra kết quả hiện tại; không có phân tích mới hơn nào bị cố ý thay thế."
     }
   },
   "athletePicker": {
@@ -3269,7 +3309,8 @@
     },
     "lowerGlycemic": "Tác động glycemic thấp hơn",
     "quickMeal": "Bữa ăn nhanh {{slot}}",
-    "regularGi": "GI thông thường"
+    "regularGi": "GI thông thường",
+    "noOptionsFitPlan": "Không có lựa chọn nào phù hợp với kế hoạch hiện tại của bạn"
   },
   "mealReminders": {
     "checkIOSReminders": "Kiểm tra lời nhắc trên iPhone",
@@ -4009,9 +4050,6 @@
     "unavailable": "Không có hình ảnh",
     "generating": "Đang tạo hình ảnh",
     "restoring": "Đang khôi phục hình ảnh…"
-  },
-  "mealPicker": {
-    "noOptionsFitPlan": "Không có lựa chọn nào phù hợp với kế hoạch hiện tại của bạn"
   },
   "referralTools": {
     "downloadFailed": "Không thể tải mã QR xuống. Vui lòng thử lại."

@@ -307,7 +307,9 @@
     "upgradeItem3": "अतिरिक्त मार्गदर्शन और व्यक्तिगतकरण",
     "upgradeItem4": "उच्च-स्तरीय सुविधाओं तक पहुंच",
     "heroAlt": "My Perfect Meals डैशबोर्ड",
-    "mpmLabel": "MPM"
+    "mpmLabel": "MPM",
+    "foodsEnjoyTitle": "मुझे पसंद आने वाले खाद्य पदार्थ",
+    "foodsEnjoyDescription": "हमें बताएं कि आपको वास्तव में क्या खाना पसंद है।"
   },
   "builders": {
     "pageTitle": "मील बिल्डर",
@@ -431,7 +433,8 @@
     "ingredientsServes": "सामग्री ({{count}} के लिए)",
     "noIngredients": "कोई सामग्री प्रदान नहीं की गई",
     "noInstructions": "कोई निर्देश नहीं दिया गया",
-    "couldNotUpdateFavorites": "पसंदीदा अपडेट नहीं हो सके। पुनः प्रयास करें।"
+    "couldNotUpdateFavorites": "पसंदीदा अपडेट नहीं हो सके। पुनः प्रयास करें।",
+    "sourceSavedMeal": "सहेजा गया भोजन"
   },
   "shopping": {
     "pageTitle": "स्मार्ट किराना सूची",
@@ -505,7 +508,8 @@
       "compareAnother": "दूसरे से تुलना करें",
       "errorGeneric": "अभी उत्पाद की सलाह नहीं मिल सकी। कृपया पुनः प्रयास करें।",
       "noResults": "उस आइटम के लिए कोई ब्रांड सलाह उपलब्ध नहीं है — किसी अधिक विशिष्ट पैकेज्ड उत्पाद को आज़माएं।",
-      "avoid": "बचें"
+      "avoid": "बचें",
+      "verificationRequired": "केवल ब्रांड के नाम से यह पुष्टि नहीं हो सकती कि कोई उत्पाद आपकी प्रोफ़ाइल के लिए सुरक्षित है। इस सहायक को बंद करें और इस पृष्ठ पर उत्पाद स्कैन का उपयोग करके उस उत्पाद के पूरे सामग्री लेबल की तस्वीर लें जिसे आप लेने पर विचार कर रहे हैं।"
     },
     "smartCart": {
       "pick": "चुनें",
@@ -558,7 +562,11 @@
     "step3Placeholder": "उदाहरण: 30303, 90210, 10001",
     "step3Question": "अपना ZIP कोड दर्ज करें ताकि मैं निकटतम लोकेशन ढूँढ सकूँ।",
     "translationFailed": "अनुवाद विफल",
-    "whyHealthy": "यह स्वास्थ्यवर्धक क्यों है:"
+    "whyHealthy": "यह स्वास्थ्यवर्धक क्यों है:",
+    "orderingEducationTitle": "जानें क्या ऑर्डर करना है और कैसे पूछना है।",
+    "orderingEducationBody": "Google Places, My Perfect Meals को रेस्तरां, स्थान और व्यंजन शैली पहचानने में मदद करता है। मेन्यू और सामग्री बदल सकते हैं, इसलिए सुझाया गया भोजन मौजूदा मेन्यू में ठीक उसी रूप में उपलब्ध हो, यह ज़रूरी नहीं है।",
+    "orderingEducationGuidance": "हम बताएंगे कि क्या देखें और उचित बदलाव कैसे पूछें, जैसे अलग साइड डिश, सॉस अलग से, कोई सामग्री हटाना या पकाने का दूसरा तरीका। रेस्तरां तय करता है कि वह किन अनुरोधों को पूरा कर सकता है।",
+    "orderingEducationClosing": "अपनी योजना पर बने रहने का अंदाज़ा लगाने की ज़रूरत नहीं है—हम बताएंगे कि क्या पूछना है।"
   },
   "upgrade": {
     "viewPlans": "योजनाएं देखें",
@@ -730,7 +738,11 @@
     "foundCount": "{{restaurants}} रेस्तरां में {{meals}} भोजन मिले",
     "searchFailed": "खोज विफल",
     "searchFailedDesc": "भोजन नहीं मिला। अलग खोज या ZIP कोड आज़माएं।",
-    "locationZip": "ZIP कोड: {{zip}}"
+    "locationZip": "ZIP कोड: {{zip}}",
+    "orderingEducationTitle": "व्यंजन शैली खोजें, फिर उसे अपने अनुकूल बनाएं।",
+    "orderingEducationBody": "Google Places, My Perfect Meals को स्थान, रेस्तरां के प्रकार और व्यंजन शैली के आधार पर आसपास के रेस्तरां खोजने में मदद करता है। मेन्यू बदल सकते हैं, इसलिए हर सुझाया भोजन ठीक दिखाए गए रूप में उपलब्ध नहीं भी हो सकता है।",
+    "orderingEducationGuidance": "हम बताएंगे कि क्या देखें, किन बदलावों पर विचार करें और अपने लक्ष्यों के अधिक अनुकूल भोजन के लिए कैसे पूछें। रेस्तरां तय करता है कि वह किन अनुरोधों को पूरा कर सकता है।",
+    "orderingEducationClosing": "रेस्तरां खोजें। अपने विकल्प समझें। ऑर्डर करना जानें।"
   },
   "desktopNav": {
     "askChef": "शेफ से पूछें",
@@ -893,7 +905,9 @@
     "errorIngredients": "¡Por favor ingresa algunos ingredientes primero!",
     "allergyAlert": "⚠️ ALERTA DE ALERGIA",
     "generationFailed": "Generación Fallida",
-    "generationFailedDesc": "No se pudieron generar las comidas. Por favor intenta de nuevo."
+    "generationFailedDesc": "No se pudieron generar las comidas. Por favor intenta de nuevo.",
+    "resultsCount_one": "फ्रिज रेस्क्यू का {{count}} परिणाम",
+    "resultsCount_other": "फ्रिज रेस्क्यू के {{count}} परिणाम"
   },
   "cravingCreator": {
     "quickCreate": "Crear Rápido",
@@ -934,7 +948,9 @@
     "missingInfo": "Información Faltante",
     "missingInfoDesc": "¡Por favor describe lo que se te antoja primero!",
     "tryDifferentIngredient": "Prueba un ingrediente diferente",
-    "tryDifferentDesc": "Elige algo sin almidones como carne, pescado o verduras."
+    "tryDifferentDesc": "Elige algo sin almidones como carne, pescado o verduras.",
+    "serving1": "1 सर्विंग",
+    "servingN": "{{count}} सर्विंग"
   },
   "more": {
     "pageTitle": "Más",
@@ -2472,7 +2488,9 @@
     "accountMovesFree": "आपका खाता आज रात फ्री प्लान पर चला जाएगा। आपका सारा डेटा सुरक्षित रहेगा।",
     "trialExpires": "ट्रायल {{date}} को समाप्त होता है",
     "keepFullAccess": "पूर्ण पहुंच बनाए रखें →",
-    "tierFull": "पूर्ण"
+    "tierFull": "पूर्ण",
+    "pilotProgram": "पायलट कार्यक्रम",
+    "clientAccess": "क्लाइंट की पहुँच"
   },
   "trialBanner": {
     "lastDayTitle": "आपकी मुफ्त Pro पहुंच आज समाप्त होती है",
@@ -3243,6 +3261,28 @@
       "savedDesc": "{{name}} आपके किराना पसंदीदा में है।",
       "saveFailTitle": "सहेजा नहीं जा सका",
       "addedToList": "आपकी किराना सूची में जोड़ा गया"
+    },
+    "simple": {
+      "matters": "आपके लिए क्या मायने रखता है",
+      "chef": "शेफ़ की सलाह",
+      "details": "विश्लेषण का और विवरण",
+      "byName": "नाम के आधार पर विश्लेषण · लेबल सत्यापित नहीं है। मौजूदा लेबल देखें।",
+      "byLabel": "सामग्री लेबल का विश्लेषण · विश्लेषण के समय दर्ज प्रमाण।",
+      "noGrade": "दी गई जानकारी के आधार पर ग्रेड उपलब्ध नहीं है।",
+      "restrictions": "आपके लिए महत्वपूर्ण",
+      "allPoints": "मूल व्यक्तिगत बिंदु",
+      "recommendation": "सहेजे गए सिफ़ारिश के कारण और मानदंड",
+      "savedFromCoach": "खरीदारी सहायक से सहेजा गया",
+      "savedRecommendation": "सहेजी गई सिफ़ारिश",
+      "whyRecommended": "इसकी सिफ़ारिश क्यों की गई",
+      "recommendationSource": "उत्पाद संबंधी जानकारी पर आधारित सिफ़ारिश। सटीक सामग्री और पोषण जानकारी के लिए मौजूदा लेबल देखें।",
+      "analyzeNotice": "{{name}} के लिए उनका अपना व्यक्तिगत विश्लेषण बनाएं। सहेजे गए परिणाम बिना नया विश्लेषण अनुरोध किए दोबारा खोले जा सकते हैं।",
+      "analyzingProduct": "इस उत्पाद का विश्लेषण हो रहा है…",
+      "analyzeProduct": "इस उत्पाद का विश्लेषण करें",
+      "viewSaved": "सहेजा गया विश्लेषण देखें",
+      "updateSaved": "सहेजा गया विश्लेषण अपडेट करें",
+      "removeSaved": "सहेजे गए किराने के सामान से हटाएं",
+      "saveUnconfirmed": "सहेजने की पुष्टि नहीं हो सकी। मौजूदा परिणाम देखने के लिए सहेजा गया किराने का सामान दोबारा खोलें; किसी नए विश्लेषण को जानबूझकर नहीं बदला गया।"
     }
   },
   "athletePicker": {
@@ -3504,7 +3544,8 @@
     },
     "lowerGlycemic": "कम ग्लाइसेमिक प्रभाव",
     "quickMeal": "त्वरित {{slot}} भोजन",
-    "regularGi": "सामान्य GI"
+    "regularGi": "सामान्य GI",
+    "noOptionsFitPlan": "कोई विकल्प आपकी वर्तमान योजना के अनुकूल नहीं है"
   },
   "mealReminders": {
     "checkIOSReminders": "iPhone के रिमाइंडर जाँचें",
@@ -4173,9 +4214,6 @@
     "unavailable": "छवि उपलब्ध नहीं है",
     "generating": "छवि बनाई जा रही है",
     "restoring": "छवि पुनर्स्थापित की जा रही है…"
-  },
-  "mealPicker": {
-    "noOptionsFitPlan": "कोई विकल्प आपकी वर्तमान योजना के अनुकूल नहीं है"
   },
   "referralTools": {
     "downloadFailed": "QR कोड डाउनलोड नहीं हो सका। कृपया फिर से कोशिश करें।"

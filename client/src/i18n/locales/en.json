@@ -3298,7 +3298,8 @@
     },
     "lowerGlycemic": "Lower glycemic impact",
     "quickMeal": "Quick {{slot}} Meal",
-    "regularGi": "Regular GI"
+    "regularGi": "Regular GI",
+    "noOptionsFitPlan": "No options fit your current plan"
   },
   "mealReminders": {
     "checkIOSReminders": "Check iPhone reminders",
@@ -4009,9 +4010,6 @@
     "unavailable": "Image unavailable",
     "generating": "Generating image",
     "restoring": "Restoring image…"
-  },
-  "mealPicker": {
-    "noOptionsFitPlan": "No options fit your current plan"
   },
   "referralTools": {
     "downloadFailed": "Could not download the QR code. Please try again."
