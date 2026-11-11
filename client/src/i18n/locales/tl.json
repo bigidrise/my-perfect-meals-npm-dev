@@ -1,4 +1,9 @@
 {
+  "creatorMenuRecovery": {
+    "title": "Kailangang suriin muli ang iyong menu",
+    "checking": "Sinusuri ang mga naka-save na pagpipilian…",
+    "retry": "Suriin muli ang mga naka-save na pagpipilian"
+  },
   "organizationPaidSuccess": {
     "title": "Aktibo na ang iyong subscription sa negosyo!",
     "linkedDescription": "Aktibo na ang iyong organisasyon. Naka-link na ang iyong Rewardful affiliate account, kaya maaari mo itong pamahalaan at patuloy na mag-refer ng mga bagong subscriber sa My Perfect Meals.",
@@ -302,7 +307,9 @@
     "upgradeItem3": "Karagdagang gabay at personalization",
     "upgradeItem4": "Access sa mga higher-tier na feature",
     "heroAlt": "My Perfect Meals Dashboard",
-    "mpmLabel": "MPM"
+    "mpmLabel": "MPM",
+    "foodsEnjoyTitle": "Mga Pagkaing Gusto Ko",
+    "foodsEnjoyDescription": "Sabihin sa amin kung ano talaga ang gusto mong kainin."
   },
   "builders": {
     "pageTitle": "Mga Meal Builder",
@@ -426,7 +433,8 @@
     "ingredientsServes": "Mga Sangkap (para sa {{count}})",
     "noIngredients": "Walang ibinigay na mga sangkap",
     "noInstructions": "Walang ibinigay na mga tagubilin",
-    "couldNotUpdateFavorites": "Hindi ma-update ang mga paborito. Subukan muli."
+    "couldNotUpdateFavorites": "Hindi ma-update ang mga paborito. Subukan muli.",
+    "sourceSavedMeal": "Naka-save na pagkain"
   },
   "shopping": {
     "pageTitle": "Matalinong Listahan ng Pamimili",
@@ -500,7 +508,8 @@
       "compareAnother": "Ikumpara ang Isa Pa",
       "errorGeneric": "Hindi makuha ang payo sa produkto ngayon. Pakisubukang muli.",
       "noResults": "Walang available na payo sa brand para sa item na iyon — subukan ang mas tiyak na naka-package na produkto.",
-      "avoid": "Iwasan"
+      "avoid": "Iwasan",
+      "verificationRequired": "Hindi sapat ang pangalan ng tatak para matiyak na ligtas ang isang produkto para sa iyong profile. Isara ang gabay na ito at gamitin ang pag-scan ng produkto sa pahinang ito upang kunan ng larawan ang buong label ng mga sangkap ng produktong isinasaalang-alang mo."
     },
     "smartCart": {
       "pick": "Piliin",
@@ -553,7 +562,11 @@
     "step3Placeholder": "hal. 30303, 90210, 10001",
     "step3Question": "Ilagay ang iyong ZIP code para mahanap ko ang pinakamalapit na branch.",
     "translationFailed": "Nabigo ang pagsasalin",
-    "whyHealthy": "Bakit ito Healthy:"
+    "whyHealthy": "Bakit ito Healthy:",
+    "orderingEducationTitle": "Alamin kung ano ang oorderin at paano magtanong.",
+    "orderingEducationBody": "Tinutulungan ng Google Places ang My Perfect Meals na matukoy ang restawran, lokasyon, at uri ng lutuin. Maaaring magbago ang mga menu at sangkap, kaya maaaring wala sa kasalukuyang menu ang eksaktong pagkaing iminungkahi.",
+    "orderingEducationGuidance": "Ipapakita namin kung ano ang hahanapin at paano humiling ng makatuwirang pagbabago, gaya ng ibang side dish, hiwalay na sarsa, pag-alis ng sangkap, o ibang paraan ng pagluluto. Ang restawran ang magpapasya kung ano ang kaya nitong gawin.",
+    "orderingEducationClosing": "Hindi mo kailangang manghula kung paano susundin ang iyong plano—ipapakita namin kung ano ang itatanong."
   },
   "upgrade": {
     "viewPlans": "Tingnan ang mga Plano",
@@ -725,7 +738,11 @@
     "foundCount": "Nahanap ang {{restaurants}} restaurant na may {{meals}} pagkain",
     "searchFailed": "Nabigo ang Paghahanap",
     "searchFailedDesc": "Hindi mahanap ang pagkain. Subukan ang ibang paghahanap o ZIP code.",
-    "locationZip": "ZIP Code: {{zip}}"
+    "locationZip": "ZIP Code: {{zip}}",
+    "orderingEducationTitle": "Hanapin ang uri ng lutuin, saka iangkop ito sa iyo.",
+    "orderingEducationBody": "Tinutulungan ng Google Places ang My Perfect Meals na makahanap ng malalapit na restawran batay sa lokasyon, uri ng restawran, at lutuin. Maaaring magbago ang mga menu, kaya hindi lahat ng iminungkahing pagkain ay makikita nang eksakto tulad ng ipinakita.",
+    "orderingEducationGuidance": "Ipapakita namin kung ano ang hahanapin, anong mga pagbabago ang maaaring isaalang-alang, at paano humiling ng pagkaing mas angkop sa iyong mga layunin. Ang restawran ang magpapasya kung ano ang kaya nitong gawin.",
+    "orderingEducationClosing": "Hanapin ang restawran. Unawain ang mga pagpipilian. Alamin kung paano umorder."
   },
   "desktopNav": {
     "askChef": "Tanungin ang Chef",
@@ -888,7 +905,9 @@
     "errorIngredients": "¡Por favor ingresa algunos ingredientes primero!",
     "allergyAlert": "⚠️ ALERTA DE ALERGIA",
     "generationFailed": "Generación Fallida",
-    "generationFailedDesc": "No se pudieron generar las comidas. Por favor intenta de nuevo."
+    "generationFailedDesc": "No se pudieron generar las comidas. Por favor intenta de nuevo.",
+    "resultsCount_one": "{{count}} resulta ng Fridge Rescue",
+    "resultsCount_other": "{{count}} resulta ng Fridge Rescue"
   },
   "cravingCreator": {
     "quickCreate": "Crear Rápido",
@@ -929,7 +948,9 @@
     "missingInfo": "Información Faltante",
     "missingInfoDesc": "¡Por favor describe lo que se te antoja primero!",
     "tryDifferentIngredient": "Prueba un ingrediente diferente",
-    "tryDifferentDesc": "Elige algo sin almidones como carne, pescado o verduras."
+    "tryDifferentDesc": "Elige algo sin almidones como carne, pescado o verduras.",
+    "serving1": "1 serving",
+    "servingN": "{{count}} serving"
   },
   "more": {
     "pageTitle": "Más",
@@ -2467,7 +2488,9 @@
     "accountMovesFree": "Ang iyong account ay lilipat sa libreng plano ngayong gabi. Ang lahat ng iyong data ay mananatiling ligtas.",
     "trialExpires": "Mag-eexpire ang trial sa {{date}}",
     "keepFullAccess": "Panatilihin ang buong access →",
-    "tierFull": "Buo"
+    "tierFull": "Buo",
+    "pilotProgram": "Pilot na programa",
+    "clientAccess": "Access ng kliyente"
   },
   "trialBanner": {
     "lastDayTitle": "Matatapos ang iyong libreng Pro access ngayon",
@@ -3238,6 +3261,28 @@
       "savedDesc": "Nasa iyong grocery favorites na si {{name}}.",
       "saveFailTitle": "Hindi ma-save",
       "addedToList": "Naidagdag sa iyong grocery list"
+    },
+    "simple": {
+      "matters": "Ang Mahalaga para sa Iyo",
+      "chef": "Paalala ng Chef",
+      "details": "Higit pang Detalye ng Pagsusuri",
+      "byName": "Pagsusuri ayon sa pangalan · Hindi beripikado ang label. Suriin ang kasalukuyang label.",
+      "byLabel": "Pagsusuri ng label ng mga sangkap · Ebidensyang naitala noong pagsusuri.",
+      "noGrade": "Walang maibibigay na grado batay sa impormasyong ibinigay.",
+      "restrictions": "Mahalaga para sa Iyo",
+      "allPoints": "Mga orihinal na personalisadong punto",
+      "recommendation": "Mga naka-save na dahilan at pamantayan ng rekomendasyon",
+      "savedFromCoach": "Na-save mula sa gabay sa pamimili",
+      "savedRecommendation": "Naka-save na rekomendasyon",
+      "whyRecommended": "Bakit Ito Inirekomenda",
+      "recommendationSource": "Rekomendasyon batay sa kaalaman tungkol sa produkto. Suriin ang kasalukuyang label para sa eksaktong mga sangkap at nutrisyon.",
+      "analyzeNotice": "Gumawa ng sariling personalisadong pagsusuri para kay {{name}}. Maaaring buksan muli ang mga naka-save na resulta nang hindi humihiling ng panibagong pagsusuri.",
+      "analyzingProduct": "Sinusuri ang Produktong Ito…",
+      "analyzeProduct": "Suriin ang Produktong Ito",
+      "viewSaved": "Tingnan ang Naka-save na Pagsusuri",
+      "updateSaved": "I-update ang Naka-save na Pagsusuri",
+      "removeSaved": "Alisin sa mga Naka-save na Grocery",
+      "saveUnconfirmed": "Hindi makumpirma ang pag-save. Buksan muli ang mga Naka-save na Grocery upang tingnan ang kasalukuyang resulta; walang mas bagong pagsusuri na sadyang pinalitan."
     }
   },
   "athletePicker": {
@@ -3499,7 +3544,8 @@
     },
     "lowerGlycemic": "Mas mababang epekto sa glycemic",
     "quickMeal": "Mabilis na Pagkain sa {{slot}}",
-    "regularGi": "Regular na GI"
+    "regularGi": "Regular na GI",
+    "noOptionsFitPlan": "Walang opsyon na akma sa kasalukuyan mong plano"
   },
   "mealReminders": {
     "checkIOSReminders": "Suriin ang mga paalala sa iPhone",
@@ -4239,9 +4285,6 @@
     "unavailable": "Hindi available ang larawan",
     "generating": "Ginagawa ang larawan",
     "restoring": "Ibinabalik ang larawan…"
-  },
-  "mealPicker": {
-    "noOptionsFitPlan": "Walang opsyon na akma sa kasalukuyan mong plano"
   },
   "referralTools": {
     "downloadFailed": "Hindi ma-download ang QR code. Pakisubukan muli."

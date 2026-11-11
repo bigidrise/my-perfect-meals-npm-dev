@@ -5,6 +5,7 @@ import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-li
 import { useCreatorConceptMenu } from "../useCreatorConceptMenu";
 import { CreatorConceptCards } from "@/components/one-touch/CreatorConceptCards";
 import { CreatorMenuRecovery } from "@/components/one-touch/CreatorMenuRecovery";
+import i18n from "@/i18n";
 
 jest.mock("@/lib/resolveApiBase", () => ({ apiUrl: (path: string) => path }));
 jest.mock("@/lib/auth", () => ({ getAuthHeaders: () => ({}) }));
@@ -31,9 +32,22 @@ function RecoveryView() {
 }
 
 beforeEach(() => {
+  void i18n.changeLanguage("en");
   localStorage.clear();
   jest.restoreAllMocks();
   Object.defineProperty(global, "fetch", { configurable: true, writable: true, value: jest.fn() });
+});
+
+test("recovery controls use translated labels without changing retry behavior", async () => {
+  const onRetry = jest.fn();
+  await i18n.changeLanguage("es");
+  const view = render(<CreatorMenuRecovery error="Server-provided detail" busy={false} onRetry={onRetry} />);
+  expect(screen.getByText("Tu menú necesita otra comprobación")).toBeTruthy();
+  expect(screen.getByText("Server-provided detail")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Volver a comprobar las opciones guardadas" }));
+  expect(onRetry).toHaveBeenCalledTimes(1);
+  view.rerender(<CreatorMenuRecovery error="Server-provided detail" busy onRetry={onRetry} />);
+  expect((screen.getByRole("button", { name: "Comprobando las opciones guardadas…" }) as HTMLButtonElement).disabled).toBe(true);
 });
 
 test.each([

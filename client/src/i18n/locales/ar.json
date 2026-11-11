@@ -1,4 +1,9 @@
 {
+  "creatorMenuRecovery": {
+    "title": "تحتاج قائمتك إلى التحقق مرة أخرى",
+    "checking": "جارٍ التحقق من الخيارات المحفوظة…",
+    "retry": "إعادة التحقق من الخيارات المحفوظة"
+  },
   "organizationPaidSuccess": {
     "title": "اشتراك مؤسستك أصبح نشطًا!",
     "linkedDescription": "أصبحت مؤسستك نشطة الآن. حسابك للتسويق بالعمولة في Rewardful مرتبط، ويمكنك إدارته ومواصلة إحالة مشتركين جدد إلى My Perfect Meals.",
@@ -302,7 +307,9 @@
     "upgradeItem3": "إرشادات وتخصيص إضافي",
     "upgradeItem4": "الوصول إلى ميزات الفئة الأعلى",
     "heroAlt": "لوحة تحكم My Perfect Meals",
-    "mpmLabel": "MPM"
+    "mpmLabel": "MPM",
+    "foodsEnjoyTitle": "الأطعمة التي أستمتع بها",
+    "foodsEnjoyDescription": "أخبرنا بما تستمتع بتناوله فعلًا."
   },
   "builders": {
     "pageTitle": "منشئو الوجبات",
@@ -426,7 +433,8 @@
     "ingredientsServes": "المكونات (تكفي {{count}})",
     "noIngredients": "لم يتم توفير المكونات",
     "noInstructions": "لم تتوفر تعليمات",
-    "couldNotUpdateFavorites": "لم يتمكن من تحديث المفضلات. حاول مرة أخرى."
+    "couldNotUpdateFavorites": "لم يتمكن من تحديث المفضلات. حاول مرة أخرى.",
+    "sourceSavedMeal": "وجبة محفوظة"
   },
   "shopping": {
     "pageTitle": "قائمة التسوق الذكية",
@@ -500,7 +508,8 @@
       "compareAnother": "قارن منتجًا آخر",
       "errorGeneric": "تعذّر الحصول على نصيحة المنتج الآن. يرجى المحاولة مرة أخرى.",
       "noResults": "لا تتوفر نصيحة للعلامة التجارية لهذا المنتج — جرّب منتجًا معبّأً أكثر تحديدًا.",
-      "avoid": "تجنّب"
+      "avoid": "تجنّب",
+      "verificationRequired": "لا تكفي أسماء العلامات التجارية وحدها لتأكيد أن المنتج آمن وفقًا لملفك الشخصي. أغلق هذا المساعد واستخدم ميزة مسح المنتج في هذه الصفحة لتصوير ملصق المكونات كاملًا للمنتج الذي تفكر فيه."
     },
     "smartCart": {
       "pick": "اختر",
@@ -557,7 +566,11 @@
     "step3Placeholder": "مثال: 30303, 90210, 10001",
     "step3Question": "أدخل رمز ZIP الخاص بك لأتمكن من العثور على أقرب فرع.",
     "translationFailed": "فشل الترجمة",
-    "whyHealthy": "لماذا هذا صحي:"
+    "whyHealthy": "لماذا هذا صحي:",
+    "orderingEducationTitle": "اعرف ماذا تطلب وكيف تسأل.",
+    "orderingEducationBody": "تساعد خدمة Google Places تطبيق My Perfect Meals في تحديد المطعم والموقع ونوع المطبخ. قد تتغير القوائم والمكونات، لذلك قد لا تظهر الوجبة المقترحة بشكل مطابق في القائمة الحالية.",
+    "orderingEducationGuidance": "سنوضح لك ما الذي تبحث عنه وكيف تطلب تعديلات معقولة، مثل أطباق جانبية مختلفة، أو الصلصات بشكل منفصل، أو إزالة مكونات، أو طريقة تحضير أخرى. يقرر المطعم ما يمكنه تلبيته.",
+    "orderingEducationClosing": "لن تضطر إلى التخمين للالتزام بخطتك، فسنوضح لك ما الذي تسأل عنه."
   },
   "upgrade": {
     "viewPlans": "عرض الخطط",
@@ -729,7 +742,11 @@
     "foundCount": "تم العثور على {{restaurants}} مطعم مع {{meals}} وجبة",
     "searchFailed": "فشل البحث",
     "searchFailedDesc": "تعذر العثور على وجبات. جرب بحثاً مختلفاً أو رمزاً بريدياً آخر.",
-    "locationZip": "الرمز البريدي: {{zip}}"
+    "locationZip": "الرمز البريدي: {{zip}}",
+    "orderingEducationTitle": "ابحث عن نوع المطبخ، ثم اجعله مناسبًا لك.",
+    "orderingEducationBody": "تساعد خدمة Google Places تطبيق My Perfect Meals في العثور على مطاعم قريبة بناءً على الموقع ونوع المطعم والمطبخ. قد تتغير القوائم، لذلك قد لا تتوفر كل وجبة مقترحة بالشكل المعروض تمامًا.",
+    "orderingEducationGuidance": "سنوضح لك ما الذي تبحث عنه والتعديلات التي يمكنك التفكير فيها وكيف تطلب وجبة أنسب لأهدافك. يقرر المطعم ما يمكنه تلبيته.",
+    "orderingEducationClosing": "اعثر على المطعم. افهم خياراتك. تعرّف على كيفية الطلب."
   },
   "desktopNav": {
     "askChef": "اسأل الشيف",
@@ -892,7 +909,13 @@
     "errorIngredients": "¡Por favor ingresa algunos ingredientes primero!",
     "allergyAlert": "⚠️ ALERTA DE ALERGIA",
     "generationFailed": "Generación Fallida",
-    "generationFailedDesc": "No se pudieron generar las comidas. Por favor intenta de nuevo."
+    "generationFailedDesc": "No se pudieron generar las comidas. Por favor intenta de nuevo.",
+    "resultsCount_one": "نتيجة واحدة لإنقاذ الثلاجة: {{count}}",
+    "resultsCount_other": "{{count}} نتيجة لإنقاذ الثلاجة",
+    "resultsCount_zero": "إنقاذ الثلاجة: {{count}} نتيجة",
+    "resultsCount_two": "نتيجتان لإنقاذ الثلاجة: {{count}}",
+    "resultsCount_few": "{{count}} نتائج لإنقاذ الثلاجة",
+    "resultsCount_many": "{{count}} نتيجة لإنقاذ الثلاجة"
   },
   "cravingCreator": {
     "quickCreate": "Crear Rápido",
@@ -933,7 +956,9 @@
     "missingInfo": "Información Faltante",
     "missingInfoDesc": "¡Por favor describe lo que se te antoja primero!",
     "tryDifferentIngredient": "Prueba un ingrediente diferente",
-    "tryDifferentDesc": "Elige algo sin almidones como carne, pescado o verduras."
+    "tryDifferentDesc": "Elige algo sin almidones como carne, pescado o verduras.",
+    "serving1": "حصة واحدة",
+    "servingN": "{{count}} حصة"
   },
   "more": {
     "pageTitle": "Más",
@@ -2225,7 +2250,9 @@
     "accountMovesFree": "سينتقل حسابك إلى الخطة المجانية الليلة. ستبقى جميع بياناتك آمنة.",
     "trialExpires": "تنتهي التجربة في ⁨{{date}}⁩",
     "keepFullAccess": "احتفظ بالوصول الكامل →",
-    "tierFull": "كامل"
+    "tierFull": "كامل",
+    "pilotProgram": "البرنامج التجريبي",
+    "clientAccess": "وصول العميل"
   },
   "trialBanner": {
     "lastDayTitle": "وصولك المجاني إلى Pro ينتهي اليوم",
@@ -2996,6 +3023,28 @@
       "savedDesc": "{{name}} في مفضلات مشترياتك.",
       "saveFailTitle": "تعذّر الحفظ",
       "addedToList": "أُضيف إلى قائمة مشترياتك"
+    },
+    "simple": {
+      "matters": "ما يهمك",
+      "chef": "تنبيه من الطاهي",
+      "details": "المزيد من تفاصيل التحليل",
+      "byName": "تحليل بالاسم · لم يتم التحقق من الملصق. راجع الملصق الحالي.",
+      "byLabel": "تحليل ملصق المكونات · الأدلة كما سُجلت وقت التحليل.",
+      "noGrade": "لا يمكن إعطاء تقييم بناءً على المعلومات المقدمة.",
+      "restrictions": "مهم لك",
+      "allPoints": "النقاط الشخصية الأصلية",
+      "recommendation": "أسباب التوصية ومعاييرها المحفوظة",
+      "savedFromCoach": "محفوظ من مساعد التسوق",
+      "savedRecommendation": "توصية محفوظة",
+      "whyRecommended": "سبب التوصية به",
+      "recommendationSource": "توصية مبنية على المعرفة بالمنتج. راجع الملصق الحالي لمعرفة المكونات والقيم الغذائية الدقيقة.",
+      "analyzeNotice": "أنشئ التحليل الشخصي الخاص بـ {{name}}. يمكن إعادة فتح النتائج المحفوظة دون طلب تحليل آخر.",
+      "analyzingProduct": "جارٍ تحليل هذا المنتج…",
+      "analyzeProduct": "تحليل هذا المنتج",
+      "viewSaved": "عرض التحليل المحفوظ",
+      "updateSaved": "تحديث التحليل المحفوظ",
+      "removeSaved": "إزالة من المنتجات الغذائية المحفوظة",
+      "saveUnconfirmed": "تعذر تأكيد الحفظ. أعد فتح المنتجات الغذائية المحفوظة للتحقق من النتيجة الحالية؛ لم يتم استبدال أي تحليل أحدث عمدًا."
     }
   },
   "athletePicker": {
@@ -3257,7 +3306,8 @@
     },
     "lowerGlycemic": "تأثير سكري أقل",
     "quickMeal": "وجبة {{slot}} سريعة",
-    "regularGi": "مؤشر عادي"
+    "regularGi": "مؤشر عادي",
+    "noOptionsFitPlan": "لا توجد خيارات تناسب خطتك الحالية"
   },
   "mealReminders": {
     "checkIOSReminders": "التحقق من تذكيرات iPhone",
@@ -4001,9 +4051,6 @@
     "unavailable": "الصورة غير متاحة",
     "generating": "جارٍ إنشاء الصورة",
     "restoring": "جارٍ استعادة الصورة…"
-  },
-  "mealPicker": {
-    "noOptionsFitPlan": "لا توجد خيارات تناسب خطتك الحالية"
   },
   "referralTools": {
     "downloadFailed": "تعذر تنزيل رمز QR. يُرجى المحاولة مرة أخرى."

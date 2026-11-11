@@ -1,4 +1,9 @@
 {
+  "creatorMenuRecovery": {
+    "title": "你的菜单需要再次验证",
+    "checking": "正在验证已保存的选项…",
+    "retry": "重新验证已保存的选项"
+  },
   "organizationPaidSuccess": {
     "title": "您的企业订阅已生效！",
     "linkedDescription": "您的组织现已启用。您的 Rewardful 推广账户已关联，您可以管理该账户并继续向新订阅者推荐 My Perfect Meals。",
@@ -302,7 +307,9 @@
     "upgradeItem3": "额外的指导和个性化",
     "upgradeItem4": "访问更高层级的功能",
     "heroAlt": "My Perfect Meals 仪表板",
-    "mpmLabel": "MPM"
+    "mpmLabel": "MPM",
+    "foodsEnjoyTitle": "我喜欢的食物",
+    "foodsEnjoyDescription": "告诉我们你真正喜欢吃什么。"
   },
   "builders": {
     "pageTitle": "膳食构建器",
@@ -426,7 +433,8 @@
     "ingredientsServes": "食材（供{{count}}人份）",
     "noIngredients": "未提供食材",
     "noInstructions": "未提供说明",
-    "couldNotUpdateFavorites": "无法更新收藏。请再试一次。"
+    "couldNotUpdateFavorites": "无法更新收藏。请再试一次。",
+    "sourceSavedMeal": "已保存餐食"
   },
   "shopping": {
     "pageTitle": "智能购物清单",
@@ -500,7 +508,8 @@
       "compareAnother": "对比其他",
       "errorGeneric": "目前无法获取产品建议。请重试。",
       "noResults": "该商品没有品牌建议 — 请尝试更具体的包装产品。",
-      "avoid": "避免"
+      "avoid": "避免",
+      "verificationRequired": "仅凭品牌名称无法确认产品是否适合你的个人情况。请关闭此助手，并使用本页的产品扫描功能，拍摄你正在考虑的产品的完整配料标签。"
     },
     "smartCart": {
       "pick": "选择",
@@ -553,7 +562,11 @@
     "step3Placeholder": "例如：30303, 90210, 10001",
     "step3Question": "输入您的 ZIP 邮编，以便我找到最近的地点。",
     "translationFailed": "翻译失败",
-    "whyHealthy": "健康原因："
+    "whyHealthy": "健康原因：",
+    "orderingEducationTitle": "知道点什么，也知道怎么问。",
+    "orderingEducationBody": "Google Places 帮助 My Perfect Meals 识别餐厅、位置和菜系。菜单和配料可能会变化，因此推荐餐食不一定会原样出现在当前菜单上。",
+    "orderingEducationGuidance": "我们会告诉你应关注什么，以及如何询问合理的调整，例如更换配菜、酱汁另放、去掉某些配料或更换烹饪方法。餐厅自行决定能否满足这些要求。",
+    "orderingEducationClosing": "不用猜测如何坚持计划，我们会告诉你该问什么。"
   },
   "upgrade": {
     "viewPlans": "查看计划",
@@ -725,7 +738,11 @@
     "foundCount": "找到 {{restaurants}} 家餐厅，共 {{meals}} 个餐点",
     "searchFailed": "搜索失败",
     "searchFailedDesc": "无法找到餐点。请尝试不同的搜索或邮政编码。",
-    "locationZip": "邮政编码：{{zip}}"
+    "locationZip": "邮政编码：{{zip}}",
+    "orderingEducationTitle": "找到菜系，再让它适合你。",
+    "orderingEducationBody": "Google Places 帮助 My Perfect Meals 根据位置、餐厅类型和菜系查找附近餐厅。菜单可能会变化，因此推荐餐食不一定与展示的完全一致。",
+    "orderingEducationGuidance": "我们会告诉你应关注什么、可以考虑哪些调整，以及如何提出更符合目标的用餐要求。餐厅自行决定能否满足这些要求。",
+    "orderingEducationClosing": "找到餐厅，了解选择，知道如何点餐。"
   },
   "desktopNav": {
     "askChef": "问厨师",
@@ -888,7 +905,9 @@
     "errorIngredients": "¡Por favor ingresa algunos ingredientes primero!",
     "allergyAlert": "⚠️ ALERTA DE ALERGIA",
     "generationFailed": "Generación Fallida",
-    "generationFailedDesc": "No se pudieron generar las comidas. Por favor intenta de nuevo."
+    "generationFailedDesc": "No se pudieron generar las comidas. Por favor intenta de nuevo.",
+    "resultsCount_one": "{{count}} 个冰箱救援结果",
+    "resultsCount_other": "{{count}} 个冰箱救援结果"
   },
   "cravingCreator": {
     "quickCreate": "Crear Rápido",
@@ -929,7 +948,9 @@
     "missingInfo": "Información Faltante",
     "missingInfoDesc": "¡Por favor describe lo que se te antoja primero!",
     "tryDifferentIngredient": "Prueba un ingrediente diferente",
-    "tryDifferentDesc": "Elige algo sin almidones como carne, pescado o verduras."
+    "tryDifferentDesc": "Elige algo sin almidones como carne, pescado o verduras.",
+    "serving1": "1 份",
+    "servingN": "{{count}} 份"
   },
   "more": {
     "pageTitle": "Más",
@@ -2235,7 +2256,9 @@
     "accountMovesFree": "您的账户将于今晚切换至免费计划。您的所有数据仍安全保留。",
     "trialExpires": "试用期到期日：{{date}}",
     "tierFull": "完整",
-    "keepFullAccess": "保留完整访问权 →"
+    "keepFullAccess": "保留完整访问权 →",
+    "pilotProgram": "试点计划",
+    "clientAccess": "客户访问权限"
   },
   "groceryDashCard": {
     "title": "每周购物清单",
@@ -2992,6 +3015,28 @@
       "savedDesc": "{{name}}在您的杂货书签中。",
       "saveFailTitle": "无法保存",
       "addedToList": "已添加到您的杂货清单"
+    },
+    "simple": {
+      "matters": "与你有关的重点",
+      "chef": "主厨提醒",
+      "details": "更多分析详情",
+      "byName": "按名称分析 · 标签未核实。请查看当前标签。",
+      "byLabel": "配料标签分析 · 依据为分析时记录的信息。",
+      "noGrade": "所提供的信息不足以给出评分。",
+      "restrictions": "对你很重要",
+      "allPoints": "原始个性化要点",
+      "recommendation": "已保存的推荐理由和标准",
+      "savedFromCoach": "从购物助手保存",
+      "savedRecommendation": "已保存的推荐",
+      "whyRecommended": "推荐原因",
+      "recommendationSource": "推荐基于对产品的了解。准确配料和营养信息请以当前标签为准。",
+      "analyzeNotice": "为 {{name}} 生成专属个性化分析。已保存的结果可直接重新打开，无需再次请求分析。",
+      "analyzingProduct": "正在分析此产品…",
+      "analyzeProduct": "分析此产品",
+      "viewSaved": "查看已保存的分析",
+      "updateSaved": "更新已保存的分析",
+      "removeSaved": "从已保存食品中移除",
+      "saveUnconfirmed": "无法确认是否保存成功。请重新打开已保存食品，查看当前结果；系统没有主动替换任何较新的分析。"
     }
   },
   "athletePicker": {
@@ -3253,7 +3298,8 @@
     },
     "lowerGlycemic": "降低血糖影响",
     "quickMeal": "快速 {{slot}} 餐",
-    "regularGi": "常规 GI"
+    "regularGi": "常规 GI",
+    "noOptionsFitPlan": "没有符合您当前计划的选项"
   },
   "mealReminders": {
     "checkIOSReminders": "检查 iPhone 提醒",
@@ -3993,9 +4039,6 @@
     "unavailable": "图像不可用",
     "generating": "正在生成图像",
     "restoring": "正在恢复图像…"
-  },
-  "mealPicker": {
-    "noOptionsFitPlan": "没有符合您当前计划的选项"
   },
   "referralTools": {
     "downloadFailed": "无法下载二维码。请再试一次。"

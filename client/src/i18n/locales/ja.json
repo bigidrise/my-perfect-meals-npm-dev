@@ -1,4 +1,9 @@
 {
+  "creatorMenuRecovery": {
+    "title": "メニューの再確認が必要です",
+    "checking": "保存済みの選択肢を確認中…",
+    "retry": "保存済みの選択肢を再確認"
+  },
   "organizationPaidSuccess": {
     "title": "ビジネスサブスクリプションが有効になりました！",
     "linkedDescription": "組織が有効になりました。Rewardful アフィリエイトアカウントが連携されているため、アカウントの管理や My Perfect Meals への新規登録者の紹介を続けられます。",
@@ -302,7 +307,9 @@
     "upgradeItem3": "追加のガイダンスとパーソナライズ",
     "upgradeItem4": "上位ティアの機能へのアクセス",
     "heroAlt": "My Perfect Meals ダッシュボード",
-    "mpmLabel": "MPM"
+    "mpmLabel": "MPM",
+    "foodsEnjoyTitle": "好きな食べ物",
+    "foodsEnjoyDescription": "実際に食べるのが好きなものを教えてください。"
   },
   "builders": {
     "pageTitle": "ミールビルダー",
@@ -426,7 +433,8 @@
     "ingredientsServes": "材料（{{count}}人前）",
     "noIngredients": "食材が提供されていません",
     "noInstructions": "手順が提供されていません",
-    "couldNotUpdateFavorites": "お気に入りを更新できませんでした。再試行してください。"
+    "couldNotUpdateFavorites": "お気に入りを更新できませんでした。再試行してください。",
+    "sourceSavedMeal": "保存済みの食事"
   },
   "shopping": {
     "pageTitle": "スマート買い物リスト",
@@ -500,7 +508,8 @@
       "compareAnother": "別の商品と比較",
       "errorGeneric": "現在、商品アドバイスを取得できません。もう一度お試しください。",
       "noResults": "その商品のブランドアドバイスは利用できません。より具体的なパッケージ商品をお試しください。",
-      "avoid": "避ける"
+      "avoid": "避ける",
+      "verificationRequired": "ブランド名だけでは、その製品があなたのプロフィール上安全かどうかは確認できません。このアドバイザーを閉じ、このページの製品スキャンで、検討中の製品の原材料表示全体を撮影してください。"
     },
     "smartCart": {
       "pick": "選ぶ",
@@ -553,7 +562,11 @@
     "step3Placeholder": "例：30303, 90210, 10001",
     "step3Question": "最寄りの店舗を探すため、ZIPコードを入力してください。",
     "translationFailed": "翻訳に失敗しました",
-    "whyHealthy": "この料理がヘルシーな理由:"
+    "whyHealthy": "この料理がヘルシーな理由:",
+    "orderingEducationTitle": "何を注文するか、どう頼むかを知る。",
+    "orderingEducationBody": "Google Places は、My Perfect Meals がレストラン、所在地、料理の種類を特定するために使われます。メニューや原材料は変わるため、提案された料理が現在のメニューにそのまま載っているとは限りません。",
+    "orderingEducationGuidance": "付け合わせの変更、ソースの別添え、原材料の除去、調理方法の変更など、何を確認し、どのように無理のない変更を相談するかをご案内します。対応できる内容はレストランが決定します。",
+    "orderingEducationClosing": "計画を続ける方法を推測する必要はありません。何を尋ねればよいかをご案内します。"
   },
   "upgrade": {
     "viewPlans": "プランを見る",
@@ -725,7 +738,11 @@
     "foundCount": "{{restaurants}}軒のレストランで{{meals}}の食事を発見",
     "searchFailed": "検索失敗",
     "searchFailedDesc": "食事が見つかりませんでした。別の検索や郵便番号をお試しください。",
-    "locationZip": "郵便番号：{{zip}}"
+    "locationZip": "郵便番号：{{zip}}",
+    "orderingEducationTitle": "料理の種類を見つけ、自分に合う形に。",
+    "orderingEducationBody": "Google Places は、所在地、レストランの種類、料理の種類に基づいて、My Perfect Meals が近くのレストランを探すために使われます。メニューは変わるため、提案された料理が表示どおりにあるとは限りません。",
+    "orderingEducationGuidance": "何を確認し、どのような調整を検討し、目標により合う食事をどう頼むかをご案内します。対応できる内容はレストランが決定します。",
+    "orderingEducationClosing": "レストランを探し、選択肢を理解し、注文方法を知る。"
   },
   "desktopNav": {
     "askChef": "シェフに聞く",
@@ -888,7 +905,9 @@
     "errorIngredients": "¡Por favor ingresa algunos ingredientes primero!",
     "allergyAlert": "⚠️ ALERTA DE ALERGIA",
     "generationFailed": "Generación Fallida",
-    "generationFailedDesc": "No se pudieron generar las comidas. Por favor intenta de nuevo."
+    "generationFailedDesc": "No se pudieron generar las comidas. Por favor intenta de nuevo.",
+    "resultsCount_one": "冷蔵庫レスキューの結果 {{count}} 件",
+    "resultsCount_other": "冷蔵庫レスキューの結果 {{count}} 件"
   },
   "cravingCreator": {
     "quickCreate": "Crear Rápido",
@@ -929,7 +948,9 @@
     "missingInfo": "Información Faltante",
     "missingInfoDesc": "¡Por favor describe lo que se te antoja primero!",
     "tryDifferentIngredient": "Prueba un ingrediente diferente",
-    "tryDifferentDesc": "Elige algo sin almidones como carne, pescado o verduras."
+    "tryDifferentDesc": "Elige algo sin almidones como carne, pescado o verduras.",
+    "serving1": "1人分",
+    "servingN": "{{count}}人分"
   },
   "more": {
     "pageTitle": "Más",
@@ -2287,7 +2308,9 @@
     "accountMovesFree": "お客様のアカウントは今夜無料プランに移行します。すべてのデータは安全に保管されます。",
     "trialExpires": "トライアルは{{date}}に終了します",
     "keepFullAccess": "フルアクセスを維持する →",
-    "tierFull": "フル"
+    "tierFull": "フル",
+    "pilotProgram": "パイロットプログラム",
+    "clientAccess": "クライアントアクセス"
   },
   "trialBanner": {
     "lastDayTitle": "無料Proアクセスが本日終了します",
@@ -3058,6 +3081,28 @@
       "savedDesc": "{{name}} は買い物のお気に入りにあります。",
       "saveFailTitle": "保存できませんでした",
       "addedToList": "買い物リストに追加しました"
+    },
+    "simple": {
+      "matters": "あなたにとって大切なこと",
+      "chef": "シェフからのひとこと",
+      "details": "分析の詳細",
+      "byName": "名称による分析 · ラベル未確認。現在のラベルを確認してください。",
+      "byLabel": "原材料表示の分析 · 分析時点で記録された情報に基づきます。",
+      "noGrade": "提供された情報では評価を付けられません。",
+      "restrictions": "あなたへの重要事項",
+      "allPoints": "元の個別ポイント",
+      "recommendation": "保存された推奨理由と基準",
+      "savedFromCoach": "買い物アドバイザーから保存",
+      "savedRecommendation": "保存済みの推奨",
+      "whyRecommended": "推奨された理由",
+      "recommendationSource": "製品知識に基づく推奨です。正確な原材料と栄養情報は現在のラベルで確認してください。",
+      "analyzeNotice": "{{name}}さん専用の個別分析を生成します。保存済みの結果は、新たに分析を依頼せずに再度開けます。",
+      "analyzingProduct": "この製品を分析中…",
+      "analyzeProduct": "この製品を分析",
+      "viewSaved": "保存済みの分析を表示",
+      "updateSaved": "保存済みの分析を更新",
+      "removeSaved": "保存済み食品から削除",
+      "saveUnconfirmed": "保存を確認できませんでした。保存済み食品を開き直して現在の結果を確認してください。より新しい分析を意図的に置き換えてはいません。"
     }
   },
   "athletePicker": {
@@ -3319,7 +3364,8 @@
     },
     "lowerGlycemic": "血糖への影響が低め",
     "quickMeal": "クイック{{slot}}",
-    "regularGi": "通常GI"
+    "regularGi": "通常GI",
+    "noOptionsFitPlan": "現在のプランに合う選択肢はありません"
   },
   "mealReminders": {
     "checkIOSReminders": "iPhoneのリマインダーを確認",
@@ -4059,9 +4105,6 @@
     "unavailable": "画像を利用できません",
     "generating": "画像を生成中",
     "restoring": "画像を復元中…"
-  },
-  "mealPicker": {
-    "noOptionsFitPlan": "現在のプランに合う選択肢はありません"
   },
   "referralTools": {
     "downloadFailed": "QRコードをダウンロードできませんでした。もう一度お試しください。"
