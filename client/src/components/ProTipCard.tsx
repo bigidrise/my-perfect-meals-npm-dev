@@ -3,8 +3,13 @@ import { PRO_TIP_SECTIONS } from "@/components/copilot/scripts/proTipScript";
 import { useNarration } from "@/hooks/useNarration";
 import { PillButton } from "@/components/ui/pill-button";
 import { Play, Pause, RotateCcw, FileText, Undo2 } from "lucide-react";
+import { AUTOMATIC_INSTRUCTIONAL_POPUPS_ENABLED } from "@/lib/instructionalPopupPolicy";
 
 export const ProTipCard: React.FC = () => {
+  return AUTOMATIC_INSTRUCTIONAL_POPUPS_ENABLED ? <ProTipCardContent /> : null;
+};
+
+const ProTipCardContent: React.FC = () => {
   const [hasStarted, setHasStarted] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
 

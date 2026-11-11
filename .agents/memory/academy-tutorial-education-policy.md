@@ -54,7 +54,24 @@ only under consideration.
 
 **Why:** YouTube Academy tutorials are now the primary feature-education experience.
 
+Embedded instructional Pro Tip cards across the meal builders are also hidden
+under the centralized instructional visibility policy; retain their underlying
+content. Guest welcome education must follow the same automatic-open policy.
+
+**Why:** The founder explicitly approved finishing both omissions while preserving
+manual Copilot voice, chat, help, and Chef buttons.
+
 **How to apply:** Classify triggers before changing them. Gate only automatic
 educational presentation, never required operational work or user-requested help.
 Verify in Development without unnecessary paid AI calls; publication and release
 still follow the existing approval gates.
+
+The smiley Chef buttons in the bottom navigation and left sidebar must open
+`/coach-corner/home`, not trigger instructional Copilot cards.
+
+**Why:** The founder clarified that pressing either navigation smiley should open
+the actual Ask Chef page, not a card. This overrides retaining card triggers on
+those two navigation controls; it does not request disabling voice or chat.
+
+**How to apply:** Keep these navigation buttons independent of Copilot opening
+and explanation timers; preserve the destination page's existing access checks.

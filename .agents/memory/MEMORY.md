@@ -1,6 +1,6 @@
 - [Production source and publication history](production-source-publication-history.md) — separate source authority from automatic publication checkpoints; clean builds alone cannot keep the branch fast-forwardable.
 - [Pregnancy release safety pause](pregnancy-release-safety-pause.md) — Coming Soon stays Clinical; retain saved support and other safety rules while activation and unreviewed guidance are paused.
-- [Safe-area modal layout](safe-area-modal-layout-rule.md) — safe-area spacing fixes must not restructure modal flex or overflow behavior.
+- [Interface layout references](interface-layout-reference-index.md) — safe-area modals, universal dialogs, mobile scroll ownership, and compact icon-pill selectors.
 - [Development runtime references](development-runtime-reference-index.md) — startup-log evidence, warm-browser Vite cache identity, and production-mode dependency checks.
 - [Authenticated API cache identity](authenticated-api-client-cache-identity.md) — removing caller IDs from APIs must not erase client-side account partitions.
 - [Role-aware polling authentication](role-aware-polling-auth.md) — background 401/403 responses are not always invalid sessions; respect endpoint role boundaries.
@@ -13,7 +13,6 @@
 - [Production route parity](prod-route-parity.md) — routes mounted in development need explicit production mounting too.
 - [Subscription enforcement](subscription-tier-middleware.md) — plan lookup keys drive access; disabled billing is the sole global bypass.
 - [ProCare effective access](business-effective-access.md) — compute access at runtime from membership or personal plan; never persist merged entitlement.
-- [Universal modal system](universal-modal-system.md) — use typed universal modals and follow the DialogContent import rule.
 - [Coaching engine contracts](coaching-engine-phase1.md) — coaching evidence and typed contracts are the shared foundation for its observers and UI.
 - [Coaching confidence doctrine](coaching-engine-confidence-doctrine.md) — legacy structured-renderer confidence controls, not the released Ask Chef primary conversation.
 - [Object storage verification](object-storage-architecture.md) — resolve current environment authority; no-write readiness does not attest upload durability.
@@ -85,7 +84,6 @@
 - [Organization Location isolation](organization-location-isolation.md) — parent administration never implies Location access; active context is an exact authorized pair.
 - [Diabetes glucose context boundary](diabetes-glucose-context-boundary.md) — all food surfaces enforce state produce choices; only the Diabetes Meal Builder consumes diabetes-specific numbers.
 - [Create a Dish expansion isolation](create-dish-expansion-isolation.md) — expansion is typed culinary intent owned only by create_a_dish, never generic creator behavior.
-- [Icon pill choices](icon-pill-choice-layout.md) — icon-based food selectors place the icon above a compact text pill, not inside an oversized button.
 - [Authoritative mobile text submission](authoritative-mobile-text-submission.md) — food creators must process the visible field value, not potentially stale React state.
 - [Shared validator consumer contracts](shared-validator-consumer-contracts.md) — shared validation changes must run contract suites for every protected feature that feeds them.
 - [Anti-Inflammatory food matching](anti-inflammatory-food-concept-matching.md) — prohibited prepared foods do not prohibit every component; preserve policy and test final-scan consumers.
@@ -93,7 +91,6 @@
 - [Meal generation progress UX](meal-generation-progress-ux.md) — long food requests use one context-aware explanatory status system, never fake backend stages.
 - [Open-world food intent](open-world-food-intent.md) — catalog misses use schema-bound semantic interpretation; downstream governance remains authoritative.
 - [Meal subject authority](meal-subject-authority.md) — the authenticated actor is not automatically the nutrition subject; resolve food context for the person being fed.
-- [Mobile page scroll ownership](mobile-page-scroll-ownership.md) — RootViewport alone owns vertical page scrolling; fixed controls must not block vertical gestures.
 - [Fridge Rescue cuisine authority](fridge-rescue-cuisine-authority.md) — explicit cuisine applies to every result; targeted repairs must pass the full safety stack.
 - [Established access invariants](established-access-invariants.md) — ownership, completion, and valid sessions must survive eligibility and workspace refactors.
 - [Business Offer link boundary](business-offer-link-boundary.md) — reusable org offers own bounded access; Rewardful owns referral credit.
