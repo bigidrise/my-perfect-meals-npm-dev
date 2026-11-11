@@ -32,6 +32,26 @@ installed build, permission settings, saved schedules, pending requests or
 delivery logs. Prioritize enabled-state/permission/pending-request evidence
 before assuming migration failure or authorizing a rebuild.
 
+### Subsequent panel screenshot
+
+The founder also reported that the reminders are switched on, then supplied a
+cropped panel screenshot. It explicitly displays **Web push delivery** and
+**Notifications blocked in browser**. The visible Meal 1 control contains a
+crossed-out bell, which the current component renders for a disabled slot.
+Only that partial row is visible.
+
+This establishes a browser-mode notification block in the captured UI, not a
+native iOS permission or pending-request result. The screenshot's device,
+container and environment have not yet been established. Do not infer that the
+installed native bridge is broken, that every saved slot is disabled, or that
+the earlier enabled-state report refers to this exact screen.
+
+Next establish whether the capture is from the installed iPhone application,
+an iPhone browser/web shortcut, or a computer browser. If it is the installed
+native app, browser-mode detection warrants bridge/build inspection before
+changing notification permissions or providers. No changes were made in
+response to the screenshot.
+
 ## Current architecture
 
 - `ProfileSheet` renders `MealReminders`.
