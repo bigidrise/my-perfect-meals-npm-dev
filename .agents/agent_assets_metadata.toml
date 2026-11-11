@@ -747,3 +747,17 @@ mtime_ms = 1794426390159
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7d51b1db-4479-4bad-9ac3-374945ff2f39/a8ac9a45-f25b-4f2d-9e1c-794c74859cf4"
 storage_version_token = "1794426471468312"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "GfAUoi4HdJRsgkJKPBLhW"
+uri = "file://docs/shopping/universal-meal-card-shopping-audit-2026-11-11.md"
+type = "text"
+title = "Universal Meal-Card Shopping Audit and Implementation Proposal"
+description = "Read-only architecture audit with coverage matrix, exact shopping paths, reproduced quantity issues, Gatherings duplicate protection, translation/layout recommendations, phased scope and verification plan."
+logical_id = "bfcb70b1-3c4d-46b4-a030-fa023907d299"
+content_hash = "sha256:278087ac6eec29b494f93698b4aa141427a2a50bf9d2494c1522b340426ac81e"
+size = 31761
+mtime_ms = 1794435776870
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/bfcb70b1-3c4d-46b4-a030-fa023907d299/df9c4d3c-e520-4c67-9273-f6f268c6788b"
+storage_version_token = "1794435879865565"
+content_type = "text/markdown"
