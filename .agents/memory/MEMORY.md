@@ -155,3 +155,4 @@
 - [Academy tutorial education](academy-tutorial-education-policy.md) — preserve exact feature videos; missing links stay hidden; automatic education is off while manual help and safety remain.
 - [Builder entry choices](builder-entry-choice-experience.md) — founder prefers General Nutrition's choice-first entry across the other three builders.
 - [Getaway real-world dining](getaway-real-world-dining.md) — practical profile-driven choices; cuisine is flexible, required diets stay intact, optional ingredient uncertainty is advisory.
+- [Individual meal-card shopping](meal-card-shopping-intent.md) — shop chosen finalized recipes, not only entire menus; bulk/card adds must share repeat protection and retain translation.
