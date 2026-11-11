@@ -2,6 +2,12 @@
 
 ## Decision summary
 
+**Architecture clarification:** the subsequent standardized-card verification
+established that the existing `MealCardActions` should be the single action
+integration point. Many creators currently bypass it. Reconnect their footers
+rather than introducing another universal card. See
+`standardized-meal-card-architecture-verification-2026-11-11.md`.
+
 **Recommend one shared, ingredient-backed “Shopping” action for every eligible finalized recipe card, backed by one acknowledged, idempotent transfer operation.** Keep the existing shopping list. Do not create a second cart.
 
 Start with Create a Dish and My Perfect Gatherings. Hide the new card action in meal builders initially, as requested, while preserving their day/selected-days shopping bars. Those bars must eventually use the same transfer identities so bulk and individual additions cannot double-count one another.
@@ -117,11 +123,11 @@ Even the better shared helper currently defaults an unresolved amount to one. Re
 | Anti-Inflammatory builder | `pages/physician/AntiInflammatoryMenuBuilder.tsx` | Builder bar | Same; retain validated ingredient qualifiers. |
 | Beach Body board | `pages/BeachBodyMealBoard.tsx` | Bar plus preview/commit modal path | Keep builder visibility policy; repair/unify commit behavior before reusing it. |
 | Older day-by-day board | `components/DayByDayMealBoard.tsx` | `addMealsToShopping` helper | Move transfer behind the shared service, not a second button implementation. |
-| Shared expanded meal cards | `components/MealCard.tsx`, `components/MealCardActions.tsx` | No universal shopping action | Shared integration point, but pass original recipe ID/revision/yield and explicit shopping visibility from parent. |
+| Shared rendered meal cards | `components/MealCard.tsx`, `components/MealCardActions.tsx` | No universal shopping action | Shared integration point, but pass original recipe ID/revision/yield and explicit shopping visibility from parent. |
 | Saved Meals / Favorites | `pages/SavedMeals.tsx`, `components/SavedMealRow.tsx` | No universal per-saved-recipe transfer | Supply canonical saved/origin identity, original ingredients and yield; survive refresh/reopen without duplicate purchase contributions. |
 | Grocery Coach saved cards | Existing Saved Meals/shared-card path | Coach already has a separate Add All pathway | Reuse the selection identity across Coach and saved-card shopping. Preserve any chosen product and requirements. |
-| Studio-generated recipe | `components/meal/GeneratedMealCard.tsx`, `components/studio-wizard/StudioWizard.tsx` | No shared card shopping transfer | Adapter can support complete recipes; keep professional client ownership protected and do not implicitly write to the practitioner’s list. |
-| Builder full cards | `components/MealCardFull.tsx` via `components/BuilderDayBoard.tsx` | Contains a removed-shopping stub, not functional shopping | Do not revive the stub. Feed new shared action only where host policy permits; hide for builder context initially. |
+| Retired Studio-generated recipe path | `components/meal/GeneratedMealCard.tsx`, `components/studio-wizard/StudioWizard.tsx` | Follow-up graph found only retired Studio consumers, not application-entry reachability | Do not count this as active customer coverage or a required current migration. |
+| Unused full-builder card path | `components/MealCardFull.tsx` via `components/BuilderDayBoard.tsx` | Contains a removed-shopping stub; parent has no discovered importers and neither is application-entry reachable | Do not revive this path merely to implement Shopping. Active builders use `components/MealCard.tsx`. |
 | Getaway / Away From Home | `pages/lifestyle/MyPerfectGetaway.tsx`, `components/away-from-home/GetawayVenueMeals.tsx`, `AwayFromHomeMealCard.tsx` | Venue/menu recommendations and macro/plan actions, not verified recipe shopping | No fabricated quantities from restaurant descriptions. Offer unavailable explanation or explicit route to generate a full governed recipe. |
 | My Perfect Menu | `pages/MyPerfectMenu.tsx` | Concepts and generation/board handoff | Do not shop concept ingredients; enable only after a complete finalized recipe exists. Keep builder placement separate. |
 | Pairings | `components/pairings/PairingResultCard.tsx`, pairing pages | Guidance/alternatives, not full quantified recipes | Not an eligible ingredient-backed recipe merely because it looks like a card. Keep existing Pairing release gates unchanged. |
@@ -165,9 +171,12 @@ Proposed files: `client/src/lib/mealShoppingApi.ts`, `client/src/hooks/useMealSh
 - Cards remain on the current page so users can add multiple courses. Provide a separate View List link.
 - Preserve existing auth, CSRF/native transport, entitlement and actor/subject controls. No new clinical engine or extra AI calls.
 
-### C. A shared button, not one universal card rewrite
+### C. The existing shared action component, not another card system
 
-Proposed file: `client/src/components/MealShoppingButton.tsx`.
+The single integration point should be the existing
+`client/src/components/MealCardActions.tsx`, after active inline creator footers
+are reconnected to it. A small Shopping button may be a leaf control, not a
+parallel card/footer system.
 
 - Compact visible label “Shopping”; accessible name “Add [dish] to shopping list”.
 - Pending disabled state; explicit Added/Already added result; retry on genuine failure.
@@ -219,7 +228,7 @@ For a new shopping trip after clearing the list, use a new list cycle or equival
 ### Translation is not yet demonstrably redundant
 
 - `client/src/components/TranslateToggle.tsx` translates generated content through a separate manual path and detects the device language.
-- `client/src/hooks/useTranslatedMeal.ts` uses app language, but only calls the saved-meal translation API when enabled/expanded, and falls back to original content on error.
+- `client/src/hooks/useTranslatedMeal.ts` uses app language when enabled. The main card enables it for a valid saved-meal identity; saved rows enable it when expanded. It falls back to original content on error.
 - Many inline creator cards do not use that saved-meal hook. Global UI translation does not prove existing generated recipe text is translated.
 - Pediatric translation currently updates recipe title/description/instructions in its callback, not the returned ingredient names. This is an existing parity gap to account for.
 - Some translation callbacks update displayed recipe state. Shopping must use canonical original ingredients, not a translated name as ingredient identity.

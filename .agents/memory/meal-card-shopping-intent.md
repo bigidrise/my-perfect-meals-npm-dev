@@ -23,3 +23,16 @@ instruction translation before removing the existing functionality.
 
 **How to apply:** Separate a button-placement change from removal of translation;
 preserve a secondary translation action until content parity is established.
+
+The founder's intended architecture is that modifying shared meal-card actions
+automatically updates every feature using the standardized card. Verify actual
+consumer inheritance before Shopping implementation; do not introduce another
+meal-card system.
+
+**Why:** The founder explicitly requested architecture verification and minimum
+restoration of one-source-of-truth behavior before changing Shopping.
+
+**How to apply:** Prefer reconnecting eligible feature footers to the existing
+shared action owner over creating another universal renderer. Keep existing
+Add to Plan and Add to Macros behavior and retain necessary feature-specific
+content and safety controls.
