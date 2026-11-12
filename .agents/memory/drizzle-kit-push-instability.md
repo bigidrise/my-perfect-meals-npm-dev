@@ -25,3 +25,14 @@ of the schema. A separate atomic export/application exposed invalid baseline DDL
 baseline DDL transactionally in authorized isolated databases. Stop on unrelated
 schema errors instead of silently running the application against a partial
 schema or falling back to the shared database.
+
+A clean schema export/application still does not prove full application
+readiness: some runtime prerequisites are owned by separate migrations rather
+than Drizzle discovery.
+
+**Why:** Isolated baseline initialization succeeded, but the application's
+read-only startup guard correctly rejected missing migration-owned structures.
+
+**How to apply:** Retain runtime readiness guards and distinguish ORM-baseline
+success from a runnable isolated app. Respect an explicit stop-at-next-schema-error
+instruction rather than bypassing guards or silently expanding migration scope.
