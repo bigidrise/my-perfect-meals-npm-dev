@@ -115,13 +115,12 @@ test("Create a Dish keeps its existing macro callback and original recipe Plan h
   expect(f.handlers.plan).toHaveBeenCalledWith(f.recipe);
   expect(f.recipe.ingredients[0].quantity).toBe(2);
 });
-test("saved/Favorites callbacks and explicit Translate override remain available", () => {
+test("saved/Favorites macros and Translate remain available without footer removal clutter", () => {
   const f = fixture("components/SavedMealRow.tsx");
   render(f.element());
   fireEvent.click(screen.getByRole("button", { name: "Add to Macros" }));
   expect(f.handlers.onAddToMacros).toHaveBeenCalledWith(expect.objectContaining({ id: "synthetic-recipe" }));
-  fireEvent.click(screen.getByRole("button", { name: "Remove" }));
-  expect(f.handlers.onRemove).toHaveBeenCalledWith(expect.objectContaining({ id: "synthetic-recipe" }));
+  expect(screen.queryByRole("button", { name: "Remove" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "More" }));
   expect(screen.getByRole("button", { name: "Translate" })).toBeInTheDocument();
 });

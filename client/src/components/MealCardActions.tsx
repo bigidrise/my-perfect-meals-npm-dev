@@ -20,8 +20,9 @@ export function MealCardAction({ children }: { kind: MealCardActionKind; childre
 
 export const mealCardActionLayout = { columns: 2 };
 
-function collectActions(children: ReactNode): Array<{ kind: MealCardActionKind | "translate"; node: ReactNode }> {
-  return Children.toArray(children).flatMap<{ kind: MealCardActionKind | "translate"; node: ReactNode }>(child => {
+type CollectedAction = { kind: MealCardActionKind | "translate" | "shopping"; node: ReactNode };
+function collectActions(children: ReactNode): CollectedAction[] {
+  return Children.toArray(children).flatMap<CollectedAction>(child => {
     if (!isValidElement<{ children?: ReactNode; kind?: MealCardActionKind }>(child)) {
       return typeof child === "string" && !child.trim() ? [] : [{ kind: "extra" as const, node: child }];
     }
@@ -183,6 +184,37 @@ export default function MealCardActions({
   const translations = entries.filter(entry => entry.kind === "translate");
   const primary = entries.filter(entry => entry.kind !== "translate" && entry.node != null && entry.node !== false);
   const hasDefaultActions = Boolean(meal.name);
+  if (showShopping && shoppingRecipe && !location.startsWith("/pro/") && !location.startsWith("/care-team")) {
+    primary.push({ kind: "shopping", node: <MealShoppingAction recipe={shoppingRecipe} source={source} options={shoppingOptions} /> });
+  }
+  if (hasDefaultActions && !primary.some(entry => entry.kind === "share")) {
+    primary.push({ kind: "share", node: <ShareRecipeButton
+      recipe={{
+        name: currentName, description: currentDescription, nutrition: meal.nutrition,
+        ingredients: normalizedIngredients, instructions: meal.instructions,
+      }}
+      className="flex-1 min-w-0"
+    /> });
+  }
+  if (hasDefaultActions && showPrepareButton && isFeatureEnabled("chefsKitchen") &&
+      !primary.some(entry => entry.kind === "prepare")) {
+    primary.push({ kind: "prepare", node: <Button
+      size="sm"
+      className="w-full bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5 py-2.5"
+      onClick={handlePrepareWithChef}
+      disabled={!hasInstructions}
+      title={!hasInstructions ? "No cooking instructions available" : undefined}
+    >
+      <ChefHat className="h-4 w-4" />Guided Cooking
+    </Button> });
+  }
+  // One DOM order for saved cards and creators, not merely a visual CSS order:
+  // Macros spans the row, then Plan/Cooking, then Share/Shopping.
+  const actionOrder: Record<CollectedAction["kind"], number> = {
+    macros: 0, plan: 1, prepare: 2, share: 3, shopping: 4,
+    save: 5, extra: 6, translate: 7,
+  };
+  primary.sort((a, b) => actionOrder[a.kind] - actionOrder[b.kind]);
 
   return (
     <div data-meal-card-actions={source} className={`flex flex-col gap-2 ${className || ""}`}>
@@ -192,39 +224,12 @@ export default function MealCardActions({
         style={{ gridTemplateColumns: `repeat(${mealCardActionLayout.columns}, minmax(0, 1fr))` }}
       >
         {primary.map((entry, i) => (
+          entry.kind === "shopping" ? <Fragment key={i}>{entry.node}</Fragment> :
           <div key={i} data-meal-action={entry.kind} className="min-w-0 [&>button]:w-full"
             style={entry.kind === "macros" || entry.kind === "extra" ? { gridColumn: "1 / -1" } : undefined}>
             {entry.node}
           </div>
         ))}
-        {showShopping && shoppingRecipe && !location.startsWith("/pro/") && !location.startsWith("/care-team") &&
-          <MealShoppingAction recipe={shoppingRecipe} source={source} options={shoppingOptions} />}
-        {hasDefaultActions && <div data-meal-action="share" className="min-w-0 [&>button]:w-full">
-        <ShareRecipeButton
-          recipe={{
-            name: currentName,
-            description: currentDescription,
-            nutrition: meal.nutrition,
-            ingredients: normalizedIngredients,
-            instructions: meal.instructions,
-          }}
-          className="flex-1 min-w-0"
-        />
-        </div>}
-      {hasDefaultActions && showPrepareButton && isFeatureEnabled('chefsKitchen') && (
-        <div data-meal-action="prepare" className="min-w-0 col-span-full [&>button]:w-full">
-        <Button
-          size="sm"
-          className="w-full bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5 py-2.5"
-          onClick={handlePrepareWithChef}
-          disabled={!hasInstructions}
-          title={!hasInstructions ? "No cooking instructions available" : undefined}
-        >
-          <ChefHat className="h-4 w-4" />
-          Guided Cooking
-        </Button>
-        </div>
-      )}
       </div>
       {(translations.length > 0 || hasDefaultActions && showTranslate) && (
         <div data-meal-card-secondary>

@@ -3,6 +3,7 @@ import React from "react";
 import { fireEvent, render, screen, waitFor, cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import MealCardActions from "@/components/MealCardActions";
+import SavedMealRow from "@/components/SavedMealRow";
 import { sendShoppingSelections, rememberShoppingTranslation, withShoppingProvenance, canonicalShoppingRecipe } from "@/lib/mealShoppingApi";
 import { selectionForRecipe, prepareShoppingSelection, templateShoppingSelectionId } from "@shared/mealShoppingSelection";
 import { apiRequest } from "@/lib/apiRequest";
@@ -15,7 +16,21 @@ jest.mock("@/stores/shoppingListStore", () => ({
   useShoppingListStore: { getState: () => ({ hydrate: mockHydrate }) },
 }));
 jest.mock("wouter", () => ({ useLocation: () => [mockLocation, mockNavigate] }));
-jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key === "more" ? "More" : key }) }));
+jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => ({
+  more: "More", "savedMeals.addToMacros": "Add to Macros",
+  "savedMeals.remove": "Remove", "savedMeals.cal": "Cal",
+}[key] || key) }) }));
+jest.mock("@/hooks/useTranslatedMeal", () => ({ useTranslatedMeal: () => ({ data: null, isLoading: false }) }));
+jest.mock("@/lib/groceryCoachCatalogGate", () => ({ groceryCoachCatalogEnabled: false }));
+jest.mock("@/components/ui/MealImageSlot", () => ({
+  MealImageSlot: ({ mealName, imageUrl }: any) => <div data-testid="meal-image" data-image-url={imageUrl}>{mealName}</div>,
+}));
+jest.mock("@/components/DiabetesProtocolIndicator", () => ({ __esModule: true, default: () => null }));
+jest.mock("@/components/AlphaGalBadge", () => ({ __esModule: true, default: () => null }));
+jest.mock("@/components/shopping/GroceryCoachMacroTiles", () => ({ GroceryCoachMacroTiles: () => <div>Canonical nutrition</div> }));
+jest.mock("@/components/AddToMealPlanButton", () => ({
+  __esModule: true, default: () => <button>Add to Plan</button>,
+}));
 jest.mock("@/lib/productionGates", () => ({ isFeatureEnabled: () => true }));
 jest.mock("@/lib/safeChefHandoff", () => ({ writeChefHandoffMeal: jest.fn() }));
 jest.mock("@/components/ShareRecipeButton", () => ({ __esModule: true, default: () => <button>Share</button> }));
@@ -27,6 +42,7 @@ const recipe = () => ({ id: "recipe-a", name: "Chicken", servings: 3,
 const ack = (status = "added") => ({ ok: true, committed: true,
   results: [{ selectionId: "recipe:recipe-a", version: 1, status }] });
 beforeEach(() => {
+  HTMLElement.prototype.scrollIntoView = jest.fn();
   mockLocation = "/fixture";
   localStorage.clear(); sessionStorage.clear();
   localStorage.setItem("userId", `synthetic-shopping-${++serial}`);
@@ -37,6 +53,78 @@ beforeEach(() => {
     url.endsWith("/capabilities") ? Promise.resolve({ available: true }) : post(url, init));
 });
 afterEach(cleanup);
+const savedRow = () => ({
+  id: "favorite-record-a", title: "Chicken", sourceType: "create_a_dish",
+  dayMismatchNote: "Original saved-day clinical warning remains visible.",
+  mealData: { ...recipe(), instructions: ["Cook thoroughly."], imageUrl: "/saved-chicken.jpg" },
+});
+test("saved card uses creator action order and an independent top trash control", async () => {
+  const row = savedRow(), remove = jest.fn(), macros = jest.fn();
+  const { container } = render(<SavedMealRow row={row} sourceLabel={() => "Create a Dish"}
+    onRemove={remove} onAddToMacros={macros} initialExpanded />);
+  await shoppingButton();
+  const primary = container.querySelector("[data-meal-card-primary]")!;
+  expect(Array.from(primary.children).map(node => node.getAttribute("data-meal-action")))
+    .toEqual(["macros", "plan", "prepare", "share", "shopping"]);
+  expect(primary.querySelector('[data-meal-action="macros"]')).toHaveStyle({ gridColumn: "1 / -1" });
+  expect(primary.querySelector('[data-meal-action="prepare"]')).not.toHaveClass("col-span-full");
+  const trash = screen.getByRole("button", { name: "Remove: Chicken" });
+  expect(trash.closest("[data-meal-card-primary]")).toBeNull();
+  expect(trash.parentElement?.closest("button")).toBeNull();
+  expect(screen.getAllByTestId("meal-image")).toHaveLength(1);
+  expect(screen.getByText(row.dayMismatchNote)).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Add to Macros" }));
+  expect(macros).toHaveBeenCalledWith(row);
+  fireEvent.click(trash);
+  expect(remove).toHaveBeenCalledWith(row);
+  expect(screen.getByRole("button", { expanded: true })).toHaveAttribute("aria-expanded", "true");
+});
+test("saved card Shopping sends canonical recipe quantities and waits for acknowledgement", async () => {
+  const row = savedRow();
+  render(<SavedMealRow row={row} sourceLabel={() => "Create a Dish"}
+    onRemove={jest.fn()} onAddToMacros={jest.fn()} initialExpanded />);
+  fireEvent.click(await shoppingButton());
+  await screen.findByText("Saved to your shopping list.");
+  const body = JSON.parse(post.mock.calls[0][1].body);
+  expect(body.selections[0]).toEqual(expect.objectContaining({
+    selectionId: "recipe:recipe-a", recipeYield: 3, shoppingServings: 3, quantityBasis: "recipe_total",
+  }));
+  expect(prepareShoppingSelection(body.selections[0])[0].quantity).toBe(2);
+  expect(mockHydrate).toHaveBeenCalledTimes(1);
+});
+test("saved card respects disabled runtime capabilities without sending a transfer", async () => {
+  (apiRequest as jest.Mock).mockResolvedValue({
+    available: false, reason: "Shopping transfers await reviewed migration and activation.",
+  });
+  render(<SavedMealRow row={savedRow()} sourceLabel={() => "Create a Dish"}
+    onRemove={jest.fn()} onAddToMacros={jest.fn()} initialExpanded />);
+  expect(await screen.findByText("Shopping transfers await reviewed migration and activation.")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Shopping: Chicken" })).toBeDisabled();
+  expect(post).not.toHaveBeenCalled();
+});
+test("saved header expands without title truncation and keeps removal independent", () => {
+  const { container } = render(<SavedMealRow row={savedRow()} sourceLabel={() => "Create a Dish"}
+    onRemove={jest.fn()} onAddToMacros={jest.fn()} />);
+  const toggle = screen.getByRole("button", { expanded: false, name: /Chicken/ });
+  expect(toggle.querySelector(".truncate")).toBeNull();
+  expect(toggle.querySelector(".whitespace-normal")).not.toBeNull();
+  expect(screen.queryByRole("button", { name: "Add to Macros" })).not.toBeInTheDocument();
+  fireEvent.click(toggle);
+  expect(toggle).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getAllByTestId("meal-image")).toHaveLength(1);
+  fireEvent.click(toggle);
+  expect(container.querySelector("[data-meal-card-actions]")).toBeNull();
+  expect(screen.getByRole("button", { name: "Remove: Chicken" })).toBeVisible();
+});
+test("saved recipes with unknown quantities stay blocked even when Shopping is activated", async () => {
+  const row = savedRow();
+  row.mealData.ingredients = [{ name: "chicken", quantity: 0, unit: "lb" }];
+  render(<SavedMealRow row={row} sourceLabel={() => "Create a Dish"}
+    onRemove={jest.fn()} onAddToMacros={jest.fn()} initialExpanded />);
+  expect(await screen.findByText(/Review ingredient names and quantities/)).toBeVisible();
+  expect(screen.getByRole("button", { name: "Shopping: Chicken" })).toBeDisabled();
+  expect(post).not.toHaveBeenCalled();
+});
 async function shoppingButton() {
   const button = screen.getByRole("button", { name: "Shopping: Chicken" });
   await waitFor(() => expect(button).toBeEnabled());

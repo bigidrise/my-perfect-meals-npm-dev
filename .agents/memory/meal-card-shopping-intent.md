@@ -63,3 +63,15 @@ the narrower desktop version with screenshots of the full-width reference.
 **How to apply:** Do not hide the footer solely because generation occurred in
 an earlier visit. Preserve unverified-recipe exclusions and existing shopping
 authority; layout parity does not authorize changing backend activation.
+
+Saved Meals/Favorites cards must use the same primary action layout as creators:
+full-row Add to Macros, Plan/Guided Cooking, then Share/Shopping. Removal belongs
+in an icon-only trash control near the top, not among the primary actions.
+Keep the full title readable and separate source/calorie metadata from it.
+
+**Why:** The founder compared Saved Meals against Creator screenshots and
+explicitly rejected the scattered actions, bottom Remove button and crowded
+header.
+
+**How to apply:** Keep one shared action-layout owner. Preserve existing
+callbacks, canonical nutrition/ingredients, translation and clinical warnings.
