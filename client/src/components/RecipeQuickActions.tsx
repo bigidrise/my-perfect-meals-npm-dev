@@ -10,6 +10,7 @@ import { Share } from "@capacitor/share";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import SharePanel from "@/components/SharePanel";
+import { templateShoppingSelectionId } from "@shared/mealShoppingSelection";
 
 interface Recipe {
   id: string;
@@ -209,7 +210,7 @@ export function RecipeQuickActions({ recipe, shoppingRecipe }: RecipeQuickAction
   return (
     <div className="space-y-3">
       <MealCardActions source="recipe-template"
-        shoppingRecipe={shoppingRecipe || { ...recipe, shoppingSelectionId: `template:${recipe.slug}` }}>
+        shoppingRecipe={shoppingRecipe || { ...recipe, shoppingSelectionId: templateShoppingSelectionId(recipe.slug) }}>
         <MealCardAction kind="save"><Button
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending}

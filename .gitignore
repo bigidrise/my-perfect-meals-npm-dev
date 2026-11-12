@@ -81,3 +81,4 @@ client/.demo-studio-runtime/
 test-results/
 .agents/outputs/
 /generated-artifacts/
+/.local/shopping-isolated/

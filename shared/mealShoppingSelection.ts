@@ -25,6 +25,9 @@ export type SelectionResult = {
   status: "added" | "updated" | "already_added" | "update_required" | "not_added";
 };
 export type TransferResult = { committed: boolean; results: SelectionResult[] };
+export function templateShoppingSelectionId(slug: string, templateKey = "classic") {
+  return `template:${slug}:${templateKey}`;
+}
 export type PreparedShoppingIngredient = {
   name: string; quantity: number; unit: string; ingredientMetadata: ShoppingIngredientMetadata;
   productKey?: string | null;

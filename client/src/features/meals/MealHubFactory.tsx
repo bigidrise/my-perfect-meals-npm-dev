@@ -17,6 +17,7 @@ import { snacksMealsData } from "@/data/snacksMealsData";
 import { getUserNutritionTargets, explainNutritionTargets, evaluateMealAgainstTargets } from "@/utils/nutritionTargetsIntegration";
 import type { MacroTargets } from "@/utils/computeTargets";
 import { RecipeQuickActions } from "@/components/RecipeQuickActions";
+import { templateShoppingSelectionId } from "@shared/mealShoppingSelection";
 import { generateMedicalBadges, getUserMedicalProfile } from "@/utils/medicalBadges";
 import MedicalBadges from "@/components/meal/MedicalBadges";
 
@@ -331,7 +332,8 @@ export function createMealHub(type: "breakfast"|"lunch"|"dinner"|"snacks", meals
                     <RecipeQuickActions 
                       shoppingRecipe={{
                         id: meal.id,
-                        shoppingSelectionId: `template:${meal.slug}:${activeMeal?.id === meal.id ? activeTemplate : "classic"}`,
+                        shoppingSelectionId: templateShoppingSelectionId(meal.slug,
+                          activeMeal?.id === meal.id ? activeTemplateKey || "classic" : "classic"),
                         name: meal.name,
                         servings: activeMeal?.id === meal.id ? servings : meal.baseServings,
                         ingredients: activeMeal?.id === meal.id ? scaledIngredients : meal.templates.classic.ingredients,

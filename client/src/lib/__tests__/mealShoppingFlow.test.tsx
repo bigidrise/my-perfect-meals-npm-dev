@@ -4,7 +4,7 @@ import { fireEvent, render, screen, waitFor, cleanup } from "@testing-library/re
 import "@testing-library/jest-dom";
 import MealCardActions from "@/components/MealCardActions";
 import { sendShoppingSelections, rememberShoppingTranslation, withShoppingProvenance, canonicalShoppingRecipe } from "@/lib/mealShoppingApi";
-import { selectionForRecipe } from "@shared/mealShoppingSelection";
+import { selectionForRecipe, prepareShoppingSelection, templateShoppingSelectionId } from "@shared/mealShoppingSelection";
 import { apiRequest } from "@/lib/apiRequest";
 
 const mockHydrate = jest.fn(async () => undefined);
@@ -131,4 +131,41 @@ test("late acknowledgement cannot reconcile or expose a previous account's groce
   finish(ack());
   await expect(promise).rejects.toThrow(/Account changed/);
   expect(mockHydrate).not.toHaveBeenCalled();
+});
+test("canonical evidence stays original while three shopping servings become six", () => {
+  const original = { ...recipe(), shoppingServings: 3 };
+  canonicalShoppingRecipe(original);
+  const selected = selectionForRecipe(canonicalShoppingRecipe({ ...original, shoppingServings: 6 }), "fixture").selection!;
+  expect(selected.shoppingServings).toBe(6);
+  expect(selected.recipeYield).toBe(3);
+  expect(prepareShoppingSelection(selected)[0].quantity).toBe(4);
+  expect(selected.ingredients).toEqual(original.ingredients);
+});
+test("a previously missing yield becomes valid without changing ingredients", () => {
+  const original = { ...recipe(), servings: undefined };
+  expect(selectionForRecipe(canonicalShoppingRecipe(original), "fixture").selection).toBeUndefined();
+  const selected = selectionForRecipe(canonicalShoppingRecipe({ ...original, recipeYield: 3 }), "fixture").selection!;
+  expect(selected.recipeYield).toBe(3);
+  expect(prepareShoppingSelection(selected)[0].quantity).toBe(2);
+});
+test("yield and quantity-basis changes update while translated ingredients remain noncanonical", () => {
+  const original = recipe();
+  rememberShoppingTranslation(original, { ingredients: [{ name: "pollo", quantity: 2, unit: "lb" }] });
+  const changed = canonicalShoppingRecipe({ ...original, recipeYield: 6, shoppingServings: 6,
+    shoppingQuantityBasis: "per_serving", ingredients: [{ name: "pollo", quantity: 2, unit: "lb" }] });
+  const selected = selectionForRecipe(changed, "fixture").selection!;
+  expect(selected.recipeYield).toBe(6);
+  expect(selected.quantityBasis).toBe("per_serving");
+  expect(selected.ingredients).toEqual(original.ingredients);
+  expect(prepareShoppingSelection(selected)[0].quantity).toBe(12);
+});
+test("stable template keys survive opening, save serialization and restoration without variant collisions", () => {
+  const classic = templateShoppingSelectionId("chicken");
+  const opened = templateShoppingSelectionId("chicken", "classic");
+  expect(opened).toBe(classic);
+  const full = { ...recipe(), shoppingSelectionId: opened };
+  const restored = JSON.parse(JSON.stringify(withShoppingProvenance(full, "recipe-template")));
+  expect(selectionForRecipe(restored, "favorites").selection!.selectionId).toBe(classic);
+  expect(templateShoppingSelectionId("chicken", "light")).not.toBe(classic);
+  expect(templateShoppingSelectionId("chicken", "highProtein")).not.toBe(classic);
 });

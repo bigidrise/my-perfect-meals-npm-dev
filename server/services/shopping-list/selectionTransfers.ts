@@ -50,6 +50,13 @@ function identity(row: any) {
   };
 }
 async function removeContribution(client: ShoppingSqlClient, owner: string, receipt: any) {
+  // The cycle lock serializes transfers, but manual PATCH/check handlers do not
+  // take that lock. Lock actual grocery rows first, then read their fresh state.
+  // Separate the lock from the LEFT JOIN: PostgreSQL cannot lock its nullable side.
+  await client.query(`SELECT i.id FROM shopping_list_items i
+    WHERE i.user_id=$2 AND i.id IN (
+      SELECT item_id FROM shopping_transfer_contributions WHERE receipt_id=$1 AND owner_id=$2
+    ) ORDER BY i.id FOR UPDATE OF i`, [receipt.id, owner]);
   const { rows } = await client.query(`SELECT c.*, i.quantity, i.unit, i.checked, i.ingredient_metadata
     FROM shopping_transfer_contributions c LEFT JOIN shopping_list_items i ON i.id=c.item_id AND i.user_id=c.owner_id
     WHERE c.receipt_id=$1 AND c.owner_id=$2 ORDER BY c.id`, [receipt.id, owner]);
@@ -64,6 +71,11 @@ async function removeContribution(client: ShoppingSqlClient, owner: string, rece
   }
   for (const [id, amount] of totals) {
     const row = rows.find(r => r.item_id === id)!;
+    const tracked = await client.query(`SELECT COALESCE(sum(applied_quantity),0) AS quantity
+      FROM shopping_transfer_contributions WHERE item_id=$1 AND owner_id=$2`, [id, owner]);
+    if (Number(row.quantity) < Number(tracked.rows[0].quantity)) {
+      throw new ShoppingTransferConflict("Manual quantity edits conflict with recorded recipe contributions; review the list.");
+    }
     const remaining = shoppingRound(Number(row.quantity) - amount);
     if (!Number.isFinite(remaining) || remaining < 0) {
       throw new ShoppingTransferConflict("Manual quantity edits conflict with this update; no groceries were changed.");
