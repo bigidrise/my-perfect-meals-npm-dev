@@ -250,6 +250,37 @@ test("saved cards retain an explicitly stored legacy recipe yield", async () => 
   await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
   expect(JSON.parse(post.mock.calls[0][1].body).selections[0].recipeYield).toBe(3);
 });
+test("saved header groups metadata and controls above a full-width title and image", () => {
+  const row = savedRow();
+  row.title = "Classic Baked Salmon with Roasted Seasonal Vegetables and a Long Recipe Title";
+  const remove = jest.fn();
+  const { container } = render(<SavedMealRow row={row} sourceLabel={() => "Create a Dish"}
+    onRemove={remove} onAddToMacros={jest.fn()} />);
+  const header = container.querySelector("[data-saved-meal-header]")!;
+  const metadata = header.querySelector("[data-saved-meal-metadata]")!;
+  const controls = header.querySelector("[data-saved-meal-controls]")!;
+  const title = header.querySelector("[data-saved-meal-title]")!;
+  const trash = screen.getByRole("button", { name: `Remove: ${row.title}` });
+  expect(metadata).toHaveTextContent("Create a Dish");
+  expect(metadata).toHaveTextContent("Cal / serving");
+  expect(controls).toContainElement(trash);
+  expect(controls.querySelector(".lucide-chevron-right")).not.toBeNull();
+  expect(controls).not.toContainElement(title);
+  expect(title).toHaveTextContent(row.title);
+  expect(title).toHaveClass("whitespace-normal", "break-words");
+  expect(title).not.toHaveClass("truncate");
+  expect(screen.getByRole("button", { expanded: false })).toHaveClass("w-full", "!p-0");
+  const image = screen.getByTestId("meal-image");
+  expect(header).not.toContainElement(image);
+  expect(header.compareDocumentPosition(image) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  fireEvent.click(trash);
+  expect(remove).toHaveBeenCalledWith(row);
+  expect(screen.getByRole("button", { expanded: false })).toBeInTheDocument();
+  fireEvent.click(title);
+  expect(screen.getByRole("button", { expanded: true })).toHaveAttribute("aria-controls", `saved-meal-details-${row.id}`);
+  expect(controls.querySelector(".lucide-chevron-down")).not.toBeNull();
+  expect(screen.getAllByTestId("meal-image")).toHaveLength(1);
+});
 test("saved header expands without title truncation and keeps removal independent", () => {
   const { container } = render(<SavedMealRow row={savedRow()} sourceLabel={() => "Create a Dish"}
     onRemove={jest.fn()} onAddToMacros={jest.fn()} />);
@@ -263,6 +294,8 @@ test("saved header expands without title truncation and keeps removal independen
   fireEvent.click(toggle);
   expect(container.querySelector("[data-meal-card-actions]")).toBeNull();
   expect(screen.getByRole("button", { name: "Remove: Chicken" })).toBeVisible();
+  fireEvent.click(screen.getByTestId("meal-image"));
+  expect(screen.getByRole("button", { expanded: true })).toBeInTheDocument();
 });
 test("saved recipes with unknown quantities stay blocked even when Shopping is activated", async () => {
   const row = savedRow();

@@ -105,50 +105,69 @@ export default function SavedMealRow({
 
   return (
     <div id={`meal-card-${row.id}`} ref={rowRef} className="rounded-2xl border border-white/15 bg-black/40 backdrop-blur-sm overflow-hidden">
-      {/* ── Collapsed header ────────────────────────────────────────────── */}
-      <div className="flex items-start gap-2 px-3 py-3">
+      {/* ── Header: metadata/actions first, full-width title second ─────── */}
+      <div
+        data-saved-meal-header
+        className="relative px-3 pt-3"
+      >
         <button
           type="button"
           onClick={() => setIsExpanded((e) => !e)}
           aria-expanded={isExpanded}
           aria-controls={`saved-meal-details-${row.id}`}
-          className="flex min-w-0 flex-1 items-start gap-3 text-left active:scale-[0.98]"
+          className="block w-full !p-0 text-left active:scale-[0.99]"
         >
-          {!isExpanded && (
-            <div className="mt-0.5 h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-white/10">
-              <MealImageSlot
-                imageUrl={row.thumbnailUrl || d?.imageUrl}
-                mealName={row.title}
-                ingredients={d?.ingredients}
-                savedMealId={row.id}
-                mediaAssetId={row.mediaAssetId}
-                height="h-14"
-                className="!mb-0 !rounded-none"
-              />
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <div className="whitespace-normal break-words text-base font-semibold leading-snug text-white">{displayTitle}</div>
-            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-relaxed text-white/55">
+          <div className="flex min-h-11 items-center pr-[5.75rem]">
+            <div
+              data-saved-meal-metadata
+              className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-relaxed text-white/55"
+            >
               <span>{sourceLabel(row.sourceType, row.mealData)}</span>
               <span aria-hidden="true" className="text-white/25">·</span>
               <span>{Math.round(perServingNutrition.calories)} {t("savedMeals.cal")} / serving</span>
             </div>
-            {!isExpanded && <DiabetesProtocolIndicator memory={d?.diabeticMemory} compact />}
           </div>
-          {isExpanded
-            ? <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-white/40" />
-            : <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-white/40" />}
+          <div
+            data-saved-meal-title
+            className="whitespace-normal break-words [overflow-wrap:anywhere] pb-3 pt-1 text-left text-base font-semibold leading-snug text-white"
+          >
+            {displayTitle}
+          </div>
         </button>
-        <TrashButton
-          onClick={() => onRemove(row)}
-          ariaLabel={`${t("savedMeals.remove")}: ${displayTitle}`}
-          title={t("savedMeals.remove")}
-          size="sm"
-          appearance="meal-card"
-          className="shrink-0"
-        />
+        <div data-saved-meal-controls className="pointer-events-none absolute right-3 top-3 flex h-11 items-center gap-0.5">
+          {/* The chevron overlays the header button without intercepting its click target. */}
+          <span aria-hidden="true" className="flex h-11 w-11 items-center justify-center text-white/55">
+            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </span>
+          <div className="pointer-events-auto">
+            <TrashButton
+              onClick={() => onRemove(row)}
+              ariaLabel={`${t("savedMeals.remove")}: ${displayTitle}`}
+              title={t("savedMeals.remove")}
+              size="sm"
+              appearance="meal-card"
+              className="shrink-0"
+            />
+          </div>
+        </div>
       </div>
+
+      {/* Keep the compact collapsed preview below the header; expanded image stays in the body. */}
+      {!isExpanded && (
+        <div className="px-3 pb-3">
+          <div className="cursor-pointer" onClick={() => setIsExpanded(true)}>
+            <MealImageSlot
+              imageUrl={row.thumbnailUrl || d?.imageUrl}
+              mealName={row.title}
+              ingredients={d?.ingredients}
+              savedMealId={row.id}
+              mediaAssetId={row.mediaAssetId}
+              height="h-36"
+            />
+          </div>
+          <DiabetesProtocolIndicator memory={d?.diabeticMemory} compact />
+        </div>
+      )}
 
       {/* ── Expanded body ─────────────────────────────────────────────────── */}
       {isExpanded && (
