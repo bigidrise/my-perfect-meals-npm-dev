@@ -1,4 +1,17 @@
 {
+  "shoppingTransfer": {
+    "addedTitle": "Naidagdag sa listahan ng pamimili",
+    "savedTitle": "Nai-save sa listahan ng pamimili",
+    "builderConfirmed": "Nai-save at nakumpirma ang mga napiling pagkain.",
+    "menuConfirmed": "Nakumpirma ng server ang iyong mga pinili.",
+    "deleteMeal": "Burahin ang pagkain",
+    "quantityNeeded": "Kailangan: {{quantity}}",
+    "quantityReview": "Suriin ang dami",
+    "quantityBuy": "Bilhin: {{quantity}}",
+    "quantityEstimate": "(tantiya)",
+    "quantityEstimateHint": "Tinatayang dami ng bibilhin; magkakaiba ang laki ng pakete at sariwang produkto.",
+    "quantityCombined": "{{count}} entry sa listahan ang pinagsama"
+  },
   "creatorMenuRecovery": {
     "title": "Kailangang suriin muli ang iyong menu",
     "checking": "Sinusuri ang mga naka-save na pagpipilian…",

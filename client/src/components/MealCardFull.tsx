@@ -479,8 +479,8 @@ export default function MealCardFull({
             appearance="meal-card"
             size="sm"
             onClick={onDeleteMeal}
-            ariaLabel="Delete Meal"
-            title="Delete Meal"
+            ariaLabel={t("shoppingTransfer:deleteMeal")}
+            title={t("shoppingTransfer:deleteMeal")}
           />
         )}
       </div>

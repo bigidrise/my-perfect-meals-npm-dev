@@ -1,4 +1,17 @@
 {
+  "shoppingTransfer": {
+    "addedTitle": "已添加到购物清单",
+    "savedTitle": "已保存到购物清单",
+    "builderConfirmed": "所选餐食已保存并确认。",
+    "menuConfirmed": "服务器已确认您的选择。",
+    "deleteMeal": "删除餐食",
+    "quantityNeeded": "所需：{{quantity}}",
+    "quantityReview": "核对数量",
+    "quantityBuy": "购买：{{quantity}}",
+    "quantityEstimate": "（估算）",
+    "quantityEstimateHint": "预计购买量；包装和生鲜产品的大小各不相同。",
+    "quantityCombined": "已合并 {{count}} 个清单条目"
+  },
   "creatorMenuRecovery": {
     "title": "你的菜单需要再次验证",
     "checking": "正在验证已保存的选项…",

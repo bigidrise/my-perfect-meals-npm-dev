@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useMealShopping } from "@/hooks/useMealShopping";
 import { canonicalShoppingRecipe } from "@/lib/mealShoppingApi";
 import { selectionForRecipe } from "@shared/mealShoppingSelection";
@@ -35,6 +36,7 @@ export default function BuilderShoppingBar({
   currentWeekStartISO,
   sourceSlug,
 }: Props) {
+  const { t } = useTranslation("shoppingTransfer");
   const shopping = useMealShopping();
   const [shoppingError, setShoppingError] = useState("");
   const [location, setLocation] = useLocation();
@@ -177,7 +179,7 @@ export default function BuilderShoppingBar({
       }
       const response = await shopping.send(selections.map(value => value.selection!), shopping.result?.committed === false);
       if (response?.committed) {
-        toast({ title: "Added to Shopping List", description: "Selected meals were saved and confirmed." });
+        toast({ title: t("addedTitle"), description: t("builderConfirmed") });
         setLocation(sourceSlug ? `/shopping-list-v2?from=${sourceSlug}` : "/shopping-list-v2");
         setPickerOpen(false); setSelectedDays([]);
       }

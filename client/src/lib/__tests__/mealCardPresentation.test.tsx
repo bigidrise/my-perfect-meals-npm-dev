@@ -126,9 +126,13 @@ test("MealCardFull keeps its optional deletion gate and existing immediate callb
   }).outputText;
   const element = new Function("scope", `with(scope) { ${js} }`);
   const remove = jest.fn();
-  const view = render(element({ React, TrashButton, showDeleteMeal: false, onDeleteMeal: remove }));
+  const t = jest.fn((key: string) => {
+    expect(key).toBe("shoppingTransfer:deleteMeal");
+    return require("../../i18n/locales/en.json").shoppingTransfer.deleteMeal;
+  });
+  const view = render(element({ React, TrashButton, t, showDeleteMeal: false, onDeleteMeal: remove }));
   expect(screen.queryByRole("button", { name: "Delete Meal" })).not.toBeInTheDocument();
-  view.rerender(element({ React, TrashButton, showDeleteMeal: true, onDeleteMeal: remove }));
+  view.rerender(element({ React, TrashButton, t, showDeleteMeal: true, onDeleteMeal: remove }));
   fireEvent.click(screen.getByRole("button", { name: "Delete Meal" }));
   expect(remove).toHaveBeenCalledTimes(1);
 });

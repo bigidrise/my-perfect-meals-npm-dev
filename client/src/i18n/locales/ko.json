@@ -1,4 +1,17 @@
 {
+  "shoppingTransfer": {
+    "addedTitle": "장보기 목록에 추가했습니다",
+    "savedTitle": "장보기 목록에 저장했습니다",
+    "builderConfirmed": "선택한 식사를 저장하고 확인했습니다.",
+    "menuConfirmed": "서버가 선택한 항목을 확인했습니다.",
+    "deleteMeal": "식사 삭제",
+    "quantityNeeded": "필요량: {{quantity}}",
+    "quantityReview": "수량 확인",
+    "quantityBuy": "구매량: {{quantity}}",
+    "quantityEstimate": "(예상)",
+    "quantityEstimateHint": "예상 구매량이며 포장 및 신선식품의 크기에 따라 달라집니다.",
+    "quantityCombined": "목록 항목 {{count}}개 통합됨"
+  },
   "creatorMenuRecovery": {
     "title": "메뉴를 다시 확인해야 합니다",
     "checking": "저장된 선택 항목 확인 중…",

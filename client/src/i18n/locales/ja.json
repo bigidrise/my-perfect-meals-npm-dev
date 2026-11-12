@@ -1,4 +1,17 @@
 {
+  "shoppingTransfer": {
+    "addedTitle": "買い物リストに追加しました",
+    "savedTitle": "買い物リストに保存しました",
+    "builderConfirmed": "選択した食事を保存し、確認しました。",
+    "menuConfirmed": "サーバーが選択内容を確認しました。",
+    "deleteMeal": "食事を削除",
+    "quantityNeeded": "必要量：{{quantity}}",
+    "quantityReview": "数量を確認",
+    "quantityBuy": "購入量：{{quantity}}",
+    "quantityEstimate": "（目安）",
+    "quantityEstimateHint": "購入量の目安です。包装や生鮮食品のサイズにより異なります。",
+    "quantityCombined": "{{count}} 件のリスト項目を統合"
+  },
   "creatorMenuRecovery": {
     "title": "メニューの再確認が必要です",
     "checking": "保存済みの選択肢を確認中…",

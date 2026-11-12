@@ -15,8 +15,8 @@ export async function sendSavedMealToShopping(
   const key = `saved-meal-shopping:v1:${account}:${selection.selectionId}`;
   const send = () => persistSavedMeal(selection, metadataEnabled, account, key);
   if (inFlight.has(key)) return inFlight.get(key)!;
-  const pending = typeof navigator !== "undefined" && navigator.locks
-    ? navigator.locks.request(key, send) : send();
+  const pending = Promise.resolve(typeof navigator !== "undefined" && navigator.locks
+    ? navigator.locks.request(key, send) : send());
   inFlight.set(key, pending);
   try { return await pending; } finally { inFlight.delete(key); }
 }

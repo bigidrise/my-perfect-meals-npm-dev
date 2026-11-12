@@ -1,4 +1,17 @@
 {
+  "shoppingTransfer": {
+    "addedTitle": "Ajouté à la liste de courses",
+    "savedTitle": "Enregistré dans la liste de courses",
+    "builderConfirmed": "Les repas sélectionnés ont été enregistrés et confirmés.",
+    "menuConfirmed": "Le serveur a confirmé vos sélections.",
+    "deleteMeal": "Supprimer le repas",
+    "quantityNeeded": "Nécessaire : {{quantity}}",
+    "quantityReview": "Vérifier la quantité",
+    "quantityBuy": "Acheter : {{quantity}}",
+    "quantityEstimate": "(estimation)",
+    "quantityEstimateHint": "Quantité d’achat estimée ; la taille des emballages et des produits frais varie.",
+    "quantityCombined": "{{count}} entrées de la liste regroupées"
+  },
   "creatorMenuRecovery": {
     "title": "Votre menu doit être vérifié à nouveau",
     "checking": "Vérification des choix enregistrés…",

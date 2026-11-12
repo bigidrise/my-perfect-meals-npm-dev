@@ -1,4 +1,17 @@
 {
+  "shoppingTransfer": {
+    "addedTitle": "Đã thêm vào danh sách mua sắm",
+    "savedTitle": "Đã lưu vào danh sách mua sắm",
+    "builderConfirmed": "Các bữa ăn đã chọn đã được lưu và xác nhận.",
+    "menuConfirmed": "Máy chủ đã xác nhận lựa chọn của bạn.",
+    "deleteMeal": "Xóa bữa ăn",
+    "quantityNeeded": "Cần: {{quantity}}",
+    "quantityReview": "Kiểm tra số lượng",
+    "quantityBuy": "Mua: {{quantity}}",
+    "quantityEstimate": "(ước tính)",
+    "quantityEstimateHint": "Lượng mua ước tính; kích thước bao bì và thực phẩm tươi có thể khác nhau.",
+    "quantityCombined": "Đã gộp {{count}} mục trong danh sách"
+  },
   "creatorMenuRecovery": {
     "title": "Thực đơn của bạn cần được kiểm tra lại",
     "checking": "Đang kiểm tra các lựa chọn đã lưu…",

@@ -1,4 +1,17 @@
 {
+  "shoppingTransfer": {
+    "addedTitle": "تمت الإضافة إلى قائمة التسوق",
+    "savedTitle": "تم الحفظ في قائمة التسوق",
+    "builderConfirmed": "تم حفظ الوجبات المحددة وتأكيدها.",
+    "menuConfirmed": "أكد الخادم اختياراتك.",
+    "deleteMeal": "حذف الوجبة",
+    "quantityNeeded": "الكمية المطلوبة: {{quantity}}",
+    "quantityReview": "مراجعة الكمية",
+    "quantityBuy": "للشراء: {{quantity}}",
+    "quantityEstimate": "(تقديري)",
+    "quantityEstimateHint": "كمية الشراء تقديرية؛ تختلف أحجام العبوات والمنتجات الطازجة.",
+    "quantityCombined": "إدخالات القائمة المجمعة: {{count}}"
+  },
   "creatorMenuRecovery": {
     "title": "تحتاج قائمتك إلى التحقق مرة أخرى",
     "checking": "جارٍ التحقق من الخيارات المحفوظة…",

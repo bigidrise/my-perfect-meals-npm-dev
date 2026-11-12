@@ -1,4 +1,17 @@
 {
+  "shoppingTransfer": {
+    "addedTitle": "Aggiunto alla lista della spesa",
+    "savedTitle": "Salvato nella lista della spesa",
+    "builderConfirmed": "I pasti selezionati sono stati salvati e confermati.",
+    "menuConfirmed": "Il server ha confermato le tue selezioni.",
+    "deleteMeal": "Elimina pasto",
+    "quantityNeeded": "Necessario: {{quantity}}",
+    "quantityReview": "Controlla la quantità",
+    "quantityBuy": "Acquista: {{quantity}}",
+    "quantityEstimate": "(stima)",
+    "quantityEstimateHint": "Quantità d’acquisto stimata; le dimensioni delle confezioni e dei prodotti freschi variano.",
+    "quantityCombined": "{{count}} voci della lista raggruppate"
+  },
   "creatorMenuRecovery": {
     "title": "Il tuo menu richiede un'altra verifica",
     "checking": "Verifica delle scelte salvate…",

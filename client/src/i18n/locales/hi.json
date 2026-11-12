@@ -1,4 +1,17 @@
 {
+  "shoppingTransfer": {
+    "addedTitle": "खरीदारी सूची में जोड़ा गया",
+    "savedTitle": "खरीदारी सूची में सहेजा गया",
+    "builderConfirmed": "चुने गए भोजन सहेजे गए और उनकी पुष्टि की गई।",
+    "menuConfirmed": "सर्वर ने आपके चयन की पुष्टि की।",
+    "deleteMeal": "भोजन हटाएँ",
+    "quantityNeeded": "आवश्यक मात्रा: {{quantity}}",
+    "quantityReview": "मात्रा की जाँच करें",
+    "quantityBuy": "खरीदें: {{quantity}}",
+    "quantityEstimate": "(अनुमान)",
+    "quantityEstimateHint": "खरीदारी की अनुमानित मात्रा; पैकेट और ताज़ी उपज का आकार अलग-अलग हो सकता है।",
+    "quantityCombined": "सूची की {{count}} प्रविष्टियाँ मिलाई गईं"
+  },
   "creatorMenuRecovery": {
     "title": "आपके मेन्यू की दोबारा जाँच ज़रूरी है",
     "checking": "सहेजे गए विकल्पों की जाँच हो रही है…",
