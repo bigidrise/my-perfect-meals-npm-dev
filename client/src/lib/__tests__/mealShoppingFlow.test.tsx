@@ -7,21 +7,25 @@ import SavedMealRow from "@/components/SavedMealRow";
 import { sendShoppingSelections, rememberShoppingTranslation, withShoppingProvenance, canonicalShoppingRecipe } from "@/lib/mealShoppingApi";
 import { selectionForRecipe, prepareShoppingSelection, templateShoppingSelectionId } from "@shared/mealShoppingSelection";
 import { apiRequest } from "@/lib/apiRequest";
+import { sendSavedMealToShopping } from "@/lib/savedMealShopping";
 
 const mockHydrate = jest.fn(async () => undefined);
 const mockNavigate = jest.fn();
+const mockToast = jest.fn();
 let mockLocation = "/fixture";
 jest.mock("@/lib/apiRequest", () => ({ apiRequest: jest.fn() }));
 jest.mock("@/stores/shoppingListStore", () => ({
   useShoppingListStore: { getState: () => ({ hydrate: mockHydrate }) },
 }));
 jest.mock("wouter", () => ({ useLocation: () => [mockLocation, mockNavigate] }));
+jest.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => ({
   more: "More", "savedMeals.addToMacros": "Add to Macros",
   "savedMeals.remove": "Remove", "savedMeals.cal": "Cal",
 }[key] || key) }) }));
 jest.mock("@/hooks/useTranslatedMeal", () => ({ useTranslatedMeal: () => ({ data: null, isLoading: false }) }));
 jest.mock("@/lib/groceryCoachCatalogGate", () => ({ groceryCoachCatalogEnabled: false }));
+jest.mock("@/lib/shoppingMetadataGate", () => ({ shoppingMetadataEnabled: true }));
 jest.mock("@/components/ui/MealImageSlot", () => ({
   MealImageSlot: ({ mealName, imageUrl }: any) => <div data-testid="meal-image" data-image-url={imageUrl}>{mealName}</div>,
 }));
@@ -91,16 +95,95 @@ test("saved card Shopping sends canonical recipe quantities and waits for acknow
   }));
   expect(prepareShoppingSelection(body.selections[0])[0].quantity).toBe(2);
   expect(mockHydrate).toHaveBeenCalledTimes(1);
+  expect(mockNavigate).toHaveBeenCalledWith("/shopping-list-v2?from=saved-meals");
 });
-test("saved card respects disabled runtime capabilities without sending a transfer", async () => {
+test("saved card offers the existing aggregate-bar flow without enabling guarded transfers", async () => {
   (apiRequest as jest.Mock).mockResolvedValue({
     available: false, reason: "Shopping transfers await reviewed migration and activation.",
   });
   render(<SavedMealRow row={savedRow()} sourceLabel={() => "Create a Dish"}
     onRemove={jest.fn()} onAddToMacros={jest.fn()} initialExpanded />);
-  expect(await screen.findByText("Shopping transfers await reviewed migration and activation.")).toBeVisible();
-  expect(screen.getByRole("button", { name: "Shopping: Chicken" })).toBeDisabled();
+  await shoppingButton();
+  expect(screen.queryByText("Shopping transfers await reviewed migration and activation.")).not.toBeInTheDocument();
   expect(post).not.toHaveBeenCalled();
+});
+test("saved card's existing-endpoint path awaits save before navigation and prevents double clicks", async () => {
+  let finish: (value: any) => void = () => undefined;
+  const save = jest.fn((_url: string, _init: any) => new Promise(resolve => { finish = resolve; }));
+  const owner = localStorage.getItem("userId");
+  (apiRequest as jest.Mock).mockImplementation((url: string, init?: any) =>
+    url.endsWith("/capabilities") ? Promise.resolve({ available: false })
+    : init?.method === "POST" ? save(url, init)
+    : Promise.resolve({ shoppingMetadataVersion: 1, ownerUserId: owner, items: [] }));
+  render(<SavedMealRow row={savedRow()} sourceLabel={() => "Create a Dish"}
+    onRemove={jest.fn()} onAddToMacros={jest.fn()} initialExpanded />);
+  const button = await shoppingButton();
+  fireEvent.click(button); fireEvent.click(button);
+  await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+  expect(save.mock.calls[0][0]).toBe("/api/shopping-list");
+  const body = JSON.parse(save.mock.calls[0][1].body);
+  expect(body).toEqual(expect.objectContaining({ scopeType: "adhoc", scopeKey: "inbox" }));
+  expect(body.items).toHaveLength(1);
+  expect(body.items[0]).toEqual(expect.objectContaining({ name: "chicken", quantity: 2, unit: "lb" }));
+  expect(mockNavigate).not.toHaveBeenCalled();
+  finish({ ok: true, added: 1, shoppingMetadataVersion: 1, ownerUserId: owner });
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/shopping-list-v2?from=saved-meals"));
+  expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Saved to Shopping List" }));
+  expect(post).not.toHaveBeenCalled();
+  expect(mockHydrate).not.toHaveBeenCalled();
+  expect(screen.getByRole("button", { name: "Added: Chicken" })).toBeDisabled();
+});
+test("saved-card legacy save failures show the error and never navigate or optimistically add", async () => {
+  const owner = localStorage.getItem("userId");
+  (apiRequest as jest.Mock).mockImplementation((url: string, init?: any) =>
+    url.endsWith("/capabilities") ? Promise.resolve({ available: false })
+    : init?.method === "POST" ? Promise.reject(new Error("Shopping server is unavailable."))
+    : Promise.resolve({ shoppingMetadataVersion: 1, ownerUserId: owner, items: [] }));
+  render(<SavedMealRow row={savedRow()} sourceLabel={() => "Create a Dish"}
+    onRemove={jest.fn()} onAddToMacros={jest.fn()} initialExpanded />);
+  fireEvent.click(await shoppingButton());
+  expect(await screen.findByText("Shopping server is unavailable.")).toBeVisible();
+  expect(mockNavigate).not.toHaveBeenCalled();
+  expect(mockHydrate).not.toHaveBeenCalled();
+  expect(mockToast).not.toHaveBeenCalled();
+});
+test("saved-card preflight rejects an incompatible API before any writes", async () => {
+  (apiRequest as jest.Mock).mockResolvedValue({ items: [] });
+  await expect(sendSavedMealToShopping(selectionForRecipe(recipe(), "saved-meals").selection!, true))
+    .rejects.toThrow("does not support Development ingredient metadata");
+  expect((apiRequest as jest.Mock).mock.calls.every(([, init]) => !init?.method)).toBe(true);
+});
+test("saved-card sender rejects an account switch before its write", async () => {
+  const owner = localStorage.getItem("userId");
+  (apiRequest as jest.Mock).mockImplementation(async () => {
+    localStorage.setItem("userId", "different-account");
+    return { shoppingMetadataVersion: 1, ownerUserId: owner };
+  });
+  await expect(sendSavedMealToShopping(selectionForRecipe(recipe(), "saved-meals").selection!, true))
+    .rejects.toThrow("Account changed");
+  expect((apiRequest as jest.Mock).mock.calls).toHaveLength(1);
+});
+test("saved-card sender accepts the existing Production acknowledgement without metadata or new tables", async () => {
+  (apiRequest as jest.Mock).mockResolvedValue({ ok: true, added: 1 });
+  await sendSavedMealToShopping(selectionForRecipe(recipe(), "saved-meals").selection!, false);
+  expect((apiRequest as jest.Mock).mock.calls).toHaveLength(1);
+  const [url, init] = (apiRequest as jest.Mock).mock.calls[0];
+  expect(url).toBe("/api/shopping-list");
+  expect(JSON.parse(init.body).items[0]).not.toHaveProperty("ingredientMetadata");
+});
+test("saved-card sender rejects an unconfirmed save rather than reporting success", async () => {
+  (apiRequest as jest.Mock).mockResolvedValue({ ok: true, added: 0 });
+  await expect(sendSavedMealToShopping(selectionForRecipe(recipe(), "saved-meals").selection!, false))
+    .rejects.toThrow("save was not confirmed");
+});
+test("saved cards retain an explicitly stored legacy recipe yield", async () => {
+  const original = savedRow();
+  const { servings, ...mealData } = original.mealData;
+  render(<SavedMealRow row={{ ...original, mealData: { ...mealData, recipeServings: servings } }}
+    sourceLabel={() => "Create a Dish"} onRemove={jest.fn()} onAddToMacros={jest.fn()} initialExpanded />);
+  fireEvent.click(await shoppingButton());
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
+  expect(JSON.parse(post.mock.calls[0][1].body).selections[0].recipeYield).toBe(3);
 });
 test("saved header expands without title truncation and keeps removal independent", () => {
   const { container } = render(<SavedMealRow row={savedRow()} sourceLabel={() => "Create a Dish"}

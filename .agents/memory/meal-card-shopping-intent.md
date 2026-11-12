@@ -75,3 +75,17 @@ header.
 
 **How to apply:** Keep one shared action-layout owner. Preserve existing
 callbacks, canonical nutrition/ingredients, translation and clinical warnings.
+
+The founder approved direct add-and-view from each Saved Meals Shopping button,
+reusing the aggregate bar's existing grocery flow rather than showing another
+bar. Only the chosen saved recipe is sent; confirm the save before opening the
+shopping list.
+
+**Why:** The founder explicitly chose the least invasive implementation with
+minimal new code. Saved cards already exist, so the page must not automatically
+aggregate the entire Favorites collection.
+
+**How to apply:** Keep this behavior opt-in for Saved Meals. Its established
+grocery endpoint remains usable without activating experimental selection
+transfers elsewhere or changing shared database schemas. Preserve canonical
+quantities, recipe yield, authentication and visible save failures.
