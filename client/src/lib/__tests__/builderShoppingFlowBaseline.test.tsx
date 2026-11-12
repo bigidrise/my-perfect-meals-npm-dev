@@ -68,22 +68,24 @@ beforeEach(() => {
 const meal = (id: string, quantity: number | string, servings = 3) => ({
   id, name: id, servings, ingredients: [{ name: "chicken breast", quantity, unit: "lb" }],
 });
-test("Create a Dish desktop footer fits its content column without covering the sidebar", () => {
+test("Create a Dish desktop footer spans from the sidebar edge to the right viewport edge", () => {
   mockDesktop = true;
   const { container } = render(<ShoppingAggregateBar
     ingredients={[{ name: "rice", qty: 1, unit: "cup" }]}
-    desktopContained aboveBottomNav />);
+    aboveBottomNav />);
   const style = (container.firstElementChild as HTMLElement).style;
-  expect(style.left).toBe("calc(50% + 120px)");
-  expect(style.width).toBe("40rem");
-  expect(style.maxWidth).toBe("calc(100% - 288px)");
-  expect(style.transform).toBe("translateX(-50%)");
-  expect(style.bottom).toBe("24px");
+  expect(style.left).toBe("240px");
+  expect(style.right).toBe("0px");
+  expect(style.width).toBe("");
+  expect(style.maxWidth).toBe("");
+  expect(style.transform).toBe("");
+  expect(style.bottom).toBe("0px");
+  expect(style.borderRadius).toBe("");
 });
 test("Create a Dish mobile footer clears bottom navigation and the device safe area", () => {
   const { container } = render(<ShoppingAggregateBar
     ingredients={[{ name: "rice", qty: 1, unit: "cup" }]}
-    desktopContained aboveBottomNav />);
+    aboveBottomNav />);
   const style = (container.firstElementChild as HTMLElement).style;
   expect(style.bottom).toBe("calc(var(--bottom-nav-height, 64px) + var(--safe-bottom, 0px))");
   expect(style.left).toBe("0px");

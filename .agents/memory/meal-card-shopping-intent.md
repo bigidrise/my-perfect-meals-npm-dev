@@ -51,11 +51,14 @@ safety controls. Do not push, create a PR, merge, publish or deploy before revie
 
 Create a Dish must show the shared shopping aggregate bar whenever a finalized
 meal card is visible, including a restored card, just like Craving and Dessert
-Creator. On desktop it belongs inside the content column, clear of the sidebar;
-on mobile it must sit above the bottom navigator with device-safe-area spacing.
+Creator. On desktop it spans the full content viewport from the sidebar's right
+edge to the window's right edge, flush with the bottom, exactly like Craving
+Creator—not constrained to the meal-card width or floating above the bottom.
+On mobile it must sit above the bottom navigator with device-safe-area spacing.
 
 **Why:** The founder clarified that the missing Create a Dish aggregate bar was
-the requested gap, and explicitly emphasized both navigation layouts.
+the requested gap, explicitly emphasized both navigation layouts, and corrected
+the narrower desktop version with screenshots of the full-width reference.
 
 **How to apply:** Do not hide the footer solely because generation occurred in
 an earlier visit. Preserve unverified-recipe exclusions and existing shopping

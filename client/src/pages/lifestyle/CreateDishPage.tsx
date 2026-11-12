@@ -2439,7 +2439,6 @@ export default function CreateDishPage() {
             source="Create a Dish"
             hideShareButton={true}
             aboveBottomNav={true}
-            desktopContained={true}
           />
         )}
       </motion.div>
