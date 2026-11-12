@@ -14,6 +14,20 @@ to erase saved restoration choices. Explain the failure and allow an explicit
 retry; unavailable choices must remain unusable until the server verifies them.
 Do not automatically regenerate a replacement set.
 
+Create a Dish persistence must match the established Craving Creator experience.
+The founder wants the persistence behavior fixed, not a one-off recovery of an
+old Menu; they can create a new set themselves.
+
+**Why:** The founder reiterated that choices had reliably persisted for months
+and objected to their disappearance and the newly introduced retry warning.
+
+**How to apply:** Finishing one recipe, normal navigation, refreshing, or a
+recalculated context marker must not discard the working set. A changed marker
+revokes its old authorization, not ownership of its ideas: recheck the exact
+server-owned concepts against current protections before reauthorizing them.
+Genuine food conflicts remain blocked and final recipes still require current
+validation. Never let a late restoration overwrite an explicitly newer Menu.
+
 **Why:** The founder reported choices disappearing after dashboard navigation
 and approved a narrowly scoped recovery correction without changes to unrelated
 features or safety rules.
