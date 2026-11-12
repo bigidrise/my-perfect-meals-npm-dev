@@ -1,6 +1,12 @@
 /** @jest-environment jsdom */
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+let mockPageVisible = false;
+jest.mock("@shared/familyFeatureVisibility", () => ({
+  get PREGNANCY_PAGE_VISIBLE() { return mockPageVisible; },
+  PREGNANCY_COACH_VISIBLE: false,
+  PARENTS_CORNER_VISIBLE: false,
+}));
 jest.mock("@/lib/developmentComingSoon", () => ({ developmentComingSoonEnabled: false }));
 jest.mock("wouter", () => ({
   useLocation: jest.fn(),
@@ -13,20 +19,39 @@ jest.mock("wouter", () => ({
 }));
 
 jest.mock("@/contexts/AuthContext", () => ({
-  useAuth: jest.fn(() => { throw new Error("Paused page must not mount Pregnancy content"); }),
+  useAuth: jest.fn(),
 }));
+jest.mock("@tanstack/react-query", () => ({
+  useQuery: jest.fn(() => ({ isSuccess: false, isError: false })),
+}));
+jest.mock("@/contexts/PageTitleContext", () => ({ usePageTitle: jest.fn() }));
+jest.mock("@/lib/apiRequest", () => ({ apiRequest: jest.fn(async () => ({ children: [] })) }));
+jest.mock("@/components/ui/HowThisWorksLink", () => ({ HowThisWorksLink: () => null }));
 jest.mock("@/lib/api", () => ({ post: jest.fn(), ApiError: class extends Error {} }));
 jest.mock("@/lib/resolveApiBase", () => ({ apiUrl: (path: string) => path }));
 jest.mock("@/components/MedicalSourcesInfo", () => ({ MedicalSourcesInfo: () => null }));
 jest.mock("@/hooks/useIsDesktop", () => ({ useIsDesktop: jest.fn(() => false) }));
-jest.mock("@/components/PregnancySupportSetupModal", () => ({ PregnancySupportSetupModal: () => null }));
+jest.mock("@/components/PregnancySupportSetupModal", () => ({ PregnancySupportSetupModal: jest.fn(() => null) }));
 jest.mock("@/components/voice/VoiceInputButton", () => ({ VoiceInputButton: () => null }));
 
 import MyPerfectPregnancyPage from "@/pages/MyPerfectPregnancyPage";
+import MyPerfectBeginningPage from "@/pages/lifestyle/MyPerfectBeginningPage";
 import { useAuth } from "@/contexts/AuthContext";
 import { post } from "@/lib/api";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { apiRequest } from "@/lib/apiRequest";
+import { PregnancySupportSetupModal } from "@/components/PregnancySupportSetupModal";
+
+beforeEach(() => {
+  mockPageVisible = false;
+  (useLocation as jest.Mock).mockReturnValue(["/lifestyle", jest.fn()]);
+  (useAuth as jest.Mock).mockReturnValue({
+    user: { id: "viewer", entitlements: ["FULL_ACCESS"] }, refreshUser: jest.fn(),
+  });
+  (useIsDesktop as jest.Mock).mockReturnValue(false);
+  window.scrollTo = jest.fn();
+});
 
 it("direct navigation shows Coming Soon without mounting setup, coaching, or account queries", () => {
   const { container } = render(<MyPerfectPregnancyPage />);
@@ -67,4 +92,62 @@ it("Back to Lifestyle uses internal routing without a document navigation", () =
   expect(window.location.pathname).toBe("/lifestyle");
   expect(push).toHaveBeenCalled();
   push.mockRestore();
+});
+
+describe("Pregnancy visible with coaching hidden", () => {
+  beforeEach(() => { mockPageVisible = true; });
+
+  it.each([false, true])("opens existing education without coaching on desktop=%s", desktop => {
+    (useIsDesktop as jest.Mock).mockReturnValue(desktop);
+    const { container } = render(<MyPerfectPregnancyPage />);
+    expect(screen.queryByTestId("pregnancy-coming-soon")).toBeNull();
+    expect(container.textContent).not.toContain("Coming Soon");
+    expect(screen.getByRole("button", { name: /Learn/ }).className).toContain("bg-pink-700");
+    expect(screen.getByRole("button", { name: /Food Safety/ })).not.toBeNull();
+    expect(screen.queryByRole("button", { name: /Ask Coach/ })).toBeNull();
+    expect(container.querySelector("textarea")).toBeNull();
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it("retains the Food Safety section without exposing a coach action", () => {
+    render(<MyPerfectPregnancyPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Food Safety/ }));
+    expect(screen.getByRole("button", { name: /Food Safety/ }).className).toContain("bg-pink-700");
+    expect(screen.queryByRole("button", { name: /Ask Coach/ })).toBeNull();
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it("preserves the existing protocol editor entry while hiding the configured user's coach shortcut", () => {
+    (useAuth as jest.Mock).mockReturnValue({
+      user: {
+        id: "viewer", entitlements: ["FULL_ACCESS"], pregnancyStage: "trimester-2",
+        pregnancySupportContext: { active: true, stage: "trimester-2", symptoms: [] },
+      },
+      refreshUser: jest.fn(),
+    });
+    render(<MyPerfectPregnancyPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Update Protocol/ }));
+    expect((PregnancySupportSetupModal as jest.Mock).mock.calls.at(-1)?.[0].open).toBe(true);
+    expect(screen.queryByRole("button", { name: /Ask Coach/ })).toBeNull();
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it("preserves existing Clinical eligibility instead of granting access", () => {
+    (useAuth as jest.Mock).mockReturnValue({ user: { id: "viewer", entitlements: [] } });
+    render(<MyPerfectPregnancyPage />);
+    expect(screen.getByText("Clinical Plan Required")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: /Learn/ })).toBeNull();
+    expect(post).not.toHaveBeenCalled();
+  });
+});
+
+it("hides only Parent's Corner and retains both existing non-coaching cards", async () => {
+  const { container } = render(<MyPerfectBeginningPage />);
+  await waitFor(() => expect(screen.getByText("Child Nutrition Profile")).not.toBeNull());
+  expect(screen.getByText("Create a Meal")).not.toBeNull();
+  expect(screen.queryByText("Parent's Corner")).toBeNull();
+  expect(container.textContent).toContain("My Perfect Beginning");
+  expect(apiRequest).toHaveBeenCalledWith("/api/my-perfect-beginning/children");
+  expect((apiRequest as jest.Mock).mock.calls.every(call => call.length === 1)).toBe(true);
+  expect(post).not.toHaveBeenCalled();
 });

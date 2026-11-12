@@ -1,5 +1,5 @@
 - [Production source and publication history](production-source-publication-history.md) — separate source authority from automatic publication checkpoints; clean builds alone cannot keep the branch fast-forwardable.
-- [Pregnancy release safety pause](pregnancy-release-safety-pause.md) — Coming Soon stays Clinical; retain saved support and other safety rules while activation and unreviewed guidance are paused.
+- [Pregnancy visibility and safety hold](pregnancy-release-safety-pause.md) — Development may show the page with coaching hidden; activation and paused guidance stay unchanged; no Production promotion.
 - [Interface layout references](interface-layout-reference-index.md) — safe-area modals, universal dialogs, mobile scroll ownership, and compact icon-pill selectors.
 - [Development runtime references](development-runtime-reference-index.md) — startup-log evidence, warm-browser Vite cache identity, and production-mode dependency checks.
 - [Authenticated API cache identity](authenticated-api-client-cache-identity.md) — removing caller IDs from APIs must not erase client-side account partitions.

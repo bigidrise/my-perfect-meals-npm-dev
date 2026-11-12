@@ -1,4 +1,5 @@
 import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
+import { PREGNANCY_PAGE_VISIBLE } from "@shared/familyFeatureVisibility";
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -1413,7 +1414,7 @@ export default function EditProfilePage() {
                         }}
                         className={locked ? "opacity-80 cursor-not-allowed" : ""}
                       >
-                        {isLabDriven ? <span className="mr-1 text-[10px]">🔬</span> : null}{opt.label}{opt.value === "pregnancy-support" && !PREGNANCY_CUSTOMER_AVAILABLE ? " — Coming Soon (Clinical)" : ""}
+                        {isLabDriven ? <span className="mr-1 text-[10px]">🔬</span> : null}{opt.label}{opt.value === "pregnancy-support" && !PREGNANCY_PAGE_VISIBLE ? " — Coming Soon (Clinical)" : ""}
                       </PillButton>
                     );
                   })}
@@ -1461,9 +1462,9 @@ export default function EditProfilePage() {
                     <div className="flex items-start gap-2">
                       <span className="text-pink-400 text-base mt-0.5">🩷</span>
                       <div>
-                        <p className="text-pink-300 text-xs font-semibold mb-1">My Perfect Pregnancy — {PREGNANCY_CUSTOMER_AVAILABLE ? "Nutritional Guidance Only" : "Coming Soon (Clinical)"}</p>
+                        <p className="text-pink-300 text-xs font-semibold mb-1">My Perfect Pregnancy — {PREGNANCY_PAGE_VISIBLE ? "Nutritional Guidance Only" : "Coming Soon (Clinical)"}</p>
                         <p className="text-white/70 text-xs leading-relaxed">
-                          {PREGNANCY_CUSTOMER_AVAILABLE ? "General nutrition education only. Daily calorie and macro targets are not pregnancy-adjusted; follow your healthcare provider's guidance." : PREGNANCY_PAUSE_MESSAGE}
+                          {PREGNANCY_PAGE_VISIBLE ? PREGNANCY_PAUSE_MESSAGE.replace("My Perfect Pregnancy — Coming Soon in Clinical. ", "") : PREGNANCY_PAUSE_MESSAGE}
                         </p>
                       </div>
                     </div>

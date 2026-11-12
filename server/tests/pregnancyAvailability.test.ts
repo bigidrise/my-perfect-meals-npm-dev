@@ -16,8 +16,20 @@ import { scanClinicalFoodSafety } from "../services/healthProtocols/clinicalOutp
 import { derivePregnancyStage } from "@shared/pregnancyStage";
 import fs from "node:fs";
 import ts from "typescript";
+import {
+  PREGNANCY_PAGE_VISIBLE, PREGNANCY_COACH_VISIBLE, PARENTS_CORNER_VISIBLE,
+} from "@shared/familyFeatureVisibility";
 
 describe("temporary Pregnancy customer safety pause", () => {
+  it("reopens product presentation without enabling coaching, activation, or recommendations", () => {
+    expect(PREGNANCY_PAGE_VISIBLE).toBe(true);
+    expect(PREGNANCY_COACH_VISIBLE).toBe(false);
+    expect(PARENTS_CORNER_VISIBLE).toBe(false);
+    expect(PREGNANCY_CUSTOMER_AVAILABLE).toBe(false);
+    expect(pregnancyRecommendationsPaused({ active: true, stage: "breastfeeding" })).toBe(true);
+    expect(pregnancyRecommendationsPaused({ active: true, stage: "postpartum" })).toBe(true);
+    expect(() => retainPregnancySupport(["pregnancy-support"], [])).toThrow(PREGNANCY_PAUSE_MESSAGE);
+  });
   it("preserves the pause explanation in actual meal-generator catch guards before fallbacks", () => {
     let pause: unknown;
     try { assertPregnancyRecommendationsAvailable({ active: true, stage: "breastfeeding" }); }

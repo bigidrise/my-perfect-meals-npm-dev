@@ -1,4 +1,5 @@
 import { PREGNANCY_CUSTOMER_AVAILABLE } from "@shared/pregnancyAvailability";
+import { PREGNANCY_PAGE_VISIBLE } from "@shared/familyFeatureVisibility";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -296,7 +297,7 @@ export default function LifestyleLandingPage() {
             <Card
               className="relative rounded-xl shadow-md overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 hover:scale-[1.02] bg-gradient-to-r from-black via-pink-950/40 to-black backdrop-blur-lg border border-pink-500/30 hover:shadow-[0_0_30px_rgba(236,72,153,0.4)] hover:border-pink-400/50"
               onClick={() => {
-                if (!PREGNANCY_CUSTOMER_AVAILABLE) {
+                if (!PREGNANCY_PAGE_VISIBLE) {
                   setLocation("/lifestyle/my-perfect-pregnancy");
                   return;
                 }
@@ -318,7 +319,7 @@ export default function LifestyleLandingPage() {
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
                     <span className={`text-base ${pregnancyLocked ? "opacity-50" : ""}`}>🩷</span>
-                    <h3 className={`text-sm font-semibold ${pregnancyLocked ? "text-white/50" : "text-white"}`}>{t("pregnancyTitle")}{!PREGNANCY_CUSTOMER_AVAILABLE ? " — Coming Soon (Clinical)" : ""}</h3>
+                    <h3 className={`text-sm font-semibold ${pregnancyLocked ? "text-white/50" : "text-white"}`}>{t("pregnancyTitle")}{!PREGNANCY_PAGE_VISIBLE ? " — Coming Soon (Clinical)" : ""}</h3>
                     {pregnancyLocked && <Lock className="h-3 w-3 text-orange-400/70 ml-auto" />}
                   </div>
                   <p className={`text-xs ml-6 ${pregnancyLocked ? "text-white/40" : "text-white/80"}`}>
