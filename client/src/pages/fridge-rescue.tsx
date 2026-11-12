@@ -1356,6 +1356,7 @@ const FridgeRescuePage = () => {
                           </div>
                           <TrashButton
                             size="sm"
+                            appearance="meal-card"
                             ariaLabel="Remove meal"
                             title="Remove meal"
                             confirm={true}

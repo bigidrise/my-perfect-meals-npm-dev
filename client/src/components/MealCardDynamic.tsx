@@ -345,6 +345,7 @@ const MealCardDynamic: React.FC<MealCardDynamicProps> = ({
 
         <TrashButton
           size="sm"
+          appearance="meal-card"
           onClick={() => onDelete(meal.id)}
           ariaLabel="Delete meal"
           title="Delete meal"

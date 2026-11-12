@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, Clock, Users, Shield, AlertTriangle, CheckCircle, X, Plus, Eye, Loader2, Wand2 } from "lucide-react";
+import { RotateCcw, Clock, Users, Shield, AlertTriangle, CheckCircle, Plus, Eye, Loader2, Wand2 } from "lucide-react";
+import TrashButton from "@/components/ui/TrashButton";
 import { useState } from "react";
 import MealRefinementSheet from "@/components/MealRefinementSheet";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
@@ -474,15 +475,13 @@ export default function MealCardFull({
         )}
         
         {showDeleteMeal && onDeleteMeal && (
-          <Button
-            variant="destructive"
+          <TrashButton
+            appearance="meal-card"
             size="sm"
             onClick={onDeleteMeal}
-            className="flex-1"
-          >
-            <X className="w-4 h-4 mr-2" />
-            Delete Meal
-          </Button>
+            ariaLabel="Delete Meal"
+            title="Delete Meal"
+          />
         )}
       </div>
 

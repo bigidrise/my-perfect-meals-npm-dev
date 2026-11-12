@@ -187,6 +187,7 @@ function MealChip({
         {onDelete && (
           <TrashButton
             size="sm"
+            appearance="meal-card"
             onClick={onDelete}
             ariaLabel="Remove meal"
             title="Remove meal"

@@ -1104,6 +1104,7 @@ export default function BeverageCreator() {
                       )}
                       <TrashButton
                         size="sm"
+                        appearance="meal-card"
                         ariaLabel="Remove beverage"
                         title="Remove beverage"
                         confirm={true}

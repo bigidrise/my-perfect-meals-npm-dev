@@ -1198,6 +1198,7 @@ export default function DessertCreator() {
                       )}
                       <TrashButton
                         size="sm"
+                        appearance="meal-card"
                         ariaLabel="Remove dessert"
                         title="Remove dessert"
                         confirm={true}

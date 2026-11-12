@@ -185,6 +185,7 @@ export default function FixedMenuPicker({
                 <div className="absolute top-2 right-2">
                   <TrashButton
                     size="sm"
+                    appearance="meal-card"
                     onClick={() => removeMeal(idx)}
                     ariaLabel="Remove meal"
                   />

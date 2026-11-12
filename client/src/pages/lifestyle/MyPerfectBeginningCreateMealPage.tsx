@@ -1252,6 +1252,7 @@ function RecipeCard({
             <div className="flex justify-end pt-1">
               <TrashButton
                 size="sm"
+                appearance="meal-card"
                 ariaLabel="Delete recipe"
                 title="Delete recipe"
                 confirm={true}

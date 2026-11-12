@@ -1881,14 +1881,8 @@ export default function CreateDishPage() {
                   <Card className="bg-black/40 backdrop-blur-lg border border-orange-400/20 shadow-xl rounded-2xl">
                     <CardContent className="p-6">
                       <DiabetesProtocolIndicator memory={meal.diabeticMemory} />
-                      <div className="mb-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <ChefHat className="h-5 w-5 text-orange-400 shrink-0" />
-                          <h3 className="text-xl font-bold text-white truncate leading-tight">
-                            {meal.name}
-                          </h3>
-                        </div>
-                        <div className="flex items-center justify-between">
+                      <div className="mb-4" data-meal-card-header>
+                        <div className="flex items-center justify-between gap-3" data-meal-card-controls>
                           <FavoriteButton
                             title={meal.name}
                             sourceType="create-dish"
@@ -1909,6 +1903,12 @@ export default function CreateDishPage() {
                           >
                             Create New
                           </button>
+                        </div>
+                        <div className="mt-3 flex min-w-0 items-start gap-2">
+                          <ChefHat className="mt-1 h-5 w-5 shrink-0 text-orange-400" />
+                          <h3 data-meal-card-title className="min-w-0 flex-1 whitespace-normal break-words text-xl font-bold leading-tight text-white [overflow-wrap:anywhere]">
+                            {meal.name}
+                          </h3>
                         </div>
                       </div>
 
@@ -2106,6 +2106,7 @@ export default function CreateDishPage() {
                               </div>
                               <TrashButton
                                 size="sm"
+                                appearance="meal-card"
                                 ariaLabel="Remove meal"
                                 title="Remove meal"
                                 confirm={true}

@@ -421,6 +421,7 @@ export function MealCard({
                 <div onClick={(e) => e.stopPropagation()}>
                   <TrashButton
                     size="sm"
+                    appearance="meal-card"
                     onClick={() => onUpdated(null)}
                     ariaLabel={t("deleteMeal")}
                     title={t("deleteMeal")}
