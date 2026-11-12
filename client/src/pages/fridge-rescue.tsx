@@ -62,6 +62,7 @@ import TrashButton from "@/components/ui/TrashButton";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
+import MealCardActions, { MealCardAction } from "@/components/MealCardActions";
 import PhaseGate from "@/components/PhaseGate";
 import { LockedBuilderCard } from "@/components/upgrade/LockedBuilderCard";
 import { useCopilot } from "@/components/copilot/CopilotContext";
@@ -1355,6 +1356,7 @@ const FridgeRescuePage = () => {
                           </div>
                           <TrashButton
                             size="sm"
+                            appearance="meal-card"
                             ariaLabel="Remove meal"
                             title="Remove meal"
                             confirm={true}
@@ -1544,20 +1546,21 @@ const FridgeRescuePage = () => {
                       })()}
 
                       {/* Standardized 3-Row Button Layout */}
-                      <div className="mt-auto pt-4 space-y-2">
+                      <MealCardActions source="fridge-rescue" shoppingRecipe={meal}
+                        shoppingOptions={{ recipeYield: servings, shoppingServings: servings }}>
                         {/* Row 1: Add to Macros (full width) */}
-                        <MacroBridgeButton
+                        <MealCardAction kind="macros"><MacroBridgeButton
                           data-testid="fridge-add-to-shopping"
                           meal={{
                             ...creatorMealNutrition(meal, servings),
                             servings: 1,
                           }}
                           source="fridge-rescue"
-                        />
+                        /></MealCardAction>
 
                         {/* Row 2: Add to Plan + Translate (50/50) */}
                         <div className="grid grid-cols-2 gap-2">
-                          <AddToMealPlanButton meal={meal} />
+                          <MealCardAction kind="plan"><AddToMealPlanButton meal={meal} /></MealCardAction>
                           <TranslateToggle
                             content={{
                               name: meal.name,
@@ -1593,7 +1596,7 @@ const FridgeRescuePage = () => {
 
                         {/* Row 3: Prepare with Chef + Share (50/50) */}
                         <div className="grid grid-cols-2 gap-2">
-                          <Button
+                          <MealCardAction kind="prepare"><Button
                             size="sm"
                             className="flex-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                             onClick={() => {
@@ -1626,8 +1629,8 @@ const FridgeRescuePage = () => {
                           >
                             {isFree && <Lock className="h-3 w-3" />}
                             Guided Cooking
-                          </Button>
-                          <ShareRecipeButton
+                          </Button></MealCardAction>
+                          <MealCardAction kind="share"><ShareRecipeButton
                             recipe={{
                               name: meal.name,
                               description: meal.description,
@@ -1651,9 +1654,9 @@ const FridgeRescuePage = () => {
                             className="flex-1"
                             locked={isFree}
                             onLockedClick={() => guardAction("Share Recipe is a premium feature. Upgrade to share your meals with friends and family.", () => {})}
-                          />
+                          /></MealCardAction>
                         </div>
-                      </div>
+                      </MealCardActions>
                     </CardContent>
                   </Card>
                 ))}

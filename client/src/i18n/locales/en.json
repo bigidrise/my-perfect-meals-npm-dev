@@ -1,4 +1,17 @@
 {
+  "shoppingTransfer": {
+    "addedTitle": "Added to Shopping List",
+    "savedTitle": "Saved to Shopping List",
+    "builderConfirmed": "Selected meals were saved and confirmed.",
+    "menuConfirmed": "Your selections were confirmed by the server.",
+    "deleteMeal": "Delete Meal",
+    "quantityNeeded": "Needed: {{quantity}}",
+    "quantityReview": "Review quantity",
+    "quantityBuy": "Buy: {{quantity}}",
+    "quantityEstimate": "(estimate)",
+    "quantityEstimateHint": "Estimated purchase amount; package and produce sizes vary.",
+    "quantityCombined": "{{count}} list entries combined"
+  },
   "creatorMenuRecovery": {
     "title": "Your Menu needs another check",
     "checking": "Checking saved choices…",

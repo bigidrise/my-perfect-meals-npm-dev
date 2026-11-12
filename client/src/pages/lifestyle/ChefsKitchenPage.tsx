@@ -40,6 +40,7 @@ import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { IconPillOption } from "@/components/ui/icon-pill-option";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
+import MealCardActions, { MealCardAction } from "@/components/MealCardActions";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import {
   generateMedicalBadges,
@@ -1056,8 +1057,9 @@ export default function ChefsKitchenPage() {
                   )}
 
                   {/* Action Buttons */}
-                  <div className="space-y-2">
-                    <button
+                  <MealCardActions source="ChefsKitchenPage" shoppingRecipe={generatedMeal}
+                    shoppingOptions={{ recipeYield: servings, shoppingServings: servings }}>
+                    <MealCardAction kind="macros"><button
                       onClick={() => {
                         const oneServing = creatorMealNutrition(generatedMeal, servings);
                         setQuickView({
@@ -1075,10 +1077,10 @@ export default function ChefsKitchenPage() {
                       className="w-full py-3 rounded-xl bg-gradient-to-r from-zinc-900 via-zinc-800 to-black hover:from-zinc-800 hover:via-zinc-700 hover:to-zinc-900 text-white font-semibold text-sm transition border border-white/30"
                     >
                       Add to Macros
-                    </button>
+                    </button></MealCardAction>
 
                     <div className="grid grid-cols-2 gap-2">
-                      <AddToMealPlanButton meal={generatedMeal} />
+                      <MealCardAction kind="plan"><AddToMealPlanButton meal={generatedMeal} /></MealCardAction>
                       <TranslateToggle
                         content={{
                           name: generatedMeal.name,
@@ -1099,7 +1101,7 @@ export default function ChefsKitchenPage() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
-                      <button
+                      <MealCardAction kind="prepare"><button
                         onClick={() => {
                           stopChef();
                           setPrepStep(0);
@@ -1109,8 +1111,8 @@ export default function ChefsKitchenPage() {
                         data-testid="button-prepare-meal"
                       >
                         Guided Cooking
-                      </button>
-                      <ShareRecipeButton
+                      </button></MealCardAction>
+                      <MealCardAction kind="share"><ShareRecipeButton
                         recipe={{
                           name: generatedMeal.name,
                           description: generatedMeal.description,
@@ -1123,9 +1125,9 @@ export default function ChefsKitchenPage() {
                           })),
                         }}
                         className="flex-1"
-                      />
+                      /></MealCardAction>
                     </div>
-                  </div>
+                  </MealCardActions>
                 </CardContent>
               </Card>
             )}
@@ -1395,6 +1397,7 @@ export default function ChefsKitchenPage() {
       {/* Shopping Aggregate Bar */}
       {generatedMeal && generatedMeal.ingredients?.length > 0 && (
         <ShoppingAggregateBar
+          recipes={[generatedMeal]} recipeYield={servings} shoppingServings={servings}
           ingredients={generatedMeal.ingredients.map((ing) => ({
             name: ing.name,
             qty: ing.amount ?? ing.quantity,

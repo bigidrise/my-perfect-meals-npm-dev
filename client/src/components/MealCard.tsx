@@ -13,7 +13,7 @@ import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 import { builderMealMacros, formatBuilderMacro, type BuilderMacroKey } from "@/lib/builderMacroCalculation";
 import TrashButton from "@/components/ui/TrashButton";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
-import MealCardActions from "@/components/MealCardActions";
+import MealCardActions, { MealCardAction } from "@/components/MealCardActions";
 import { StarchMealBadge } from "@/components/StarchMealBadge";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
@@ -421,6 +421,7 @@ export function MealCard({
                 <div onClick={(e) => e.stopPropagation()}>
                   <TrashButton
                     size="sm"
+                    appearance="meal-card"
                     onClick={() => onUpdated(null)}
                     ariaLabel={t("deleteMeal")}
                     title={t("deleteMeal")}
@@ -601,29 +602,10 @@ export function MealCard({
               {builderSnapshot.issues.join(". ")}
             </p>
           )}
-          {date !== "board" && !builderSnapshot?.uncertainFields.length && (
-            <MacroBridgeButton
-              meal={{
-                protein: protein || 0,
-                carbs: carbs || 0,
-                starchyCarbs: developmentGrocery ? storedStarchy ?? undefined : starchyCarbs || 0,
-                fibrousCarbs: developmentGrocery ? storedFibrous ?? undefined : fibrousCarbs || 0,
-                fat: fat || 0,
-                calories: kcal || 0,
-                dateISO: date,
-                mealSlot: macroMealSlot,
-                servings: 1,
-              }}
-              label={t("addToMacros", { defaultValue: "Add to Macros", ns: "savedMeals" })}
-            />
-          )}
-          {date !== "board" && !!builderSnapshot?.uncertainFields.length && (
-            <p className="text-xs text-amber-300">Review incomplete nutrition before logging.</p>
-          )}
-          <AddToMealPlanButton
-            meal={{ ...meal, builderType: builderType ?? meal.builderType }}
-          />
           <MealCardActions
+            shoppingRecipe={meal}
+            showShopping={false}
+            source={originBuilder || builderType || "meal-board"}
             meal={{
               name: displayTitle,
               description: displayDescription,
@@ -637,7 +619,32 @@ export function MealCard({
             }}
             showPrepareButton={!meal.id?.startsWith("described_")}
             onContentUpdate={(updated) => setTranslatedContent((prev) => ({ ...prev, ...updated }))}
-          />
+          >
+            <MealCardAction kind="macros">
+              {date !== "board" && !builderSnapshot?.uncertainFields.length && (
+                <MacroBridgeButton
+                  meal={{
+                    protein: protein || 0,
+                    carbs: carbs || 0,
+                    starchyCarbs: developmentGrocery ? storedStarchy ?? undefined : starchyCarbs || 0,
+                    fibrousCarbs: developmentGrocery ? storedFibrous ?? undefined : fibrousCarbs || 0,
+                    fat: fat || 0,
+                    calories: kcal || 0,
+                    dateISO: date,
+                    mealSlot: macroMealSlot,
+                    servings: 1,
+                  }}
+                  label={t("addToMacros", { defaultValue: "Add to Macros", ns: "savedMeals" })}
+                />
+              )}
+            </MealCardAction>
+            {date !== "board" && !!builderSnapshot?.uncertainFields.length && (
+              <p className="text-xs text-amber-300">Review incomplete nutrition before logging.</p>
+            )}
+            <MealCardAction kind="plan">
+              <AddToMealPlanButton meal={{ ...meal, builderType: builderType ?? meal.builderType }} />
+            </MealCardAction>
+          </MealCardActions>
         </div>
         </div>
       </div>

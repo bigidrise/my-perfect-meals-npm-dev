@@ -75,7 +75,7 @@ import {
   getAllDishes,
 } from "@/data/holidayTraditionalDishes";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
-// ─────────────────────────────────────────────
+import MealCardActions, { MealCardAction } from "@/components/MealCardActions";
 // Types
 // ─────────────────────────────────────────────
 interface StructuredIngredient {
@@ -1572,6 +1572,7 @@ export default function UltimateExperiencesPage() {
                               </div>
                               <TrashButton
                                 size="sm"
+                                appearance="meal-card"
                                 ariaLabel="Remove this course"
                                 title="Remove this course"
                                 confirm={true}
@@ -1697,8 +1698,9 @@ export default function UltimateExperiencesPage() {
                         </div>
                       )}
 
-                      <div className="space-y-2 mb-3">
-                        <GlassButton
+                      <MealCardActions source="GatheringsPage" shoppingRecipe={course}
+                        shoppingOptions={{ recipeYield: servings, shoppingServings: servings }}>
+                        <MealCardAction kind="macros"><GlassButton
                           onClick={() => {
                             const macros = getMealNutrition(course, servings);
                             setQuickView({
@@ -1718,10 +1720,10 @@ export default function UltimateExperiencesPage() {
                           className="w-full bg-gradient-to-r from-zinc-900 via-zinc-800 to-black hover:from-zinc-800 hover:via-zinc-700 hover:to-zinc-900 text-white flex items-center justify-center border border-white/30"
                         >
                           Add to Macros
-                        </GlassButton>
+                        </GlassButton></MealCardAction>
 
                         <div className="grid grid-cols-2 gap-2">
-                          <AddToMealPlanButton meal={course} />
+                          <MealCardAction kind="plan"><AddToMealPlanButton meal={course} /></MealCardAction>
                           <TranslateToggle
                             content={{
                               name: course.name,
@@ -1756,7 +1758,7 @@ export default function UltimateExperiencesPage() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-2">
-                          <GlassButton
+                          <MealCardAction kind="prepare"><GlassButton
                             onClick={() => {
                               const safeImageUrl = (() => {
                                 const url = course.imageUrl;
@@ -1784,8 +1786,8 @@ export default function UltimateExperiencesPage() {
                             className="flex-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                           >
                             Guided Cooking
-                          </GlassButton>
-                          <ShareRecipeButton
+                          </GlassButton></MealCardAction>
+                          <MealCardAction kind="share"><ShareRecipeButton
                             recipe={{
                               name: course.name,
                               description: course.description,
@@ -1800,9 +1802,9 @@ export default function UltimateExperiencesPage() {
                               ),
                             }}
                             className="flex-1"
-                          />
+                          /></MealCardAction>
                         </div>
-                      </div>
+                      </MealCardActions>
                     </CardContent>
                   </Card>
                 </div>
@@ -1813,6 +1815,7 @@ export default function UltimateExperiencesPage() {
 
         {generatedCourses.length > 0 && generatedInSession && (
           <ShoppingAggregateBar
+            recipes={generatedCourses} recipeYield={servings} shoppingServings={servings}
             ingredients={allIngredients}
             source="My Perfect Gatherings"
             hideShareButton={true}

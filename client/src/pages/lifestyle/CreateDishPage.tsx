@@ -32,6 +32,7 @@ import {
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
+import MealCardActions, { MealCardAction } from "@/components/MealCardActions";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
@@ -287,17 +288,6 @@ export default function CreateDishPage() {
   const [notes, setNotes] = useState("");
   const [generatedMeals, setGeneratedMeals] = useState<MealData[]>([]);
   const { loadingImages, hydrateImages } = useMealImages(setGeneratedMeals, { mealType: "dinner", concurrency: 1 });
-  // ============================================================
-  // GUARD: generatedInSession controls ShoppingAggregateBar visibility.
-  // It MUST start false and remain false during auto-restore on mount.
-  // Only explicit user actions (generate / select a meal) may set it true.
-  // This prevents the bar from cold-mounting as a black overlay on page load.
-  //
-  // RULE FOR FUTURE AGENTS: Do NOT set generatedInSession=true inside the
-  // cache-restore useEffect. Doing so re-introduces the black overlay bug
-  // (MPM-2026-CreateDish-Overlay). The fix was deliberately architected this way.
-  // ============================================================
-  const [generatedInSession, setGeneratedInSession] = useState(false);
   const [mealOptions, setMealOptions] = useState<MealData[]>([]);
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null);
   const { hydrateImages: hydrateOptionImages } = useMealImages(setMealOptions, {
@@ -442,9 +432,8 @@ export default function CreateDishPage() {
 
   // ============================================================
   // SAFE RESTORE: Only restores the final meal card display data.
-  // generatedInSession intentionally stays FALSE here — this is not
-  // a user-initiated generation, so ShoppingAggregateBar must NOT mount.
-  // Do NOT add setGeneratedInSession(true) here. See GUARD comment above.
+  // The shared shopping footer follows verified visible meals, including a
+  // restored final card, just as it does in Craving and Dessert Creator.
   // Do NOT restore dishInput — it triggers starch-guard on mount.
   // Do NOT show a restore toast — it fires on page exit and confuses users.
   // ============================================================
@@ -479,7 +468,6 @@ export default function CreateDishPage() {
         setGeneratedMeals([mealWithImage]);
       }
       setServings(cached.servings || 2);
-      // generatedInSession remains false — bar will not cold-mount
       // Only re-fetch if imageUrl is still missing after mini-cache lookup
       if (!mealWithImage.imageUrl) {
         if (restoredOption) {
@@ -520,7 +508,6 @@ export default function CreateDishPage() {
 
     // Show card immediately — image hydrates in parallel
     setSelectedDishId(meal.id);
-    setGeneratedInSession(true);
     setIsPlatingMeal(false);
     saveDishCache({
       generatedMeal: meal,
@@ -667,7 +654,6 @@ export default function CreateDishPage() {
       setSelectedDishId(meal.id);
       setSelectedConceptId(conceptId);
       setGeneratedMeals([]);
-      setGeneratedInSession(true);
       addRecentMeal(meal.name);
       saveDishCache({ generatedMeal: meal, servings, generatedAtISO: new Date().toISOString() });
     } catch (error: any) {
@@ -1209,7 +1195,6 @@ export default function CreateDishPage() {
 
       stopProgressTicker();
       setGeneratedMeals([{ ...meal, servings: meal.servings ?? servings }]);
-      setGeneratedInSession(true);
 
       saveDishCache({
         generatedMeal: meal,
@@ -1896,14 +1881,8 @@ export default function CreateDishPage() {
                   <Card className="bg-black/40 backdrop-blur-lg border border-orange-400/20 shadow-xl rounded-2xl">
                     <CardContent className="p-6">
                       <DiabetesProtocolIndicator memory={meal.diabeticMemory} />
-                      <div className="mb-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <ChefHat className="h-5 w-5 text-orange-400 shrink-0" />
-                          <h3 className="text-xl font-bold text-white truncate leading-tight">
-                            {meal.name}
-                          </h3>
-                        </div>
-                        <div className="flex items-center justify-between">
+                      <div className="mb-4" data-meal-card-header>
+                        <div className="flex items-center justify-between gap-3" data-meal-card-controls>
                           <FavoriteButton
                             title={meal.name}
                             sourceType="create-dish"
@@ -1913,7 +1892,6 @@ export default function CreateDishPage() {
                             onClick={() => {
                               setGeneratedMeals([]);
                               setSelectedDishId(null);
-                              setGeneratedInSession(false);
                               clearDishCache();
                               setMealOptions([]);
                               clearOptionsCache();
@@ -1925,6 +1903,12 @@ export default function CreateDishPage() {
                           >
                             Create New
                           </button>
+                        </div>
+                        <div className="mt-3 flex min-w-0 items-start gap-2">
+                          <ChefHat className="mt-1 h-5 w-5 shrink-0 text-orange-400" />
+                          <h3 data-meal-card-title className="min-w-0 flex-1 whitespace-normal break-words text-xl font-bold leading-tight text-white [overflow-wrap:anywhere]">
+                            {meal.name}
+                          </h3>
                         </div>
                       </div>
 
@@ -2122,13 +2106,13 @@ export default function CreateDishPage() {
                               </div>
                               <TrashButton
                                 size="sm"
+                                appearance="meal-card"
                                 ariaLabel="Remove meal"
                                 title="Remove meal"
                                 confirm={true}
                                 confirmMessage="Remove this meal?"
                                 onClick={() => {
                                   setGeneratedMeals([]);
-                                  setGeneratedInSession(false);
                                 }}
                               />
                             </div>
@@ -2240,8 +2224,9 @@ export default function CreateDishPage() {
                         </div>
                       )}
 
-                      <div className="space-y-2 mb-3">
-                        <GlassButton
+                      <MealCardActions source="CreateDishPage" shoppingRecipe={meal}
+                        shoppingOptions={{ recipeYield: servings, shoppingServings: servings }}>
+                        <MealCardAction kind="macros"><GlassButton
                           onClick={() => {
                             const macros = getMealNutrition(meal, servings);
                             setQuickView({
@@ -2261,10 +2246,10 @@ export default function CreateDishPage() {
                           className="w-full bg-gradient-to-r from-zinc-900 via-zinc-800 to-black hover:from-zinc-800 hover:via-zinc-700 hover:to-zinc-900 text-white flex items-center justify-center border border-white/30"
                         >
                           Add to Macros
-                        </GlassButton>
+                        </GlassButton></MealCardAction>
 
                         <div className="grid grid-cols-2 gap-2">
-                          <AddToMealPlanButton meal={meal} />
+                          <MealCardAction kind="plan"><AddToMealPlanButton meal={meal} /></MealCardAction>
                           <TranslateToggle
                             content={{
                               name: meal.name,
@@ -2293,7 +2278,7 @@ export default function CreateDishPage() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-2">
-                          <GlassButton
+                          <MealCardAction kind="prepare"><GlassButton
                             onClick={() => {
                               const safeImageUrl = (() => {
                                 const url = meal.imageUrl;
@@ -2321,8 +2306,8 @@ export default function CreateDishPage() {
                             className="flex-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                           >
                             Guided Cooking
-                          </GlassButton>
-                          <ShareRecipeButton
+                          </GlassButton></MealCardAction>
+                          <MealCardAction kind="share"><ShareRecipeButton
                             recipe={{
                               name: meal.name,
                               description: meal.description,
@@ -2337,9 +2322,9 @@ export default function CreateDishPage() {
                               ),
                             }}
                             className="flex-1"
-                          />
+                          /></MealCardAction>
                         </div>
-                      </div>
+                      </MealCardActions>
                     </CardContent>
                   </Card>
                 </div>
@@ -2431,8 +2416,9 @@ export default function CreateDishPage() {
           )}
         </div>
 
-        {!unverifiedOneTouchOptions && visibleMeals.length > 0 && generatedInSession && (
+        {!unverifiedOneTouchOptions && visibleMeals.length > 0 && (
           <ShoppingAggregateBar
+            recipes={visibleMeals} recipeYield={servings} shoppingServings={servings}
             ingredients={visibleMeals.flatMap((meal) =>
               meal.ingredients.map((ing: StructuredIngredient) => ({
                 name: ing.name,

@@ -1,4 +1,17 @@
 {
+  "shoppingTransfer": {
+    "addedTitle": "Zur Einkaufsliste hinzugefügt",
+    "savedTitle": "In der Einkaufsliste gespeichert",
+    "builderConfirmed": "Die ausgewählten Mahlzeiten wurden gespeichert und bestätigt.",
+    "menuConfirmed": "Der Server hat deine Auswahl bestätigt.",
+    "deleteMeal": "Mahlzeit löschen",
+    "quantityNeeded": "Benötigt: {{quantity}}",
+    "quantityReview": "Menge prüfen",
+    "quantityBuy": "Kaufen: {{quantity}}",
+    "quantityEstimate": "(geschätzt)",
+    "quantityEstimateHint": "Geschätzte Einkaufsmenge; Packungsgrößen und die Größe frischer Produkte variieren.",
+    "quantityCombined": "{{count}} Listeneinträge zusammengefasst"
+  },
   "creatorMenuRecovery": {
     "title": "Dein Menü muss erneut geprüft werden",
     "checking": "Gespeicherte Auswahl wird geprüft…",

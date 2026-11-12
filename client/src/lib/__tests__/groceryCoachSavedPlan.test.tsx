@@ -8,7 +8,11 @@ jest.mock("@/lib/auth", () => ({ getAuthHeaders: () => ({}) }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 jest.mock("@/hooks/useTranslatedMeal", () => ({ useTranslatedMeal: () => ({ data: null }) }));
 jest.mock("@/components/ui/MealImageSlot", () => ({ MealImageSlot: () => null }));
-jest.mock("@/components/MealCardActions", () => ({ __esModule: true, default: () => null }));
+jest.mock("@/components/MealCardActions", () => ({
+  __esModule: true,
+  default: ({ children }: any) => <>{children}</>,
+  MealCardAction: ({ children }: any) => <>{children}</>,
+}));
 jest.mock("@/components/AlphaGalBadge", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/components/DiabetesProtocolIndicator", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/hooks/useFreeLock", () => ({ useFreeLock: () => ({

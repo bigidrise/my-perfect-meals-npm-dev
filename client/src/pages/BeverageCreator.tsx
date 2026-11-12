@@ -36,6 +36,7 @@ import AlphaGalBadge from "@/components/AlphaGalBadge";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
+import MealCardActions, { MealCardAction } from "@/components/MealCardActions";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
@@ -1103,6 +1104,7 @@ export default function BeverageCreator() {
                       )}
                       <TrashButton
                         size="sm"
+                        appearance="meal-card"
                         ariaLabel="Remove beverage"
                         title="Remove beverage"
                         confirm={true}
@@ -1177,8 +1179,8 @@ export default function BeverageCreator() {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <GlassButton
+                  <MealCardActions source="BeverageCreator" shoppingRecipe={generatedBeverage}>
+                    <MealCardAction kind="macros"><GlassButton
                       onClick={() => {
                         // Phase 4A: confirmed consumption event
                         import("@/lib/coachEvents").then(({ emitCoachEvent }) =>
@@ -1197,7 +1199,7 @@ export default function BeverageCreator() {
                       className="w-full bg-gradient-to-r from-zinc-900 via-zinc-800 to-black hover:from-zinc-800 hover:via-zinc-700 hover:to-zinc-900 text-white flex items-center justify-center text-center border border-white/30"
                     >
                       Add to Macros
-                    </GlassButton>
+                    </GlassButton></MealCardAction>
 
                     {beverageStarchAlert.show && (
                       <div className="flex items-start gap-2 rounded-lg bg-amber-950/40 border border-amber-600/40 px-3 py-2.5 mb-1">
@@ -1216,7 +1218,7 @@ export default function BeverageCreator() {
                     )}
 
                     <div className="grid grid-cols-2 gap-2">
-                      <AddToMealPlanButton meal={generatedBeverage} />
+                      <MealCardAction kind="plan"><AddToMealPlanButton meal={generatedBeverage} /></MealCardAction>
                       <TranslateToggle
                         content={{
                           name: generatedBeverage.name,
@@ -1247,7 +1249,7 @@ export default function BeverageCreator() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
-                      <GlassButton
+                      <MealCardAction kind="prepare"><GlassButton
                         onClick={() => {
                           const safeImageUrl = (() => {
                             const url = generatedBeverage.imageUrl;
@@ -1275,8 +1277,8 @@ export default function BeverageCreator() {
                         className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                       >
                         Prepare w/ Chef
-                      </GlassButton>
-                      <ShareRecipeButton
+                      </GlassButton></MealCardAction>
+                      <MealCardAction kind="share"><ShareRecipeButton
                         recipe={{
                           name: generatedBeverage.name,
                           description: generatedBeverage.description,
@@ -1291,9 +1293,9 @@ export default function BeverageCreator() {
                           ),
                         }}
                         className="flex-1"
-                      />
+                      /></MealCardAction>
                     </div>
-                  </div>
+                  </MealCardActions>
                 </CardContent>
               </Card>
 
@@ -1306,6 +1308,7 @@ export default function BeverageCreator() {
         {/* Shopping Aggregate Bar — anchored above bottom nav, matching Chef's Kitchen pattern */}
         {generatedBeverage && generatedBeverage.ingredients?.length > 0 && (
           <ShoppingAggregateBar
+            recipes={[generatedBeverage]}
             ingredients={generatedBeverage.ingredients.map((ing: any) => ({
               name: ing.name,
               qty: ing.amount,

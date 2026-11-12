@@ -747,3 +747,115 @@ mtime_ms = 1794426390159
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7d51b1db-4479-4bad-9ac3-374945ff2f39/a8ac9a45-f25b-4f2d-9e1c-794c74859cf4"
 storage_version_token = "1794426471468312"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "GfAUoi4HdJRsgkJKPBLhW"
+uri = "file://docs/shopping/universal-meal-card-shopping-audit-2026-11-11.md"
+type = "text"
+title = "Universal Meal-Card Shopping Audit and Implementation Proposal"
+description = "Read-only architecture audit with coverage matrix, exact shopping paths, reproduced quantity issues, Gatherings duplicate protection, translation/layout recommendations, phased scope and verification plan."
+logical_id = "bfcb70b1-3c4d-46b4-a030-fa023907d299"
+content_hash = "sha256:278087ac6eec29b494f93698b4aa141427a2a50bf9d2494c1522b340426ac81e"
+size = 31761
+mtime_ms = 1794435776870
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/bfcb70b1-3c4d-46b4-a030-fa023907d299/df9c4d3c-e520-4c67-9273-f6f268c6788b"
+storage_version_token = "1794435879865565"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "bVuqb1cE4xgWsT1odj6gh"
+uri = "file://docs/shopping/standardized-meal-card-architecture-verification-2026-11-11.md"
+type = "text"
+title = "Standardized Meal-Card Architecture Verification"
+description = "Exact active consumers, wrapper and retired-code distinctions, action inheritance, Translate overrides, and minimum restoration using the existing MealCardActions component. No implementation."
+logical_id = "2cb05c5d-2ad0-433e-9d60-5cf5a06dac6e"
+content_hash = "sha256:aba8c4e9e0fde2aea7dc1aebfde159b52bf1b6bdba0df0483bd6c8756690139c"
+size = 22296
+mtime_ms = 1794436868758
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/2cb05c5d-2ad0-433e-9d60-5cf5a06dac6e/750ed4d6-4c21-45e0-8057-8f180ff6b901"
+storage_version_token = "1794436889909956"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "nYqsdJODGIY83ocCtEArs"
+uri = "file://docs/shopping/phase-1-standardized-actions-checkpoint-2026-11-11.md"
+type = "text"
+title = "Phase 1 results and proposed Phase 2 shopping integration"
+description = "Connected footer coverage, 49 passing checks, builder-shopping findings, and the proposed transfer API and additive schema. Shopping is not implemented."
+logical_id = "a12f8a25-6a38-407e-91ab-73d293d012bc"
+content_hash = "sha256:f551e6c89d728bc50bb0bab02740ec222fc53d385741898d39c586cba603d11b"
+size = 16429
+mtime_ms = 1794438393814
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/a12f8a25-6a38-407e-91ab-73d293d012bc/c0163660-7b8d-4616-b045-f743afca7651"
+storage_version_token = "1794438413476749"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "Zyj9SNADqF-bYrGmgHDhh"
+uri = "file://docs/shopping/phase-2-shopping-implementation-review-2026-11-11.md"
+type = "text"
+title = "Phase 2 Shopping implementation review"
+description = "Changed-file inventory, 87 passing isolated checks, exact review-only migration SQL, compatibility findings, and release blockers. Not activated or deployed."
+logical_id = "0196a64b-17fd-42f9-b12e-bd9e1d0be51b"
+content_hash = "sha256:1d2631545b371dac2319d25c267af42dfbc79b208cf2747cfb59b18e32c6a61a"
+size = 14860
+mtime_ms = 1794440408542
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/0196a64b-17fd-42f9-b12e-bd9e1d0be51b/436654b1-8964-4e5e-8d4f-8cb08060fd9c"
+storage_version_token = "1794440419979722"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "Qm6wy1tHh-ONYMeX-KpsL"
+uri = "file://docs/shopping/phase-2-corrections-and-founder-testing-2026-11-11.md"
+type = "text"
+title = "Shopping corrections and founder-testing blockers"
+description = "Three corrections, 65 regression tests, 32 native PostgreSQL checks, 26 WASM checks, and the exact isolated-application bootstrap blocker."
+logical_id = "d886a440-956a-4acc-bbca-d7657c146c02"
+content_hash = "sha256:eeaef122b6224b250033d3f6c979719901ae68a13c7d8aa084febf27f38f1e1f"
+size = 5441
+mtime_ms = 1794442265190
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d886a440-956a-4acc-bbca-d7657c146c02/a206693a-3534-49e6-baf3-4267631432d3"
+storage_version_token = "1794442323997172"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "WnzLezOscATRa3FsXUEHV"
+uri = "file://docs/shopping/founder-preview-unblock-status-2026-11-11.md"
+type = "text"
+title = "Founder Shopping preview — blocked at billing schema readiness"
+description = "Verified avatar-key correction, successful isolated baseline and Shopping migration, exact next startup blocker, and first three hands-on tests once ready."
+logical_id = "145ce29f-d30a-4fd4-8a39-0897329c12e0"
+content_hash = "sha256:a8cfa87c59a764fe6933486e279dadbdac5c15c64fa458456c221da101686e50"
+size = 4240
+mtime_ms = 1794442911970
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/145ce29f-d30a-4fd4-8a39-0897329c12e0/33c6f1ea-8e04-400d-ade2-bf0553cefc90"
+storage_version_token = "1794442923451928"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "ZgIefF7cILXUfsfWS6zuH"
+uri = "file://docs/shopping/isolated-billing-migration-evidence-2026-11-11.md"
+type = "text"
+title = "Isolated Shopping: billing guard passed, next migration blocked startup"
+description = "Exact existing migration order, verified isolated target and 186 tables, passing Stripe guard, and the missing Nutrition Priorities migration that now blocks authentication."
+logical_id = "1ff0de62-c2ad-4e79-a584-e67818cc998d"
+content_hash = "sha256:f0de2ebd8cc8143df598f26b125150a35bebddc3e8c2433deab9cd843aa5b879"
+size = 3659
+mtime_ms = 1794443455590
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/1ff0de62-c2ad-4e79-a584-e67818cc998d/27fe3cfb-84cc-48d1-8111-5203f9f8a075"
+storage_version_token = "1794443489621997"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "NWvH8AR1xPfqKX5dGWY3M"
+uri = "file://docs/shopping/founder-shopping-acceptance-2026-11-11.md"
+type = "text"
+title = "Founder Shopping preview — READY"
+description = "Authenticated Create a Dish, aggregation, fresh-browser persistence and Gatherings overlap passed. Five receipts, 33 items and 44 exact contributions verified in isolated PostgreSQL."
+logical_id = "1aff45f3-69ed-492a-98fa-bd7043f60ec3"
+content_hash = "sha256:6bca152caad23327cccc6888a2029726e6892dd7f53a59d7700c60f4981e9255"
+size = 7762
+mtime_ms = 1794447022154
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/1aff45f3-69ed-492a-98fa-bd7043f60ec3/4422b5fa-6a36-4812-b058-4d5d7c771d5d"
+storage_version_token = "1794447045957093"
+content_type = "text/markdown"

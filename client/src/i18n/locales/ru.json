@@ -1,4 +1,17 @@
 {
+  "shoppingTransfer": {
+    "addedTitle": "Добавлено в список покупок",
+    "savedTitle": "Сохранено в списке покупок",
+    "builderConfirmed": "Выбранные блюда сохранены и подтверждены.",
+    "menuConfirmed": "Сервер подтвердил ваш выбор.",
+    "deleteMeal": "Удалить блюдо",
+    "quantityNeeded": "Требуется: {{quantity}}",
+    "quantityReview": "Проверить количество",
+    "quantityBuy": "Купить: {{quantity}}",
+    "quantityEstimate": "(приблизительно)",
+    "quantityEstimateHint": "Примерное количество для покупки; размеры упаковок и свежих продуктов различаются.",
+    "quantityCombined": "Объединено записей списка: {{count}}"
+  },
   "creatorMenuRecovery": {
     "title": "Ваше меню нужно проверить ещё раз",
     "checking": "Проверка сохранённых вариантов…",

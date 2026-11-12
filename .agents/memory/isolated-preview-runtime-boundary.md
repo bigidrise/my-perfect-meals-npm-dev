@@ -26,3 +26,40 @@ Browser component fixtures must prove mutation interception before exercising Se
 **Why:** An intended synthetic chat request escaped a browser fixture's interceptor and reached the Development origin, where authentication rejected it. Successful component rendering did not establish network isolation.
 
 **How to apply:** Keep visual checks read-only until isolation is demonstrated. If a mutation reaches the origin, stop rather than retrying or claiming fixture-only success. Use isolated component tests for send/reply contracts and disclose missing live authenticated verification.
+
+Founder Shopping acceptance must use a separate Development instance and URL.
+Do not switch the main Development preview or any Production process to the
+isolated database. Offer the separate testing URL only after authentication,
+Shopping persistence, and exclusive database isolation have been confirmed.
+
+**Why:** The user explicitly required a separate founder-accessible environment
+without changing the main preview or Production database connections.
+
+**How to apply:** Keep local database overrides confined to the isolated child
+process and preserve all startup guards. The user authorized completing existing,
+non-destructive schema-only prerequisites together after source, dependency and
+target verification, rather than stopping at each missing column. Stop if needed
+migrations are destructive, call external services, modify shared data or have
+unclear dependencies; do not make unrelated application changes.
+
+An isolated-preview READY handoff must explicitly distinguish its separate URL
+from the embedded main preview. The main preview remains intentionally gated;
+never activate it to resolve a founder opening the wrong instance. Use a private
+browser context when the separate instance shares a hostname with the main app.
+
+**Why:** After isolated Shopping acceptance passed, the founder's reported URL
+addressed the main preview and displayed its expected disabled-state message.
+Browser cookies also ignore ports, even though local storage is origin-scoped.
+
+**How to apply:** Compare the actual browser origin with the verified runtime,
+inspect the running activation flag and authenticated capability response, and
+state explicitly that a separate-instance URL does not switch the IDE preview.
+
+Offline PGlite tests must not install a browser-like `window` global before
+database initialization or reopening.
+
+**Why:** PGlite detects that global and chooses its browser path in Node; a minimal
+window stub then fails while resolving location information.
+
+**How to apply:** Keep the PostgreSQL test process in its normal Node environment;
+stub only the individual browser APIs that the tested client functions require.

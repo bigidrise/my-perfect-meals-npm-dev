@@ -8,12 +8,12 @@
  * always come from the canonical mealData — never from the translation payload.
  */
 import { useState, useRef, useEffect } from "react";
-import { Heart, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { AlertTriangle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
-import MealCardActions from "@/components/MealCardActions";
+import MealCardActions, { MealCardAction } from "@/components/MealCardActions";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
@@ -24,6 +24,7 @@ import { GroceryCoachMacroTiles } from "./shopping/GroceryCoachMacroTiles";
 import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
 import { groceryCoachPlanHandoff } from "@/lib/groceryCoachPlanHandoff";
+import TrashButton from "@/components/ui/TrashButton";
 
 interface Props {
   row: any;
@@ -103,44 +104,76 @@ export default function SavedMealRow({
   }
 
   return (
-    <div id={`meal-card-${row.id}`} ref={rowRef} className="rounded-xl border border-white/15 bg-white/5 overflow-hidden">
-      {/* ── Collapsed header ────────────────────────────────────────────── */}
-      <button
-        onClick={() => setIsExpanded((e) => !e)}
-        className="w-full flex items-center justify-between px-3 py-3 active:scale-[0.98]"
+    <div id={`meal-card-${row.id}`} ref={rowRef} className="rounded-2xl border border-white/15 bg-black/40 backdrop-blur-sm overflow-hidden">
+      {/* ── Header: metadata/actions first, full-width title second ─────── */}
+      <div
+        data-saved-meal-header
+        className="relative px-3 pt-3"
       >
-        <div className="shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-white/10 mr-3">
-          <MealImageSlot
-            imageUrl={row.thumbnailUrl || d?.imageUrl}
-            mealName={row.title}
-            ingredients={d?.ingredients}
-            savedMealId={row.id}
-            mediaAssetId={row.mediaAssetId}
-            height="h-14"
-            className="!mb-0 !rounded-none"
-          />
-        </div>
-        <div className="flex items-center gap-2 text-left min-w-0 flex-1">
-          <div className="min-w-0">
-            <div className="text-white font-medium truncate">{displayTitle}</div>
-            <div className="text-xs text-white/50">{sourceLabel(row.sourceType, row.mealData)}</div>
-            {!isExpanded && <DiabetesProtocolIndicator memory={d?.diabeticMemory} compact />}
+        <button
+          type="button"
+          onClick={() => setIsExpanded((e) => !e)}
+          aria-expanded={isExpanded}
+          aria-controls={`saved-meal-details-${row.id}`}
+          className="block w-full !p-0 text-left active:scale-[0.99]"
+        >
+          <div className="flex min-h-11 items-center pr-[5.75rem]">
+            <div
+              data-saved-meal-metadata
+              className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-relaxed text-white/55"
+            >
+              <span>{sourceLabel(row.sourceType, row.mealData)}</span>
+              <span aria-hidden="true" className="text-white/25">·</span>
+              <span>{Math.round(perServingNutrition.calories)} {t("savedMeals.cal")} / serving</span>
+            </div>
+          </div>
+          <div
+            data-saved-meal-title
+            className="whitespace-normal break-words [overflow-wrap:anywhere] pb-3 pt-1 text-left text-base font-semibold leading-snug text-white"
+          >
+            {displayTitle}
+          </div>
+        </button>
+        <div data-saved-meal-controls className="pointer-events-none absolute right-3 top-3 flex h-11 items-center gap-0.5">
+          {/* The chevron overlays the header button without intercepting its click target. */}
+          <span aria-hidden="true" className="flex h-11 w-11 items-center justify-center text-white/55">
+            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </span>
+          <div className="pointer-events-auto">
+            <TrashButton
+              onClick={() => onRemove(row)}
+              ariaLabel={`${t("savedMeals.remove")}: ${displayTitle}`}
+              title={t("savedMeals.remove")}
+              size="sm"
+              appearance="meal-card"
+              className="shrink-0"
+            />
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Heart className="h-4 w-4 text-red-500 shrink-0" fill="currentColor" />
-          <span className="text-xs text-white/40">{Math.round(perServingNutrition.calories)} {t("savedMeals.cal")} / serving</span>
-          {isExpanded
-            ? <ChevronDown className="h-4 w-4 text-white/40" />
-            : <ChevronRight className="h-4 w-4 text-white/40" />}
+      </div>
+
+      {/* Keep the compact collapsed preview below the header; expanded image stays in the body. */}
+      {!isExpanded && (
+        <div className="px-3 pb-3">
+          <div className="cursor-pointer" onClick={() => setIsExpanded(true)}>
+            <MealImageSlot
+              imageUrl={row.thumbnailUrl || d?.imageUrl}
+              mealName={row.title}
+              ingredients={d?.ingredients}
+              savedMealId={row.id}
+              mediaAssetId={row.mediaAssetId}
+              height="h-36"
+            />
+          </div>
+          <DiabetesProtocolIndicator memory={d?.diabeticMemory} compact />
         </div>
-      </button>
+      )}
 
       {/* ── Expanded body ─────────────────────────────────────────────────── */}
       {isExpanded && (
-        <div className="px-4 pb-4 space-y-4 border-t border-white/10 pt-4">
+        <div id={`saved-meal-details-${row.id}`} className="space-y-4 border-t border-white/10 px-4 pb-4 pt-4">
           <MealImageSlot
-            imageUrl={row.displayUrl || row.thumbnailUrl || d?.imageUrl}
+            imageUrl={row.displayUrl || d?.imageUrl || row.thumbnailUrl}
             mealName={row.title}
             ingredients={d?.ingredients}
             savedMealId={row.id}
@@ -229,39 +262,12 @@ export default function SavedMealRow({
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex flex-wrap gap-2 pt-2">
-            <AddToMealPlanButton
-              meal={{
-                id: row.id,
-                name: row.title,          // canonical title for plan slot
-                description: d?.description,
-                instructions: d?.instructions,
-                ingredients: d?.ingredients,
-                nutrition: d?.nutrition || { calories, protein, carbs, fat },
-                imageUrl: d?.imageUrl,
-                servings: d?.servings,
-                servingSize: d?.servingSize,
-                ...(developmentGrocery ? groceryCoachPlanHandoff(d) : {}),
-              }}
-              onSuccess={onAddToPlanSuccess}
-            />
-            <button
-              onClick={() => onAddToMacros(row)}
-              className="flex-1 bg-white/10 text-white text-sm py-2 px-3 rounded-lg active:scale-[0.98]"
-            >
-              {t("savedMeals.addToMacros")}
-            </button>
-            <button
-              onClick={() => onRemove(row)}
-              className="bg-white/10 text-red-400 text-sm py-2 px-3 rounded-lg active:scale-[0.98] flex items-center gap-1"
-            >
-              <Heart className="h-4 w-4" fill="currentColor" />
-              {t("savedMeals.remove")}
-            </button>
-          </div>
-
           <MealCardActions
+            shoppingAddAndView
+            shoppingRecipe={{
+              ...d, id: d?.id || row.id, name: d?.name || row.title,
+              shoppingRecipeYield: d?.shoppingRecipeYield ?? d?.recipeYield ?? d?.servings ?? d?.recipeServings,
+            }}
             meal={{
               id: row.id,
               name: row.title,
@@ -276,7 +282,33 @@ export default function SavedMealRow({
             source={row.sourceType}
             showTranslate={true}
             showPrepareButton={true}
-          />
+          >
+            <MealCardAction kind="plan">
+              <AddToMealPlanButton
+                meal={{
+                  id: row.id,
+                  name: row.title,
+                  description: d?.description,
+                  instructions: d?.instructions,
+                  ingredients: d?.ingredients,
+                  nutrition: d?.nutrition || { calories, protein, carbs, fat },
+                  imageUrl: d?.imageUrl,
+                  servings: d?.servings,
+                  servingSize: d?.servingSize,
+                  ...(developmentGrocery ? groceryCoachPlanHandoff(d) : {}),
+                }}
+                onSuccess={onAddToPlanSuccess}
+              />
+            </MealCardAction>
+            <MealCardAction kind="macros">
+              <button
+                onClick={() => onAddToMacros(row)}
+                className="w-full border border-white/30 bg-gradient-to-r from-zinc-900 via-zinc-800 to-black px-3 py-2 text-sm text-white rounded-lg active:scale-[0.98]"
+              >
+                {t("savedMeals.addToMacros")}
+              </button>
+            </MealCardAction>
+          </MealCardActions>
         </div>
       )}
     </div>
