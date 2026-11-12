@@ -279,7 +279,7 @@ test("saved header groups metadata and controls above a full-width title and ima
   const header = container.querySelector("[data-saved-meal-header]")!;
   const metadata = header.querySelector("[data-saved-meal-metadata]")!;
   const controls = header.querySelector("[data-saved-meal-controls]")!;
-  const title = header.querySelector("[data-saved-meal-title]")!;
+  const title = header.querySelector<HTMLElement>("[data-saved-meal-title]")!;
   const trash = screen.getByRole("button", { name: `Remove: ${row.title}` });
   expect(metadata).toHaveTextContent("Create a Dish");
   expect(metadata).toHaveTextContent("Cal / serving");
