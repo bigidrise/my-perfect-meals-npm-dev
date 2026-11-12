@@ -19,7 +19,11 @@ jest.mock("../middleware/requireAuth", () => ({
   },
 }));
 jest.mock("../services/oneTouch/selectedConceptHandoff", () => ({ completeSelectedConcept: jest.fn() }));
-jest.mock("../services/oneTouch/directions", () => ({ generateOneTouchDirections: jest.fn() }));
+jest.mock("../services/oneTouch/directions", () => ({
+  generateOneTouchDirections: jest.fn(),
+  validateDishConcept: jest.fn(() => []),
+  validateOneTouchDirectionSafety: jest.fn(() => []),
+}));
 jest.mock("../services/oneTouch/history", () => ({
   readOneTouchHistory: jest.fn(async (id: string) => ({
     create_a_dish: [], craving_creator: [], ...mockSets.get(id),
@@ -28,6 +32,14 @@ jest.mock("../services/oneTouch/history", () => ({
     mockSets.set(id, { ...mockSets.get(id), workingSets: { ...mockSets.get(id)?.workingSets, [creator]: set } });
   }),
   appendOneTouchHistory: jest.fn(async () => undefined),
+  refreshOneTouchConceptAuthority: jest.fn(async (id: string, creator: string, expected: any, fingerprint: string) => {
+    const current = mockSets.get(id);
+    if (JSON.stringify(current?.workingSets?.[creator]) !== JSON.stringify(expected)) return false;
+    mockSets.set(id, { ...current, workingSets: {
+      ...current?.workingSets, [creator]: { ...expected, contextFingerprint: fingerprint },
+    } });
+    return true;
+  }),
 }));
 jest.mock("../services/humanFoodContext/requestScope", () => ({
   createHumanFoodRequestScope: jest.fn(() => ({
@@ -134,6 +146,8 @@ describe("Creator Menu selects one server-owned concept before completion", () =
   afterAll(() => { process.env.NODE_ENV = priorEnv; });
   beforeEach(() => {
     jest.clearAllMocks();
+    require("../services/oneTouch/directions").validateDishConcept.mockReset().mockReturnValue([]);
+    require("../services/oneTouch/directions").validateOneTouchDirectionSafety.mockReset().mockReturnValue([]);
     mockSets.clear();
     mockFingerprint = "a".repeat(43);
     useRealFingerprint = false;
@@ -180,6 +194,59 @@ describe("Creator Menu selects one server-owned concept before completion", () =
       if (oldSecret === undefined) delete process.env.SESSION_SECRET;
       else process.env.SESSION_SECRET = oldSecret;
     }
+  });
+
+  it("retains the same three ideas after context changes, remount restores, and recipe completion", async () => {
+    const first = await request(app).post("/api/one-touch-create").send(choices("create_a_dish"));
+    mockFingerprint = "b".repeat(43);
+    const restored = await request(app).post("/api/one-touch-create/restore").send(choices("create_a_dish"));
+    expect(restored.status).toBe(200);
+    expect(restored.body.concepts).toEqual(first.body.concepts);
+    const safety = require("../services/oneTouch/directions").validateOneTouchDirectionSafety;
+    expect(safety).toHaveBeenCalledTimes(3);
+    expect(safety.mock.calls[0][1]).toEqual(expect.objectContaining({ subjectUserId: "menu-person" }));
+    expect(safety.mock.calls[0][2]).toEqual(expect.objectContaining({ medicalHardLimits: [] }));
+    const selected = await request(app).post("/api/one-touch-create/choose").send({
+      request: choices("create_a_dish"), conceptId: first.body.concepts[0].id,
+    });
+    expect(selected.status).toBe(200);
+    const remounted = await request(app).post("/api/one-touch-create/restore").send(choices("create_a_dish"));
+    expect(remounted.body.concepts).toEqual(first.body.concepts);
+    expect(directions).toHaveBeenCalledTimes(1);
+    expect(complete).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves but never reauthorizes ideas that fail current food checks", async () => {
+    const first = await request(app).post("/api/one-touch-create").send(choices("create_a_dish"));
+    mockFingerprint = "b".repeat(43);
+    require("../services/oneTouch/directions").validateOneTouchDirectionSafety
+      .mockReturnValue(["forbidden_ingredient:synthetic-allergen"]);
+    const restored = await request(app).post("/api/one-touch-create/restore").send(choices("create_a_dish"));
+    expect(restored.body.concepts).toEqual([]);
+    expect(restored.body.code).toBe("ONE_TOUCH_REVALIDATION_REQUIRED");
+    expect(require("../services/oneTouch/history").refreshOneTouchConceptAuthority).not.toHaveBeenCalled();
+    expect(mockSets.get("menu-person")?.workingSets.create_a_dish.concepts).toEqual(first.body.concepts);
+    expect(directions).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not rewrite a Menu when its saved request differs", async () => {
+    const first = await request(app).post("/api/one-touch-create").send(choices("create_a_dish"));
+    mockFingerprint = "b".repeat(43);
+    const restored = await request(app).post("/api/one-touch-create/restore")
+      .send({ ...choices("create_a_dish"), servings: 2 });
+    expect(restored.body.code).toBe("ONE_TOUCH_REQUEST_CHANGED");
+    expect(restored.body.concepts).toEqual([]);
+    expect(require("../services/oneTouch/history").refreshOneTouchConceptAuthority).not.toHaveBeenCalled();
+    expect(mockSets.get("menu-person")?.workingSets.create_a_dish.concepts).toEqual(first.body.concepts);
+  });
+
+  it("leaves Craving Creator's existing stale-context restoration behavior unchanged", async () => {
+    await request(app).post("/api/one-touch-create").send(choices("craving_creator"));
+    mockFingerprint = "b".repeat(43);
+    const restored = await request(app).post("/api/one-touch-create/restore").send(choices("craving_creator"));
+    expect(restored.body).toEqual({ concepts: [], contextFingerprint: mockFingerprint });
+    expect(require("../services/oneTouch/history").refreshOneTouchConceptAuthority).not.toHaveBeenCalled();
+    expect(require("../services/oneTouch/directions").validateOneTouchDirectionSafety).not.toHaveBeenCalled();
   });
 
   it("creates and selects an active GLP-1 menu despite calculation-time churn, but rejects a real nutrition change", async () => {

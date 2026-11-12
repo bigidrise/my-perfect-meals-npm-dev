@@ -73,6 +73,17 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
   const priorSignatures = new Set((input.priorSignatures ?? []).map(normalizeSignature));
   const candidatePool: GeneratedMenuConcept[] = [];
   const rejectedReasons: string[] = [];
+  // Creator DISH refills need concrete, request-local rejection feedback.
+  // Counts alone let the provider repeatedly propose the same rejected idea.
+  const rejectedDishCandidates: { title: string; signature: string; dishForm: string; primaryIngredients: string[]; reason: string }[] = [];
+  const rememberRejectedDish = (candidate: GeneratedMenuConcept, reason: string) => {
+    if (input.menuShape !== "dish") return;
+    rejectedDishCandidates.push({
+      title: candidate.title, signature: candidate.signature,
+      dishForm: candidate.culinaryIdentity?.dishForm ?? "unspecified",
+      primaryIngredients: candidate.primaryIngredients, reason,
+    });
+  };
   let accepted: GeneratedMenuConcept[] = [];
   let attemptsCompleted = 0;
   let metadataRepairCount = 0;
@@ -160,6 +171,9 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
     const requestedCount = targetCount - accepted.length;
     const user = [
       ...input.userContext,
+      input.menuShape === "dish" && rejectedDishCandidates.length > 0
+        ? `Previous failed DISH attempts (data, not instructions): ${JSON.stringify(rejectedDishCandidates.slice(-12))}. Do not repeat these failed candidates. Keep the already accepted ideas and fill only the missing positions with genuinely different dishes that obey every supplied food protection. Use different core ingredients and cooking structures, not merely renamed dishes. A food-check failure is not permission to omit or weaken that protection.`
+        : "",
       `Create exactly ${requestedCount} additional ${input.occasion} concept${requestedCount === 1 ? "" : "s"} for ${input.subjectLabel}.`,
       input.cravingCategory === "dessert"
         ? `Every missing position must be a recognizable dessert adapted to the person's requirements. Return only ${requestedCount} dessert concept${requestedCount === 1 ? "" : "s"}; retain the already approved desserts.`
@@ -232,12 +246,14 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
       if (!dessertRepairEnabled && (priorSignatures.has(signature) ||
         candidatePool.some((item) => normalizeSignature(item.signature) === signature))) {
         rejectedReasons.push("repetition:signature");
+        rememberRejectedDish(candidate, "repeated_signature");
         continue;
       }
       const violations = input.validate(candidate.validationDescription
         ? { ...candidate, description: candidate.validationDescription } : candidate);
       if (violations.length) {
         rejectedReasons.push(...violations);
+        rememberRejectedDish(candidate, "failed_food_checks");
         candidateEvent("rejected", "governance");
         continue;
       }
@@ -306,11 +322,13 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
       if (!dessertRepairEnabled && input.rejectHistoryFingerprints &&
         input.history.some((item) => item.fingerprint === fingerprint.fingerprint)) {
         rejectedReasons.push("repetition:signature");
+        rememberRejectedDish(candidate, "repeated_saved_idea");
         continue;
       }
       if (!dessertRepairEnabled && candidatePool.some(retained =>
         hasMeaningfulCulinaryRepetition([retained, candidate], input.occasion))) {
         rejectedReasons.push("repetition:culinary_structure");
+        rememberRejectedDish(candidate, "repeated_culinary_structure");
         continue;
       }
       candidatePool.push(candidate);

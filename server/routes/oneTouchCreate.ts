@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 import { requireAuth } from "../middleware/requireAuth";
 import { oneTouchRequestSchema, type OneTouchRequest, type OneTouchConcept } from "@shared/oneTouch";
-import { generateOneTouchDirections } from "../services/oneTouch/directions";
-import { appendOneTouchHistory, readOneTouchHistory, saveOneTouchConceptSet } from "../services/oneTouch/history";
+import { generateOneTouchDirections, validateDishConcept, validateOneTouchDirectionSafety } from "../services/oneTouch/directions";
+import { appendOneTouchHistory, readOneTouchHistory, saveOneTouchConceptSet, refreshOneTouchConceptAuthority } from "../services/oneTouch/history";
 import type { MenuRecipeCard } from "../services/oneTouch/menuRecipeCompletion";
 import { completeSelectedConcept, type SelectedConceptResult } from "../services/oneTouch/selectedConceptHandoff";
 import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
@@ -149,9 +150,50 @@ export default function createOneTouchRouter() {
       const userId = String((req as any).authUser.id);
       const authority = await resolveOneTouchAuthority(userId, parsed.data, (req as any).id);
       const stored = (await readOneTouchHistory(userId)).workingSets?.[parsed.data.creator];
-      const valid = stored?.contextFingerprint === authority.contextFingerprint &&
-        JSON.stringify(stored.request) === JSON.stringify(parsed.data);
-      return res.json({ concepts: valid ? stored.concepts : [], contextFingerprint: authority.contextFingerprint });
+      // Preserve the existing Craving Creator restoration contract unchanged.
+      if (parsed.data.creator === "craving_creator") {
+        const valid = stored?.contextFingerprint === authority.contextFingerprint &&
+          JSON.stringify(stored.request) === JSON.stringify(parsed.data);
+        return res.json({ concepts: valid ? stored.concepts : [], contextFingerprint: authority.contextFingerprint });
+      }
+      if (!stored || !isDeepStrictEqual(stored.request, parsed.data)) {
+        return res.json({
+          concepts: [], code: stored ? "ONE_TOUCH_REQUEST_CHANGED" : "ONE_TOUCH_SET_UNAVAILABLE",
+          error: stored
+            ? "The saved Menu settings do not match this request. Your saved ideas have not been cleared."
+            : "Your saved Menu could not be found. Retrying will not create replacement ideas.",
+        });
+      }
+      if (stored.contextFingerprint !== authority.contextFingerprint) {
+        // A changed marker invalidates the old authorization, not the ideas.
+        // Re-authorize the exact server-owned DISH concepts using the same
+        // concept-stage checks as generation. Final recipes still undergo the
+        // full current-context completion checks in /choose.
+        const requiredCuisine = parsed.data.cuisine.mode === "surprise" ? null :
+          authority.context.flavor.cuisine.available ? authority.context.flavor.cuisine.value : null;
+        const safe = parsed.data.creator === "create_a_dish" && stored.concepts.every(concept =>
+          validateDishConcept(concept).length === 0 &&
+          validateOneTouchDirectionSafety(concept, authority.context, authority.envelope, requiredCuisine).length === 0,
+        );
+        if (!safe) {
+          return res.json({
+            concepts: [], code: "ONE_TOUCH_REVALIDATION_REQUIRED",
+            error: "These saved ideas could not pass your current food checks. They have not been removed or replaced.",
+          });
+        }
+        const current = await resolveOneTouchAuthority(userId, parsed.data, (req as any).id);
+        if (current.contextFingerprint !== authority.contextFingerprint) {
+          stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your food context changed during the saved-idea check. Your ideas are still saved; retry to check again.");
+        }
+        const refreshed = await refreshOneTouchConceptAuthority(
+          userId, parsed.data.creator, stored, current.contextFingerprint,
+        );
+        if (!refreshed) {
+          stop(409, "ONE_TOUCH_SET_CHANGED", "Your saved Menu changed during restoration. Retry to load the current choices.");
+        }
+        console.info("[CreatorMenu] restored revalidated ideas", { creator: parsed.data.creator, count: stored.concepts.length });
+      }
+      return res.json({ concepts: stored.concepts, contextFingerprint: authority.contextFingerprint });
     } catch (error: any) {
       return res.status(error?.oneTouchStop ? error.status : 503).json({
         code: error?.oneTouchStop ? error.code : "ONE_TOUCH_CONTEXT_UNRESOLVED",
@@ -172,8 +214,10 @@ export default function createOneTouchRouter() {
       const authority = await resolveOneTouchAuthority(userId, request, (req as any).id);
       const stored = (await readOneTouchHistory(userId)).workingSets?.[request.creator];
       if (!stored || stored.contextFingerprint !== authority.contextFingerprint ||
-          JSON.stringify(stored.request) !== JSON.stringify(request)) {
-        stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your Menu ideas are no longer current. Please generate new ideas.");
+          !isDeepStrictEqual(stored.request, request)) {
+        stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", request.creator === "create_a_dish"
+          ? "Your Menu ideas need another check. Retry your saved choices before choosing again."
+          : "Your Menu ideas are no longer current. Please generate new ideas.");
       }
       const selected = stored.concepts.find((concept) => concept.id === conceptId);
       if (!selected) stop(404, "ONE_TOUCH_INVALID_SELECTION", "That Menu idea is not in your current choices.");

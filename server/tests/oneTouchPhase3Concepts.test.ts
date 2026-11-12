@@ -5,16 +5,26 @@ import {
 
 function concept(title: string, form: string, foodRole: "dessert" | "general_snack" = "general_snack",
   polarity: "sweet" | "savory" = "savory") {
+  // Distinct concepts require distinct ingredient evidence, not the same
+  // tomato/lentil fixture renamed as lasagna, tacos, cake, and pudding.
+  const primaryIngredients = ({
+    lasagna: ["lasagna noodles", "zucchini"],
+    chili: ["kidney beans", "mushrooms"],
+    tacos: ["corn tortillas", "black beans"],
+    cake: ["almond flour", "cocoa powder"],
+    cheesecake: ["cashews", "lemon"],
+    pudding: ["chia seeds", "coconut milk"],
+  } as Record<string, string[]>)[form] ?? ["tomatoes", "lentils"];
   return {
     title, description: `A prepared ${title} with tomatoes and lentils.`,
-    primaryIngredients: ["tomatoes", "lentils"], primaryProtein: "lentils",
+    primaryIngredients, primaryProtein: "lentils",
     produceItems: ["tomatoes"], cuisine: "Italian", dietaryEvidence: [],
     preparationMethod: "simmered", signature: `${form}|lentils|${title}`,
     culinaryIdentity: {
       dishForm: form, preparationStyle: "simmered", temperature: "hot" as const,
       primaryProteinBase: "lentils", majorStarchBase: null,
       flavorFamily: title, cuisineEvidence: "Italian",
-      definingComponents: ["tomatoes", "lentils"],
+      definingComponents: primaryIngredients,
     },
     foodIdentity: {
       foodRole, polarity,
@@ -24,6 +34,32 @@ function concept(title: string, form: string, foodRole: "dessert" | "general_sna
 }
 
 describe("Creator Menu culinary concepts, separate from clinical meal slots", () => {
+  it("gives DISH refills concrete rejected-candidate feedback without relaxing food or variety checks", async () => {
+    const prompts: string[] = [];
+    let attempt = 0;
+    const result = await generateOneTouchDirections({
+      menuShape: "dish", occasion: "lunch", targetCount: 3, history: [],
+      validate: direction => direction.title === "Quinoa Patties" ? ["forbidden_ingredient:quinoa"] : [],
+      generate: async ({ user }) => {
+        prompts.push(user);
+        attempt++;
+        return { concepts: attempt === 1 ? [
+          concept("Tomato Lentil Stew", "stew"),
+          concept("Vegetable Lasagna", "lasagna"),
+          concept("Quinoa Patties", "patties"),
+        ] : attempt === 2 ? [concept("Tomato Lentil Stew", "stew")] :
+          [concept("Mushroom Lentil Chili", "chili")] };
+      },
+    });
+    expect(result.directions).toHaveLength(3);
+    expect(result.directions.map(d => d.title)).toEqual(expect.arrayContaining([
+      "Tomato Lentil Stew", "Vegetable Lasagna", "Mushroom Lentil Chili",
+    ]));
+    expect(prompts[1]).toContain("Quinoa Patties");
+    expect(prompts[1]).toContain("failed_food_checks");
+    expect(prompts[2]).toContain("repeated_signature");
+    expect(result.attemptsCompleted).toBe(3);
+  });
   it("does not offer a dish whose selected ingredients include abstract seasonings", () => {
     const direction = concept("Gomen (Ethiopian Collard Greens)", "vegetable dish");
     expect(validateDishConcept({

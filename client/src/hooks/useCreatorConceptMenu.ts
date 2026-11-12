@@ -74,7 +74,7 @@ export function useCreatorConceptMenu(
           setConcepts(payload.concepts);
         } else {
           if (recoverSavedChoices) {
-            setRestoreError("These saved ideas could not be verified. Your food context may have changed, or a newer Menu may have replaced them. Retry to check again, or explicitly create a new set.");
+            setRestoreError(payload.error || "These saved ideas could not be verified. Retry to check again. Your saved request has not been cleared.");
           } else {
             localStorage.removeItem(cacheKey(creator, ownerId));
           }
