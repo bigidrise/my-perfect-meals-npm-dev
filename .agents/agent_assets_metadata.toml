@@ -817,3 +817,17 @@ mtime_ms = 1794442265190
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d886a440-956a-4acc-bbca-d7657c146c02/a206693a-3534-49e6-baf3-4267631432d3"
 storage_version_token = "1794442323997172"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "WnzLezOscATRa3FsXUEHV"
+uri = "file://docs/shopping/founder-preview-unblock-status-2026-11-11.md"
+type = "text"
+title = "Founder Shopping preview — blocked at billing schema readiness"
+description = "Verified avatar-key correction, successful isolated baseline and Shopping migration, exact next startup blocker, and first three hands-on tests once ready."
+logical_id = "145ce29f-d30a-4fd4-8a39-0897329c12e0"
+content_hash = "sha256:a8cfa87c59a764fe6933486e279dadbdac5c15c64fa458456c221da101686e50"
+size = 4240
+mtime_ms = 1794442911970
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/145ce29f-d30a-4fd4-8a39-0897329c12e0/33c6f1ea-8e04-400d-ade2-bf0553cefc90"
+storage_version_token = "1794442923451928"
+content_type = "text/markdown"

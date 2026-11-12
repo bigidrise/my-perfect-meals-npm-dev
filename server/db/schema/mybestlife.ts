@@ -1,8 +1,8 @@
-import { pgTable, uuid, varchar, numeric, jsonb, timestamp, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, numeric, jsonb, timestamp } from "drizzle-orm/pg-core";
 
 export const mblAvatarState = pgTable("mbl_avatar_state", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: varchar("user_id", { length: 64 }).notNull(),
+  userId: varchar("user_id", { length: 64 }).notNull().unique(),
   weightLbs: numeric("weight_lbs").notNull().default("185"),
   bodyFatPct: numeric("body_fat_pct").notNull().default("28"),
   muscleMassLbs: numeric("muscle_mass_lbs").notNull().default("70"),
@@ -13,9 +13,7 @@ export const mblAvatarState = pgTable("mbl_avatar_state", {
   lastSimDate: varchar("last_sim_date", { length: 10 }).notNull().default(""),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
-}, (t) => ({
-  uq_user: primaryKey({ columns: [t.userId] })
-}));
+});
 
 export const mblDayLog = pgTable("mbl_day_log", {
   id: uuid("id").defaultRandom().primaryKey(),
