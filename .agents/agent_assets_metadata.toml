@@ -831,3 +831,17 @@ mtime_ms = 1794442911970
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/145ce29f-d30a-4fd4-8a39-0897329c12e0/33c6f1ea-8e04-400d-ade2-bf0553cefc90"
 storage_version_token = "1794442923451928"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "ZgIefF7cILXUfsfWS6zuH"
+uri = "file://docs/shopping/isolated-billing-migration-evidence-2026-11-11.md"
+type = "text"
+title = "Isolated Shopping: billing guard passed, next migration blocked startup"
+description = "Exact existing migration order, verified isolated target and 186 tables, passing Stripe guard, and the missing Nutrition Priorities migration that now blocks authentication."
+logical_id = "1ff0de62-c2ad-4e79-a584-e67818cc998d"
+content_hash = "sha256:f0de2ebd8cc8143df598f26b125150a35bebddc3e8c2433deab9cd843aa5b879"
+size = 3659
+mtime_ms = 1794443455590
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/1ff0de62-c2ad-4e79-a584-e67818cc998d/27fe3cfb-84cc-48d1-8111-5203f9f8a075"
+storage_version_token = "1794443489621997"
+content_type = "text/markdown"
