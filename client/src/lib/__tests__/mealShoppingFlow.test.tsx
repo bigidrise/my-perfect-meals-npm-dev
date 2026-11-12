@@ -153,6 +153,26 @@ test("saved-card preflight rejects malformed readiness before any writes", async
     .rejects.toThrow("readiness could not be confirmed");
   expect((apiRequest as jest.Mock).mock.calls.every(([, init]) => !init?.method)).toBe(true);
 });
+test("Saved Meals Shopping unwraps async Web Locks results and deduplicates concurrent sends", async () => {
+  const previous = Object.getOwnPropertyDescriptor(navigator, "locks");
+  const requestLock = jest.fn(async (_key: string, operation: () => Promise<unknown>) => operation());
+  Object.defineProperty(navigator, "locks", { configurable: true, value: { request: requestLock } });
+  (apiRequest as jest.Mock).mockImplementation(async (_url: string, init?: any) =>
+    init?.method === "POST" ? { ok: true, success: true, itemsAdded: 1 } : { items: [] });
+  try {
+    const selection = selectionForRecipe(recipe(), "saved-meals").selection!;
+    const results = await Promise.all([
+      sendSavedMealToShopping(selection, false),
+      sendSavedMealToShopping(selection, false),
+    ]);
+    expect(results).toEqual([{ alreadyAdded: false }, { alreadyAdded: false }]);
+    expect(requestLock).toHaveBeenCalledTimes(1);
+    expect((apiRequest as jest.Mock).mock.calls.filter(([, init]) => init?.method === "POST")).toHaveLength(1);
+  } finally {
+    if (previous) Object.defineProperty(navigator, "locks", previous);
+    else delete (navigator as any).locks;
+  }
+});
 test("Saved Meals works with the existing metadata-free API and itemsAdded acknowledgement", async () => {
   (apiRequest as jest.Mock).mockImplementation(async (url: string, init?: any) =>
     url.endsWith("/capabilities") ? { available: false }
