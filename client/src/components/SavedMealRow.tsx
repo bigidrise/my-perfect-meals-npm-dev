@@ -8,7 +8,7 @@
  * always come from the canonical mealData — never from the translation payload.
  */
 import { useState, useRef, useEffect } from "react";
-import { Heart, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { AlertTriangle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
@@ -24,6 +24,7 @@ import { GroceryCoachMacroTiles } from "./shopping/GroceryCoachMacroTiles";
 import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
 import { groceryCoachPlanHandoff } from "@/lib/groceryCoachPlanHandoff";
+import TrashButton from "@/components/ui/TrashButton";
 
 interface Props {
   row: any;
@@ -103,44 +104,56 @@ export default function SavedMealRow({
   }
 
   return (
-    <div id={`meal-card-${row.id}`} ref={rowRef} className="rounded-xl border border-white/15 bg-white/5 overflow-hidden">
+    <div id={`meal-card-${row.id}`} ref={rowRef} className="rounded-2xl border border-white/15 bg-black/40 backdrop-blur-sm overflow-hidden">
       {/* ── Collapsed header ────────────────────────────────────────────── */}
-      <button
-        onClick={() => setIsExpanded((e) => !e)}
-        className="w-full flex items-center justify-between px-3 py-3 active:scale-[0.98]"
-      >
-        <div className="shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-white/10 mr-3">
-          <MealImageSlot
-            imageUrl={row.thumbnailUrl || d?.imageUrl}
-            mealName={row.title}
-            ingredients={d?.ingredients}
-            savedMealId={row.id}
-            mediaAssetId={row.mediaAssetId}
-            height="h-14"
-            className="!mb-0 !rounded-none"
-          />
-        </div>
-        <div className="flex items-center gap-2 text-left min-w-0 flex-1">
-          <div className="min-w-0">
-            <div className="text-white font-medium truncate">{displayTitle}</div>
-            <div className="text-xs text-white/50">{sourceLabel(row.sourceType, row.mealData)}</div>
+      <div className="flex items-start gap-2 px-3 py-3">
+        <button
+          type="button"
+          onClick={() => setIsExpanded((e) => !e)}
+          aria-expanded={isExpanded}
+          aria-controls={`saved-meal-details-${row.id}`}
+          className="flex min-w-0 flex-1 items-start gap-3 text-left active:scale-[0.98]"
+        >
+          {!isExpanded && (
+            <div className="mt-0.5 h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-white/10">
+              <MealImageSlot
+                imageUrl={row.thumbnailUrl || d?.imageUrl}
+                mealName={row.title}
+                ingredients={d?.ingredients}
+                savedMealId={row.id}
+                mediaAssetId={row.mediaAssetId}
+                height="h-14"
+                className="!mb-0 !rounded-none"
+              />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="whitespace-normal break-words text-base font-semibold leading-snug text-white">{displayTitle}</div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-relaxed text-white/55">
+              <span>{sourceLabel(row.sourceType, row.mealData)}</span>
+              <span aria-hidden="true" className="text-white/25">·</span>
+              <span>{Math.round(perServingNutrition.calories)} {t("savedMeals.cal")} / serving</span>
+            </div>
             {!isExpanded && <DiabetesProtocolIndicator memory={d?.diabeticMemory} compact />}
           </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Heart className="h-4 w-4 text-red-500 shrink-0" fill="currentColor" />
-          <span className="text-xs text-white/40">{Math.round(perServingNutrition.calories)} {t("savedMeals.cal")} / serving</span>
           {isExpanded
-            ? <ChevronDown className="h-4 w-4 text-white/40" />
-            : <ChevronRight className="h-4 w-4 text-white/40" />}
-        </div>
-      </button>
+            ? <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-white/40" />
+            : <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-white/40" />}
+        </button>
+        <TrashButton
+          onClick={() => onRemove(row)}
+          ariaLabel={`${t("savedMeals.remove")}: ${displayTitle}`}
+          title={t("savedMeals.remove")}
+          size="sm"
+          className="!h-11 !w-11 shrink-0 !border-white/15 !bg-white/5 !text-white/55 !shadow-none hover:!border-red-500/50 hover:!bg-red-600/20 hover:!text-red-300"
+        />
+      </div>
 
       {/* ── Expanded body ─────────────────────────────────────────────────── */}
       {isExpanded && (
-        <div className="px-4 pb-4 space-y-4 border-t border-white/10 pt-4">
+        <div id={`saved-meal-details-${row.id}`} className="space-y-4 border-t border-white/10 px-4 pb-4 pt-4">
           <MealImageSlot
-            imageUrl={row.displayUrl || row.thumbnailUrl || d?.imageUrl}
+            imageUrl={row.displayUrl || d?.imageUrl || row.thumbnailUrl}
             mealName={row.title}
             ingredients={d?.ingredients}
             savedMealId={row.id}
@@ -266,18 +279,9 @@ export default function SavedMealRow({
             <MealCardAction kind="macros">
               <button
                 onClick={() => onAddToMacros(row)}
-                className="flex-1 bg-white/10 text-white text-sm py-2 px-3 rounded-lg active:scale-[0.98]"
+                className="w-full border border-white/30 bg-gradient-to-r from-zinc-900 via-zinc-800 to-black px-3 py-2 text-sm text-white rounded-lg active:scale-[0.98]"
               >
                 {t("savedMeals.addToMacros")}
-              </button>
-            </MealCardAction>
-            <MealCardAction kind="save">
-              <button
-                onClick={() => onRemove(row)}
-                className="bg-white/10 text-red-400 text-sm py-2 px-3 rounded-lg active:scale-[0.98] flex items-center gap-1"
-              >
-                <Heart className="h-4 w-4" fill="currentColor" />
-                {t("savedMeals.remove")}
               </button>
             </MealCardAction>
           </MealCardActions>
