@@ -15,8 +15,10 @@ explicitly asked to retain its styling.
 
 **How to apply:** Share one appearance across existing eligible meal-card deletion
 sites, including Saved Meals, expanded recipes and creator cards. Keep the
-appearance scoped to meal deletion: unrelated controls, including Shopping, must
-not change automatically. Do not add deletion actions or alter existing
+appearance shared across platform trash controls: the founder subsequently
+requested that all small trash icons stay red and all solid-red icon-only trash
+controls use this compact appearance, including modal dismiss controls and Shopping.
+Preserve labeled final-confirmation buttons. Do not add deletion actions or alter existing
 confirmation requirements, callbacks or permissions.
 
 The expanded Create a Dish header places Favorites left and Create New right in
