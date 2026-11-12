@@ -1,14 +1,41 @@
 /** @jest-environment jsdom */
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render as renderComponent, screen } from "@testing-library/react";
+import { createInstance } from "i18next";
+import { I18nextProvider } from "react-i18next";
 import "@testing-library/jest-dom";
 import { buildConsolidatedItems } from "@/lib/shoppingConsolidation";
 import { getRetailQuantity } from "@/lib/retailIntelligence";
 import { ShoppingQuantity } from "@/components/shopping/ShoppingQuantity";
 import { selectionForRecipe, prepareShoppingSelection } from "@shared/mealShoppingSelection";
+jest.unmock("react-i18next");
 jest.mock("@/lib/shoppingMetadataGate", () => ({ shoppingMetadataEnabled: true }));
+const languages = ["en", "es", "fr", "de", "it", "pt", "zh", "ja", "ko", "ar", "hi", "ru", "vi", "tl"];
+const translations = Object.fromEntries(languages.map(language => [
+  language, require(`../../i18n/locales/${language}.json`).shoppingTransfer,
+]));
+const i18n = createInstance();
+beforeAll(async () => {
+  await i18n.init({
+    lng: "en", fallbackLng: "en",
+    resources: Object.fromEntries(languages.map(language => [language, { shoppingTransfer: translations[language] }])),
+    interpolation: { escapeValue: false },
+  });
+});
+beforeEach(async () => { await i18n.changeLanguage("en"); });
+const render = (element: React.ReactElement) =>
+  renderComponent(<I18nextProvider i18n={i18n}>{element}</I18nextProvider>);
 const item = (id: string, quantity: number, unit: string, name = "salmon fillet") => ({
   id, name, normalizedName: name, quantity, unit, category: "Meat" as const, isChecked: false, isPantryStaple: false,
+});
+test.each(languages)("Shopping quantities use registered %s text without changing measurements", async language => {
+  await i18n.changeLanguage(language);
+  const consolidated = buildConsolidatedItems([item("a", 12, "oz")])[0];
+  render(<ShoppingQuantity item={consolidated} />);
+  expect(screen.getByText(translations[language].quantityNeeded.replace("{{quantity}}", "12 oz"))).toBeVisible();
+  expect(screen.getByText(translations[language].quantityBuy.replace("{{quantity}}", "0.75 lb"))).toBeVisible();
+  expect(screen.getByTitle(translations[language].quantityEstimateHint)).toBeVisible();
+  expect(consolidated.requiredAmounts).toEqual([{ quantity: 12, unit: "oz" }]);
 });
 test("the two-serving salmon recipe transfers its total 12 oz exactly once", () => {
   const { selection } = selectionForRecipe({ id: "salmon", name: "Baked Salmon", servings: 2,

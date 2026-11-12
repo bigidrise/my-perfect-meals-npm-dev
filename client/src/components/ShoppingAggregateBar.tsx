@@ -13,6 +13,7 @@ import { Share } from "@capacitor/share";
 import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
 import { recipeIngredientTransfer } from "@/lib/shoppingIngredientTransfer";
 import type { ShoppingIngredientMetadata } from "@shared/shoppingIngredientMetadata";
+import { useTranslation } from "react-i18next";
 
 type Ingredient = {
   name: string;
@@ -56,6 +57,7 @@ export default function ShoppingAggregateBar({
   onAddComplete,
   aboveBottomNav = false,
 }: Props) {
+  const { t } = useTranslation("shoppingTransfer");
   const shopping = useMealShopping();
   const [shoppingError, setShoppingError] = useState("");
   const [location, setLocation] = useLocation();
@@ -190,7 +192,7 @@ export default function ShoppingAggregateBar({
       }
       const response = await shopping.send(prepared.map(value => value.selection!), shopping.result?.committed === false);
       if (response?.committed) {
-        toast({ title: "Saved to Shopping List", description: "Your selections were confirmed by the server." });
+        toast({ title: t("savedTitle"), description: t("menuConfirmed") });
         onAddComplete?.();
         setLocation(sourceSlug ? `/shopping-list-v2?from=${sourceSlug}` : "/shopping-list-v2");
       }
