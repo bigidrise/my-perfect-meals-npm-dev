@@ -34,7 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MACRO_SOURCES, getMacroSourceBySlug } from "@/lib/macroSourcesConfig";
-import { getRetailQuantity } from "@/lib/retailIntelligence";
+import { ShoppingQuantity } from "@/components/shopping/ShoppingQuantity";
 import AddOtherItems from "@/components/AddOtherItems";
 import { readOtherItems, addOtherItem } from "@/stores/otherItemsStore";
 import { GROCERY_RETAILERS, type GroceryRetailerId } from "@/lib/groceryRetailers";
@@ -1120,15 +1120,7 @@ export default function ShoppingListMasterView() {
                               onClear={() => clearProductChoice(item as ConsolidatedItem)}
                             />
                           </div>
-                          {(() => {
-                            const qty = getRetailQuantity(item);
-                            if (!qty) return null;
-                            return (
-                              <div className="text-white/70 text-sm shrink-0">
-                                {qty}
-                              </div>
-                            );
-                          })()}
+                          <ShoppingQuantity item={item as ConsolidatedItem} />
                           <Button
                             size="sm"
                             variant="ghost"
@@ -1208,15 +1200,7 @@ export default function ShoppingListMasterView() {
                                   onClear={() => clearProductChoice(item as ConsolidatedItem)}
                                 />
                               </div>
-                              {(() => {
-                                const qty = getRetailQuantity(item);
-                                if (!qty) return null;
-                                return (
-                                  <div className="text-white/70 text-sm shrink-0">
-                                    {qty}
-                                  </div>
-                                );
-                              })()}
+                              <ShoppingQuantity item={item as ConsolidatedItem} />
                               <TrashButton
                                 size="sm"
                                 onClick={() => removeConsolidatedItem((item as ConsolidatedItem).allIds)}

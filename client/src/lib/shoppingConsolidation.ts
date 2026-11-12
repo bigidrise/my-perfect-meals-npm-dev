@@ -24,7 +24,6 @@ import type { ShoppingListItem } from '@/stores/shoppingListStore';
 import type { IngredientCategory } from '@/data/ingredientCategories';
 import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
 import { developmentShoppingGroups, mergeDevelopmentShoppingMetadata } from "@shared/developmentShoppingMerge";
-import { shoppingIdentityKey } from "@shared/shoppingIngredientMetadata";
 
 // ── Unit conversion tables ────────────────────────────────────────────────────
 // (Local copies to avoid circular imports with the store)
@@ -47,10 +46,6 @@ const VOLUME_TO_ML: Record<string, number> = {
   l: 1000, liter: 1000, liters: 1000, litre: 1000, litres: 1000,
 };
 
-const COUNT_UNITS = new Set([
-  '', 'unit', 'units', 'piece', 'pieces', 'whole', 'each',
-  'count', 'slice', 'slices', 'clove', 'cloves',
-]);
 
 function toGrams(qty: number, unit: string): number | null {
   const factor = WEIGHT_TO_G[unit.toLowerCase().trim()];
@@ -62,8 +57,13 @@ function toMl(qty: number, unit: string): number | null {
   return factor !== undefined ? qty * factor : null;
 }
 
-function isCountUnit(unit: string): boolean {
-  return COUNT_UNITS.has(unit.toLowerCase().trim());
+
+function quantityDimension(unit: string): string {
+  const u = (unit || "").trim().toLowerCase();
+  if (toGrams(1, u) !== null) return "weight";
+  if (toMl(1, u) !== null) return "volume";
+  if (["", "unit", "units", "piece", "pieces", "whole", "each", "count"].includes(u)) return "count";
+  return `count:${u.replace(/s$/, "")}`;
 }
 
 // ── Placeholder filter ────────────────────────────────────────────────────────
@@ -87,6 +87,8 @@ function isValidItem(item: ShoppingListItem): boolean {
  * getRetailQuantity() in retailIntelligence.ts.
  */
 export interface ConsolidatedItem extends ShoppingListItem {
+  /** Exact stored requirements, before retail estimates or package rounding. */
+  requiredAmounts: { quantity: number; unit: string }[];
   /** Number of original store rows merged into this consolidated item */
   mergedCount: number;
   /** All original store IDs (used for "opened" tracking in the modal) */
@@ -118,9 +120,10 @@ export function buildConsolidatedItems(
   for (const item of filtered) {
     // Production keeps selected recipe rows distinct; do not let a display
     // consolidation hide another ingredient's product or contribution.
-    const key = item.ingredientMetadata
+    const identity = item.ingredientMetadata
       ? `selected:${item.id}`
       : (item.normalizedName || item.name).toLowerCase().trim();
+    const key = `${identity}|${quantityDimension(item.unit)}`;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(item);
   }
@@ -131,10 +134,7 @@ export function buildConsolidatedItems(
   const displayGroups = shoppingMetadataEnabled
     ? developmentShoppingGroups(filtered, (a, b) => {
       // Preserve legacy dimensional grouping for unrelated exact identities.
-      if (shoppingIdentityKey(a) === shoppingIdentityKey(b)) return true;
-      const dimension = (unit: string) => toGrams(1, unit) !== null ? "weight" :
-        toMl(1, unit) !== null ? "volume" : `count:${unit.trim().toLowerCase()}`;
-      return dimension(a.unit) === dimension(b.unit);
+      return quantityDimension(a.unit) === quantityDimension(b.unit);
     })
     : [...groups.values()];
   for (const group of displayGroups) {
@@ -154,7 +154,6 @@ export function buildConsolidatedItems(
     let totalCount = 0;
     let hasGrams = false;
     let hasMl = false;
-    let hasCount = false;
 
     for (const item of group) {
       const qty = item.quantity ?? 0;
@@ -175,32 +174,26 @@ export function buildConsolidatedItems(
         continue;
       }
 
-      if (isCountUnit(unit)) {
-        totalCount += qty;
-        hasCount = true;
-      }
+      totalCount += qty;
     }
 
     // Choose canonical quantity/unit for getRetailQuantity.
     // Priority: weight > volume > count.
-    // For mixed weight+volume items (e.g., "71g zucchini" + "½ cup zucchini"),
-    // mL is treated as ≈ g (density ~1 for most plant matter) and added to
-    // totalGrams. This gives a good-enough gram total for produce count
-    // estimation via getRetailQuantity.
+    // Different dimensions remain separate unless a food-specific conversion
+    // exists. Never add mL to grams or multiply these totals by servings.
     let canonicalQty: number;
     let canonicalUnit: string;
 
     if (hasGrams) {
-      // Roll volume into grams at ~1 g/mL (good approximation for produce/liquids)
-      canonicalQty = totalGrams + (hasMl ? totalMl : 0);
+      canonicalQty = totalGrams;
       canonicalUnit = 'g';
     } else if (hasMl) {
       canonicalQty = totalMl;
       canonicalUnit = 'ml';
     } else {
-      // Count/unitless: round up
-      canonicalQty = Math.ceil(totalCount);
-      canonicalUnit = '';
+      // Fractional recipe requirements stay fractional; purchasing rounds later.
+      canonicalQty = totalCount;
+      canonicalUnit = canonical.unit;
     }
 
     result.push({
@@ -211,7 +204,12 @@ export function buildConsolidatedItems(
       quantity: canonicalQty,
       unit: canonicalUnit,
       isChecked: group.every((i) => i.isChecked),
-      mergedCount: group.length,
+      requiredAmounts: [...group.reduce((amounts, item) => {
+        const unit = item.unit || "";
+        amounts.set(unit, (amounts.get(unit) || 0) + item.quantity);
+        return amounts;
+      }, new Map<string, number>())].map(([unit, quantity]) => ({ quantity, unit })),
+      mergedCount: group.reduce((count, item) => count + (item.sourceRowCount ?? 1), 0),
       allIds: group.map((i) => i.id),
       ...(shoppingMetadataEnabled ? {
         ingredientMetadata: group.reduce((m, i) => mergeDevelopmentShoppingMetadata(m, i.ingredientMetadata),

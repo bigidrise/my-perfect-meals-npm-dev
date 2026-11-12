@@ -93,10 +93,10 @@ function isVolumeUnit(unit: string): boolean {
 
 // ── Retail rounding helpers ────────────────────────────────────────────────────
 
-// Meat → round to nearest 0.5 lb, min 1 lb, prefix with "~"
+// Variable-weight meat/fish can be bought by weight; do not invent a 1 lb minimum.
 function roundMeatLbs(lbs: number): string {
-  const rounded = Math.max(1, Math.ceil(lbs * 2) / 2);
-  return `~${rounded} lb`;
+  const rounded = Math.ceil((lbs - 1e-9) * 100) / 100;
+  return `${rounded} lb`;
 }
 
 // Grains → cups to lbs, round UP to nearest 0.5 lb, min 0.5 lb
@@ -625,7 +625,7 @@ export function getRetailQuantity(item: ShoppingListItem): string | null {
     if (isUnitless(unit) && qty > 0) {
       const lbPerFillet = getFishFilletLbPerUnit(n);
       if (lbPerFillet !== null) {
-        return roundMeatLbs(qty * lbPerFillet);
+        return `~${roundMeatLbs(qty * lbPerFillet)}`;
       }
     }
   }
@@ -713,15 +713,8 @@ export function getRetailQuantity(item: ShoppingListItem): string | null {
     const weightDisplay = getProduceWeightDisplay(n, grams);
     if (weightDisplay) return weightDisplay;
   }
-  // Also handle mL-stored produce (nutrition engine sometimes uses mL for
-  // volume of leafy greens, hashbrowns, etc.)
-  const mlAsGrams = unit.toLowerCase() === 'ml' || unit.toLowerCase() === 'milliliter' || unit.toLowerCase() === 'milliliters'
-    ? qty  // ~1 g/mL approximation for plant matter
-    : null;
-  if (mlAsGrams !== null && mlAsGrams > 0) {
-    const weightDisplay = getProduceWeightDisplay(n, mlAsGrams);
-    if (weightDisplay) return weightDisplay;
-  }
+  // Volume is not weight: without a food-specific density, do not turn mL of
+  // chopped vegetables into grams and invent an inflated produce count.
 
   // ── Category-based fallbacks ──────────────────────────────────────────────
   // When no specific rule matched, use the item's category to pick a sane
@@ -734,8 +727,7 @@ export function getRetailQuantity(item: ShoppingListItem): string | null {
     return '1 loaf';
   }
   if (cat === 'Produce') {
-    // Unknown produce not in the weight table — default to 1
-    return '1';
+    return isUnitless(unit) && qty > 0 ? String(Math.ceil(qty)) : null;
   }
   if (cat === 'Grains & Packaged') {
     // Unknown grains/packaged items not caught by grain density table

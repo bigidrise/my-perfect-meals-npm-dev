@@ -194,17 +194,52 @@ test("saved-card sender rejects an account switch before its write", async () =>
   expect((apiRequest as jest.Mock).mock.calls).toHaveLength(1);
 });
 test("saved-card sender accepts the existing Production acknowledgement without metadata or new tables", async () => {
-  (apiRequest as jest.Mock).mockResolvedValue({ ok: true, added: 1 });
+  (apiRequest as jest.Mock).mockImplementation(async (_url: string, init?: any) =>
+    init?.method === "POST" ? { ok: true, added: 1 } : { items: [] });
   await sendSavedMealToShopping(selectionForRecipe(recipe(), "saved-meals").selection!, false);
-  expect((apiRequest as jest.Mock).mock.calls).toHaveLength(1);
-  const [url, init] = (apiRequest as jest.Mock).mock.calls[0];
+  expect((apiRequest as jest.Mock).mock.calls).toHaveLength(2);
+  const [url, init] = (apiRequest as jest.Mock).mock.calls[1];
   expect(url).toBe("/api/shopping-list");
   expect(JSON.parse(init.body).items[0]).not.toHaveProperty("ingredientMetadata");
 });
 test("saved-card sender rejects an unconfirmed save rather than reporting success", async () => {
-  (apiRequest as jest.Mock).mockResolvedValue({ ok: true, added: 0 });
+  (apiRequest as jest.Mock).mockImplementation(async (_url: string, init?: any) =>
+    init?.method === "POST" ? { ok: true, added: 0 } : { items: [] });
   await expect(sendSavedMealToShopping(selectionForRecipe(recipe(), "saved-meals").selection!, false))
     .rejects.toThrow("save was not confirmed");
+});
+test("returning to a saved recipe does not add its acknowledged server rows again", async () => {
+  let saved = false;
+  const posts = jest.fn();
+  (apiRequest as jest.Mock).mockImplementation(async (_url: string, init?: any) => {
+    if (init?.method === "POST") { posts(); saved = true; return { ok: true, itemsAdded: 1, items: [{ id: "stored-a" }] }; }
+    return { items: saved ? [{ id: "stored-a" }] : [] };
+  });
+  const selection = selectionForRecipe(recipe(), "saved-meals").selection!;
+  expect(await sendSavedMealToShopping(selection, true)).toEqual({ alreadyAdded: false });
+  expect(await sendSavedMealToShopping(selection, true)).toEqual({ alreadyAdded: true });
+  expect(posts).toHaveBeenCalledTimes(1);
+});
+test("removing the acknowledged recipe rows permits an intentional fresh add", async () => {
+  const posts = jest.fn();
+  (apiRequest as jest.Mock).mockImplementation(async (_url: string, init?: any) => {
+    if (init?.method === "POST") { posts(); return { ok: true, added: 1, items: [{ id: `stored-${posts.mock.calls.length}` }] }; }
+    return { items: [] };
+  });
+  const selection = selectionForRecipe(recipe(), "saved-meals").selection!;
+  await sendSavedMealToShopping(selection, false);
+  await sendSavedMealToShopping(selection, false);
+  expect(posts).toHaveBeenCalledTimes(2);
+});
+test("a browser receipt-cache failure never reports a confirmed database save as failed", async () => {
+  (apiRequest as jest.Mock).mockImplementation(async (_url: string, init?: any) =>
+    init?.method === "POST" ? { ok: true, added: 1, items: [{ id: "stored-a" }] } : { items: [] });
+  const storage = jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("Quota exceeded"); });
+  const warning = jest.spyOn(console, "warn").mockImplementation(() => {});
+  try {
+    await expect(sendSavedMealToShopping(selectionForRecipe(recipe(), "saved-meals").selection!, false))
+      .resolves.toEqual({ alreadyAdded: false });
+  } finally { storage.mockRestore(); warning.mockRestore(); }
 });
 test("saved cards retain an explicitly stored legacy recipe yield", async () => {
   const original = savedRow();

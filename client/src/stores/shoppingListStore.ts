@@ -88,6 +88,8 @@ export interface ShoppingListItem {
   ingredientMetadata?: ShoppingIngredientMetadata;
   name: string;
   normalizedName: string;
+  /** Number of persisted ingredient rows represented by this store item. */
+  sourceRowCount?: number;
   quantity: number;
   unit: string;
   category: IngredientCategory;
@@ -218,6 +220,7 @@ function deduplicateServerItems(items: ShoppingListItem[]): ShoppingListItem[] {
       deduped[existingIdx] = {
         ...deduped[existingIdx],
         quantity: deduped[existingIdx].quantity + si.quantity,
+        sourceRowCount: (deduped[existingIdx].sourceRowCount ?? 1) + (si.sourceRowCount ?? 1),
         // Only mark checked if ALL duplicates are checked
         isChecked: deduped[existingIdx].isChecked && si.isChecked,
       };

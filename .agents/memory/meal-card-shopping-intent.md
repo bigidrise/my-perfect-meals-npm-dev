@@ -101,3 +101,18 @@ established plain-ingredient contract. Save acknowledgements can use `added` or
 `itemsAdded` and need not repeat the GET metadata advertisement. Keep positive
 save-count checks, account checks and ingredient validation; reject unknown
 advertised versions rather than sending unsupported metadata.
+
+Meal cards and Shopping must agree on ingredient quantities, yield and servings.
+The exact recipe requirement and the purchase recommendation are different
+numbers, and both must be traceable. Do not redesign meal cards to fix quantities.
+
+**Why:** The user explicitly required an end-to-end investigation of a two-serving
+salmon recipe requiring 12 oz, whose Shopping purchase display showed 2.5 lb.
+Getting ingredient names right was not sufficient.
+
+**How to apply:** Trace the saved recipe, request, stored contributions, hydration,
+aggregation and final purchase display. Apply serving scaling once. Sum only
+compatible measurement dimensions; mL of vegetables are not grams without
+food-specific density evidence. Do not infer fixed package minimums for
+variable-weight fish. Preserve exact requirements alongside labelled purchase
+estimates. Never silently delete historical additions to make totals look right.

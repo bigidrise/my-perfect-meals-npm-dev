@@ -54,3 +54,12 @@ Browser cookies also ignore ports, even though local storage is origin-scoped.
 **How to apply:** Compare the actual browser origin with the verified runtime,
 inspect the running activation flag and authenticated capability response, and
 state explicitly that a separate-instance URL does not switch the IDE preview.
+
+Offline PGlite tests must not install a browser-like `window` global before
+database initialization or reopening.
+
+**Why:** PGlite detects that global and chooses its browser path in Node; a minimal
+window stub then fails while resolving location information.
+
+**How to apply:** Keep the PostgreSQL test process in its normal Node environment;
+stub only the individual browser APIs that the tested client functions require.
