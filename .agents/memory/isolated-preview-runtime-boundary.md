@@ -36,5 +36,8 @@ Shopping persistence, and exclusive database isolation have been confirmed.
 without changing the main preview or Production database connections.
 
 **How to apply:** Keep local database overrides confined to the isolated child
-process, preserve all startup guards, and stop at a newly encountered blocker
-rather than changing unrelated application behavior.
+process and preserve all startup guards. The user authorized completing existing,
+non-destructive schema-only prerequisites together after source, dependency and
+target verification, rather than stopping at each missing column. Stop if needed
+migrations are destructive, call external services, modify shared data or have
+unclear dependencies; do not make unrelated application changes.
