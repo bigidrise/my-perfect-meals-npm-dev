@@ -1505,3 +1505,12 @@ button, a, [role="button"], .interactive {
   color: hsl(215, 15%, 65%) !important;
 }
 
+/* Platform trash policy comes after generic dark-mode color fallbacks.
+   Icon color only: never resize arbitrary buttons or hide their labels. */
+svg.lucide.lucide-trash,
+svg.lucide.lucide-trash2,
+svg.lucide.lucide-trash-2 {
+  color: #f87171 !important;
+  stroke: currentColor !important;
+}
+

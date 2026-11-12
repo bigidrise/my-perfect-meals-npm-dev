@@ -12,6 +12,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { apiRequest } from "@/lib/apiRequest";
 import { reconcileRememberedChildSelection } from "@/lib/myPerfectBeginningChildSelection";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
+import { PARENTS_CORNER_VISIBLE } from "@shared/familyFeatureVisibility";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -489,7 +490,7 @@ export default function MyPerfectBeginningPage() {
 
         {/* Section cards */}
         <div className="space-y-3 mb-5">
-          {SECTION_CARDS.map(card => {
+          {SECTION_CARDS.filter(card => card.id !== "parents-corner" || PARENTS_CORNER_VISIBLE).map(card => {
             const Icon = card.icon;
             const isProfile = card.id === "profile";
             const statusLabel = isProfile ? profileStatus : null;

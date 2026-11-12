@@ -30,9 +30,10 @@ test("meal-card trash is red by default with a compact outline and a separate 44
     "before:inset-1.5", "before:border-white/20");
   expect(button).not.toHaveClass("bg-red-600");
 });
-test("unrelated delete controls retain their existing default appearance", () => {
+test("legacy default trash controls now share the compact red appearance globally", () => {
   render(<TrashButton onClick={jest.fn()} />);
-  expect(screen.getByRole("button")).toHaveClass("bg-red-600", "text-white");
+  expect(screen.getByRole("button")).toHaveClass("text-red-400", "bg-transparent", "min-h-[44px]", "min-w-[44px]");
+  expect(screen.getByRole("button")).not.toHaveClass("bg-red-600", "text-white");
   expect(screen.getByRole("button")).toHaveAttribute("data-appearance", "default");
 });
 test("direct meal deletion preserves the callback, disabled state and event isolation", () => {

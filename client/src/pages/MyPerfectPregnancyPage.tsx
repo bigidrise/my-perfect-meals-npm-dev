@@ -1,4 +1,5 @@
-import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
+import { PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
+import { PREGNANCY_PAGE_VISIBLE, PREGNANCY_COACH_VISIBLE } from "@shared/familyFeatureVisibility";
 import ComingSoonPresentation from "@/components/coming-soon/ComingSoonPresentation";
 import { developmentComingSoonEnabled } from "@/lib/developmentComingSoon";
 import { useState, useEffect, useRef } from "react";
@@ -129,7 +130,7 @@ const MERCURY_AVOID = ["Shark", "Swordfish", "King mackerel", "Tilefish", "Bigey
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function MyPerfectPregnancyPage() {
-  if (!PREGNANCY_CUSTOMER_AVAILABLE && developmentComingSoonEnabled) {
+  if (!PREGNANCY_PAGE_VISIBLE && developmentComingSoonEnabled) {
     return (
       <ComingSoonPresentation
         title="My Perfect Pregnancy — Coming Soon"
@@ -141,7 +142,7 @@ export default function MyPerfectPregnancyPage() {
       />
     );
   }
-  return PREGNANCY_CUSTOMER_AVAILABLE ? <PregnancyPageContent /> : (
+  return PREGNANCY_PAGE_VISIBLE ? <PregnancyPageContent /> : (
     <section
       className="text-white"
       data-testid="pregnancy-coming-soon"
@@ -187,7 +188,9 @@ function PregnancyPageContent() {
 
   // UI state
   const [setupOpen, setSetupOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"coach" | "learn" | "safety">("coach");
+  const [activeTab, setActiveTab] = useState<"coach" | "learn" | "safety">(
+    PREGNANCY_COACH_VISIBLE ? "coach" : "learn",
+  );
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
   // Coach state
@@ -564,12 +567,12 @@ function PregnancyPageContent() {
 
               {/* Action buttons */}
               <div className="flex gap-2 mt-4 pt-3 border-t border-white/10">
-                <button
+                {PREGNANCY_COACH_VISIBLE && <button
                   onClick={() => setActiveTab("coach")}
                   className="flex-1 py-2 rounded-xl text-xs font-semibold bg-pink-700/50 border border-pink-400/40 text-white active:scale-95 transition-all"
                 >
                   🩷 Ask Coach
-                </button>
+                </button>}
                 <button
                   onClick={() => setSetupOpen(true)}
                   className="flex-1 py-2 rounded-xl text-xs font-semibold bg-white/8 border border-white/15 text-white/80 active:scale-95 transition-all"
@@ -621,7 +624,8 @@ function PregnancyPageContent() {
 
         {/* Tab nav */}
         <div className="flex gap-2">
-          {(["coach", "learn", "safety"] as const).map(tab => (
+          {(["coach", "learn", "safety"] as const)
+            .filter(tab => tab !== "coach" || PREGNANCY_COACH_VISIBLE).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -638,7 +642,7 @@ function PregnancyPageContent() {
 
         <AnimatePresence mode="wait">
           {/* ── ASK PREGNANCY COACH ── */}
-          {activeTab === "coach" && (
+          {PREGNANCY_COACH_VISIBLE && activeTab === "coach" && (
             <motion.div
               key="coach"
               initial={{ opacity: 0 }}

@@ -1,7 +1,7 @@
 - [Production source and publication history](production-source-publication-history.md) — separate source authority from automatic publication checkpoints; clean builds alone cannot keep the branch fast-forwardable.
-- [Pregnancy release safety pause](pregnancy-release-safety-pause.md) — Coming Soon stays Clinical; retain saved support and other safety rules while activation and unreviewed guidance are paused.
-- [Interface layout references](interface-layout-reference-index.md) — safe-area modals, universal dialogs, mobile scroll ownership, and compact icon-pill selectors.
-- [Development runtime references](development-runtime-reference-index.md) — startup-log evidence, warm-browser Vite cache identity, and production-mode dependency checks.
+- [Pregnancy visibility and safety hold](pregnancy-release-safety-pause.md) — Development may show the page with coaching hidden; activation and paused guidance stay unchanged; no Production promotion.
+- [Interface layout references](interface-layout-reference-index.md) — safe-area modals, mobile scrolling, compact selectors, frontend assets and CSS testing limits.
+- [Development runtime references](development-runtime-reference-index.md) — startup evidence, Vite caches, dependencies, provider runtime and bounded migration lifecycles.
 - [Authenticated API cache identity](authenticated-api-client-cache-identity.md) — removing caller IDs from APIs must not erase client-side account partitions.
 - [Role-aware polling authentication](role-aware-polling-auth.md) — background 401/403 responses are not always invalid sessions; respect endpoint role boundaries.
 - [Unread notification verification](unread-notification-verification.md) — capture counts before folder reads; media-labeled UI mocks do not establish backend coverage.
@@ -29,11 +29,9 @@
 - [Shared resolver ownership](nutrition-resolver-ownership.md) — workflow pages resolve once and pass data into shared components.
 - [Override propagation](override-propagation-pattern.md) — successful allergy PIN overrides must reach every post-generation validation path.
 - [Release type gate](release-type-gate.md) — use the layered release check so newly introduced type errors cannot hide in debt.
-- [Process environment types](process-environment-type-contracts.md) — named-key Pick and Partial Pick can reject an index-signature-only environment dictionary.
 - [Drizzle schema migration fallback](drizzle-kit-push-instability.md) — use small idempotent SQL migrations when schema-pull tooling is unreliable.
 - [PostgreSQL query contracts](postgres-query-reference-index.md) — array expansion, parameter gaps, catalog decoding and pooled read-only queries.
 - [Studio media lifecycle](studio-media-reference-index.md) — video retention, MIME compatibility, participant deletion, failed media, transcription result scope and voice queue integrity.
-- [OpenAI server runtime](openai-server-upload-runtime.md) — explicit upload shims and SDK fetch injection; global fetch mocks alone do not prove isolation.
 - [iOS source and installed runtime](bundled-first-ios-startup.md) — founder reports Production-fed installed updates; bundled-first source config does not establish the installed delivery path.
 - [iOS capture diagnosis](ios-capture-diagnosis.md) — diagnose Grocery Voice Add separately from Studio capture, and sync the native bundle before device evidence.
 - [Shared Neon and workspace release boundary](runtime-database-identity.md) — both workspaces share Neon, but Development Publish does not update Production.
@@ -50,8 +48,6 @@
 - [Private Pilot ProCare](private-pilot-procare.md) — temporary founder grants are explicit runtime entitlements, never synthetic paid plans.
 - [Academy progression authority](academy-progression-authority.md) — Phase 1 is educational; Phase 2 earns the core Specialist credential; ProCare is optional and role-gated.
 - [Academy contextual navigation](academy-contextual-navigation.md) — preserve contextual back routes and Academy entry points in both More and Business Suite.
-- [Frontend static asset location](frontend-static-asset-location.md) — browser-facing images belong in client/public; verify the exact served asset before changing page layering.
-- [Crawler-visible SPA pages](crawler-visible-spa-pages.md) — public HTML snapshots must precede every SPA fallback and remain public after the client mounts.
 - [Nutrition consistency score boundary](nutrition-consistency-score-boundary.md) — score observable user behavior, never rules the platform enforces automatically.
 - [Whole-Food governance](whole-food-governance.md) — central evidence-aware policy gates every active human recommendation; a clean coverage matrix is required for platform-wide claims.
 - [Consumer ProCare role split](consumer-procare-role-split.md) — Pro opens coach/trainer relationships; Clinical remains required for clinical professionals and data.
@@ -87,7 +83,6 @@
 - [Authoritative mobile text submission](authoritative-mobile-text-submission.md) — food creators must process the visible field value, not potentially stale React state.
 - [Shared validator consumer contracts](shared-validator-consumer-contracts.md) — shared validation changes must run contract suites for every protected feature that feeds them.
 - [Anti-Inflammatory food matching](anti-inflammatory-food-concept-matching.md) — prohibited prepared foods do not prohibit every component; preserve policy and test final-scan consumers.
-- [Bounded startup migrations](bounded-startup-migrations.md) — readiness-critical DDL needs PostgreSQL lock and statement timeouts; application timers do not bound blocked queries.
 - [Meal generation progress UX](meal-generation-progress-ux.md) — long food requests use one context-aware explanatory status system, never fake backend stages.
 - [Open-world food intent](open-world-food-intent.md) — catalog misses use schema-bound semantic interpretation; downstream governance remains authoritative.
 - [Meal subject authority](meal-subject-authority.md) — the authenticated actor is not automatically the nutrition subject; resolve food context for the person being fed.
@@ -125,7 +120,6 @@
 - [Organization and practitioner identity](organization-practitioner-identity.md) — ownership never replaces occupation; Business-only identities are legitimate and cannot be inferred into practitioners.
 - [Demo practitioner boundary](demo-practitioner-boundary.md) — approved canonical persona plus demo-only status; synthetic data only, never fabricated clinical verification.
 - [Professional erasure policy](professional-erasure-policy.md) — minimize personal lifecycle data; reviewer erasure preserves other applications; no six-year retention assumption.
-- [Migration CLI lifecycle](migration-cli-lifecycle.md) — one-off commands must own their connection; the application DB keepalive can outlive a closed pool.
 - [Professional credential clearance](professional-credential-clearance.md) — bind genuine MFA-reviewed evidence to current identity; activation, pilots and demos remain separate.
 - [Grocery Coach workflow](grocery-coach-meal-card-workflow.md) — automatic Favorites/card continuity and Development-only, user-initiated packaged-product discovery.
 - [Focused Jest execution](focused-jest-execution.md) — use isolated test transpilation and a separate type gate to avoid loading the entire project twice.
