@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "include": [
+    "server/services/imageDeliveryRecovery.ts",
     "server/services/organizationPaidContinuationPolicy.ts",
     "server/services/organizationCheckoutConsent.ts",
     "server/services/organizationRewardfulPolicy.ts",
