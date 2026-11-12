@@ -69,6 +69,7 @@ interface MealCardActionsProps {
   shoppingRecipe?: any;
   shoppingOptions?: { recipeYield?: number; shoppingServings?: number; subjectKind?: "human" | "pet" };
   showShopping?: boolean;
+  shoppingAddAndView?: boolean;
   onContentUpdate?: (updated: Partial<MealData>) => void;
   showTranslate?: boolean;
   showPrepareButton?: boolean;
@@ -82,6 +83,7 @@ export default function MealCardActions({
   shoppingRecipe,
   shoppingOptions,
   showShopping = true,
+  shoppingAddAndView = false,
   onContentUpdate,
   showTranslate = true,
   showPrepareButton = true,
@@ -185,7 +187,7 @@ export default function MealCardActions({
   const primary = entries.filter(entry => entry.kind !== "translate" && entry.node != null && entry.node !== false);
   const hasDefaultActions = Boolean(meal.name);
   if (showShopping && shoppingRecipe && !location.startsWith("/pro/") && !location.startsWith("/care-team")) {
-    primary.push({ kind: "shopping", node: <MealShoppingAction recipe={shoppingRecipe} source={source} options={shoppingOptions} /> });
+    primary.push({ kind: "shopping", node: <MealShoppingAction recipe={shoppingRecipe} source={source} options={shoppingOptions} addAndView={shoppingAddAndView} /> });
   }
   if (hasDefaultActions && !primary.some(entry => entry.kind === "share")) {
     primary.push({ kind: "share", node: <ShareRecipeButton
