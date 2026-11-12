@@ -39,14 +39,17 @@ export default function MealShoppingAction({ recipe, source, options, addAndView
     if (!addAndView) { void transfer.send([selection], update); return; }
     lock.current = true; setSaving(true); setError("");
     try {
+      let alreadyAdded = false;
       if (transfer.available) {
         const response = await transfer.send([selection], update);
         if (!response?.committed) return;
       } else {
-        await sendSavedMealToShopping(selection, shoppingMetadataEnabled);
+        alreadyAdded = (await sendSavedMealToShopping(selection, shoppingMetadataEnabled)).alreadyAdded;
       }
       savedSignature.current = signature;
-      toast({ title: "Saved to Shopping List", description: `${selection.recipeName} ingredients were added.` });
+      toast({ title: alreadyAdded ? "Already on Shopping List" : "Saved to Shopping List",
+        description: alreadyAdded ? `${selection.recipeName} is already included; quantities were not added again.`
+          : `${selection.recipeName} ingredients were added.` });
       setLocation("/shopping-list-v2?from=saved-meals");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Shopping was not saved. Please try again.");
