@@ -1,6 +1,7 @@
 // client/src/components/ChefAssistant.tsx
 import { useEffect, useRef, useState } from "react";
 import { Trash2, ChefHat } from "lucide-react";
+import { TRASH_CONTROL_CLASSES } from "@/lib/trashControlStyles";
 
 interface ChefAssistantProps {
   avatarSrc: string;        // URL to your chef avatar image/gif
@@ -111,9 +112,9 @@ export default function ChefAssistant({
           <button
             aria-label="Close"
             onClick={closeChef}
-            className="pointer-events-auto shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-xl border border-red-500/60 bg-red-600 text-white shadow-sm active:scale-[0.98]"
+            className={`${TRASH_CONTROL_CLASSES} pointer-events-auto shrink-0 h-8 w-8 rounded-xl active:scale-[0.98]`}
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="relative z-[1] h-4 w-4" />
           </button>
         </div>
       </div>

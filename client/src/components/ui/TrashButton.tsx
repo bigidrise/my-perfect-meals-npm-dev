@@ -1,5 +1,6 @@
 import { Trash2 } from "lucide-react";
 import React, { useState } from "react";
+import { TRASH_CONTROL_CLASSES } from "@/lib/trashControlStyles";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,9 +42,9 @@ export default function TrashButton({
     md: "h-9 w-9 p-2 rounded-xl",       // 36px
     lg: "h-10 w-10 p-2.5 rounded-2xl",  // 40px
   }[size];
-  const appearanceClass = appearance === "meal-card"
-    ? "relative min-h-[44px] min-w-[44px] border-transparent bg-transparent text-red-400 shadow-none before:pointer-events-none before:absolute before:inset-1.5 before:rounded-lg before:border before:border-white/20 before:bg-black/20 before:content-[''] hover:before:border-red-400/50 hover:before:bg-red-500/10 hover:text-red-300 focus:ring-red-400/40"
-    : "border-red-500/60 bg-red-600 text-white shadow-sm hover:bg-red-700 focus:ring-red-400/40";
+  // Both legacy appearances share the platform's compact control. Keep the
+  // appearance prop/data attribute compatible with existing callers.
+  const appearanceClass = TRASH_CONTROL_CLASSES;
 
   async function handleClick(e: React.MouseEvent) {
     e.stopPropagation();
