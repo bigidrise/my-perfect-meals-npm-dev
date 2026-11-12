@@ -26,3 +26,15 @@ Browser component fixtures must prove mutation interception before exercising Se
 **Why:** An intended synthetic chat request escaped a browser fixture's interceptor and reached the Development origin, where authentication rejected it. Successful component rendering did not establish network isolation.
 
 **How to apply:** Keep visual checks read-only until isolation is demonstrated. If a mutation reaches the origin, stop rather than retrying or claiming fixture-only success. Use isolated component tests for send/reply contracts and disclose missing live authenticated verification.
+
+Founder Shopping acceptance must use a separate Development instance and URL.
+Do not switch the main Development preview or any Production process to the
+isolated database. Offer the separate testing URL only after authentication,
+Shopping persistence, and exclusive database isolation have been confirmed.
+
+**Why:** The user explicitly required a separate founder-accessible environment
+without changing the main preview or Production database connections.
+
+**How to apply:** Keep local database overrides confined to the isolated child
+process, preserve all startup guards, and stop at a newly encountered blocker
+rather than changing unrelated application behavior.
