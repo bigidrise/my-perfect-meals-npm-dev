@@ -147,17 +147,47 @@ test("saved-card legacy save failures show the error and never navigate or optim
   expect(mockHydrate).not.toHaveBeenCalled();
   expect(mockToast).not.toHaveBeenCalled();
 });
-test("saved-card preflight rejects an incompatible API before any writes", async () => {
-  (apiRequest as jest.Mock).mockResolvedValue({ items: [] });
+test("saved-card preflight rejects malformed readiness before any writes", async () => {
+  (apiRequest as jest.Mock).mockResolvedValue({});
+  await expect(sendSavedMealToShopping(selectionForRecipe(recipe(), "saved-meals").selection!, true))
+    .rejects.toThrow("readiness could not be confirmed");
+  expect((apiRequest as jest.Mock).mock.calls.every(([, init]) => !init?.method)).toBe(true);
+});
+test("Saved Meals works with the existing metadata-free API and itemsAdded acknowledgement", async () => {
+  (apiRequest as jest.Mock).mockImplementation(async (url: string, init?: any) =>
+    url.endsWith("/capabilities") ? { available: false }
+    : init?.method === "POST" ? { ok: true, success: true, itemsAdded: 1 }
+    : { items: [] });
+  render(<SavedMealRow row={savedRow()} sourceLabel={() => "Create a Dish"}
+    onRemove={jest.fn()} onAddToMacros={jest.fn()} initialExpanded />);
+  fireEvent.click(await shoppingButton());
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/shopping-list-v2?from=saved-meals"));
+  const [, init] = (apiRequest as jest.Mock).mock.calls.find(([, options]) => options?.method === "POST")!;
+  const payload = JSON.parse(init.body);
+  expect(payload.items[0]).toEqual(expect.objectContaining({ name: "chicken", quantity: 2, unit: "lb" }));
+  expect(payload.items[0]).not.toHaveProperty("ingredientMetadata");
+  expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Saved to Shopping List" }));
+});
+test("metadata-capable reads do not require a metadata advertisement on the save acknowledgement", async () => {
+  const owner = localStorage.getItem("userId");
+  (apiRequest as jest.Mock).mockImplementation(async (_url: string, init?: any) =>
+    init?.method === "POST" ? { ok: true, success: true, added: 1, itemsAdded: 1 }
+    : { shoppingMetadataVersion: 1, ownerUserId: owner, items: [] });
+  await sendSavedMealToShopping(selectionForRecipe(recipe(), "saved-meals").selection!, true);
+  const [, init] = (apiRequest as jest.Mock).mock.calls.find(([, options]) => options?.method === "POST")!;
+  expect(JSON.parse(init.body).items[0]).toHaveProperty("ingredientMetadata");
+});
+test("unknown advertised metadata versions are rejected rather than silently downgraded", async () => {
+  (apiRequest as jest.Mock).mockResolvedValue({ shoppingMetadataVersion: 2, items: [] });
   await expect(sendSavedMealToShopping(selectionForRecipe(recipe(), "saved-meals").selection!, true))
     .rejects.toThrow("does not support Development ingredient metadata");
-  expect((apiRequest as jest.Mock).mock.calls.every(([, init]) => !init?.method)).toBe(true);
+  expect((apiRequest as jest.Mock).mock.calls).toHaveLength(1);
 });
 test("saved-card sender rejects an account switch before its write", async () => {
   const owner = localStorage.getItem("userId");
   (apiRequest as jest.Mock).mockImplementation(async () => {
     localStorage.setItem("userId", "different-account");
-    return { shoppingMetadataVersion: 1, ownerUserId: owner };
+    return { shoppingMetadataVersion: 1, ownerUserId: owner, items: [] };
   });
   await expect(sendSavedMealToShopping(selectionForRecipe(recipe(), "saved-meals").selection!, true))
     .rejects.toThrow("Account changed");
