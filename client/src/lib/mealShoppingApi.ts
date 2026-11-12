@@ -68,11 +68,24 @@ export function canonicalShoppingRecipe(recipe: any, originalYield?: number) {
   const { records } = registry();
   const signature = stableShoppingJson(recipe.ingredients);
   const old = records.get(String(id));
-  if (old && (signature === old.signature || old.aliases.includes(signature))) return old.recipe;
+  if (old && (signature === old.signature || old.aliases.includes(signature))) {
+    // Cache original food evidence, not the current purchase/yield decisions.
+    const current = {
+      ...old.recipe, ...recipe,
+      shoppingCanonicalIngredients: recipe.shoppingCanonicalIngredients || old.recipe.shoppingCanonicalIngredients,
+      shoppingRecipeYield: recipe.shoppingRecipeYield ?? recipe.recipeYield ?? recipe.servings
+        ?? originalYield ?? old.recipe.shoppingRecipeYield,
+    };
+    if (stableShoppingJson(current) !== stableShoppingJson(old.recipe)) {
+      records.set(String(id), { ...old, recipe: current });
+      persistRegistry();
+    }
+    return current;
+  }
   const canonical = {
     ...recipe,
     shoppingCanonicalIngredients: recipe.shoppingCanonicalIngredients || recipe.ingredients,
-    shoppingRecipeYield: recipe.shoppingRecipeYield ?? recipe.recipeYield ?? recipe.servings ?? old?.recipe.shoppingRecipeYield ?? originalYield,
+    shoppingRecipeYield: recipe.shoppingRecipeYield ?? recipe.recipeYield ?? recipe.servings ?? originalYield ?? old?.recipe.shoppingRecipeYield,
   };
   records.set(String(id), { recipe: canonical, signature, aliases: [] });
   persistRegistry();

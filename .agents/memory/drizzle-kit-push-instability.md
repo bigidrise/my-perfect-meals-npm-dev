@@ -14,3 +14,14 @@ expects, so any push — regardless of what you changed — can trip this.
 write a small idempotent migration script under `scripts/` (pattern: `scripts/migrate-add-mfa-columns.ts`)
 using `pg.Pool` + `ALTER TABLE ... ADD COLUMN IF NOT EXISTS ...`, run it once with `npx tsx`, and keep
 `shared`/`server/db/schema` in sync by hand. This is safe and fast for additive column changes.
+
+Do not treat a successful `drizzle-kit push` exit as proof that a fresh isolated
+application database is complete.
+
+**Why:** During isolated setup, push exited successfully after creating only part
+of the schema. A separate atomic export/application exposed invalid baseline DDL.
+
+**How to apply:** Verify required relations after bootstrap and apply exported
+baseline DDL transactionally in authorized isolated databases. Stop on unrelated
+schema errors instead of silently running the application against a partial
+schema or falling back to the shared database.

@@ -803,3 +803,17 @@ mtime_ms = 1794440408542
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/0196a64b-17fd-42f9-b12e-bd9e1d0be51b/436654b1-8964-4e5e-8d4f-8cb08060fd9c"
 storage_version_token = "1794440419979722"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "Qm6wy1tHh-ONYMeX-KpsL"
+uri = "file://docs/shopping/phase-2-corrections-and-founder-testing-2026-11-11.md"
+type = "text"
+title = "Shopping corrections and founder-testing blockers"
+description = "Three corrections, 65 regression tests, 32 native PostgreSQL checks, 26 WASM checks, and the exact isolated-application bootstrap blocker."
+logical_id = "d886a440-956a-4acc-bbca-d7657c146c02"
+content_hash = "sha256:eeaef122b6224b250033d3f6c979719901ae68a13c7d8aa084febf27f38f1e1f"
+size = 5441
+mtime_ms = 1794442265190
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d886a440-956a-4acc-bbca-d7657c146c02/a206693a-3534-49e6-baf3-4267631432d3"
+storage_version_token = "1794442323997172"
+content_type = "text/markdown"

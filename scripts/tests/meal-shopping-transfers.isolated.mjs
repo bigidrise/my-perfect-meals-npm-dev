@@ -9,6 +9,9 @@ import { join } from "node:path";
 import { build } from "esbuild";
 import { PGlite } from "@electric-sql/pglite";
 import net from "node:net";
+import pg from "pg";
+import { randomBytes } from "node:crypto";
+import { verifyIsolatedDatabase } from "../shopping-isolation/target.mjs";
 
 const temporary = await mkdtemp(join(tmpdir(), "meal-shopping-offline-"));
 const bundle = await build({
@@ -18,15 +21,40 @@ const bundle = await build({
 await writeFile(join(temporary, "service.mjs"), bundle.outputFiles[0].text);
 const { transferShoppingSelections: transfer, clearShoppingTransferCycle: clear, shoppingTransferSchemaReady: ready } =
   await import(`file://${join(temporary, "service.mjs")}`);
-const db = new PGlite();
-await db.waitReady;
+const native = process.argv.includes("--postgres");
+let databaseName, nativePool, admin;
+let db;
+if (native) {
+  // Fixed loopback cluster and verified data_directory; no inherited DB URL.
+  admin = await verifyIsolatedDatabase("postgres");
+  databaseName = `mpm_shopping_concurrency_${randomBytes(6).toString("hex")}`;
+  await admin.query(`CREATE DATABASE ${databaseName}`);
+  const control = await verifyIsolatedDatabase(databaseName);
+  nativePool = new pg.Pool({ host: "127.0.0.1", port: 55432, user: "runner", database: databaseName,
+    application_name: "shopping-isolated-concurrency", max: 8, connectionTimeoutMillis: 3000 });
+  db = { query: control.query.bind(control), exec: control.query.bind(control),
+    close: async () => { await nativePool.end(); await control.end(); } };
+} else {
+  db = new PGlite();
+  await db.waitReady;
+}
 // WASM is initialized; every subsequent external network attempt is forbidden.
 const originalConnect = net.Socket.prototype.connect;
-net.Socket.prototype.connect = function() { throw new Error("Network forbidden in isolated shopping checks"); };
+if (!native) net.Socket.prototype.connect = function() { throw new Error("Network forbidden in isolated shopping checks"); };
 globalThis.fetch = async () => { throw new Error("Network forbidden in isolated shopping checks"); };
 let releaseNext = Promise.resolve(), fault = false;
 const pool = {
   async connect() {
+    if (native) {
+      const connection = await nativePool.connect();
+      return {
+        async query(sql, params = []) {
+          if (fault && sql.includes("INSERT INTO shopping_transfer_contributions")) throw new Error("Synthetic failed persistence");
+          return connection.query(sql, params);
+        },
+        release() { connection.release(); },
+      };
+    }
     const previous = releaseNext;
     let unlock;
     releaseNext = new Promise(resolve => { unlock = resolve; });
@@ -130,6 +158,65 @@ try {
   const rejectedBefore = JSON.stringify(await rows());
   await assert.rejects(send([a, selection("invalid", 0)]));
   check("one invalid selection rejects the entire batch", JSON.stringify(await rows()) === rejectedBefore);
+  if (native) {
+    const waitForBlockedTransfer = async () => {
+      const deadline = Date.now() + 5000;
+      while (Date.now() < deadline) {
+        const waiting = await db.query(`SELECT count(*)::int AS n FROM pg_stat_activity
+          WHERE datname=$1 AND application_name='shopping-isolated-concurrency' AND wait_event_type='Lock'`, [databaseName]);
+        if (waiting.rows[0].n > 0) return;
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      throw new Error("Expected transfer to wait for an independently held PostgreSQL row lock");
+    };
+    await clear(pool, "synthetic-a");
+    const sessionOne = await nativePool.connect(), sessionTwo = await nativePool.connect();
+    try {
+      check("retry sessions have genuinely different PostgreSQL backend PIDs",
+        sessionOne.processID !== sessionTwo.processID);
+      const sessionPool = connection => ({ connect: async () => ({
+        query: connection.query.bind(connection), release() {},
+      }) });
+      // Discard the first result AFTER COMMIT, as if its response were lost.
+      await transfer(sessionPool(sessionOne), "synthetic-a", { selections: [a] });
+      const retry = await transfer(sessionPool(sessionTwo), "synthetic-a", { selections: [a] });
+      check("lost-response retry on a separate connection does not double-count",
+        retry.results[0].status === "already_added" && (await rows()).find(r => r.user_id === "synthetic-a").quantity === "2");
+    } finally { sessionOne.release(); sessionTwo.release(); }
+    const editor = await nativePool.connect();
+    try {
+      await editor.query("BEGIN");
+      await editor.query("SELECT id FROM shopping_list_items WHERE user_id='synthetic-a' FOR UPDATE");
+      await editor.query("UPDATE shopping_list_items SET quantity='7' WHERE user_id='synthetic-a'");
+      const replacement = send([{ ...a, shoppingServings: 6, expectedVersion: 1 }], "replace");
+      await waitForBlockedTransfer();
+      await editor.query("COMMIT");
+      await replacement;
+      check("replacement waits for concurrent manual edits and preserves the fresh manual delta",
+        (await rows()).find(r => r.user_id === "synthetic-a").quantity === "9");
+    } finally { await editor.query("ROLLBACK"); editor.release(); }
+    await clear(pool, "synthetic-a");
+    await send([a]);
+    const checker = await nativePool.connect();
+    try {
+      await checker.query("BEGIN");
+      await checker.query("UPDATE shopping_list_items SET checked=true WHERE user_id='synthetic-a'");
+      const replacement = send([{ ...a, shoppingServings: 6, expectedVersion: 1 }], "replace")
+        .then(() => ({ failed: false }), error => ({ failed: /checked/.test(error.message) }));
+      await waitForBlockedTransfer();
+      await checker.query("COMMIT");
+      check("concurrent checked-state change is revalidated before replacing groceries", (await replacement).failed);
+      check("checked groceries survive the rejected replacement unchanged",
+        (await rows()).some(r => r.user_id === "synthetic-a" && r.checked && r.quantity === "2"));
+    } finally { await checker.query("ROLLBACK"); checker.release(); }
+    await clear(pool, "synthetic-a");
+    await send([a, b]);
+    await db.query("UPDATE shopping_list_items SET quantity='2' WHERE user_id='synthetic-a'");
+    await assert.rejects(send([{ ...a, shoppingServings: 6, expectedVersion: 1 }], "replace"), /Manual quantity/);
+    check("manual reduction cannot erase another recipe's shared contribution",
+      (await rows()).some(r => r.user_id === "synthetic-a" && r.quantity === "2") &&
+      (await db.query("SELECT count(*)::int n FROM shopping_transfer_contributions WHERE owner_id='synthetic-a' AND item_id IS NOT NULL")).rows[0].n === 2);
+  }
 
   // Compile the exact router for a Production bundle, then invoke its real
   // Express middleware stack without opening a socket or importing live auth/DB.
@@ -171,9 +258,10 @@ try {
   const entryMount = /app\.use\(["']\/api\/shopping-list-v2["'],\s*shoppingRouter\)/;
   check("Development and Production entrypoints mount the same protected router",
     entryMount.test(await readFile("server/index.ts", "utf8")) && entryMount.test(await readFile("server/prod.ts", "utf8")));
-  console.log(`Completed ${checks} isolated PostgreSQL checks. No application database or customer account was used.`);
+  console.log(`Completed ${checks} isolated ${native ? "native multi-connection PostgreSQL" : "PostgreSQL/WASM"} checks. No application database or customer account was used.`);
 } finally {
   net.Socket.prototype.connect = originalConnect;
   await db.close();
+  if (native) { await admin.query(`DROP DATABASE ${databaseName}`); await admin.end(); }
   await rm(temporary, { recursive: true, force: true });
 }
