@@ -89,3 +89,15 @@ aggregate the entire Favorites collection.
 grocery endpoint remains usable without activating experimental selection
 transfers elsewhere or changing shared database schemas. Preserve canonical
 quantities, recipe yield, authentication and visible save failures.
+
+The ordinary Saved Meals grocery flow must not require optional Development
+ingredient metadata merely because the browser runs a Development build.
+
+**Why:** The founder's running shopping API did not advertise that extension;
+requiring it blocked an otherwise supported add-to-list operation.
+
+**How to apply:** Use runtime-advertised metadata support, otherwise send the
+established plain-ingredient contract. Save acknowledgements can use `added` or
+`itemsAdded` and need not repeat the GET metadata advertisement. Keep positive
+save-count checks, account checks and ingredient validation; reject unknown
+advertised versions rather than sending unsupported metadata.
