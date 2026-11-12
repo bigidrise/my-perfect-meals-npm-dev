@@ -4,10 +4,49 @@
  * A browser image error does not include an HTTP status. The recovery endpoint
  * re-probes Object Storage so it can distinguish a missing object (404) from
  * a retryable storage failure (503) before deciding whether to reuse a stored
- * variant or mark the media asset unavailable.
+ * variant for this view. A delivery probe must not change shared media state.
  */
 
 export const IMAGE_DELIVERY_RETRY_LIMIT = 1;
+
+/**
+ * A previous delivery miss is not a processing failure or proof that bytes are
+ * still missing. Let the browser retry the same owned, permanent references.
+ * Never revive failed ingestion, pending assets, or a canonical asset's JSON
+ * fallback; actual delivery failure remains bounded by MealImageSlot.
+ */
+export function savedMealImageUrls(row: {
+  mediaAssetId?: string | null;
+  assetStatus?: string | null;
+  assetProcessingError?: string | null;
+  assetThumbnailUrl?: string | null;
+  assetDisplayUrl?: string | null;
+  mealData?: unknown;
+}): { thumbnailUrl: string | null; displayUrl: string | null } {
+  if (!row.mediaAssetId) {
+    const data = row.mealData;
+    const raw = data && typeof data === "object" && "imageUrl" in data
+      ? data.imageUrl : null;
+    const legacy = typeof raw === "string" && raw && !raw.startsWith("data:") &&
+      !raw.includes("oaidalleapiprodscus") ? raw : null;
+    return { thumbnailUrl: legacy, displayUrl: legacy };
+  }
+  if (row.assetStatus === "ready") {
+    return {
+      thumbnailUrl: row.assetThumbnailUrl ?? null,
+      displayUrl: row.assetDisplayUrl ?? null,
+    };
+  }
+  if (row.assetStatus === "failed" && row.assetProcessingError === "delivery_missing") {
+    const retryable = (url: string | null | undefined) =>
+      url && isRecoverableObjectStorageUrl(url) ? url : null;
+    return {
+      thumbnailUrl: retryable(row.assetThumbnailUrl),
+      displayUrl: retryable(row.assetDisplayUrl),
+    };
+  }
+  return { thumbnailUrl: null, displayUrl: null };
+}
 
 export type DeliveryProbe = "available" | "missing" | "unavailable";
 
