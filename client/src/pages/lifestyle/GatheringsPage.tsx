@@ -1572,6 +1572,7 @@ export default function UltimateExperiencesPage() {
                               </div>
                               <TrashButton
                                 size="sm"
+                                appearance="meal-card"
                                 ariaLabel="Remove this course"
                                 title="Remove this course"
                                 confirm={true}

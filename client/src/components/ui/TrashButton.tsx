@@ -20,6 +20,7 @@ export default function TrashButton({
   confirmMessage = "Delete this item?",
   disabled = false,
   className = "",
+  appearance = "default",
   "data-testid": testId = "button-delete",
 }: {
   onClick: () => void | Promise<void>;
@@ -30,6 +31,7 @@ export default function TrashButton({
   confirmMessage?: string;
   disabled?: boolean;
   className?: string;
+  appearance?: "default" | "meal-card";
   "data-testid"?: string;
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
@@ -39,6 +41,9 @@ export default function TrashButton({
     md: "h-9 w-9 p-2 rounded-xl",       // 36px
     lg: "h-10 w-10 p-2.5 rounded-2xl",  // 40px
   }[size];
+  const appearanceClass = appearance === "meal-card"
+    ? "relative min-h-[44px] min-w-[44px] border-transparent bg-transparent text-red-400 shadow-none before:pointer-events-none before:absolute before:inset-1.5 before:rounded-lg before:border before:border-white/20 before:bg-black/20 before:content-[''] hover:before:border-red-400/50 hover:before:bg-red-500/10 hover:text-red-300 focus:ring-red-400/40"
+    : "border-red-500/60 bg-red-600 text-white shadow-sm hover:bg-red-700 focus:ring-red-400/40";
 
   async function handleClick(e: React.MouseEvent) {
     e.stopPropagation();
@@ -66,9 +71,10 @@ export default function TrashButton({
         title={title}
         disabled={disabled}
         data-testid={testId}
-        className={`inline-flex items-center justify-center border border-red-500/60 bg-red-600 hover:bg-red-700 text-white shadow-sm active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-red-400/40 !leading-none !text-[14px] ${sizeMap} ${className}`}
+        data-appearance={appearance}
+        className={`inline-flex items-center justify-center border active:scale-[0.98] focus:outline-none focus:ring-2 !leading-none !text-[14px] ${appearanceClass} ${sizeMap} ${className}`}
       >
-        <Trash2 className="!h-4 !w-4 shrink-0" />
+        <Trash2 className="relative z-[1] !h-4 !w-4 shrink-0" />
       </button>
       
       {confirm && (

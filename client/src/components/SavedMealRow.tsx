@@ -145,7 +145,8 @@ export default function SavedMealRow({
           ariaLabel={`${t("savedMeals.remove")}: ${displayTitle}`}
           title={t("savedMeals.remove")}
           size="sm"
-          className="!h-11 !w-11 shrink-0 !border-white/15 !bg-white/5 !text-white/55 !shadow-none hover:!border-red-500/50 hover:!bg-red-600/20 hover:!text-red-300"
+          appearance="meal-card"
+          className="shrink-0"
         />
       </div>
 

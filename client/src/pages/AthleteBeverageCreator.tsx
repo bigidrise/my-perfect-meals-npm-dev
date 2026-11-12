@@ -984,6 +984,7 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                       </div>
                       <TrashButton
                         size="sm"
+                        appearance="meal-card"
                         ariaLabel="Remove beverage"
                         title="Remove beverage"
                         confirm={true}
