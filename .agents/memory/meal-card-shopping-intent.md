@@ -48,3 +48,15 @@ reserving shared-database execution and release for review.
 **How to apply:** Use isolated persistence and mocked requests until migration
 review and approval. Preserve existing bulk shopping, clinical calculations and
 safety controls. Do not push, create a PR, merge, publish or deploy before review.
+
+Create a Dish must show the shared shopping aggregate bar whenever a finalized
+meal card is visible, including a restored card, just like Craving and Dessert
+Creator. On desktop it belongs inside the content column, clear of the sidebar;
+on mobile it must sit above the bottom navigator with device-safe-area spacing.
+
+**Why:** The founder clarified that the missing Create a Dish aggregate bar was
+the requested gap, and explicitly emphasized both navigation layouts.
+
+**How to apply:** Do not hide the footer solely because generation occurred in
+an earlier visit. Preserve unverified-recipe exclusions and existing shopping
+authority; layout parity does not authorize changing backend activation.

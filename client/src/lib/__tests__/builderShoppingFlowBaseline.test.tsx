@@ -7,6 +7,7 @@ import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { createDevelopmentShoppingListStore } from "@/stores/developmentShoppingListStore";
 import { recipeIngredientTransfer } from "@/lib/shoppingIngredientTransfer";
 let mockShopping: any;
+let mockDesktop = false;
 jest.mock("@/hooks/useMealShopping", () => ({ useMealShopping: () => mockShopping }));
 
 let mockStore: ReturnType<typeof createDevelopmentShoppingListStore>;
@@ -14,7 +15,7 @@ const mockNavigate = jest.fn();
 const mockToast = jest.fn();
 jest.mock("wouter", () => ({ useLocation: () => ["/weekly-meal-board", mockNavigate] }));
 jest.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
-jest.mock("@/hooks/useIsDesktop", () => ({ useIsDesktop: () => false }));
+jest.mock("@/hooks/useIsDesktop", () => ({ useIsDesktop: () => mockDesktop }));
 jest.mock("@/lib/shoppingMetadataGate", () => ({ shoppingMetadataEnabled: true }));
 jest.mock("@/stores/shoppingListStore", () => ({
   useShoppingListStore: { getState: () => mockStore.getState() },
@@ -39,6 +40,7 @@ let rows: any[];
 let serial: number;
 const clone = (value: any) => JSON.parse(JSON.stringify(value));
 beforeEach(() => {
+  mockDesktop = false;
   mockShopping = { available: false, checked: true, legacyAllowed: true, pending: false, message: "", result: null };
   localStorage.clear();
   localStorage.setItem("userId", "synthetic-builder-audit");
@@ -65,6 +67,28 @@ beforeEach(() => {
 });
 const meal = (id: string, quantity: number | string, servings = 3) => ({
   id, name: id, servings, ingredients: [{ name: "chicken breast", quantity, unit: "lb" }],
+});
+test("Create a Dish desktop footer fits its content column without covering the sidebar", () => {
+  mockDesktop = true;
+  const { container } = render(<ShoppingAggregateBar
+    ingredients={[{ name: "rice", qty: 1, unit: "cup" }]}
+    desktopContained aboveBottomNav />);
+  const style = (container.firstElementChild as HTMLElement).style;
+  expect(style.left).toBe("calc(50% + 120px)");
+  expect(style.width).toBe("40rem");
+  expect(style.maxWidth).toBe("calc(100% - 288px)");
+  expect(style.transform).toBe("translateX(-50%)");
+  expect(style.bottom).toBe("24px");
+});
+test("Create a Dish mobile footer clears bottom navigation and the device safe area", () => {
+  const { container } = render(<ShoppingAggregateBar
+    ingredients={[{ name: "rice", qty: 1, unit: "cup" }]}
+    desktopContained aboveBottomNav />);
+  const style = (container.firstElementChild as HTMLElement).style;
+  expect(style.bottom).toBe("calc(var(--bottom-nav-height, 64px) + var(--safe-bottom, 0px))");
+  expect(style.left).toBe("0px");
+  expect(style.right).toBe("0px");
+  expect(style.transform).toBe("");
 });
 const empty = () => ({ breakfast: [], lunch: [], dinner: [], snacks: [] });
 function board() {

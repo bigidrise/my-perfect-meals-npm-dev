@@ -2,7 +2,9 @@
 
 ## Readiness
 
-**READY for isolated personal meal-card Shopping testing.**
+Original isolated acceptance passed. Subsequent fresh-session verification was
+not completed after the test browser lost its session; no renewed READY claim
+is made here.
 
 Testing URL:
 
@@ -12,6 +14,39 @@ Open in a private browser window and create a separate consumer test account.
 Existing customer accounts were not copied. Complete the ordinary onboarding
 and macro save before testing creators. This is a Development URL and depends
 on the workspace and its isolated app/PostgreSQL workflows remaining running.
+
+**This is not the embedded/main Development preview. Keep `:8080` in the URL.**
+The same hostname without that port reaches the main application, where
+Shopping transfers intentionally remain disabled. Do not enable that application
+to work around opening the wrong URL. Use a private browser window because
+cookies are shared across ports on the same hostname.
+
+### Follow-up on the founder's disabled-button report
+
+Fresh authenticated re-verification was not completed. The URL included with the
+report omitted `:8080` and therefore addressed the main Development application.
+Live process inspection found the main Shopping activation flag unset, while
+the isolated process had `PORT=4179` and
+`MEAL_SHOPPING_TRANSFERS_ENABLED=true`. Its live socket connected to the verified
+local PostgreSQL server. No activation or database changes were made.
+
+The precise disabled-state chain is:
+`MealShoppingAction` → `useMealShopping.available` →
+`GET /api/shopping-list-v2/selections/capabilities` →
+the running process's exact `MEAL_SHOPPING_TRANSFERS_ENABLED === "true"` check
+and Shopping-schema readiness. This is a server capability check, not a
+frontend build-time flag. The activation message is not a recipe eligibility
+failure. Main activation being unset explains its negative capability result.
+
+The founder subsequently clarified that the immediate request was the missing
+Create a Dish aggregate footer, rather than activation of the main app's
+individual-card Shopping action. That footer was present in source but hidden on
+restored cards by a session-only gate. It now follows visible finalized cards,
+retains the unverified-option exclusion, uses a contained desktop layout clear
+of the sidebar, and keeps the mobile navigation/safe-area offset. Fourteen
+focused regression checks passed. A signed-in desktop/mobile visual check was
+blocked by the testing browser losing authentication, so no live visual
+verification or new transfer acceptance is claimed for that correction.
 
 ## Isolation and runtime
 

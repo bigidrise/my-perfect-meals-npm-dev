@@ -288,17 +288,6 @@ export default function CreateDishPage() {
   const [notes, setNotes] = useState("");
   const [generatedMeals, setGeneratedMeals] = useState<MealData[]>([]);
   const { loadingImages, hydrateImages } = useMealImages(setGeneratedMeals, { mealType: "dinner", concurrency: 1 });
-  // ============================================================
-  // GUARD: generatedInSession controls ShoppingAggregateBar visibility.
-  // It MUST start false and remain false during auto-restore on mount.
-  // Only explicit user actions (generate / select a meal) may set it true.
-  // This prevents the bar from cold-mounting as a black overlay on page load.
-  //
-  // RULE FOR FUTURE AGENTS: Do NOT set generatedInSession=true inside the
-  // cache-restore useEffect. Doing so re-introduces the black overlay bug
-  // (MPM-2026-CreateDish-Overlay). The fix was deliberately architected this way.
-  // ============================================================
-  const [generatedInSession, setGeneratedInSession] = useState(false);
   const [mealOptions, setMealOptions] = useState<MealData[]>([]);
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null);
   const { hydrateImages: hydrateOptionImages } = useMealImages(setMealOptions, {
@@ -443,9 +432,8 @@ export default function CreateDishPage() {
 
   // ============================================================
   // SAFE RESTORE: Only restores the final meal card display data.
-  // generatedInSession intentionally stays FALSE here — this is not
-  // a user-initiated generation, so ShoppingAggregateBar must NOT mount.
-  // Do NOT add setGeneratedInSession(true) here. See GUARD comment above.
+  // The shared shopping footer follows verified visible meals, including a
+  // restored final card, just as it does in Craving and Dessert Creator.
   // Do NOT restore dishInput — it triggers starch-guard on mount.
   // Do NOT show a restore toast — it fires on page exit and confuses users.
   // ============================================================
@@ -480,7 +468,6 @@ export default function CreateDishPage() {
         setGeneratedMeals([mealWithImage]);
       }
       setServings(cached.servings || 2);
-      // generatedInSession remains false — bar will not cold-mount
       // Only re-fetch if imageUrl is still missing after mini-cache lookup
       if (!mealWithImage.imageUrl) {
         if (restoredOption) {
@@ -521,7 +508,6 @@ export default function CreateDishPage() {
 
     // Show card immediately — image hydrates in parallel
     setSelectedDishId(meal.id);
-    setGeneratedInSession(true);
     setIsPlatingMeal(false);
     saveDishCache({
       generatedMeal: meal,
@@ -668,7 +654,6 @@ export default function CreateDishPage() {
       setSelectedDishId(meal.id);
       setSelectedConceptId(conceptId);
       setGeneratedMeals([]);
-      setGeneratedInSession(true);
       addRecentMeal(meal.name);
       saveDishCache({ generatedMeal: meal, servings, generatedAtISO: new Date().toISOString() });
     } catch (error: any) {
@@ -1210,7 +1195,6 @@ export default function CreateDishPage() {
 
       stopProgressTicker();
       setGeneratedMeals([{ ...meal, servings: meal.servings ?? servings }]);
-      setGeneratedInSession(true);
 
       saveDishCache({
         generatedMeal: meal,
@@ -1914,7 +1898,6 @@ export default function CreateDishPage() {
                             onClick={() => {
                               setGeneratedMeals([]);
                               setSelectedDishId(null);
-                              setGeneratedInSession(false);
                               clearDishCache();
                               setMealOptions([]);
                               clearOptionsCache();
@@ -2129,7 +2112,6 @@ export default function CreateDishPage() {
                                 confirmMessage="Remove this meal?"
                                 onClick={() => {
                                   setGeneratedMeals([]);
-                                  setGeneratedInSession(false);
                                 }}
                               />
                             </div>
@@ -2433,7 +2415,7 @@ export default function CreateDishPage() {
           )}
         </div>
 
-        {!unverifiedOneTouchOptions && visibleMeals.length > 0 && generatedInSession && (
+        {!unverifiedOneTouchOptions && visibleMeals.length > 0 && (
           <ShoppingAggregateBar
             recipes={visibleMeals} recipeYield={servings} shoppingServings={servings}
             ingredients={visibleMeals.flatMap((meal) =>
@@ -2457,6 +2439,7 @@ export default function CreateDishPage() {
             source="Create a Dish"
             hideShareButton={true}
             aboveBottomNav={true}
+            desktopContained={true}
           />
         )}
       </motion.div>
