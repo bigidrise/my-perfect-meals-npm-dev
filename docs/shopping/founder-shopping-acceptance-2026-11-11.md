@@ -42,8 +42,9 @@ The founder subsequently clarified that the immediate request was the missing
 Create a Dish aggregate footer, rather than activation of the main app's
 individual-card Shopping action. That footer was present in source but hidden on
 restored cards by a session-only gate. It now follows visible finalized cards,
-retains the unverified-option exclusion, uses a contained desktop layout clear
-of the sidebar, and keeps the mobile navigation/safe-area offset. Fourteen
+retains the unverified-option exclusion, spans the desktop viewport from the
+sidebar's right edge to the window's right edge just like Craving Creator,
+and keeps the mobile navigation/safe-area offset. Fourteen
 focused regression checks passed. A signed-in desktop/mobile visual check was
 blocked by the testing browser losing authentication, so no live visual
 verification or new transfer acceptance is claimed for that correction.

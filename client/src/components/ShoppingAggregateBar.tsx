@@ -34,7 +34,6 @@ type Props = {
   hideShareButton?: boolean;
   onAddComplete?: () => void;
   aboveBottomNav?: boolean;
-  desktopContained?: boolean;
 };
 
 function formatQty(qty?: number | string): string {
@@ -56,7 +55,6 @@ export default function ShoppingAggregateBar({
   hideShareButton = true,
   onAddComplete,
   aboveBottomNav = false,
-  desktopContained = false,
 }: Props) {
   const shopping = useMealShopping();
   const [shoppingError, setShoppingError] = useState("");
@@ -236,19 +234,7 @@ export default function ShoppingAggregateBar({
   if (!ingredients || ingredients.length === 0) return null;
 
   const barStyle: CSSProperties = isDesktop
-    ? desktopContained
-      ? {
-          // Center in the content area to the right of the 240px desktop
-          // sidebar; match Create a Dish's max-w-2xl column minus its gutters.
-          left: "calc(50% + 120px)",
-          right: "auto",
-          width: "40rem",
-          maxWidth: "calc(100% - 288px)",
-          transform: "translateX(-50%)",
-          bottom: 24,
-          borderRadius: 12,
-        }
-      : { left: 240, right: 0, bottom: 0 }
+    ? { left: 240, right: 0, bottom: 0 }
     : { left: 0, right: 0, bottom: aboveBottomNav
         ? "calc(var(--bottom-nav-height, 64px) + var(--safe-bottom, 0px))" : 0 };
 
