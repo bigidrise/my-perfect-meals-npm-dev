@@ -109,6 +109,9 @@ numbers, and both must be traceable. Do not redesign meal cards to fix quantitie
 **Why:** The user explicitly required an end-to-end investigation of a two-serving
 salmon recipe requiring 12 oz, whose Shopping purchase display showed 2.5 lb.
 Getting ingredient names right was not sufficient.
+The user subsequently confirmed that separating Needed from Buy, including
+12 oz salmon as 0.75 lb to buy, was a significant improvement and the intended
+Shopping experience.
 
 **How to apply:** Trace the saved recipe, request, stored contributions, hydration,
 aggregation and final purchase display. Apply serving scaling once. Sum only
