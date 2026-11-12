@@ -23,6 +23,7 @@ import { mediaAssets as mediaAssetsTable } from "./db/schema/mediaAssets";
 import {
   decideImageDeliveryRecovery,
   publicObjectPathFromUrl,
+  savedMealImageUrls,
   publicObjectUrlForKey,
   type DeliveryProbe,
 } from "./services/imageDeliveryRecovery";
@@ -767,8 +768,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     // A public Object Storage URL is not authorization. Bind it to the
-    // caller's current saved-meal asset before probing or changing lifecycle
-    // state, matching the durable regeneration queue's ownership invariant.
+    // caller's current saved-meal asset before probing, matching the durable
+    // regeneration queue's ownership invariant. Delivery checks are read-only.
     const [savedMeal] = await db
       .select({ id: savedMealsTable.id, mediaAssetId: savedMealsTable.mediaAssetId })
       .from(savedMealsTable)
@@ -829,28 +830,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const decision = decideImageDeliveryRecovery({ failedUrl, failedProbe, alternate });
-      if (decision.status === "recovered") {
-        const replacement = decision.imageUrl;
-        await db.update(mediaAssetsTable).set({
-          ...(asset.thumbnailUrl === failedUrl ? { thumbnailUrl: replacement } : {}),
-          ...(asset.displayUrl === failedUrl ? { displayUrl: replacement } : {}),
-          updatedAt: new Date(),
-        }).where(eq(mediaAssetsTable.id, asset.id));
-      }
-
-      if (decision.status === "unavailable" && decision.reason === "missing") {
-        // Preserve the canonical URL for the subsequent authenticated,
-        // recipe-aware regeneration request to bind against. The queue will
-        // replace it only after ownership and current-asset checks pass.
-        await db.update(mediaAssetsTable).set({
-          status: "failed",
-          validationStatus: "failed",
-          processingError: "delivery_missing",
-          retryCount: sql`COALESCE(${mediaAssetsTable.retryCount}, 0) + 1`,
-          nextRetryAt: new Date(Date.now() + 5 * 60 * 1000),
-          updatedAt: new Date(),
-        }).where(eq(mediaAssetsTable.id, asset.id));
-      }
+      // This result belongs to this viewer and runtime only. A temporary miss,
+      // another runtime's bucket, or an alternate variant must never rewrite
+      // shared lifecycle state or the meal's original image references.
 
       console.log(JSON.stringify({
         event: "meal_image_delivery_recovery",
@@ -11203,6 +11185,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
           assetThumbnailUrl:        mediaAssetsTable.thumbnailUrl,
           assetDisplayUrl:          mediaAssetsTable.displayUrl,
           assetStatus:              mediaAssetsTable.status,
+          assetProcessingError:     mediaAssetsTable.processingError,
         })
         .from(savedMealsTable)
         .leftJoin(mediaAssetsTable, eq(savedMealsTable.mediaAssetId, mediaAssetsTable.id))
@@ -11212,23 +11195,11 @@ Provide a single exceptional meal recommendation in JSON format with the followi
       if (!row) return res.status(404).json({ error: "Meal not found" });
 
       const md = row.mealData as any;
-      const legacyImg = (md?.imageUrl as string | undefined) ?? null;
-      const isSafe = legacyImg && !legacyImg.startsWith("data:") && !legacyImg.includes("oaidalleapiprodscus");
-
-      // A canonical asset marked failed has a confirmed delivery problem. Do
-      // not fall back to its stale JSON URL on the next refresh or the browser
-      // will keep attempting the same known-broken object forever.
-      const hasCanonicalAsset = Boolean(row.mediaAssetId);
-      const assetReady = row.assetStatus === "ready";
-      const thumbnailUrl = hasCanonicalAsset
-        ? (assetReady ? row.assetThumbnailUrl : null)
-        : (isSafe ? legacyImg : null);
-      const displayUrl = hasCanonicalAsset
-        ? (assetReady ? row.assetDisplayUrl : null)
-        : (isSafe ? legacyImg : null);
+      const { assetProcessingError, ...detail } = row;
+      const { thumbnailUrl, displayUrl } = savedMealImageUrls({ ...detail, assetProcessingError });
 
       return res.json({
-        ...row,
+        ...detail,
         mealData: { ...md, imageUrl: displayUrl },
         thumbnailUrl,
         displayUrl,
@@ -11275,6 +11246,7 @@ Provide a single exceptional meal recommendation in JSON format with the followi
           assetThumbnailUrl:        mediaAssetsTable.thumbnailUrl,
           assetDisplayUrl:          mediaAssetsTable.displayUrl,
           assetStatus:              mediaAssetsTable.status,
+          assetProcessingError:     mediaAssetsTable.processingError,
         })
         .from(savedMealsTable)
         .leftJoin(mediaAssetsTable, eq(savedMealsTable.mediaAssetId, mediaAssetsTable.id))
@@ -11361,25 +11333,10 @@ Provide a single exceptional meal recommendation in JSON format with the followi
       const meals = rows.map((r: any) => {
         const md = r.mealData as any;
 
-        // Canonical thumbnailUrl hierarchy:
-        //   1. media_assets.thumbnail_url (canonical lifecycle, resized variant)
-        //   2. mealData.imageUrl if first-party permanent (legacy — no lifecycle record yet)
-        //   3. null (base64 and expired DALL-E URLs are blocked here — Step 2 defense-in-depth)
-        const hasCanonicalAsset = Boolean(r.mediaAssetId);
-        const assetReady = r.assetStatus === "ready";
-        let effectiveThumbnailUrl: string | null = hasCanonicalAsset && assetReady
-          ? (r.assetThumbnailUrl ?? null)
-          : null;
-        let effectiveDisplayUrl: string | null = hasCanonicalAsset && assetReady
-          ? (r.assetDisplayUrl ?? null)
-          : null;
-        if (!hasCanonicalAsset && !effectiveThumbnailUrl) {
-          const rawImg = md?.imageUrl as string | undefined;
-          if (rawImg && !rawImg.startsWith("data:") && !rawImg.includes("oaidalleapiprodscus")) {
-            effectiveThumbnailUrl = rawImg;
-            effectiveDisplayUrl   = rawImg;
-          }
-        }
+        const {
+          thumbnailUrl: effectiveThumbnailUrl,
+          displayUrl: effectiveDisplayUrl,
+        } = savedMealImageUrls(r);
 
         // Day-mismatch starch check
         let dayMismatchNote: string | null = null;

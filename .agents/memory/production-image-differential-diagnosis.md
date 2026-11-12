@@ -19,4 +19,4 @@ Check for stale negative lifecycle state even when the exact saved image deliver
 
 **Why:** Saved Meals hid images whose exact stored URLs returned valid JPEGs because an earlier delivery-recovery check had marked their shared media records failed. The failure flag then prevented a fresh browser load.
 
-**How to apply:** Compare the original stored reference, current delivery result, lifecycle state and API-exposed URL before proposing regeneration or storage changes. Preserve the recipe and image identity; do not broadly reset shared media records or infer why the earlier probe failed without evidence.
+**How to apply:** Compare the original stored reference, current delivery result, lifecycle state and API-exposed URL before proposing regeneration or storage changes. Preserve the recipe and image identity; do not broadly reset shared media records or infer why the earlier probe failed without evidence. Viewing a saved image must remain read-only: retries and surviving alternate variants belong to that view, not a rewrite of shared lifecycle state or canonical references. Genuine ingestion failures must remain distinct from stale delivery misses.

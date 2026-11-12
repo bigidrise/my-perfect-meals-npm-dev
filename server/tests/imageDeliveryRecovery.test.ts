@@ -3,6 +3,7 @@ import {
   IMAGE_DELIVERY_RETRY_LIMIT,
   publicObjectPathFromUrl,
   publicObjectUrlForKey,
+  savedMealImageUrls,
 } from "../services/imageDeliveryRecovery";
 
 const failedUrl = "/public-objects/replit-objstore-test/meal-images/salmon-thumb.jpg";
@@ -57,5 +58,57 @@ describe("meal image delivery recovery policy", () => {
     expect(publicObjectUrlForKey(failedUrl, "meal-images/salmon-orig.jpg")).toBe(
       "/public-objects/replit-objstore-test/meal-images/salmon-orig.jpg",
     );
+  });
+});
+
+describe("saved image presentation after a delivery failure", () => {
+  const row = {
+    mediaAssetId: "owned-asset",
+    assetStatus: "failed",
+    assetProcessingError: "delivery_missing",
+    assetThumbnailUrl: failedUrl,
+    assetDisplayUrl: "/public-objects/replit-objstore-test/meal-images/salmon-display.jpg",
+    mealData: { imageUrl: "/public-objects/unrelated-old-image.jpg" },
+  };
+
+  test("retries the original canonical references without changing the record", () => {
+    const original = JSON.stringify(row);
+    expect(savedMealImageUrls(row)).toEqual({
+      thumbnailUrl: row.assetThumbnailUrl,
+      displayUrl: row.assetDisplayUrl,
+    });
+    expect(JSON.stringify(row)).toBe(original);
+  });
+
+  test.each(["upload_failed", "storage_authority_unavailable", null])(
+    "does not revive a genuine processing failure: %s",
+    assetProcessingError => {
+      expect(savedMealImageUrls({ ...row, assetProcessingError })).toEqual({
+        thumbnailUrl: null, displayUrl: null,
+      });
+    },
+  );
+
+  test("does not revive pending assets or fall back to unrelated recipe JSON", () => {
+    expect(savedMealImageUrls({ ...row, assetStatus: "pending" })).toEqual({
+      thumbnailUrl: null, displayUrl: null,
+    });
+    expect(savedMealImageUrls({ ...row, assetThumbnailUrl: null, assetDisplayUrl: null })).toEqual({
+      thumbnailUrl: null, displayUrl: null,
+    });
+  });
+
+  test.each(["data:image/jpeg;base64,unsafe", "https://example.com/temporary.jpg"])(
+    "never retries an unsafe/non-Object-Storage failed reference: %s", url => {
+      expect(savedMealImageUrls({ ...row, assetThumbnailUrl: url, assetDisplayUrl: url })).toEqual({
+        thumbnailUrl: null, displayUrl: null,
+      });
+    },
+  );
+
+  test("keeps ready and safe legacy images working", () => {
+    expect(savedMealImageUrls({ ...row, assetStatus: "ready" }).thumbnailUrl).toBe(failedUrl);
+    expect(savedMealImageUrls({ mealData: { imageUrl: failedUrl } }).displayUrl).toBe(failedUrl);
+    expect(savedMealImageUrls({ mealData: { imageUrl: "data:image/jpeg;base64,unsafe" } }).displayUrl).toBeNull();
   });
 });
