@@ -14,3 +14,9 @@ When exact images deliver successfully and reopening a builder restores them, in
 **Why:** Studio images disappeared while the client's images remained visible; the published server delivered both original objects successfully. Metadata refreshes could hide retained, already-loaded images without another browser load event.
 
 **How to apply:** Preserve visibility for an unchanged decoded image while still invalidating obsolete owner-scoped recovery requests. Check cached-image completion as well as load events; never weaken recovery authorization to repair a display reset.
+
+Check for stale negative lifecycle state even when the exact saved image delivers successfully. A persisted failure flag is not proof that the original image bytes are currently missing.
+
+**Why:** Saved Meals hid images whose exact stored URLs returned valid JPEGs because an earlier delivery-recovery check had marked their shared media records failed. The failure flag then prevented a fresh browser load.
+
+**How to apply:** Compare the original stored reference, current delivery result, lifecycle state and API-exposed URL before proposing regeneration or storage changes. Preserve the recipe and image identity; do not broadly reset shared media records or infer why the earlier probe failed without evidence.
