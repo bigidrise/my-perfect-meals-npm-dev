@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffectiveClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
+import { isClinicalIndicatorActive } from "@shared/clinicalProtocolIdentity";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
@@ -525,22 +527,8 @@ export default function BeachBodyMealBoard() {
   }>({ isOpen: false, meal: null });
 
   // Clinical protocol indicator state — populated from labs API for dot grid
-  const [scConditions, setScConditions] = useState<string[]>([]);
-  const [thyroidFromSpecialtyCondition, setThyroidFromSpecialtyCondition] = useState(false);
-  useEffect(() => {
-    if (!effectiveUserId) return;
-    apiRequest(`/api/biometrics/labs/${effectiveUserId}`)
-      .then((data: any) => {
-        const scArr: string[] = data?.specialtyConditions?.length
-          ? data.specialtyConditions
-          : data?.specialtyCondition ? [data.specialtyCondition] : [];
-        setScConditions(scArr);
-        if (scArr.includes('thyroid-support') || data?.specialtyCondition === 'thyroid-support') {
-          setThyroidFromSpecialtyCondition(true);
-        }
-      })
-      .catch(() => {});
-  }, [effectiveUserId]);
+  const { protocols: scConditions } = useEffectiveClinicalProtocols(effectiveUserId);
+  const thyroidFromSpecialtyCondition = scConditions.some(c => ["thyroid-support", "hashimotos", "hypothyroid", "hyperthyroid"].includes(c));
 
   // Track current dynamic slot for meal additions (legacy, kept for premade picker compat)
   const [currentDynamicSlot, setCurrentDynamicSlot] = useState<number | null>(
@@ -1392,7 +1380,7 @@ export default function BeachBodyMealBoard() {
                     { key: "oncology-support",  label: "Oncology Support",  isActive: scConditions.includes('oncology-support') || scConditions.includes('oncology') || scConditions.includes('cancer'),                                                activeColor: "text-pink-400",    dotColor: "bg-pink-400",    dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]"  },
                     { key: "thyroid-support",   label: "Thyroid Support",   isActive: thyroidFromSpecialtyCondition,                                                                                                                                     activeColor: "text-teal-400",    dotColor: "bg-teal-400",    dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"   },
                     { key: "alpha-gal-syndrome",label: "Alpha-gal Syndrome",isActive: scConditions.includes('alpha-gal-syndrome') || scConditions.includes('alpha-gal') || scConditions.includes('alpha-gal syndrome'),                                activeColor: "text-orange-400",  dotColor: "bg-orange-400",  dotGlow: "shadow-[0_0_4px_rgba(251,146,60,0.8)]"   },
-                  ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
+                  ].map(indicator => ({ ...indicator, isActive: isClinicalIndicatorActive(indicator.key, scConditions) })).map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
                     <span key={key} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
                       <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
                       {label}

@@ -859,3 +859,17 @@ mtime_ms = 1794447022154
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/1aff45f3-69ed-492a-98fa-bd7043f60ec3/4422b5fa-6a36-4812-b058-4d5d7c771d5d"
 storage_version_token = "1794447045957093"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "roDkLZ4LoJ6BkYriPE_6r"
+uri = "file://docs/clinical-protocol-repair-review.html"
+type = "html"
+title = "Clinical protocol repair: 17-condition review"
+description = "Development-only draft, condition-by-condition evidence, verification results, and unresolved safety blockers. Not release approval."
+logical_id = "f777ec13-b5b4-4c13-81a2-af77af9b7765"
+content_hash = "sha256:dbccd60bb4fdfbeda17833f4df44fe28a72972a0fbc26dcd74b7468838c7e573"
+size = 10240
+mtime_ms = 1794599903006
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/f777ec13-b5b4-4c13-81a2-af77af9b7765/ad5969fa-68e4-4695-aba6-aae9aae11de8"
+storage_version_token = "1794599952905604"
+content_type = "text/html"

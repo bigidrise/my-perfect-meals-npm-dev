@@ -16,6 +16,7 @@
  */
 
 import type { DemandProfile } from "../../shared/performanceDemandEngine";
+import { normalizeClinicalProtocols } from "@shared/clinicalProtocolIdentity";
 import { buildTherapeuticGuidanceBlocks } from "./therapeuticGuidance";
 import type { TherapeuticSupportCtx } from "./therapeuticGuidance";
 import { buildLiverDiseasePrompt } from "./guardrails/prompt/liverDiseasePromptBuilder";
@@ -405,7 +406,7 @@ export async function buildUniversalConditionGuidance(
   input: UniversalGuidanceInput
 ): Promise<string[]> {
   const blocks: string[] = [];
-  const conditions = input.healthConditions.map(c => c.trim().toLowerCase());
+  const conditions = normalizeClinicalProtocols(input.healthConditions);
 
   if (conditions.some(c => GLP1_CONDITION_KEYS.has(c))) {
     blocks.push(GLP1_GUIDANCE);
@@ -433,9 +434,9 @@ export async function buildUniversalConditionGuidance(
     blocks.push(LIVER_GUIDANCE);
   }
 
-  if (input.oncologySupportContext?.enabled) {
-    const symptoms = (input.oncologySupportContext.symptoms ?? []) as OncologySymptom[];
-    const highProtein = input.oncologySupportContext.emphasis?.highProteinNutrientDensity ?? false;
+  if (input.oncologySupportContext?.enabled || conditions.includes("oncology-support")) {
+    const symptoms = (input.oncologySupportContext?.symptoms ?? []) as OncologySymptom[];
+    const highProtein = input.oncologySupportContext?.emphasis?.highProteinNutrientDensity ?? false;
     blocks.push(buildOncologyGuidance(symptoms, highProtein));
   }
 

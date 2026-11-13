@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffectiveClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
+import { isClinicalIndicatorActive } from "@shared/clinicalProtocolIdentity";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -177,44 +179,12 @@ export default function DiabeticMenuBuilder() {
 
   // Thyroid modifier bridge + lab/specialty condition indicator state.
   // Single labs fetch populates both thyroid bridge and all active protocol indicators.
-  const [thyroidFromSpecialtyCondition, setThyroidFromSpecialtyCondition] = useState(false);
-  const [scConditions, setScConditions] = useState<string[]>([]);
+  const { protocols: scConditions } = useEffectiveClinicalProtocols(householdProfileId ? null : effectiveUserId);
+  const thyroidFromSpecialtyCondition = scConditions.some(c => ["thyroid-support", "hashimotos", "hypothyroid", "hyperthyroid"].includes(c));
   const personalAntiSupport = usePersonalAntiInflammatorySupport({
     actorUserId: user?.id, subjectUserId: effectiveUserId, householdProfileId,
   });
-  const [labDerivedConditions, setLabDerivedConditions] = useState<string[]>([]);
-  useEffect(() => {
-    if (!effectiveUserId) return;
-    let cancelled = false;
-    apiRequest(`/api/biometrics/labs/${effectiveUserId}`)
-      .then((data) => {
-        if (cancelled) return;
-        const derived: string[] = [];
-        // Lab-value-driven signal (e.g. LDL ≥ 130 → heart-failure)
-        if (data?.protocolSignal?.protocol) derived.push(data.protocolSignal.protocol);
-        // User self-selected specialtyConditions → protocol key mapping
-        const scMap: Record<string, string> = {
-          cardiac: 'heart-failure', renal: 'kidney-disease',
-          'liver-disease': 'liver-disease', 'liver-support': 'liver-support',
-          'oncology-support': 'oncology-support',
-        };
-        // Use .length check (not ??) so an empty specialtyConditions array
-        // still falls through to the singular specialtyCondition field.
-        const scArr: string[] = data?.specialtyConditions?.length
-          ? data.specialtyConditions
-          : data?.specialtyCondition ? [data.specialtyCondition] : [];
-        for (const sc of scArr) {
-          const mapped = scMap[sc];
-          if (mapped && !derived.includes(mapped)) derived.push(mapped);
-        }
-        setLabDerivedConditions(derived);
-        // Thyroid bridge
-        if (scArr.includes('thyroid-support')) setThyroidFromSpecialtyCondition(true);
-        setScConditions(scArr);
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [effectiveUserId]);
+  const labDerivedConditions = scConditions.flatMap(c => c === "cardiac" ? ["cardiac", "heart-failure"] : c === "renal" ? ["renal", "kidney-disease"] : [c]);
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
@@ -1270,7 +1240,7 @@ export default function DiabeticMenuBuilder() {
                     { key: "oncology-support",   label: "Oncology Support",  isActive: !!flags?.oncologySupport   || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
                     { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!flags?.thyroidSupport    || thyroidFromSpecialtyCondition,                                                                          activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
                     { key: "alpha-gal-syndrome", label: "Alpha-gal Syndrome", isActive: scConditions.includes('alpha-gal-syndrome') || scConditions.includes('alpha-gal') || scConditions.includes('alpha-gal syndrome'), activeColor: "text-orange-400", dotColor: "bg-orange-400", dotGlow: "shadow-[0_0_4px_rgba(251,146,60,0.8)]"   },
-                  ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
+                  ].map(indicator => ({ ...indicator, isActive: isClinicalIndicatorActive(indicator.key, scConditions) })).map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
                     <span key={key} title={key === "anti-inflammatory" && personalAntiSupport.enabled ? "Optional personal nutrition support — not a clinical diagnosis" : undefined} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
                       <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
                       {label}

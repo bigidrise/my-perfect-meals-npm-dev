@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffectiveClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
+import { isClinicalIndicatorActive } from "@shared/clinicalProtocolIdentity";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -190,13 +192,16 @@ export default function AntiInflammatoryMenuBuilder() {
   // Tracks thyroid support when user self-selected via edit page / onboarding.
   // This is separate from primary clinicalModeState because thyroid is an
   // additive modifier — it never changes the primary mode.
-  const [thyroidFromSpecialtyCondition, setThyroidFromSpecialtyCondition] = React.useState(false);
-  const [scConditions, setScConditions] = React.useState<string[]>([]);
+  const { protocols: scConditions } = useEffectiveClinicalProtocols(householdProfileId ? null : effectiveUserId);
+  const thyroidFromSpecialtyCondition = scConditions.some(c => ["thyroid-support", "hashimotos", "hypothyroid", "hyperthyroid"].includes(c));
+  const [, setThyroidFromSpecialtyCondition] = React.useState(false);
+  const [, setScConditions] = React.useState<string[]>([]);
 
   // Tracks ALL active specialty/lab-derived conditions for multi-protocol indicator display.
   // clinicalModeState can only hold ONE primary mode (the highest-priority one), but this
   // array accumulates every active condition so all indicator dots light up simultaneously.
-  const [labDerivedConditions, setLabDerivedConditions] = React.useState<string[]>([]);
+  const [, setLabDerivedConditions] = React.useState<string[]>([]);
+  const labDerivedConditions = scConditions.flatMap(c => c === "cardiac" ? ["cardiac", "heart-failure"] : c === "renal" ? ["renal", "kidney-disease"] : [c]);
 
   // Redirect legacy clinical routes to canonical anti-inflammatory route.
   // Mode is now determined by physician flags, not by URL path.
@@ -244,10 +249,14 @@ export default function AntiInflammatoryMenuBuilder() {
     const hasNonOncologyPhysicianBadge =
       resolvedProtocol.primaryBadge !== null &&
       resolvedProtocol.mode !== 'oncology-support';
-    if (hasNonOncologyPhysicianBadge) return;
 
     let cancelled = false;
-    apiRequest(`/api/biometrics/labs/${effectiveUserId}`)
+    Promise.resolve({
+      specialtyConditions: scConditions,
+      specialtyCondition: ["liver-disease", "renal", "cardiac", "liver-support"].find(c => scConditions.includes(c)) ?? scConditions[0],
+      oncologySupportEnabled: scConditions.includes("oncology-support"),
+      protocolSignal: null as { protocol: string } | null,
+    })
       .then((data) => {
         console.log("[AntiInflamBuilder] Lab protocol status received");
         if (cancelled) return;
@@ -338,7 +347,7 @@ export default function AntiInflammatoryMenuBuilder() {
       .catch(() => {/* silently ignore */});
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveUserId]);
+  }, [effectiveUserId, scConditions]);
 
   // Badge comes directly from the active clinical mode — always accurate.
   const CLINICAL_MODE_BADGE: Partial<Record<ClinicalMode, ProtocolBadge>> = {
@@ -1473,11 +1482,7 @@ export default function AntiInflammatoryMenuBuilder() {
                   // Special isActive rules for additive conditions:
                   //   thyroid-support — active via modifierBadges (additive to anti-inflammatory primary)
                   //   alpha-gal-syndrome — active via specialtyConditions (always additive, never a primary mode)
-                  const isActive = key === "thyroid-support"
-                    ? (resolvedProtocol.modifierBadges ?? []).some((b: { label: string }) => b.label === "Thyroid Support")
-                    : key === "alpha-gal-syndrome"
-                    ? scConditions.includes('alpha-gal-syndrome') || scConditions.includes('alpha-gal') || scConditions.includes('alpha-gal syndrome')
-                    : clinicalModeState === key || labDerivedConditions.includes(key);
+                  const isActive = isClinicalIndicatorActive(key, scConditions);
                   return (
                     <span
                       key={key}

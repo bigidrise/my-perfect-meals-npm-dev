@@ -387,6 +387,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
       if (!res.ok) throw new Error("Save failed");
 
       const data = await res.json();
+      setPhysicianLocked(!!data.physicianLocked);
 
       setLastSaved(new Date().toLocaleDateString(undefined, {
         month: "short", day: "numeric", year: "numeric",
@@ -470,7 +471,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
       const labels = signal.conditions.map(c => conditionLabels[c] ?? c).join(", ");
       toast({
         title: "Hormone Markers Flagged",
-        description: `Your labs suggest ${labels} may be beneficial. These protocol indicators have been noted in your profile.`,
+        description: `Your measurements suggest ${labels} may be beneficial. This is an advisory only; no protocol was activated.`,
       });
     } catch {
       // ignore — advisory only
@@ -957,6 +958,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
           signal={pendingThyroidSignal}
           labId={pendingLabId}
           onAccepted={handleThyroidAccepted}
+          physicianLocked={physicianLocked}
         />
       )}
 
@@ -968,6 +970,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
           signal={downgradeQueue[0]}
           labId={pendingLabId}
           onRemoved={handleDowngradeRemoved}
+          physicianLocked={physicianLocked}
         />
       )}
     </>

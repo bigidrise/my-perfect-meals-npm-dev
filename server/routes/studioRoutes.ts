@@ -28,6 +28,8 @@ import { findUserByValidAuthToken } from "../services/authTokenService";
 import { resolveProviderStudioAttribution, validateBp1Attribution } from "../services/bp1OrganizationAttributionService";
 import { WorkspaceContextError } from "../services/organizationWorkspaceService";
 import { createProCareInvitationExpiry } from "../lib/procareInvitationExpiry";
+import { canReadClinicalProtocolIndicators } from "./effectiveClinicalProtocols";
+import { verifyClinicalAccess } from "../utils/verifyClinicalAccess";
 
 const router = Router();
 
@@ -427,11 +429,17 @@ router.patch("/:studioId/clients/:clientUserId/assign", async (req, res) => {
     }
 
     const CLINICAL_BUILDERS = ["diabetic", "glp1", "anti_inflammatory", "weekly"];
+    if (userId === clientUserId || !await canReadClinicalProtocolIndicators(userId, clientUserId)) {
+      return res.status(403).json({ error: "An exact active client relationship is required." });
+    }
     if (CLINICAL_BUILDERS.includes(assignedBuilder) && studio.type !== "clinic") {
       return res.status(403).json({
         error: "ClinicalBuilderRestricted",
         message: "This builder requires a verified physician workspace. Contact the assigned physician to assign clinical or protocol-based builders.",
       });
+    }
+    if (CLINICAL_BUILDERS.includes(assignedBuilder) && !await verifyClinicalAccess(userId, clientUserId)) {
+      return res.status(403).json({ error: "Verified clinical authority and current consent are required." });
     }
 
     const result = await assignBuilder(userId, clientUserId, assignedBuilder, {
@@ -499,6 +507,11 @@ router.patch("/:studioId/clients/:clientUserId/apply-system-recommendation", asy
         error: "ClinicalDirectiveRestricted",
         message: "Clinical directives can only be applied by a verified physician workspace. Contact the assigned physician to apply clinical protocols.",
       });
+    }
+
+    if (userId === clientUserId || !await canReadClinicalProtocolIndicators(userId, clientUserId) ||
+        !await verifyClinicalAccess(userId, clientUserId)) {
+      return res.status(403).json({ error: "Verified clinical authority and an active client relationship are required." });
     }
 
     const [membership] = await db

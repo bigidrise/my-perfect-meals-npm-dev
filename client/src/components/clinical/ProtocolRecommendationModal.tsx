@@ -7,6 +7,7 @@ import { Loader2, FlaskConical, ShieldCheck, BookOpen } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import type { LabProtocolSignal } from "@shared/clinical/protocolDecision";
+import { refreshClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
 
 // ---------------------------------------------------------------------------
 // Citation map — protocol → authoritative guideline reference
@@ -87,6 +88,7 @@ export default function ProtocolRecommendationModal({
   onAccepted,
 }: ProtocolRecommendationModalProps) {
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   const title = PROTOCOL_TITLE[signal.protocol] ?? signal.protocol;
   const citation = CITATIONS[signal.protocol];
@@ -94,8 +96,9 @@ export default function ProtocolRecommendationModal({
 
   async function postDecision(status: "accepted" | "rejected") {
     setBusy(true);
+    setError("");
     try {
-      await fetch(apiUrl("/api/biometrics/labs/recommendation"), {
+      const response = await fetch(apiUrl("/api/biometrics/labs/recommendation"), {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
@@ -108,14 +111,15 @@ export default function ProtocolRecommendationModal({
           reason: signal.reason,
         }),
       });
+      if (!response.ok) throw new Error("The decision could not be saved. Your clinical settings were not changed. Refresh or contact your care team for review.");
+      refreshClinicalProtocols();
 
       if (status === "accepted") {
         onAccepted();
       }
       onClose();
-    } catch {
-      // silently ignore — audit is best-effort; UI proceeds
-      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The decision could not be saved.");
     } finally {
       setBusy(false);
     }
@@ -124,7 +128,7 @@ export default function ProtocolRecommendationModal({
   async function handleAdvisoryClose() {
     setBusy(true);
     try {
-      await fetch(apiUrl("/api/biometrics/labs/recommendation"), {
+      const response = await fetch(apiUrl("/api/biometrics/labs/recommendation"), {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
@@ -137,11 +141,12 @@ export default function ProtocolRecommendationModal({
           reason: signal.reason,
         }),
       });
+      if (!response.ok) throw new Error("Acknowledgment could not be saved.");
+      onClose();
     } catch {
-      // best-effort
+      setError("Acknowledgment could not be saved. Please try again.");
     } finally {
       setBusy(false);
-      onClose();
     }
   }
 
@@ -222,8 +227,9 @@ export default function ProtocolRecommendationModal({
             <div className="flex items-start gap-2 bg-violet-900/20 border border-violet-500/20 rounded-xl px-4 py-3">
               <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0 text-violet-400" />
               <p className="text-xs text-violet-300/80 leading-relaxed">
-                Your care team has already selected a nutrition protocol for
-                you. These lab results are visible to your provider.
+                Your clinical settings include physician-directed or earlier clinical
+                assignments that require review. Your measurements were saved; your
+                care team must review protocol changes.
               </p>
             </div>
           )}
@@ -231,6 +237,7 @@ export default function ProtocolRecommendationModal({
 
         {/* Footer actions */}
         <div className="px-6 pb-6 pt-2">
+          {error && <p role="alert" className="text-sm text-red-300 mb-3">{error}</p>}
           {physicianLocked ? (
             <Button
               className="w-full bg-white/10 hover:bg-white/15 text-white"

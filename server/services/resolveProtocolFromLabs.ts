@@ -335,7 +335,7 @@ export function resolveDowngradeSignals(
   }
 
   // ── Cardiac (heart-failure) downgrade ────────────────────────────────────
-  if (opts.previousProtocol === 'heart-failure' || opts.currentSpecialtyConditions.includes('heart-failure')) {
+  if (opts.currentSpecialtyConditions.some(c => c === 'heart-failure' || c === 'cardiac')) {
     const ldl   = safeNum(labs.ldl);
     const bpSys = safeNum(labs.bloodPressureSystolic);
     const ef    = safeNum(labs.ejectionFraction);
@@ -359,11 +359,11 @@ export function resolveDowngradeSignals(
           protocolLabel: 'Cardiac Health',
           normalFields,
           reason:
-            'Your recent cardiac markers — LDL, blood pressure, and/or ejection fraction — ' +
-            'are now within the normal reference range. Based on your updated values, you may ' +
-            'be ready to transition back to the Anti-Inflammatory foundation. A physician ' +
-            'would typically reassess lipid and cardiovascular risk at this point before ' +
-            'stepping down from a cardiac nutrition protocol. (ACC / AHA)',
+            'The cardiac measurements supplied in this entry did not cross the recommendation thresholds. ' +
+            'Missing measurements have not been assessed. One reading does not establish that a ' +
+            'cardiovascular condition has resolved or that a prescribed nutrition plan should stop. ' +
+            'Keep physician-directed guidance until your clinician reviews it. You may choose whether ' +
+            'to continue genuinely self-managed Cardiac nutrition guidance. (ACC / AHA)',
         });
       }
     }
