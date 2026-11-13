@@ -27,7 +27,7 @@ import { db } from '../db';
 import { clinicalLabs } from '../db/schema/clinicalLabs';
 import { studioMemberships } from '../db/schema/studio';
 import { users } from '../../shared/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, or } from 'drizzle-orm';
 import { clinicalProtocolRecommendations } from '../db/schema/clinicalProtocolRecommendations';
 import { resolveClinicalProtocolAuthority } from './clinicalProtocolAuthority';
 import { normalizeClinicalProtocols } from '../../shared/clinicalProtocolIdentity';
@@ -139,7 +139,8 @@ export async function getLabDrivenConditions(userId: string): Promise<string[]> 
           .where(and(
             eq(clinicalProtocolRecommendations.userId, userId),
             eq(clinicalProtocolRecommendations.recommendedProtocol, 'heart-failure'),
-            eq(clinicalProtocolRecommendations.reason, CARDIAC_LAB_CHOICE_REASON),
+            or(eq(clinicalProtocolRecommendations.reason, CARDIAC_LAB_CHOICE_REASON),
+              eq(clinicalProtocolRecommendations.reason, "subject_lab_cardiac_choice")),
           ))
           .orderBy(desc(clinicalProtocolRecommendations.id))
           .limit(1);

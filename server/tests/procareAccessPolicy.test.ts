@@ -162,7 +162,8 @@ describe("ProCare Studio access policy", () => {
     const sourceFiles = [
       ["../routes/stripeWebhook.ts", "isProCarePlanKey"],
       ["../routes/careTeamRoutes.ts", "providerHasProCareStudioAccess"],
-      ["../services/procareInviteService.ts", "providerHasProCareStudioAccess"],
+      ["../services/procareInviteService.ts", "acceptStoredCareInvitation"],
+      ["../services/careInvitationAcceptance.ts", "providerHasProCareStudioAccess"],
     ];
 
     for (const [relativePath, sharedResolver] of sourceFiles) {

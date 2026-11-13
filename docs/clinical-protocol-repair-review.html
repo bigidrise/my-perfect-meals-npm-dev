@@ -9,13 +9,14 @@ table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;v
 code{background:#eef2f7;padding:2px 4px;border-radius:3px}.scroll{overflow:auto}small{color:#526079}
 </style></head><body><main>
 <h1>Clinical Protocol Authority &amp; Synchronization Repair</h1>
-<p><strong>Development draft — paused for safety review; not complete or approved for release.</strong></p>
-<div class="hold"><strong>Clinical blocker:</strong> Clinical Labs can recommend <code>metabolic-support</code>,
-<code>metabolic-stress</code>, and <code>inflammation-support</code>. The inspected live universal-guidance and
-protocol-envelope paths do not establish corresponding condition-specific guidance for those exact identities.
-The shadow persistence registry maps inflammation support to Anti-Inflammatory, but that does not establish
-live guidance authority. These identities were not silently merged with Metabolic Recovery or activated through
-a shadow-source cutover. An approved clinical interpretation is needed before claiming complete propagation.</div>
+<p><strong>Development implementation updated — release remains on hold pending authenticated acceptance.</strong></p>
+<div class="hold"><strong>Approved safety decision implemented:</strong> <code>metabolic-support</code>,
+<code>metabolic-stress</code>, and <code>inflammation-support</code> remain advisory-only. Their measurements and
+advisory records are preserved; unsupported activation is rejected by the backend and not offered by the UI.
+They do not illuminate protocol indicators, change specialty conditions or builders, or claim applied nutritional
+adjustments. The live optional Anti-Inflammatory feature requires an explicit opt-in; no live implementation
+established that a CRP recommendation grants that opt-in. A shadow mapping was not used as authorization.
+This is an intentional safe outcome, not a request for invented guidance.</div>
 <h2>What the draft changes</h2>
 <ul>
 <li>Shared compatibility identities normalize Cardiac and Renal aliases while retaining unknown saved values and keeping distinct protocols separate.</li>
@@ -26,6 +27,11 @@ a shadow-source cutover. An approved clinical interpretation is needed before cl
 <li>A subject-keyed, status-only endpoint and query connect the six builders, professional dashboards, folder, and member status bar without exposing raw measurements.</li>
 <li>Detailed clinical-data access reuses the established verified-clinician, relationship, organization, and consent policy instead of treating any studio owner as clinically authorized.</li>
 <li>The existing indicator markup, grouping, and color tokens are retained. No new Pregnancy or GLP-1 indicator was added; the existing physician Hormone Optimization indicator was inspected rather than duplicated.</li>
+<li>Supported lab signals no longer silently reactivate nutrition when the member saves an unrelated specialty choice. Explicit accepted choices, not raw measurements, own activation.</li>
+<li>Clinical ownership decisions now commit in the same transaction as member profile changes and physician Hormone/Thyroid writes, using the existing decision-audit table and reserved server-owned reasons. Client attempts to forge those reasons are rejected.</li>
+<li>Known physician ownership survives relationship removal. Known member ownership does not itself create a physician lock. Unattributed Clinic-linked settings require review rather than being backfilled with invented ownership.</li>
+<li>Thyroid subtype metadata narrows an active Thyroid support without independently activating nutrition. Physician-owned inactive settings remain protected without lighting an active-support indicator.</li>
+<li>The Anti-Inflammatory Builder's obsolete asynchronous mode effect and dummy setters were removed. Mode, namespace, and modifiers use the same verified protocol state, retaining established precedence and clearing stale macro flags.</li>
 </ul>
 <h2>17-condition coverage</h2>
 <p>All 17 identities have deterministic additive activation/exact-removal helper tests. These are not real account
@@ -54,25 +60,25 @@ Authenticated screen behavior and all-condition real builder generation remain u
 </tbody></table></div>
 <h2>Verification boundaries</h2>
 <ul>
-<li><strong>Frontend build:</strong> passed.</li>
-<li><strong>Focused protocol, endpoint, Cardiac, and envelope suites:</strong> passed in the combined run.</li>
-<li><strong>Three dialog error/lock paths:</strong> six tests passed after correcting the test dialog mock.</li>
-<li><strong>Broader source-contract checks:</strong> two failures remain: the profile-specialty contract expects an inline allowlist and a raw lab-derived call; the ProCare contract expects an older invitation-facade helper name. These checks were not weakened to force a pass.</li>
-<li><strong>Release type gate:</strong> failed with 109 diagnostics versus the reviewed baseline's 109, but a different diagnostic fingerprint. The earlier introduced errors were corrected. Matching counts do not prove an unchanged diagnostic set; review remains required. The baseline was not refreshed or suppressed.</li>
-<li><strong>No authenticated browser acceptance:</strong> the application workflow was not restarted during the safety hold. No claim is made that real profile, builder, trainer, or physician sessions were exercised.</li>
+<li><strong>Frontend and backend builds, strict safety slice:</strong> passed after the provenance changes. New safety-sensitive surfaces were added to the strict safety configuration.</li>
+<li><strong>Deterministic checks:</strong> all 389 tests across 16 suites passed. They cover all 17 identities, supported guidance, the two obsolete source contracts, actual mutation callbacks, audit records, advisory-only controls, Cardiac reassessment, clinical-mode precedence, ingredient final scans, and privacy/consent boundaries.</li>
+<li><strong>Source-contract repairs:</strong> the profile test now follows the actual centralized allowlist; the ProCare test follows the invitation facade into the shared acceptance service, where the existing entitlement check still runs. These changes preserve the behavioral expectations rather than removing the guards.</li>
+<li><strong>Release type gate:</strong> the reviewed historical 109-diagnostic fingerprint was reproduced exactly. All current diagnostic locations were mapped through the source diff; reconstructing the reviewed set reproduced the exact original hash. Only two unchanged errors moved by three lines. No diagnostic messages, columns, or multiplicities changed. The baseline was updated only after that proof; no errors were suppressed or accepted. See the companion fingerprint-review document.</li>
+<li><strong>Runtime:</strong> the Development app starts under its existing safe-restart mode with automatic maintenance suppressed. The browser loaded the signed-out welcome screen. A secure sign-in handoff was offered but timed out. No authenticated member, trainer, or physician journey is claimed.</li>
 <li><strong>No full live lifecycle attestation:</strong> join/leave, multi-organization switching, re-login, and complete six-builder generation need remaining acceptance verification. Pure state tests do not establish those flows.</li>
 </ul>
 <h2>Remaining safety and implementation limits</h2>
 <ol>
-<li>Resolve the exact intended live treatment of lab recommendation identities lacking established guidance. Do not invent thresholds or merge distinct conditions.</li>
-<li>Complete review of per-protocol physician provenance, especially older records with no reliable assignment evidence. The draft policy is not proof that every historical physician restriction can be reconstructed.</li>
-<li>Finish review of the Anti-Inflammatory Builder's older primary-mode resolver and mode-dependent generation paths. Shared indicator wiring alone is not proof that every generation entry point uses identical authority.</li>
-<li>Finish remaining contract and authenticated acceptance checks, including privacy and subject-switch paths. This work remains part of the original repair, not deferred follow-up scope.</li>
+<li><strong>Authenticated acceptance remains blocked:</strong> approved member, trainer, and physician sessions are required to exercise all six builders and professional dashboards. A signed-out screenshot and mocked database tests are not substitutes.</li>
+<li><strong>Historical provenance is not invented:</strong> older records without reliable ownership evidence cannot be retrospectively identified as physician- or member-owned. Ambiguous Clinic-linked settings stay review-required. No migration or blanket ownership backfill was performed.</li>
+<li><strong>Runtime generation is unclaimed:</strong> guidance construction and deterministic final scans were tested without model calls. No paid six-builder recipe generation or real clinical-record mutation was performed.</li>
+<li><strong>Relationship lifecycle evidence is bounded:</strong> synthetic tests cover active versus disconnected/archived relationships, organization/owner isolation, subject switching, and physician ownership after disconnection. Actual account join/leave/re-login and multi-organization browser journeys remain part of the pending authenticated acceptance.</li>
 </ol>
 <h2>Database and release impact</h2>
 <p>No schema migration or backfill was run. No production modification, publication, GitHub push, paid AI
-generation, or clinical threshold change was performed. Verification used deterministic synthetic fixtures and
-mocked database operations, not live clinical-record mutations. Draft source changes remain in the Development workspace.</p>
+generation, or clinical threshold change was performed. Ownership is recorded only for future explicit authorized
+changes; existing records are not rewritten merely by reading them. Verification used deterministic synthetic
+fixtures and mocked database operations, not live clinical-record mutations. Source changes remain in Development.</p>
 <h2>Main review locations</h2>
 <p><code>shared/clinicalProtocolIdentity.ts</code>, <code>server/services/clinicalProtocolAuthority.ts</code>,
 <code>server/routes/clinicalLabs.ts</code>, <code>server/routes/effectiveClinicalProtocols.ts</code>,

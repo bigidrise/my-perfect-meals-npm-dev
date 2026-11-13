@@ -23,6 +23,7 @@
  *   - All thresholds come exclusively from LAB_THRESHOLDS. No magic numbers here.
  */
 
+import { isAdvisoryLabProtocol } from "../../shared/clinicalProtocolIdentity";
 import {
   safeNum,
   LAB_THRESHOLDS,
@@ -208,13 +209,7 @@ export function resolveProtocolFromLabs(
       const hasRatioTrigger = triggers.includes('tg_hdl_ratio');
       return {
         protocol: 'metabolic-support',
-        reason:
-          'One or more of your metabolic markers — A1C, fasting glucose, fasting insulin, ' +
-          'triglycerides' + (hasRatioTrigger ? ', or TG/HDL ratio' : '') + ' — ' +
-          'suggests your body may benefit from metabolic-aware nutritional support. ' +
-          'A Metabolic Support approach emphasizes fiber-rich complex carbohydrates, ' +
-          'blood-sugar-stabilizing meal patterns, reduced refined carbohydrates, and ' +
-          'protein-forward meals to support insulin sensitivity. (ADA / AHA)',
+        reason: 'The measured metabolic indicators may warrant further evaluation with your care team. This signal does not establish a diagnosis or activate Metabolic Recovery or another nutrition protocol. No nutrition settings have been changed.',
         confidence: triggers.length >= 2 ? 'high' : 'moderate',
         triggerFields: triggers,
       };
@@ -228,12 +223,7 @@ export function resolveProtocolFromLabs(
     if (crp !== null && crp > t.inflammation.crpHigh) {
       return {
         protocol: 'inflammation-support',
-        reason:
-          'Your C-Reactive Protein (CRP) level suggests elevated systemic inflammation. ' +
-          'An Inflammation Support approach may benefit you by emphasizing omega-3-rich ' +
-          'foods, colorful vegetables, olive oil, and other anti-inflammatory patterns ' +
-          'while reducing processed foods, refined sugars, and inflammatory oils. ' +
-          '(AHA / CDC)',
+        reason: 'Your measured inflammation marker may warrant review with your care team. This signal does not diagnose a condition or activate Anti-Inflammatory support. No nutrition settings have been changed.',
         confidence: crp > 10 ? 'high' : 'moderate',
         triggerFields: ['crp'],
       };
@@ -247,12 +237,7 @@ export function resolveProtocolFromLabs(
     if (cortisol !== null && cortisol > t.metabolicStress.cortisolHigh) {
       return {
         protocol: 'metabolic-stress',
-        reason:
-          'Your cortisol level is above the optimal reference range, which may suggest ' +
-          'elevated physiological or metabolic stress. A Metabolic Stress Support approach ' +
-          'may benefit you by emphasizing balanced meal timing, blood-sugar-stabilizing ' +
-          'foods, adequate protein, and nutrients that support adrenal and stress recovery ' +
-          'such as magnesium, B vitamins, and omega-3 sources. (Endocrine Society)',
+        reason: 'The measured indicators may warrant further evaluation with your care team. This signal does not establish a diagnosis of metabolic stress, diabetes, or another condition. No nutrition settings have been changed.',
         confidence: cortisol > 30 ? 'high' : 'moderate',
         triggerFields: ['cortisol'],
       };
@@ -556,7 +541,7 @@ export function resolveDowngradeSignals(
     }
   }
 
-  return signals;
+  return signals.filter(signal => !isAdvisoryLabProtocol(signal.protocol));
 }
 
 /**

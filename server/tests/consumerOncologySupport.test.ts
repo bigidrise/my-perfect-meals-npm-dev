@@ -1,4 +1,5 @@
 jest.mock("../db", () => ({ db: { transaction: jest.fn() } }));
+jest.mock("../services/labProtocolOwnership", () => ({ getPhysicianLockStatus: jest.fn(async () => false) }));
 import { db } from "../db";
 import { consumerOncologyUpdate, parseConsumerOncologyInput, saveConsumerSpecialtySupport, resolveConsumerSpecialtyConditions } from "../services/consumerOncologySupport";
 import { persistOnboardingHealthInformation } from "../../client/src/lib/onboardingHealthPersistence";
@@ -22,6 +23,7 @@ describe("consumer authoritative oncology save", () => {
       const record = { context: null, conditions, primaryCondition: "pregnancy-support" };
       let savedRecord: any = { ...pregnancy };
       const tx = {
+        insert: () => ({ values: async () => undefined }),
         select: () => ({ from: () => ({ where: () => ({ limit: () => ({ for: async () => [record] }) }) }) }),
         update: () => ({ set: (value: any) => ({ where: async () => { savedRecord = { ...savedRecord, ...value }; } }) }),
       };
@@ -49,6 +51,7 @@ describe("consumer authoritative oncology save", () => {
       record = { context: value.oncologySupportContext, conditions: value.specialtyConditions };
     });
     const tx = {
+      insert: () => ({ values: async () => undefined }),
       select: () => ({ from: () => ({ where: () => ({ limit: () => ({ for: async () => [record] }) }) }) }),
       update: () => ({ set: (value: any) => ({ where: () => write(value) }) }),
     };
@@ -103,6 +106,7 @@ describe("consumer authoritative oncology save", () => {
     const writes: any[] = [];
     const lockedRead = jest.fn(async () => [{ context: record }]);
     const tx = {
+      insert: () => ({ values: async () => undefined }),
       select: () => ({ from: () => ({ where: () => ({ limit: () => ({ for: lockedRead }) }) }) }),
       update: () => ({ set: (value: any) => ({ where: async () => { writes.push(value); record = value.oncologySupportContext; } }) }),
     };

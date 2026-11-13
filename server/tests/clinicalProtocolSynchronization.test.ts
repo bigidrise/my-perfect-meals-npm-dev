@@ -6,6 +6,7 @@ import { evaluateClinicalProtocolAuthority } from "../services/clinicalProtocolA
 import { resolveProtocolFromLabs, resolveDowngradeSignals } from "../services/resolveProtocolFromLabs";
 import { buildUniversalConditionGuidance, type UniversalGuidanceInput } from "../services/universalMedicalGuidance";
 import fs from "node:fs";
+import { resolveClinicalModeFromProtocols } from "@shared/clinical/clinicalModeResolver";
 
 jest.mock("../db", () => ({ db: {} }));
 
@@ -51,6 +52,16 @@ describe("all 17 founder-listed clinical identities", () => {
       ...{ activeBoard: "anti_inflammatory", assignedBuilder: "diabetic", protocolSignal: "renal" },
     })).toEqual(["cardiac"]);
   });
+  test("unsupported legacy recommendation strings do not illuminate active indicators", () => {
+    expect(effectiveClinicalProtocols({ specialtyConditions: [
+      "metabolic-support", "metabolic-stress", "inflammation-support", "cardiac",
+    ] })).toEqual(["cardiac"]);
+  });
+  test("a saved thyroid subtype narrows an active support, but is not standalone activation", () => {
+    expect(effectiveClinicalProtocols({ specialtyConditions: ["thyroid-support"], thyroidType: "hypothyroid" }))
+      .toEqual(["thyroid-support", "hypothyroid"]);
+    expect(effectiveClinicalProtocols({ thyroidType: "hypothyroid" })).toEqual([]);
+  });
   test("legacy scalar and array are preserved together", () => {
     expect(effectiveClinicalProtocols({ specialtyConditions: ["liver-support"], specialtyCondition: "heart-failure" }))
       .toEqual(["liver-support", "cardiac"]);
@@ -64,6 +75,23 @@ describe("all 17 founder-listed clinical identities", () => {
 });
 
 describe("clinical authority is not ordinary trainer enrollment", () => {
+  test("explicit physician ownership survives leaving a relationship", () => {
+    expect(evaluateClinicalProtocolAuthority({
+      memberships: [], protocolProvenance: [{ protocol: "hormone-optimization", owner: "physician" }],
+    }).selfModificationBlocked).toBe(true);
+  });
+  test("an unattributed Clinic protocol requires review, not an invented self or physician source", () => {
+    expect(evaluateClinicalProtocolAuthority({
+      memberships: [{ type: "clinic", assignedBuilder: null, professionalRole: "physician", verificationStatus: "verified" }],
+      protocolProvenance: [{ protocol: "thyroid-support", owner: "unknown" }],
+    }).kind).toBe("legacy_review_required");
+  });
+  test("a proven member-owned protocol does not create a false physician lock", () => {
+    expect(evaluateClinicalProtocolAuthority({
+      memberships: [{ type: "clinic", assignedBuilder: null, professionalRole: "physician", verificationStatus: "verified" }],
+      protocolProvenance: [{ protocol: "thyroid-support", owner: "self" }],
+    }).selfModificationBlocked).toBe(false);
+  });
   test("independent member remains self managed", () => {
     expect(evaluateClinicalProtocolAuthority({ memberships: [] }).selfModificationBlocked).toBe(false);
   });
@@ -91,6 +119,24 @@ describe("clinical authority is not ordinary trainer enrollment", () => {
 });
 
 describe("existing cardiac thresholds and non-diagnostic reassessment", () => {
+  test.each([
+    [["cardiac"], "heart-failure"], [["heart-failure"], "heart-failure"],
+    [["renal"], "kidney-disease"], [["kidney-disease"], "kidney-disease"],
+    [["liver-support"], "liver-support"], [["oncology-support"], "oncology-support"],
+    [["cardiac", "renal", "liver-disease"], "liver-disease"],
+    [[], "anti-inflammatory"],
+  ] as Array<[string[], string]>)("verified status %j sets mode %s without stale macro overrides", (protocols, mode) => {
+    expect(resolveClinicalModeFromProtocols(protocols, { liverDisease: true, oncologySupport: true }).mode).toBe(mode);
+  });
+  test("thyroid stays additive and removal clears stale thyroid modifier flags", () => {
+    expect(resolveClinicalModeFromProtocols(["hypothyroid"]).modifierBadges.some(b => b.label === "Thyroid Support")).toBe(true);
+    expect(resolveClinicalModeFromProtocols([], { thyroidSupport: true }).modifierBadges.some(b => b.label === "Thyroid Support")).toBe(false);
+  });
+  test.each(["metabolic-support", "metabolic-stress", "inflammation-support"])("%s does not claim unsupported nutrition can be downgraded", protocol => {
+    expect(resolveDowngradeSignals({ a1c: 5, cortisol: 10, crp: 1 }, {
+      currentSpecialtyConditions: [protocol], previousProtocol: protocol,
+    })).toEqual([]);
+  });
   test("160 systolic recommends Cardiac without activating anything", () => {
     expect(resolveProtocolFromLabs({ bloodPressureSystolic: 160 })?.protocol).toBe("heart-failure");
     expect(effectiveClinicalProtocols({ specialtyConditions: [] })).toEqual([]);

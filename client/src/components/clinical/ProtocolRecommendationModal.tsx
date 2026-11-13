@@ -8,6 +8,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import type { LabProtocolSignal } from "@shared/clinical/protocolDecision";
 import { refreshClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
+import { isAdvisoryLabProtocol, advisoryLabExplanation } from "@shared/clinicalProtocolIdentity";
 
 // ---------------------------------------------------------------------------
 // Citation map — protocol → authoritative guideline reference
@@ -90,7 +91,8 @@ export default function ProtocolRecommendationModal({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const title = PROTOCOL_TITLE[signal.protocol] ?? signal.protocol;
+  const advisoryOnly = isAdvisoryLabProtocol(signal.protocol);
+  const title = advisoryOnly ? `${signal.protocol === "metabolic-stress" ? "Metabolic Stress" : signal.protocol === "metabolic-support" ? "Metabolic Support" : "Inflammation Support"} — Measurement Review` : PROTOCOL_TITLE[signal.protocol] ?? signal.protocol;
   const citation = CITATIONS[signal.protocol];
   const confColor = CONFIDENCE_COLOR[signal.confidence] ?? CONFIDENCE_COLOR.low;
 
@@ -191,7 +193,7 @@ export default function ProtocolRecommendationModal({
 
           {/* Advisory reason */}
           <p className="text-sm text-white/75 leading-relaxed">
-            {signal.reason}
+            {advisoryOnly ? advisoryLabExplanation(signal.protocol) : signal.reason}
           </p>
 
           {/* Triggered values */}
@@ -238,7 +240,7 @@ export default function ProtocolRecommendationModal({
         {/* Footer actions */}
         <div className="px-6 pb-6 pt-2">
           {error && <p role="alert" className="text-sm text-red-300 mb-3">{error}</p>}
-          {physicianLocked ? (
+          {physicianLocked || advisoryOnly ? (
             <Button
               className="w-full bg-white/10 hover:bg-white/15 text-white"
               disabled={busy}

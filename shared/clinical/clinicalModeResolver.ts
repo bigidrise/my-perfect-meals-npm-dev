@@ -1,6 +1,20 @@
 import type { ClinicalMode } from '../schema/weeklyBoard';
 import { BUILDER_NS } from '../builderNamespaces';
 import type { BuilderNamespace } from '../builderNamespaces';
+import { isClinicalIndicatorActive } from '../clinicalProtocolIdentity';
+
+/** Clinical status overrides cached macro flags, including explicit OFF states. */
+export function resolveClinicalModeFromProtocols(protocols: readonly string[], flags?: ClinicalFlags): ResolvedClinicalMode {
+  return resolveClinicalModeFromFlags({
+    ...flags,
+    renal: isClinicalIndicatorActive("renal", protocols),
+    cardiac: isClinicalIndicatorActive("cardiac", protocols),
+    liverDisease: isClinicalIndicatorActive("liver-disease", protocols),
+    liverSupport: isClinicalIndicatorActive("liver-support", protocols),
+    oncologySupport: isClinicalIndicatorActive("oncology-support", protocols),
+    thyroidSupport: isClinicalIndicatorActive("thyroid-support", protocols),
+  });
+}
 
 export interface ClinicalFlags {
   renal?: boolean;

@@ -35,6 +35,7 @@ export default function effectiveClinicalProtocolsRouter() {
         specialtyCondition: users.specialtyCondition, healthConditions: users.healthConditions,
         medicalConditions: users.medicalConditions, selectedMealBuilder: users.selectedMealBuilder,
         oncologySupportContext: users.oncologySupportContext,
+        thyroidType: users.thyroidType,
       }).from(users).where(eq(users.id, subject)).limit(1);
       if (!profile) return res.status(404).json({ error: "Profile unavailable." });
       const protocols = effectiveClinicalProtocols(profile);

@@ -66,3 +66,16 @@ test("successful self-managed activation invokes the success callback", async ()
   fireEvent.click(screen.getByRole("button", { name: /Activate Cardiac/ }));
   await waitFor(() => expect(accepted).toHaveBeenCalledTimes(1));
 });
+
+test.each(["metabolic-support", "metabolic-stress", "inflammation-support"])("%s offers education and acknowledgment, never activation", async protocol => {
+  fetchMock.mockResolvedValue({ ok: true });
+  const accepted = jest.fn();
+  const close = jest.fn();
+  render(<Recommendation open onClose={close} signal={{ ...signal, protocol } as any} labId={7} physicianLocked={false} onAccepted={accepted} />);
+  expect(screen.queryByRole("button", { name: /Activate/ })).not.toBeInTheDocument();
+  expect(screen.getByText(/No nutrition settings have been changed/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Understood" }));
+  await waitFor(() => expect(close).toHaveBeenCalledTimes(1));
+  expect(accepted).not.toHaveBeenCalled();
+  expect(JSON.parse(fetchMock.mock.calls[0][1].body).status).toBe("advisory");
+});

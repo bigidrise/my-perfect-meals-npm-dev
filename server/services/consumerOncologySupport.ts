@@ -2,6 +2,7 @@ import { retainPregnancySupport } from "@shared/pregnancyAvailability";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { users } from "@shared/schema";
+import { recordSubjectProtocolChanges } from "./clinicalProtocolProvenance";
 import { readOncologySupportSelection, ONCOLOGY_SYMPTOM_OPTIONS } from "../../shared/oncologySupportSelection";
 
 export class ConsumerOncologyError extends Error {
@@ -72,7 +73,7 @@ export function consumerOncologyUpdate(previous: typeof users.$inferSelect.oncol
   };
 }
 
-/** One locked row / one write: clinical writers cannot be overwritten by a stale consumer read. */
+/** One locked subject row: nutrition state and ownership decisions commit together. */
 export async function saveConsumerSpecialtySupport(userId: string, conditions: string[], input: unknown) {
   parseConsumerOncologyInput(input);
   return db.transaction(async tx => {
@@ -83,6 +84,10 @@ export async function saveConsumerSpecialtySupport(userId: string, conditions: s
     })
       .from(users).where(eq(users.id, userId)).limit(1).for("update");
     if (!record) throw new ConsumerOncologyError(404, "user_not_found", "User not found.");
+    const { getPhysicianLockStatus } = await import("./labProtocolOwnership");
+    if (await getPhysicianLockStatus(userId, true)) {
+      throw new ConsumerOncologyError(403, "clinical_review_required", "Your care team must review changes to physician-directed or unattributed clinical settings.");
+    }
     const resolvedConditions = resolveConsumerSpecialtyConditions(
       conditions, [...(record.conditions ?? []), ...(record.primaryCondition ? [record.primaryCondition] : [])]);
     const context = consumerOncologyUpdate(record.context, resolvedConditions, input, userId);
@@ -91,6 +96,9 @@ export async function saveConsumerSpecialtySupport(userId: string, conditions: s
       specialtyConditions: resolvedConditions,
       oncologySupportContext: context,
     }).where(eq(users.id, userId));
+    await recordSubjectProtocolChanges(tx, userId,
+      [...(record.conditions ?? []), ...(record.primaryCondition ? [record.primaryCondition] : [])],
+      resolvedConditions);
     return { context, conditions: resolvedConditions };
   });
 }

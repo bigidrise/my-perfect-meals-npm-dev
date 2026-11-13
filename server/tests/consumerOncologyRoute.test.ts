@@ -1,8 +1,16 @@
-jest.mock("../db", () => ({ db: { transaction: jest.fn() } }));
+jest.mock("../db", () => ({ db: {
+  transaction: jest.fn(),
+  select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ conditions: [], primary: null }] }) }) }),
+} }));
+jest.mock("../services/labProtocolOwnership", () => ({ getPhysicianLockStatus: jest.fn(async () => false) }));
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
 import { db } from "../db";
+import { users } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import { normalizeClinicalProtocols } from "@shared/clinicalProtocolIdentity";
+import { PREGNANCY_CUSTOMER_AVAILABLE, retainPregnancySupport } from "@shared/pregnancyAvailability";
 import {
   ConsumerOncologyError,
   SELF_SELECTABLE_SPECIALTY_CONDITIONS,
@@ -29,10 +37,12 @@ function specialtyHandler(development: boolean) {
     compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS },
   }).outputText;
   const dependencies = {
+    db, users, eq, normalizeClinicalProtocols, PREGNANCY_CUSTOMER_AVAILABLE, retainPregnancySupport,
     ConsumerOncologyError, SELF_SELECTABLE_SPECIALTY_CONDITIONS, saveConsumerSpecialtySupport,
     oncologySymptomPriorityEnabled: () => development,
     getPhysicianLockStatus: async () => false,
-    getLabDrivenConditions: async () => [],
+    // If the old automatic lab merge returns, the expected explicit list fails.
+    getLabDrivenConditions: async () => ["cardiac"],
   };
   return new Function(...Object.keys(dependencies), `return ${compiled}`)(...Object.values(dependencies));
 }
@@ -52,6 +62,7 @@ test("actual Development endpoint saves Mouth sensitivity with established legac
     record = { conditions: value.specialtyConditions, context: value.oncologySupportContext };
   });
   const tx = {
+    insert: () => ({ values: async () => undefined }),
     select: () => ({ from: () => ({ where: () => ({ limit: () => ({ for: async () => [record] }) }) }) }),
     update: () => ({ set: (value: any) => ({ where: () => write(value) }) }),
   };
@@ -74,6 +85,7 @@ test("actual Development endpoint saves Mouth sensitivity with established legac
 test("actual Development endpoint rejects newly requested legacy support without writing", async () => {
   const write = jest.fn();
   const tx = {
+    insert: () => ({ values: async () => undefined }),
     select: () => ({ from: () => ({ where: () => ({ limit: () => ({ for: async () => [{ conditions: [], context: null }] }) }) }) }),
     update: () => ({ set: (value: any) => ({ where: () => write(value) }) }),
   };
