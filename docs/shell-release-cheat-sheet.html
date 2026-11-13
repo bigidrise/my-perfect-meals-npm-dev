@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Perfect Meals — Shell Release Cheat Sheet</title>
+<style>
+body{font:16px/1.55 Arial,sans-serif;color:#182330;background:#f4f6f8;margin:0}main{max-width:920px;margin:32px auto;background:white;padding:36px;border:1px solid #dce3e9;border-radius:12px}h1{line-height:1.15}h2{margin-top:36px;border-top:1px solid #dce3e9;padding-top:24px}h3{margin-top:24px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#102133;color:#f4f7fb;padding:18px;border-radius:8px;font:14px/1.55 monospace}code{font-family:monospace}.notice{padding:16px;border-left:5px solid #b85d05;background:#fff5e8}.safe{padding:16px;background:#eef7f2;border-left:5px solid #26704b}li{margin:7px 0}small{color:#516070}@media print{body{background:white}main{border:0;margin:0;padding:0}pre{color:black;background:#f1f1f1;break-inside:avoid}h2{break-after:avoid}}
+</style>
+</head>
+<body><main>
+<h1>My Perfect Meals<br>Shell Release Cheat Sheet</h1>
+<p><strong>Development → GitHub dev → reviewed PR → GitHub production → Production workspace → Republish → Verify</strong></p>
+<p>Repository: <code>bigidrise/my-perfect-meals-npm-dev</code><br>
+Source branches: <code>dev</code> and <code>production</code></p>
+<div class="notice"><strong>Release gate:</strong> This document is instructions, not release approval. Finish the required manual clinical acceptance before promoting the currently held clinical changes. A clean working tree or passing automated check does not approve every feature on dev.</div>
+
+<h2>What you can do without the GitHub website</h2>
+<p>You can create, inspect, and merge a GitHub pull request entirely from the Replit Development Shell using <code>gh</code>, GitHub's command-line tool. You do not need an agent for routine releases.</p>
+<p><strong>Keep the PR.</strong> This project's push policy intentionally rejects direct updates to <code>production</code>, <code>main</code>, and <code>staging</code>. Do not bypass the hook. Required GitHub checks, approvals, and branch rules still apply when using the CLI. Initial sign-in or organization authorization may require a browser.</p>
+<p>Run the numbered stages separately. <strong>Stop on an error; do not continue to the next stage.</strong> The shell blocks do not force-push, reset, rebase, delete branches, publish automatically, or explicitly run database migrations or cleanup. Publishing starts the application's normal runtime, whose database effects require the normal release review.</p>
+
+<h2>1. Development Shell — check and push dev</h2>
+<p>Check the branch and changes:</p>
+<pre><code>git branch --show-current
+git status --short --branch
+git diff --check</code></pre>
+<p>The branch must be <code>dev</code>. If the working tree is clean, there is nothing new to stage or commit. Replit may already have committed the work in checkpoints.</p>
+<p>If there are uncommitted changes, review and stage only approved files using Git's interactive menu:</p>
+<pre><code>git add -i
+git diff --cached --stat
+git diff --cached</code></pre>
+<p>Only after checking the staged contents:</p>
+<pre><code>git commit -m "Save reviewed Development changes"</code></pre>
+<p>If nothing is staged, skip that commit command. Do not use <code>git add .</code> blindly; it can include unrelated files. Unstaged or untracked files left in the working tree will deliberately block the guarded push.</p>
+<p>Push with the project's established helper:</p>
+<pre><code>npm run push</code></pre>
+<p>This checks the branch, destination, clean working tree, and dev ancestry; runs <code>npm run validate -- --no-start</code>; rechecks the state; and pushes only local <code>dev</code> to GitHub <code>dev</code>. It does not commit files, promote production, or publish. Do not run ordinary validation first just to duplicate this check.</p>
+<p>Confirm the actual remote result:</p>
+<pre><code>(
+  set -eu
+  git fetch --no-tags origin dev
+  LOCAL=$(git rev-parse HEAD)
+  REMOTE=$(git rev-parse origin/dev)
+  printf 'Local:      %s\nGitHub dev: %s\n' "$LOCAL" "$REMOTE"
+  test "$LOCAL" = "$REMOTE"
+)</code></pre>
+<p><strong>Pass:</strong> the two full commit IDs match. If the helper fails, no successful push is claimed. Do not substitute a raw push to bypass failed validation.</p>
+
+<h2>2. Development Shell — open or find the PR</h2>
+<p>The <code>gh</code> command is installed in the inspected Development workspace. Check its authorization:</p>
+<pre><code>gh auth status</code></pre>
+<p>If it is not authenticated, use the normal GitHub CLI login flow:</p>
+<pre><code>gh auth login --hostname github.com --web --git-protocol https</code></pre>
+<p>If an existing environment-managed token is selected or your organization requires approval, follow the reported authorization requirements. Never paste tokens or passwords into chat, commit them, or disable security rules.</p>
+<p>Find an existing dev-to-production PR, or create one if none exists:</p>
+<pre><code>(
+  set -eu
+  REPO=bigidrise/my-perfect-meals-npm-dev
+  PR=$(gh pr list --repo "$REPO" --base production --head dev \
+    --state open --json number --jq '.[0].number // empty')
+  if [ -z "$PR" ]; then
+    gh pr create --repo "$REPO" --base production --head dev \
+      --title "Development release review" \
+      --body "Review the complete dev-to-production diff and required verification before merging."
+    PR=$(gh pr list --repo "$REPO" --base production --head dev \
+      --state open --json number --jq '.[0].number // empty')
+  fi
+  test -n "$PR"
+  gh pr view "$PR" --repo "$REPO"
+  gh pr diff "$PR" --repo "$REPO" --stat
+  printf '\nREVIEWED DEV COMMIT CANDIDATE:\n'
+  gh pr view "$PR" --repo "$REPO" --json headRefOid --jq .headRefOid
+)</code></pre>
+<p>Save the full dev commit ID printed above. This is a candidate until you review it. A PR may include <strong>all</strong> differences between dev and production, not just the last task. If any included change is unfinished, unapproved, or held, stop. Prepare a separately reviewed release candidate instead of merging all dev.</p>
+<p>Inspect the full diff and GitHub checks:</p>
+<pre><code>(
+  set -eu
+  REPO=bigidrise/my-perfect-meals-npm-dev
+  PR=$(gh pr list --repo "$REPO" --base production --head dev \
+    --state open --json number --jq '.[0].number // empty')
+  test -n "$PR"
+  gh pr diff "$PR" --repo "$REPO"
+  gh pr checks "$PR" --repo "$REPO" --watch
+)</code></pre>
+<p><strong>Do not merge failed or pending required checks.</strong> If GitHub reports no checks, that is not a passing CI result: complete the project's required local validation and manual acceptance, and confirm no required check is missing. Local automated checks do not replace the release's required manual tests.</p>
+
+<h2>3. Development Shell — merge the approved PR</h2>
+<p>Only run this after reviewing the entire PR, completing required checks, and approving this exact release. At the prompt, paste the full <strong>reviewed dev commit</strong> from stage 2:</p>
+<pre><code>(
+  set -eu
+  REPO=bigidrise/my-perfect-meals-npm-dev
+  PR=$(gh pr list --repo "$REPO" --base production --head dev \
+    --state open --json number --jq '.[0].number // empty')
+  test -n "$PR"
+  read -r -p "Paste the fully reviewed dev commit SHA: " REVIEWED_HEAD
+  test -n "$REVIEWED_HEAD"
+  gh pr merge "$PR" --repo "$REPO" --merge \
+    --match-head-commit "$REVIEWED_HEAD"
+  printf '\nMERGE RESULT — SAVE THE PRODUCTION COMMIT:\n'
+  gh pr view "$PR" --repo "$REPO" --json state,mergeCommit \
+    --jq '{state: .state, productionCommit: .mergeCommit.oid}'
+)</code></pre>
+<p>The commit match prevents silently merging additional dev commits added after your review. Use a merge commit to preserve the dev/production ancestry. Do not use <code>--admin</code>, force, squash, rebase, or delete the permanent dev branch as a shortcut.</p>
+<p><strong>Pass:</strong> state is <code>MERGED</code> and a production commit is printed. Save that full <strong>production merge commit</strong>, which is different from the dev commit. If queued, blocked, or not yet merged, wait and verify the PR state before proceeding.</p>
+<div class="safe">GitHub production is now updated. The customer app is <strong>not</strong> published yet. No GitHub website visit was needed for the PR workflow.</div>
+
+<h2>4. Production Shell — fetch the exact approved release</h2>
+<p>Switch to the separate <strong>Production Replit workspace</strong>. This is not the Development Shell or Development Publish pane.</p>
+<p>The following block requires a clean <code>production</code> branch, checks the GitHub release against your saved merge commit, and refuses to overwrite diverged history:</p>
+<pre><code>(
+  set -eu
+  test "$(git branch --show-current)" = production
+  git status --short --branch
+  test -z "$(git status --porcelain=v1 --untracked-files=normal)"
+  git diff --check
+  read -r -p "Paste the approved PRODUCTION merge commit SHA: " APPROVED_SHA
+  test -n "$APPROVED_SHA"
+  git fetch --no-tags origin production
+  REMOTE_SHA=$(git rev-parse origin/production)
+  printf 'Approved: %s\nGitHub:   %s\n' "$APPROVED_SHA" "$REMOTE_SHA"
+  test "$REMOTE_SHA" = "$APPROVED_SHA"
+  git merge-base --is-ancestor HEAD "$APPROVED_SHA"
+  git merge --ff-only "$APPROVED_SHA"
+  test "$(git rev-parse HEAD)" = "$APPROVED_SHA"
+  printf '\nProduction workspace now contains approved source:\n'
+  git rev-parse HEAD
+)</code></pre>
+<p><code>fetch</code> followed by <code>merge --ff-only</code> performs the two parts of a controlled pull, while pinning the exact approved commit. If GitHub has advanced to a different production release, stop rather than automatically deploying that newer code.</p>
+<p>For this first use, confirm Production's <code>origin</code> is the same approved repository through its Git configuration. The Production workspace and remote were not inspected from this Development-only session.</p>
+
+<h2>5. Production Shell — validate and build</h2>
+<p>Run after successful synchronization. Each command must pass before continuing:</p>
+<pre><code>(
+  set -eu
+  npm ci
+  npm run validate -- --no-start
+  npm run check:safety-types
+  NODE_OPTIONS=--max-old-space-size=4096 npm run check:release-types
+  npm run build
+)</code></pre>
+<p><code>npm ci</code> installs the committed lockfile dependencies and runs their normal install hooks. The no-start flag avoids starting an extra validation server; it is not proof of live application health. The safety and reviewed-debt type gates are additional checks, not permission to bypass failed guarded-push validation.</p>
+<p><strong>Known source mutation:</strong> this project's build updates <code>client/public/release-manifest.json</code> and <code>client/src/buildVersion.ts</code>. Replit may also create publication/checkpoint commits. Do not automatically commit those changes to GitHub production, discard other changes alongside them, or assume the next pull will fast-forward.</p>
+<p>Do not use <code>npm run db:push</code>, <code>npm run serve</code>, or <code>npm run replit:start</code> as routine deployment checks. The latter two have database-push prehooks in the inspected source. Development and Production share the external Neon database; any schema/data changes need their own reviewed plan.</p>
+
+<h2>6. Production workspace — Republish and verify</h2>
+<ol>
+<li>Open <strong>Publishing in the Production workspace</strong> and choose Publish/Republish.</li>
+<li>Wait for the build and deployment to finish successfully. The configured publishing build runs <code>npm run build</code> again.</li>
+<li>Use the live URL shown in that Production Publishing pane—not a Development preview or Development published URL.</li>
+<li>Check <code>/api/release</code> on every customer domain you use. Compare its Git SHA with the approved production commit; the manifest normally records a shortened SHA. Confirm the new build timestamp/version.</li>
+<li>Open the customer app and verify sign-in and the release's critical changed flows. An HTTP 200 or correct SHA alone does not prove functional success.</li>
+</ol>
+<p>Read-only live release inspection:</p>
+<pre><code>read -r -p "Paste the live Production URL from Publishing: " LIVE_URL
+curl --fail --silent --show-error "${LIVE_URL%/}/api/release"</code></pre>
+<p>If publication changes the recorded build SHA to a new checkpoint commit, do not assume either success or failure solely from its name. Verify that checkpoint contains exactly the approved application source. Otherwise the release is not verified. Publishing starts the app's normal runtime; this sheet does not authorize extra migrations or maintenance commands.</p>
+
+<h2>If a command stops: do not force it</h2>
+<p>A dirty workspace, rejected push, failed validation, local-ahead history, or divergence is a reason to stop. The failed operation is not evidence that GitHub lost your code.</p>
+<p>These Production commands inspect history without changing it:</p>
+<pre><code>git status --short --branch
+git log --oneline --left-right HEAD...origin/production
+git diff --stat HEAD origin/production</code></pre>
+<p>A safety branch can preserve the current committed position, but does not save uncommitted files or repair a divergence:</p>
+<pre><code>git branch "backup/production-before-sync-$(date +%Y%m%d-%H%M%S)" HEAD</code></pre>
+<p><strong>Why this has recurred:</strong> publication checkpoints can add commits—even empty ones—and builds can change tracked files. A Production workspace may also contain genuine local fixes that never reached GitHub. Do not assume every local-only commit is disposable because its label says “Published.” Preserve and reconcile genuine fixes through the reviewed source workflow.</p>
+<p>This checklist detects those cases; it cannot safely resolve every history conflict with a universal command. A longer-term separate publication-checkout workflow could reduce recurrence, but it has not been configured or verified by this document.</p>
+
+<h2>Storage and mobile boundaries</h2>
+<ul>
+<li>Git transfers committed code—not secrets, database contents, uploaded images, or storage buckets. Preserve Production's verified environment and storage bindings. The bucket names in the earlier sheet were not re-certified here.</li>
+<li>Web publication updates an installed mobile app only where that installed version actually loads the Production web functionality. Do not assume every iOS or Android screen is remotely delivered.</li>
+<li>Native code, plugins, permissions, bundled assets, or delivery-configuration changes may require Capacitor synchronization, native builds, testing, and Apple/Google releases. Native release instructions require a separately verified platform workflow.</li>
+</ul>
+<p><strong>Never:</strong> force-push, <code>git reset --hard</code>, <code>git clean -fd</code>, bypass hooks with <code>--no-verify</code>, use <code>git push --all</code>, or overwrite customer data/storage to make a routine release succeed.</p>
+<p><small>Prepared from the Development repository, its guarded push policy, current build/validation scripts, and Replit publishing documentation. No push, PR, merge, pull, installation, build, Production workspace operation, database operation, or publication was executed while preparing this guide.</small></p>
+</main></body>
+</html>
