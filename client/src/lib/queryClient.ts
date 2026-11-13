@@ -109,6 +109,9 @@ export async function apiRequest<T = any>(
   });
 
   await throwIfResNotOk(res, { method, startedAt });
+  if (!["GET", "HEAD"].includes(method.toUpperCase())) {
+    void queryClient.invalidateQueries({ queryKey: ["/api/clinical-protocols"] });
+  }
   
   const contentType = res.headers.get("content-type");
   if (contentType && contentType.includes("text/html")) {

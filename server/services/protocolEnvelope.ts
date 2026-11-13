@@ -65,6 +65,7 @@ import {
   type DiabetesGenerationAttempt,
 } from "./diabetesGenerationSnapshot";
 import { buildUniversalConditionGuidance } from "./universalMedicalGuidance";
+import { normalizeClinicalProtocols } from "@shared/clinicalProtocolIdentity";
 import { projectOncologyRecommendationContext } from "./guardrails/prompt/oncologyRecommendationContext";
 import { readDevelopmentPersonalFoodSupports } from "./healthProtocols/developmentFoodSupports";
 import { optionalAntiInflammatoryViolations } from "./healthProtocols/antiInflammatorySupportValidation";
@@ -1098,7 +1099,7 @@ export async function loadUserProtocolEnvelope(
     // gets its guidance block injected simultaneously via buildUniversalConditionGuidance.
     // Falls back to single specialtyCondition value for backward compat with existing users.
     const _rawSpecialtyConditions: string[] = ((user as any).specialtyConditions as string[] | null) ?? [];
-    const specialtyConditionsArr: string[] = _rawSpecialtyConditions.length > 0
+    const specialtyConditionsArrRaw: string[] = _rawSpecialtyConditions.length > 0
       ? _rawSpecialtyConditions
       : (user.specialtyCondition ? [user.specialtyCondition] : []);
     // Also pull 'glp1' out of medicalConditions so diabetic-builder generation stacks the GLP-1
@@ -1136,7 +1137,8 @@ export async function loadUserProtocolEnvelope(
         ? { status: "success", value: [...personalSupports] as string[], basis: "stored" }
         : { status: "absent", reasonCode: "successful_empty_read" });
     }
-    const mergedHealthConditions = [...new Set([
+    const specialtyConditionsArr = normalizeClinicalProtocols(specialtyConditionsArrRaw);
+    const mergedHealthConditions = normalizeClinicalProtocols([
       ...(currentAuthority
         ? healthConditions.filter((c) => !GLP1_MC_KEYS.has(c.toLowerCase()))
         : healthConditions),
@@ -1147,7 +1149,7 @@ export async function loadUserProtocolEnvelope(
       ...(personalSupports.has("anti_inflammatory") &&
         user.selectedMealBuilder !== "anti_inflammatory" &&
         user.selectedMealBuilder !== "anti-inflammatory" ? ["anti-inflammatory"] : []),
-    ])];
+    ]);
     const dislikedFoods: string[] = (user.dislikedFoods as string[]) || [];
     const avoidedFoods: string[] = (user.avoidedFoods as string[]) || [];
     let likedFoods: string[] = (user.likedFoods as string[]) || [];

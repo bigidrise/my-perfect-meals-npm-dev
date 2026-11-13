@@ -71,6 +71,8 @@ import { deriveCompPrepStatus } from "./services/protocol/competitionPrepDateEng
 import { getActiveNutritionContext } from "./services/nutritionContext/getActiveNutritionContext";
 import { getLabDrivenConditions, getPhysicianLockStatus } from "./services/labProtocolOwnership";
 import cardiacLabChoiceRouter from "./routes/cardiacLabChoice";
+import effectiveClinicalProtocolsRouter from "./routes/effectiveClinicalProtocols";
+import { normalizeClinicalProtocols } from "@shared/clinicalProtocolIdentity";
 import { 
   hasUserSetPin, 
   setUserPin, 
@@ -4539,7 +4541,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         backAt: (user as any).backAt?.toISOString?.() ?? (user as any).backAt ?? null,
         oncologySupportIntent: user.oncologySupportIntent ?? null,
         specialtyCondition: user.specialtyCondition ?? null,
-        specialtyConditions: ((user as any).specialtyConditions as string[]) ?? [],
+        specialtyConditions: normalizeClinicalProtocols([
+          ...(user.specialtyConditions ?? []), ...(user.specialtyCondition ? [user.specialtyCondition] : []),
+        ]),
         thyroidType: (user as any).thyroidType ?? null,
         thyroidMedication: user.thyroidMedication ?? null,
         oncologySupportContext: user.oncologySupportContext ?? null,
@@ -4634,6 +4638,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // PATCH /api/user/specialty-condition
   app.use("/api/user", cardiacLabChoiceRouter());
+  app.use("/api/clinical-protocols", effectiveClinicalProtocolsRouter());
 
   // PATCH /api/user/specialty-condition
   // Saves the user's self-selected specialty health protocol(s).
@@ -4650,6 +4655,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = authReq.authUser.id;
       const ALLOWED = SELF_SELECTABLE_SPECIALTY_CONDITIONS;
       let { condition, conditions, oncologySupport } = req.body;
+      if (Array.isArray(conditions)) conditions = normalizeClinicalProtocols(conditions);
+      if (typeof condition === "string") condition = normalizeClinicalProtocols([condition])[0];
       if (!PREGNANCY_CUSTOMER_AVAILABLE) {
         const [stored] = await db.select({
           conditions: users.specialtyConditions,
@@ -5366,6 +5373,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isTrainerPro = ["trainer", "physician"].includes(trainer?.professionalRole || "");
       if (!trainer || (!isCoachOrAdmin && !isTrainerPro)) {
         return res.status(403).json({ error: "Only coaches and admins can assign pro builders" });
+      }
+
+      const { canReadClinicalProtocolIndicators } = await import("./routes/effectiveClinicalProtocols");
+      if (trainerId === clientId || !await canReadClinicalProtocolIndicators(trainerId, clientId)) {
+        return res.status(403).json({ error: "An exact active client relationship is required." });
+      }
+      if (["weekly", "diabetic", "glp1", "anti_inflammatory"].includes(builder)) {
+        const { verifyClinicalAccess } = await import("./utils/verifyClinicalAccess");
+        const [space] = await db.select({ type: studios.type }).from(studios)
+          .where(eq(studios.ownerUserId, trainerId)).limit(1);
+        if (trainer.professionalRole !== "physician" || space?.type !== "clinic" ||
+            !await verifyClinicalAccess(trainerId, clientId)) {
+          return res.status(403).json({ error: "Verified physician clinical authority is required." });
+        }
       }
 
       const result = await assignBuilder(trainerId, clientId, builder);

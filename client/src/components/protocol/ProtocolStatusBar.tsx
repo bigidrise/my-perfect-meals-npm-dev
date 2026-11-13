@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useEffectiveClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
 
 type ThyroidType = "hypothyroid" | "hyperthyroid" | "hashimotos" | null;
 
@@ -111,8 +112,7 @@ interface ProtocolStatusBarProps {
 export default function ProtocolStatusBar({ className = "" }: ProtocolStatusBarProps) {
   const { user } = useAuth();
 
-  const specialtyConditions: string[] =
-    ((user as any)?.specialtyConditions as string[] | undefined) ?? [];
+  const { protocols: specialtyConditions } = useEffectiveClinicalProtocols(user?.id);
   const thyroidType: ThyroidType =
     ((user as any)?.thyroidType as ThyroidType) ?? null;
 

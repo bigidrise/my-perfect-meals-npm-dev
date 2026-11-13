@@ -1,5 +1,6 @@
 import PillButton from "@/components/ui/pill-button";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { refreshClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
 import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -59,6 +60,7 @@ export default function ClinicalProtocolCard({
         }
       );
       if (!res.ok) throw new Error("Failed");
+      refreshClinicalProtocols();
       setLocalThyroidType(subtype);
       onUpdate?.();
       toast({ title: "Thyroid subtype updated" });
@@ -84,6 +86,7 @@ export default function ClinicalProtocolCard({
       if (!res.ok) throw new Error("Failed");
       onUpdate?.();
       toast({ title: active ? "Hormone Optimization assigned" : "Hormone Optimization removed" });
+      refreshClinicalProtocols();
     } catch {
       toast({ title: "Could not update hormone optimization", variant: "destructive" });
     } finally {

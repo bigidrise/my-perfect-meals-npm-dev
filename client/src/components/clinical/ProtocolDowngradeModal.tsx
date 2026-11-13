@@ -6,6 +6,7 @@ import { Loader2, CheckCircle2, BookOpen, TrendingUp } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import type { LabDowngradeSignal } from "@shared/clinical/protocolDecision";
+import { refreshClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
 
 const CITATIONS: Record<string, string> = {
   "thyroid-support": "ATA / AACE / Endocrine Society Guidelines",
@@ -41,6 +42,7 @@ interface ProtocolDowngradeModalProps {
   signal: LabDowngradeSignal;
   labId: number | null;
   onRemoved: () => void;
+  physicianLocked?: boolean;
 }
 
 export default function ProtocolDowngradeModal({
@@ -49,13 +51,16 @@ export default function ProtocolDowngradeModal({
   signal,
   labId,
   onRemoved,
+  physicianLocked = false,
 }: ProtocolDowngradeModalProps) {
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   const citation = CITATIONS[signal.protocol];
 
   async function postDecision(status: "removed" | "advisory") {
     setBusy(true);
+    setError("");
     try {
       const res = await fetch(apiUrl("/api/biometrics/labs/recommendation"), {
         method: "POST",
@@ -69,17 +74,15 @@ export default function ProtocolDowngradeModal({
         }),
       });
       if (!res.ok) throw new Error("Request failed");
+      refreshClinicalProtocols();
+      if (status === "removed") onRemoved();
+      else onClose();
     } catch {
-      // non-fatal — decision is advisory
+      setError("This decision was not saved. Your protocol was not changed. Refresh or contact your care team for review.");
     } finally {
       setBusy(false);
     }
 
-    if (status === "removed") {
-      onRemoved();
-    } else {
-      onClose();
-    }
   }
 
   return (
@@ -91,14 +94,14 @@ export default function ProtocolDowngradeModal({
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="w-5 h-5 text-emerald-400 shrink-0" />
               <span className="text-[10px] font-semibold tracking-widest text-emerald-400/80 uppercase">
-                Great News
+                Review your nutrition guidance
               </span>
             </div>
             <DialogTitle className="text-white text-xl font-bold leading-snug">
-              Your numbers are back to normal range.
+              Review the measurements you entered.
             </DialogTitle>
             <DialogDescription className="text-emerald-300/70 text-sm mt-1">
-              {signal.protocolLabel} — based on your most recent lab values
+              {signal.protocolLabel} — this entry does not establish that a medical condition has resolved
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -149,6 +152,8 @@ export default function ProtocolDowngradeModal({
         </div>
 
         {/* Footer buttons */}
+        {error && <p role="alert" className="px-6 text-sm text-red-300">{error}</p>}
+        {physicianLocked && <p className="px-6 text-sm text-amber-200">Your clinical assignments require care-team review. This entry does not authorize stopping physician-directed guidance.</p>}
         <div className="px-6 pb-6 pt-2 flex gap-3">
           <Button
             className="flex-1 bg-white/10 border border-white/15 text-white font-semibold active:bg-white/20 transition"
@@ -160,11 +165,11 @@ export default function ProtocolDowngradeModal({
           </Button>
           <Button
             className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold"
-            disabled={busy}
+            disabled={busy || physicianLocked}
             onClick={() => postDecision("removed")}
           >
             {busy && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-            Deactivate {signal.protocolLabel}
+            Turn Off Self-Managed {signal.protocolLabel}
           </Button>
         </div>
     </UniversalDialog>

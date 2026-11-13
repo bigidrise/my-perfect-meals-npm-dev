@@ -13,6 +13,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import i18n, { resolveI18nLang } from "@/i18n";
 import { isGuestMode, getGuestSession } from "@/lib/guestMode";
 import { setUserContext, clearUserContext } from "@/lib/sentry";
+import { refreshClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
 import { clearNutritionCache } from "@/hooks/nutritionStateCache";
 import { isExactPublicMarketingRoute } from "@/lib/publicRoutePolicy";
 import { createSingleFlight } from "@/lib/singleFlight";
@@ -199,6 +200,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           localStorage.removeItem("mpm:oncologySupportIntent");
         }
         setUser(updatedUser);
+        refreshClinicalProtocols();
         setInitializationError(false);
         setCachedUser(updatedUser);
         setUserContext(String(updatedUser.id), updatedUser.email);

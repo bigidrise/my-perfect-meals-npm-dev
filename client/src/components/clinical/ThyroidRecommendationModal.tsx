@@ -7,6 +7,7 @@ import { Loader2, FlaskConical, BookOpen, Activity } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import type { ThyroidLabSignal } from "@shared/clinical/protocolDecision";
+import { refreshClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
 
 const CITATION = "ATA / AACE / Endocrine Society Guidelines";
 
@@ -34,6 +35,7 @@ interface ThyroidRecommendationModalProps {
   signal: ThyroidLabSignal;
   labId: number | null;
   onAccepted: () => void;
+  physicianLocked?: boolean;
 }
 
 export default function ThyroidRecommendationModal({
@@ -42,15 +44,18 @@ export default function ThyroidRecommendationModal({
   signal,
   labId,
   onAccepted,
+  physicianLocked = false,
 }: ThyroidRecommendationModalProps) {
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   const confColor = CONFIDENCE_COLOR[signal.confidence] ?? CONFIDENCE_COLOR.low;
 
   async function postDecision(status: "accepted" | "rejected") {
     setBusy(true);
+    setError("");
     try {
-      await fetch(apiUrl("/api/biometrics/labs/recommendation"), {
+      const response = await fetch(apiUrl("/api/biometrics/labs/recommendation"), {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
@@ -63,17 +68,16 @@ export default function ThyroidRecommendationModal({
           reason: signal.reason,
         }),
       });
+      if (!response.ok) throw new Error("This decision could not be saved. Your protocol was not changed.");
+      refreshClinicalProtocols();
+      if (status === "accepted") onAccepted();
+      else onClose();
     } catch {
-      // non-fatal — recommendation is advisory
+      setError("This decision could not be saved. Your protocol was not changed. Contact your care team if review is required.");
     } finally {
       setBusy(false);
     }
 
-    if (status === "accepted") {
-      onAccepted();
-    } else {
-      onClose();
-    }
   }
 
   return (
@@ -143,6 +147,8 @@ export default function ThyroidRecommendationModal({
           </div>
         </div>
 
+        {error && <p role="alert" className="px-6 text-sm text-red-300">{error}</p>}
+        {physicianLocked && <p className="px-6 text-sm text-amber-200">Your clinical assignments require care-team review before activation.</p>}
         <div className="px-6 pb-6 pt-2 flex gap-3">
           <Button
             className="flex-1 bg-white/10 border border-white/20 text-white hover:bg-white/20 active:bg-white/30 transition"
@@ -154,8 +160,8 @@ export default function ThyroidRecommendationModal({
           </Button>
           <Button
             className="flex-1 bg-teal-700 hover:bg-teal-600 text-white font-semibold"
-            disabled={busy}
-            onClick={() => postDecision("accepted")}
+            disabled={busy || physicianLocked}
+            onClick={() => { if (!physicianLocked) void postDecision("accepted"); }}
           >
             {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
             Activate Thyroid Support
