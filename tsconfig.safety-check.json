@@ -1,6 +1,16 @@
 {
   "extends": "./tsconfig.json",
   "include": [
+    "shared/clinicalProtocolIdentity.ts",
+    "shared/clinical/clinicalModeResolver.ts",
+    "server/services/clinicalProtocolAuthority.ts",
+    "server/services/clinicalProtocolProvenance.ts",
+    "server/routes/effectiveClinicalProtocols.ts",
+    "server/routes/clinicalLabs.ts",
+    "client/src/hooks/useEffectiveClinicalProtocols.ts",
+    "client/src/components/clinical/ProtocolRecommendationModal.tsx",
+    "client/src/components/clinical/ProtocolDowngradeModal.tsx",
+    "client/src/components/clinical/ThyroidRecommendationModal.tsx",
     "server/services/imageDeliveryRecovery.ts",
     "server/services/organizationPaidContinuationPolicy.ts",
     "server/services/organizationCheckoutConsent.ts",

@@ -859,3 +859,31 @@ mtime_ms = 1794447022154
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/1aff45f3-69ed-492a-98fa-bd7043f60ec3/4422b5fa-6a36-4812-b058-4d5d7c771d5d"
 storage_version_token = "1794447045957093"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "roDkLZ4LoJ6BkYriPE_6r"
+uri = "file://docs/clinical-protocol-repair-review.html"
+type = "html"
+title = "Clinical Protocol Repair — Verified Results and Release Hold"
+description = "Updated Development review: all 17 identities, advisory-only decisions, ownership protection, 389 passing tests, type evidence, and the remaining authenticated acceptance checks."
+logical_id = "f777ec13-b5b4-4c13-81a2-af77af9b7765"
+content_hash = "sha256:8de5dceca328337c2be3236bddeb15faa07203fbe878ef77e8c5d84e4147497a"
+size = 12467
+mtime_ms = 1794604009979
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/f777ec13-b5b4-4c13-81a2-af77af9b7765/7d2bc1b4-d1e9-4218-8b36-181d65caa762"
+storage_version_token = "1794604044096488"
+content_type = "text/html"
+
+[[outputs]]
+id = "9W26u8r_wcRCv03wPR93b"
+uri = "file://docs/shell-release-cheat-sheet.html"
+type = "html"
+title = "My Perfect Meals — Shell Release Cheat Sheet"
+description = "Copyable Development and Production instructions: guarded dev push, create/review/merge PRs from the Shell, verify the exact approved commit, republish, and handle stopped synchronizations safely."
+logical_id = "a746a83d-23f5-48ea-bf3f-88d302ddf569"
+content_hash = "sha256:13e974caebec781caa716d344e88fef49902ed019872894db052b200339a5bce"
+size = 15395
+mtime_ms = 1794606065698
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/a746a83d-23f5-48ea-bf3f-88d302ddf569/38841dcd-c676-40cb-9355-e8a47c5a5657"
+storage_version_token = "1794606087015138"
+content_type = "text/html"

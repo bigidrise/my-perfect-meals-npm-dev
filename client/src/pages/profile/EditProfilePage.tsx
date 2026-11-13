@@ -1350,9 +1350,9 @@ export default function EditProfilePage() {
                     <div className="flex items-start gap-2">
                       <Lock className="h-3.5 w-3.5 text-amber-400 mt-0.5 shrink-0" />
                       <div>
-                        <p className="text-amber-300 text-xs font-semibold mb-0.5">Protocol Controlled by Your Physician</p>
+                        <p className="text-amber-300 text-xs font-semibold mb-0.5">Clinical Protocol Review Required</p>
                         <p className="text-white/60 text-xs leading-relaxed">
-                          Your care team controls your active protocols while you are connected to them. Contact your physician to make changes.
+                          Your clinical settings include physician-directed or earlier clinical assignments. Contact your care team for review before changing them.
                         </p>
                       </div>
                     </div>
@@ -1379,7 +1379,7 @@ export default function EditProfilePage() {
                     const isLabDriven = labDrivenConditions.includes(opt.value);
                     const editableLabCardiac = opt.value === "cardiac" && isLabDriven && !physicianLocked;
                     const locked = isConditionLocked(opt.value) && !editableLabCardiac;
-                    const isActive = (specialtyConditions.includes(opt.value) || isLabDriven)
+                    const isActive = specialtyConditions.includes(opt.value)
                       && !(editableLabCardiac && cardiacLabOffPending);
                     return (
                       <PillButton

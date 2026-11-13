@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useEffectiveClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
+import { isClinicalIndicatorActive } from "@shared/clinicalProtocolIdentity";
 import { useTranslation } from "react-i18next";
 import { UniversalDialog } from "@/components/ui/universal-modal";
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -259,6 +261,7 @@ export default function ProClientFolderModal({
   const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
   const [resolvedStudioId, setResolvedStudioId] = useState<string | null>(null);
   const clientId = syntheticSource ? null : resolvedClientId || client?.clientUserId || client?.userId || null;
+  const { protocols: effectiveIndicatorProtocols } = useEffectiveClinicalProtocols(open ? clientId : null);
   const studioId = resolvedStudioId || client?.studioId || null;
   const hasDbBackedId = !!(client?.clientUserId || client?.userId);
 
@@ -328,7 +331,7 @@ export default function ProClientFolderModal({
   useEffect(() => {
     if (!open || !clientId) { setLabDerivedConditions([]); return; }
     let cancelled = false;
-    apiRequest(`/api/biometrics/labs/${clientId}`)
+    apiRequest(`/api/clinical-protocols/${clientId}`)
       .then((data) => {
         if (cancelled) return;
         const derived: string[] = [];
@@ -1152,7 +1155,7 @@ export default function ProClientFolderModal({
                   const allItems = [...conditions, ...row2];
                   return (
                     <>
-                      {conditions.map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
+                      {conditions.map(indicator => ({ ...indicator, isActive: isClinicalIndicatorActive(indicator.key, effectiveIndicatorProtocols) })).map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
                         <span
                           key={key}
                           className={`flex items-center gap-1 cursor-pointer select-none ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}
@@ -1172,7 +1175,7 @@ export default function ProClientFolderModal({
                       )}
                       <div className="w-full pt-1 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-white/5 mt-1">
                         <span className="text-[10px] font-medium text-white/50 w-full mb-0.5">Hormonal & Metabolic:</span>
-                        {row2.map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
+                        {row2.map(indicator => ({ ...indicator, isActive: isClinicalIndicatorActive(indicator.key, effectiveIndicatorProtocols) })).map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
                           <span
                             key={key}
                             className={`flex items-center gap-1 cursor-pointer select-none ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}

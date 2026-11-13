@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffectiveClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
+import { isClinicalIndicatorActive } from "@shared/clinicalProtocolIdentity";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
@@ -125,6 +127,7 @@ export default function TrainerClientDashboard() {
 
   const [client, setClient] = useState(() => proStore.getClient(clientId));
   const resolvedClientUserId = resolveVerifiedProClientUserId(client, clientId);
+  const { protocols: effectiveIndicatorProtocols } = useEffectiveClinicalProtocols(resolvedClientUserId);
   const activeClientUserIdRef = useRef<string | null>(resolvedClientUserId);
   activeClientUserIdRef.current = resolvedClientUserId;
   const [macros, setMacros] = useState<Targets>(() => proStore.getTargets(clientId));
@@ -343,7 +346,7 @@ export default function TrainerClientDashboard() {
         }
       })
       .catch(() => {});
-    apiRequest(`/api/biometrics/labs/${uid}`)
+    apiRequest(`/api/clinical-protocols/${uid}`)
       .then((data) => {
         if (!isCurrentVerifiedProClientRequest(activeClientUserIdRef.current, uid)) return;
         if (data?.labs) {
@@ -695,7 +698,7 @@ export default function TrainerClientDashboard() {
                     { key: "liver-disease",      label: "Liver Disease",     isActive: !!macros?.flags?.liverDisease     || labDerivedConditions.includes('liver-disease'),    activeColor: "text-amber-400",   dotColor: "bg-amber-400",   dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"   },
                     { key: "oncology-support",   label: "Oncology Support",  isActive: !!macros?.flags?.oncologySupport  || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
                     { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!macros?.flags?.thyroidSupport,                                                        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
-                  ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
+                  ].map(indicator => ({ ...indicator, isActive: isClinicalIndicatorActive(indicator.key, effectiveIndicatorProtocols) })).map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
                     <span key={key} className={`flex items-center gap-1 text-xs ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
                       <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
                       {label}
@@ -715,8 +718,8 @@ export default function TrainerClientDashboard() {
                     { key: "perimenopause",      label: "Perimenopause",     activeColor: "text-purple-400", dotColor: "bg-purple-400", dotGlow: "shadow-[0_0_4px_rgba(192,132,252,0.9)]" },
                     { key: "metabolic-recovery", label: "Metabolic Recovery", activeColor: "text-amber-400", dotColor: "bg-amber-400",  dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"  },
                   ].map(({ key, label, activeColor, dotColor, dotGlow }) => (
-                    <span key={key} className={`flex items-center gap-1 text-xs ${scConditions.includes(key) ? `${activeColor} font-semibold` : "text-white/25"}`}>
-                      <span className={`inline-block w-1.5 h-1.5 rounded-full ${scConditions.includes(key) ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                      <span key={key} className={`flex items-center gap-1 text-xs ${isClinicalIndicatorActive(key, effectiveIndicatorProtocols) ? `${activeColor} font-semibold` : "text-white/25"}`}>
+                      <span className={`inline-block w-1.5 h-1.5 rounded-full ${isClinicalIndicatorActive(key, effectiveIndicatorProtocols) ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
                       {label}
                     </span>
                   ))}

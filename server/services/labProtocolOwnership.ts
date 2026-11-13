@@ -27,8 +27,10 @@ import { db } from '../db';
 import { clinicalLabs } from '../db/schema/clinicalLabs';
 import { studioMemberships } from '../db/schema/studio';
 import { users } from '../../shared/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, or } from 'drizzle-orm';
 import { clinicalProtocolRecommendations } from '../db/schema/clinicalProtocolRecommendations';
+import { resolveClinicalProtocolAuthority } from './clinicalProtocolAuthority';
+import { normalizeClinicalProtocols } from '../../shared/clinicalProtocolIdentity';
 import {
   resolveProtocolFromLabs,
   resolveThyroidFromLabs,
@@ -59,8 +61,8 @@ export async function discontinueLabDrivenCardiac(userId: string): Promise<strin
     }).from(users).where(eq(users.id, userId)).for('update').limit(1);
     if (!user) throw new Error('Profile unavailable.');
 
-    const next = ((user.specialtyConditions as string[] | null) ??
-      (user.specialtyCondition ? [user.specialtyCondition] : []))
+    const next = normalizeClinicalProtocols([...(user.specialtyConditions ?? []),
+      ...(user.specialtyCondition ? [user.specialtyCondition] : [])])
       .filter((condition) => condition !== 'cardiac');
     await tx.insert(clinicalProtocolRecommendations).values({
       userId, recommendedProtocol: 'heart-failure', status: 'removed',
@@ -137,7 +139,8 @@ export async function getLabDrivenConditions(userId: string): Promise<string[]> 
           .where(and(
             eq(clinicalProtocolRecommendations.userId, userId),
             eq(clinicalProtocolRecommendations.recommendedProtocol, 'heart-failure'),
-            eq(clinicalProtocolRecommendations.reason, CARDIAC_LAB_CHOICE_REASON),
+            or(eq(clinicalProtocolRecommendations.reason, CARDIAC_LAB_CHOICE_REASON),
+              eq(clinicalProtocolRecommendations.reason, "subject_lab_cardiac_choice")),
           ))
           .orderBy(desc(clinicalProtocolRecommendations.id))
           .limit(1);
@@ -198,21 +201,6 @@ export async function getLabDrivenConditions(userId: string): Promise<string[]> 
  * with an assigned builder — meaning a physician controls their protocol.
  */
 export async function getPhysicianLockStatus(userId: string, failClosed = false): Promise<boolean> {
-  try {
-    const rows = await db
-      .select({ assignedBuilder: studioMemberships.assignedBuilder })
-      .from(studioMemberships)
-      .where(
-        and(
-          eq(studioMemberships.clientUserId, userId as any),
-          eq(studioMemberships.status, 'active'),
-          eq(studioMemberships.isArchived, false)
-        )
-      )
-      .limit(1);
-    return rows.length > 0 && !!rows[0].assignedBuilder;
-  } catch (error) {
-    if (failClosed) throw error;
-    return false;
-  }
+  // Keep the existing signature for callers; all failures now fail closed.
+  return (await resolveClinicalProtocolAuthority(userId)).selfModificationBlocked;
 }

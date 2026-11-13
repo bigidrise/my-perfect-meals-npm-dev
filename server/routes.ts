@@ -71,6 +71,8 @@ import { deriveCompPrepStatus } from "./services/protocol/competitionPrepDateEng
 import { getActiveNutritionContext } from "./services/nutritionContext/getActiveNutritionContext";
 import { getLabDrivenConditions, getPhysicianLockStatus } from "./services/labProtocolOwnership";
 import cardiacLabChoiceRouter from "./routes/cardiacLabChoice";
+import effectiveClinicalProtocolsRouter from "./routes/effectiveClinicalProtocols";
+import { normalizeClinicalProtocols } from "@shared/clinicalProtocolIdentity";
 import { 
   hasUserSetPin, 
   setUserPin, 
@@ -4539,7 +4541,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         backAt: (user as any).backAt?.toISOString?.() ?? (user as any).backAt ?? null,
         oncologySupportIntent: user.oncologySupportIntent ?? null,
         specialtyCondition: user.specialtyCondition ?? null,
-        specialtyConditions: ((user as any).specialtyConditions as string[]) ?? [],
+        specialtyConditions: normalizeClinicalProtocols([
+          ...(user.specialtyConditions ?? []), ...(user.specialtyCondition ? [user.specialtyCondition] : []),
+        ]),
         thyroidType: (user as any).thyroidType ?? null,
         thyroidMedication: user.thyroidMedication ?? null,
         oncologySupportContext: user.oncologySupportContext ?? null,
@@ -4634,6 +4638,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // PATCH /api/user/specialty-condition
   app.use("/api/user", cardiacLabChoiceRouter());
+  app.use("/api/clinical-protocols", effectiveClinicalProtocolsRouter());
 
   // PATCH /api/user/specialty-condition
   // Saves the user's self-selected specialty health protocol(s).
@@ -4650,6 +4655,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = authReq.authUser.id;
       const ALLOWED = SELF_SELECTABLE_SPECIALTY_CONDITIONS;
       let { condition, conditions, oncologySupport } = req.body;
+      if (Array.isArray(conditions)) conditions = normalizeClinicalProtocols(conditions);
+      if (typeof condition === "string") condition = normalizeClinicalProtocols([condition])[0];
       if (!PREGNANCY_CUSTOMER_AVAILABLE) {
         const [stored] = await db.select({
           conditions: users.specialtyConditions,
@@ -4680,10 +4687,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // ── Tier 2: Lab-value lock — preserve lab-driven conditions ─────────────
-      // Conditions triggered by objective lab values cannot be silently removed
-      // via profile edit. We fetch the current lab-driven set and merge it into
-      // whatever the user submits, so lab-driven conditions always survive.
-      const labDriven = await getLabDrivenConditions(userId);
+      // Measurements remain intact regardless of the member's nutrition choice.
+      // Saved measurements inform recommendations; only an explicit choice
+      // activates nutrition. Physician authority was checked above.
 
       // ── Tier 3: Self-select — apply the change ────────────────────────────
       // Multi-condition path: conditions[]
@@ -4713,8 +4719,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
         }
-        // Merge: preserve any lab-driven conditions even if user omitted them
-        const merged = Array.from(new Set([...conditions, ...labDriven]));
+        // Persist the explicit selection, never automatically activate raw lab signals.
+        const merged = Array.from(new Set<string>(conditions));
         const primaryCondition = merged.length > 0 ? merged[0] : null;
         if (oncologySymptomPriorityEnabled()) {
           const saved = await saveConsumerSpecialtySupport(userId, merged, oncologySupport);
@@ -4724,7 +4730,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           specialtyCondition: primaryCondition,
           specialtyConditions: merged,
         } as any).where(eq(users.id, userId));
-        console.log(`[specialty-condition] User ${userId} multi-set → ${merged.length} conditions (${labDriven.length} lab-protected)`);
+        console.log(`[specialty-condition] User ${userId} multi-set → ${merged.length} explicitly selected conditions`);
         return res.json({ ok: true, specialtyConditions: merged, specialtyCondition: primaryCondition });
       }
       if (condition === "pregnancy-support") {
@@ -4754,7 +4760,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       // Merge single-condition with lab-driven set
       const baseArray = condition ? [condition] : [];
-      const newArray = Array.from(new Set([...baseArray, ...labDriven]));
+      const newArray = Array.from(new Set(baseArray));
       if (oncologySymptomPriorityEnabled()) {
         const saved = await saveConsumerSpecialtySupport(userId, newArray, oncologySupport);
         return res.json({ ok: true, specialtyCondition: saved.conditions[0] ?? null, specialtyConditions: saved.conditions, oncologySupportContext: saved.context });
@@ -4797,11 +4803,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const ALLOWED_TYPES = ["hypothyroid", "hyperthyroid", "hashimotos"];
       const { thyroidType } = req.body;
+      if (thyroidType != null && !ALLOWED_TYPES.includes(thyroidType)) return res.status(400).json({ error: "Invalid thyroid subtype." });
       const value = thyroidType === null || thyroidType === undefined
         ? null
         : ALLOWED_TYPES.includes(thyroidType) ? thyroidType : null;
 
-      await db.update(users).set({ thyroidType: value } as any).where(eq(users.id, clientUserId as any));
+      await db.transaction(async tx => {
+        const [current] = await tx.select({ id: users.id }).from(users)
+          .where(eq(users.id, clientUserId)).for("update").limit(1);
+        if (!current) throw new Error("Clinical profile unavailable.");
+        await tx.update(users).set({ thyroidType: value }).where(eq(users.id, clientUserId));
+        const { recordClinicalProtocolDecision } = await import("./services/clinicalProtocolProvenance");
+        await recordClinicalProtocolDecision(tx, clientUserId, "thyroid-support",
+          value ? "accepted" : "removed", "physician");
+      });
       console.log(`[pro/thyroid-type] Physician ${physicianId} set thyroidType → ${value ?? "cleared"} for user ${clientUserId}`);
       res.json({ ok: true, thyroidType: value });
     } catch (error: any) {
@@ -4833,21 +4848,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw error;
       }
 
-      const [clientRow] = await db
-        .select({ specialtyConditions: users.specialtyConditions })
-        .from(users)
-        .where(eq(users.id, clientUserId as any))
-        .limit(1);
-
-      const current = (clientRow?.specialtyConditions as string[]) ?? [];
-      const next = active
-        ? current.includes("hormone-optimization") ? current : [...current, "hormone-optimization"]
-        : current.filter((c) => c !== "hormone-optimization");
-
-      await db
-        .update(users)
-        .set({ specialtyConditions: next, updatedAt: new Date() } as any)
-        .where(eq(users.id, clientUserId as any));
+      if (typeof active !== "boolean") return res.status(400).json({ error: "An explicit active boolean is required." });
+      const next = await db.transaction(async tx => {
+        const [clientRow] = await tx.select({
+          specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition,
+        }).from(users).where(eq(users.id, clientUserId)).for("update").limit(1);
+        if (!clientRow) throw new Error("Clinical profile unavailable.");
+        const { changeClinicalProtocols } = await import("@shared/clinicalProtocolIdentity");
+        const conditions = changeClinicalProtocols([
+          ...(clientRow.specialtyConditions ?? []), ...(clientRow.specialtyCondition ? [clientRow.specialtyCondition] : []),
+        ], "hormone-optimization", active ? "accepted" : "removed");
+        await tx.update(users).set({ specialtyConditions: conditions, specialtyCondition: conditions[0] ?? null })
+          .where(eq(users.id, clientUserId));
+        const { recordClinicalProtocolDecision } = await import("./services/clinicalProtocolProvenance");
+        await recordClinicalProtocolDecision(tx, clientUserId, "hormone-optimization",
+          active ? "accepted" : "removed", "physician");
+        return conditions;
+      });
 
       console.log(`[pro/hormone-optimization] Physician ${physicianId} ${active ? "assigned" : "removed"} hormone-optimization for user ${clientUserId}`);
       res.json({ ok: true, active: !!active, specialtyConditions: next });
@@ -4864,12 +4881,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
+      const { getPhysicianLockStatus: thyroidAuthorityLocked } = await import("./services/labProtocolOwnership");
+      if (await thyroidAuthorityLocked(userId, true)) {
+        return res.status(403).json({ code: "clinical_review_required", error: "Your care team must review changes to physician-directed thyroid settings." });
+      }
       const ALLOWED_TYPES = ["hypothyroid", "hyperthyroid", "hashimotos"];
       const { thyroidType } = req.body;
+      if (thyroidType != null && !ALLOWED_TYPES.includes(thyroidType)) return res.status(400).json({ error: "Invalid thyroid subtype." });
       const value = thyroidType === null || thyroidType === undefined
         ? null
         : ALLOWED_TYPES.includes(thyroidType) ? thyroidType : null;
-      await db.update(users).set({ thyroidType: value } as any).where(eq(users.id, userId));
+      await db.transaction(async tx => {
+        const [current] = await tx.select({ id: users.id }).from(users)
+          .where(eq(users.id, userId)).for("update").limit(1);
+        if (!current) throw new Error("Clinical profile unavailable.");
+        if (await thyroidAuthorityLocked(userId, true)) throw new Error("Clinical authority changed. Your care team must review this change.");
+        await tx.update(users).set({ thyroidType: value }).where(eq(users.id, userId));
+        const { recordClinicalProtocolDecision } = await import("./services/clinicalProtocolProvenance");
+        await recordClinicalProtocolDecision(tx, userId, "thyroid-support",
+          value ? "accepted" : "removed", "self");
+      });
       console.log(`[thyroid-type] User ${userId} set → ${value ?? "cleared"}`);
       res.json({ ok: true, thyroidType: value });
     } catch (error: any) {
@@ -5366,6 +5397,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isTrainerPro = ["trainer", "physician"].includes(trainer?.professionalRole || "");
       if (!trainer || (!isCoachOrAdmin && !isTrainerPro)) {
         return res.status(403).json({ error: "Only coaches and admins can assign pro builders" });
+      }
+
+      const { canReadClinicalProtocolIndicators } = await import("./routes/effectiveClinicalProtocols");
+      if (trainerId === clientId || !await canReadClinicalProtocolIndicators(trainerId, clientId)) {
+        return res.status(403).json({ error: "An exact active client relationship is required." });
+      }
+      if (["weekly", "diabetic", "glp1", "anti_inflammatory"].includes(builder)) {
+        const { verifyClinicalAccess } = await import("./utils/verifyClinicalAccess");
+        const [space] = await db.select({ type: studios.type }).from(studios)
+          .where(eq(studios.ownerUserId, trainerId)).limit(1);
+        if (trainer.professionalRole !== "physician" || space?.type !== "clinic" ||
+            !await verifyClinicalAccess(trainerId, clientId)) {
+          return res.status(403).json({ error: "Verified physician clinical authority is required." });
+        }
       }
 
       const result = await assignBuilder(trainerId, clientId, builder);

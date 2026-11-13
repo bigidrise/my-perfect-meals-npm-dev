@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffectiveClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
+import { isClinicalIndicatorActive } from "@shared/clinicalProtocolIdentity";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -123,7 +125,7 @@ import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { getBuilderProtocolBadges } from "@/lib/nutritionPersonalization";
 
 import type { ClinicalMode } from "../../../../shared/schema/weeklyBoard";
-import { resolveClinicalModeFromFlags } from "@shared/clinical/clinicalModeResolver";
+import { resolveClinicalModeFromProtocols } from "@shared/clinical/clinicalModeResolver";
 import type { ProtocolBadge } from "@shared/clinical/clinicalModeResolver";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -181,22 +183,17 @@ export default function AntiInflammatoryMenuBuilder() {
   const [weekStartISO, setWeekStartISO] =
     React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
 
-  // Clinical mode is FLAG-DRIVEN — physician sets flags in clinical dashboard.
-  // resolveClinicalModeFromFlags reads flags and picks the correct mode + namespace.
-  const [clinicalModeState, setClinicalModeState] = React.useState<ClinicalMode>(
-    () => resolveClinicalModeFromFlags(nutritionTargets.flags).mode
-  );
-
+  // Mode, namespace and indicators share verified subject-owned protocol status.
   // Tracks thyroid support when user self-selected via edit page / onboarding.
   // This is separate from primary clinicalModeState because thyroid is an
   // additive modifier — it never changes the primary mode.
-  const [thyroidFromSpecialtyCondition, setThyroidFromSpecialtyCondition] = React.useState(false);
-  const [scConditions, setScConditions] = React.useState<string[]>([]);
+  const { protocols: scConditions } = useEffectiveClinicalProtocols(householdProfileId ? null : effectiveUserId);
+  const thyroidFromSpecialtyCondition = scConditions.some(c => ["thyroid-support", "hashimotos", "hypothyroid", "hyperthyroid"].includes(c));
 
   // Tracks ALL active specialty/lab-derived conditions for multi-protocol indicator display.
   // clinicalModeState can only hold ONE primary mode (the highest-priority one), but this
   // array accumulates every active condition so all indicator dots light up simultaneously.
-  const [labDerivedConditions, setLabDerivedConditions] = React.useState<string[]>([]);
+  const labDerivedConditions = scConditions.flatMap(c => c === "cardiac" ? ["cardiac", "heart-failure"] : c === "renal" ? ["renal", "kidney-disease"] : [c]);
 
   // Redirect legacy clinical routes to canonical anti-inflammatory route.
   // Mode is now determined by physician flags, not by URL path.
@@ -208,137 +205,13 @@ export default function AntiInflammatoryMenuBuilder() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchesKidney, matchesHeart, matchesLiverDisease]);
 
-  // Re-resolve mode when client context hydrates (handles page refresh)
-  useEffect(() => {
-    if (!effectiveUserId) return;
-    const flags = nutritionTargets.flags;
-    const { mode } = resolveClinicalModeFromFlags(flags);
-    setClinicalModeState(mode);
-  }, [effectiveUserId]);
-
   const resolvedProtocol = useMemo(
-    () => resolveClinicalModeFromFlags({
-      ...nutritionTargets.flags,
-      // Bridge: user self-selected thyroid via edit page / onboarding.
-      // Merge it into the flags so the modifier badge and indicator light fire.
-      ...(thyroidFromSpecialtyCondition ? { thyroidSupport: true } : {}),
-    }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [effectiveUserId, clinicalModeState, thyroidFromSpecialtyCondition]
+    () => resolveClinicalModeFromProtocols(scConditions, nutritionTargets.flags),
+    [nutritionTargets.flags, scConditions, thyroidFromSpecialtyCondition]
   );
 
   const namespace = resolvedProtocol.namespace;
-
-  // -----------------------------------------------------------------------
-  // Lab-derived mode update
-  // When no physician flags are set, read the server protocolSignal and update
-  // clinicalModeState so the badge, namespace, and guardrails all stay in sync.
-  // clinicalModeState is the single source of truth — badge derived from it below.
-  // -----------------------------------------------------------------------
-  useEffect(() => {
-    if (!effectiveUserId) return;
-    // Skip the server fetch only when a physician badge is set AND it is NOT oncology.
-    // Oncology ALWAYS requires server validation because the flag can originate from a
-    // stale localStorage entry left over after a physician disconnected — the DB is the
-    // authoritative source for whether oncology support is currently enabled.
-    const hasNonOncologyPhysicianBadge =
-      resolvedProtocol.primaryBadge !== null &&
-      resolvedProtocol.mode !== 'oncology-support';
-    if (hasNonOncologyPhysicianBadge) return;
-
-    let cancelled = false;
-    apiRequest(`/api/biometrics/labs/${effectiveUserId}`)
-      .then((data) => {
-        console.log("[AntiInflamBuilder] Lab protocol status received");
-        if (cancelled) return;
-
-        // Physician-assigned oncology takes precedence over lab-derived protocol signal
-        if (data?.oncologySupportEnabled) {
-          console.log("[AntiInflamBuilder] Oncology support status active");
-          setClinicalModeState('oncology-support');
-          return;
-        }
-
-        // Protocol Ownership Model: server says oncology is OFF, but proStore may have a stale flag.
-        // Strip it so future renders don't re-activate the protocol.
-        if (!data?.oncologySupportEnabled && resolvedProtocol.mode === 'oncology-support') {
-          try {
-            const clientMap: Record<string, string> = JSON.parse(
-              localStorage.getItem("mpm_user_client_map") || "{}"
-            );
-            const clientId = clientMap[effectiveUserId];
-            if (clientId) {
-              const stripped = proStore.stripMedicalFlags(clientId);
-              if (stripped) {
-                console.log("[AntiInflamBuilder] Stale oncology status cleared");
-              }
-            }
-          } catch {/* localStorage may be unavailable */}
-          setClinicalModeState('anti-inflammatory');
-          return;
-        }
-
-        // User self-selected specialty condition — higher priority than lab-derived signal.
-        // Check BOTH specialtyCondition (singular) and specialtyConditions (array) so that
-        // lab-based thyroid writes (which populate both fields) always light the indicator.
-        // Use .length check (not ??) so an empty specialtyConditions array
-        // still falls through to the singular specialtyCondition field.
-        const scArr: string[] = (data?.specialtyConditions as string[])?.length
-          ? (data.specialtyConditions as string[])
-          : data?.specialtyCondition ? [data.specialtyCondition] : [];
-        // Bridge: set thyroid modifier regardless of which field carried the value.
-        if (
-          data?.specialtyCondition === 'thyroid-support' ||
-          scArr.includes('thyroid-support')
-        ) {
-          setThyroidFromSpecialtyCondition(true);
-        }
-        setScConditions(scArr);
-
-        // Multi-protocol indicator: track ALL specialty conditions so every active
-        // dot lights up simultaneously — not just the single highest-priority mode.
-        const SC_TO_INDICATOR: Record<string, string> = {
-          'cardiac':          'heart-failure',
-          'renal':            'kidney-disease',
-          'liver-disease':    'liver-disease',
-          'liver-support':    'liver-support',
-          'oncology-support': 'oncology-support',
-        };
-        const allDerived = scArr
-          .map((sc) => SC_TO_INDICATOR[sc])
-          .filter(Boolean) as string[];
-        if (allDerived.length > 0) setLabDerivedConditions(allDerived);
-
-        if (data?.specialtyCondition) {
-          const conditionModeMap: Record<string, ClinicalMode> = {
-            'renal':            'kidney-disease',
-            'cardiac':          'heart-failure',
-            'liver-disease':    'liver-disease',
-            'liver-support':    'liver-support',
-            'oncology-support': 'oncology-support',
-            // Thyroid is an ADDITIVE MODIFIER — it resolves as base anti-inflammatory
-            // at the primary mode level. The teal indicator light and modifier badge
-            // (from clinicalModeResolver.ts) signal the modifier is active.
-            'thyroid-support':  'anti-inflammatory',
-          };
-          const mappedMode = conditionModeMap[data.specialtyCondition] as ClinicalMode | undefined;
-          if (mappedMode) {
-            console.log("[AntiInflamBuilder] Specialty protocol status applied");
-            setClinicalModeState(mappedMode);
-            return;
-          }
-        }
-        if (!data?.protocolSignal?.protocol) return;
-        const labMode = data.protocolSignal.protocol as ClinicalMode;
-        console.log("[AntiInflamBuilder] Lab protocol status applied");
-        setClinicalModeState(labMode);
-        // Also capture in labDerivedConditions so the indicator dot lights up.
-        setLabDerivedConditions((prev) => prev.includes(labMode) ? prev : [...prev, labMode]);
-      })
-      .catch(() => {/* silently ignore */});
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveUserId]);
+  const clinicalModeState = resolvedProtocol.mode;
 
   // Badge comes directly from the active clinical mode — always accurate.
   const CLINICAL_MODE_BADGE: Partial<Record<ClinicalMode, ProtocolBadge>> = {
@@ -1473,11 +1346,7 @@ export default function AntiInflammatoryMenuBuilder() {
                   // Special isActive rules for additive conditions:
                   //   thyroid-support — active via modifierBadges (additive to anti-inflammatory primary)
                   //   alpha-gal-syndrome — active via specialtyConditions (always additive, never a primary mode)
-                  const isActive = key === "thyroid-support"
-                    ? (resolvedProtocol.modifierBadges ?? []).some((b: { label: string }) => b.label === "Thyroid Support")
-                    : key === "alpha-gal-syndrome"
-                    ? scConditions.includes('alpha-gal-syndrome') || scConditions.includes('alpha-gal') || scConditions.includes('alpha-gal syndrome')
-                    : clinicalModeState === key || labDerivedConditions.includes(key);
+                  const isActive = isClinicalIndicatorActive(key, scConditions);
                   return (
                     <span
                       key={key}

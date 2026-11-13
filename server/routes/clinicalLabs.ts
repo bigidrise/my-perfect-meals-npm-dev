@@ -17,6 +17,10 @@ import {
 } from "../services/resolveProtocolFromLabs";
 import { verifyClinicalAccess } from "../utils/verifyClinicalAccess";
 import { logAudit, getClientIp } from "../lib/auditLog";
+import { getPhysicianLockStatus } from "../services/labProtocolOwnership";
+import { canonicalClinicalProtocol, normalizeClinicalProtocols, changeClinicalProtocols, LAB_PROTOCOL_IDS, isAdvisoryLabProtocol, advisoryLabExplanation } from "@shared/clinicalProtocolIdentity";
+import { invalidatePrefix } from "../services/queryCache";
+import { PHYSICIAN_PROTOCOL_DECISION, SUBJECT_PROFILE_DECISION } from "../services/clinicalProtocolProvenance";
 
 const router = express.Router();
 
@@ -101,22 +105,7 @@ const labsPayloadSchema = z.object({
  * Check whether a physician has already explicitly assigned a builder to this user.
  */
 async function getPhysicianLock(userId: string): Promise<boolean> {
-  try {
-    const rows = await db
-      .select({ assignedBuilder: studioMemberships.assignedBuilder })
-      .from(studioMemberships)
-      .where(
-        and(
-          eq(studioMemberships.clientUserId, userId as any),
-          eq(studioMemberships.status, "active"),
-          eq(studioMemberships.isArchived, false)
-        )
-      )
-      .limit(1);
-    return rows.length > 0 && !!rows[0].assignedBuilder;
-  } catch {
-    return false;
-  }
+  return getPhysicianLockStatus(userId, true);
 }
 
 // ---------------------------------------------------------------------------
@@ -149,7 +138,10 @@ router.post("/", requireAuth, async (req, res) => {
         .limit(1),
     ]);
 
-    const currentSpecialtyConditions = (userState[0]?.specialtyConditions as string[]) ?? [];
+    const currentSpecialtyConditions = normalizeClinicalProtocols([
+      ...(userState[0]?.specialtyConditions ?? []),
+      ...(userState[0]?.specialtyCondition ? [userState[0].specialtyCondition] : []),
+    ]);
 
     // Derive previous protocol by running resolver on prior lab record
     let previousProtocol: string | null = null;
@@ -171,7 +163,8 @@ router.post("/", requireAuth, async (req, res) => {
       previousProtocol = prevSignal?.protocol ?? null;
     }
 
-    const inserted = await db
+     const inserted = await db.transaction(async tx => {
+     const records = await tx
       .insert(clinicalLabs)
       .values({
         userId: targetUserId as any,
@@ -216,7 +209,19 @@ router.post("/", requireAuth, async (req, res) => {
         labDate: body.lab_date || new Date().toISOString().split("T")[0],
         recordedAt: body.recorded_at ? new Date(body.recorded_at) : new Date(),
       })
-      .returning({ id: clinicalLabs.id });
+       .returning();
+     const saved = records[0];
+     const recommendation = saved ? resolveProtocolFromLabs(saved) : null;
+     if (saved && recommendation && isAdvisoryLabProtocol(recommendation.protocol)) {
+       await tx.insert(clinicalProtocolRecommendations).values({
+         userId: targetUserId as string, clinicalLabId: saved.id,
+         recommendedProtocol: recommendation.protocol, status: "advisory",
+         reason: advisoryLabExplanation(recommendation.protocol),
+         confidenceLevel: recommendation.confidence, triggerFields: recommendation.triggerFields,
+       });
+     }
+     return records;
+     });
 
     const labId = inserted[0]?.id ?? null;
 
@@ -295,7 +300,8 @@ router.post("/", requireAuth, async (req, res) => {
     );
 
     const alreadyOnThyroid  = currentSpecialtyConditions.includes('thyroid-support');
-    const alreadyOnProtocol = protocolSignal?.protocol === previousProtocol && previousProtocol !== null;
+    const alreadyOnProtocol = !!protocolSignal &&
+      currentSpecialtyConditions.includes(canonicalClinicalProtocol(protocolSignal.protocol));
 
     // Check which hormone conditions the user is already on
     const alreadyOnHormoneConditions = (hormoneSignalRaw.conditions ?? []).filter(c =>
@@ -340,7 +346,7 @@ router.post("/", requireAuth, async (req, res) => {
 // Record the user's accept / reject decision and (on accept) switch builder
 // ---------------------------------------------------------------------------
 const recommendationPayloadSchema = z.object({
-  protocol:        z.string(),
+  protocol:        z.enum([...LAB_PROTOCOL_IDS, "cardiac", "renal"]),
   status:          z.enum(["accepted", "rejected", "advisory", "removed"]),
   labId:           z.number().nullable().optional(),
   triggerFields:   z.array(z.string()).optional(),
@@ -354,108 +360,80 @@ router.post("/recommendation", requireAuth, async (req, res) => {
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     const body = recommendationPayloadSchema.parse(req.body);
+    if (body.status === "accepted" && isAdvisoryLabProtocol(body.protocol)) {
+      return res.status(422).json({ code: "advisory_only", error: advisoryLabExplanation(body.protocol) });
+    }
+    let acceptedThyroidSubtypes: string[] = [];
 
-    // Audit record — always write regardless of status
-    await db.insert(clinicalProtocolRecommendations).values({
+    const mutating = body.status === "accepted" || body.status === "removed";
+    if (mutating && await getPhysicianLock(userId)) {
+      return res.status(403).json({
+        code: "clinical_review_required",
+        error: "Your clinical settings include physician-directed or earlier clinical assignments. Your care team must review this change.",
+      });
+    }
+    if (["subject_disabled_lab_cardiac_support", "subject_lab_cardiac_choice", PHYSICIAN_PROTOCOL_DECISION, SUBJECT_PROFILE_DECISION].includes(body.reason ?? "")) {
+      return res.status(400).json({ error: "Reserved clinical decision reason." });
+    }
+    // Recommendation evidence must belong to this subject. Never trust a
+    // client-supplied protocol string as proof that a lab recommendation exists.
+    if (body.labId != null) {
+      const [lab] = await db.select().from(clinicalLabs)
+        .where(and(eq(clinicalLabs.id, body.labId), eq(clinicalLabs.userId, userId))).limit(1);
+      if (!lab) return res.status(400).json({ error: "This measurement is unavailable." });
+      if (body.status === "accepted") {
+        const primary = resolveProtocolFromLabs(lab);
+        const thyroid = resolveThyroidFromLabs(lab);
+        const hormone = resolveHormoneFromLabs(lab);
+        if (body.protocol === "thyroid-support") acceptedThyroidSubtypes = thyroid.subtypeConditions;
+        const eligible = normalizeClinicalProtocols([
+          ...(primary ? [primary.protocol] : []),
+          ...(thyroid.hasThyroidIndicators ? ["thyroid-support", ...thyroid.subtypeConditions] : []),
+          ...(hormone.hasHormoneIndicators ? hormone.conditions : []),
+        ]);
+        if (!eligible.includes(canonicalClinicalProtocol(body.protocol))) {
+          return res.status(409).json({ error: "This measurement does not support that recommendation." });
+        }
+      }
+    } else if (body.status === "accepted") {
+      return res.status(400).json({ error: "A saved measurement is required." });
+    }
+
+    await db.transaction(async (tx) => {
+    const [currentUser] = await tx.select({
+      specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition,
+    }).from(users).where(eq(users.id, userId)).for("update").limit(1);
+    if (!currentUser) throw new Error("Clinical profile unavailable.");
+    const currentConditions = normalizeClinicalProtocols([
+      ...(currentUser.specialtyConditions ?? []),
+      ...(currentUser.specialtyCondition ? [currentUser.specialtyCondition] : []),
+    ]);
+    const canonical = canonicalClinicalProtocol(body.protocol);
+    // Serialized with physician writers that update the same subject row.
+    if (mutating && await getPhysicianLock(userId)) throw new Error("Clinical authority changed. Refresh and request review.");
+
+    await tx.insert(clinicalProtocolRecommendations).values({
       userId:              userId as any,
       clinicalLabId:       body.labId ?? null,
       recommendedProtocol: body.protocol,
       status:              body.status,
       confidenceLevel:     body.confidenceLevel ?? null,
       triggerFields:       body.triggerFields ? (body.triggerFields as any) : null,
-      reason:              body.reason ?? null,
+       reason:              mutating && canonical === "cardiac"
+         ? "subject_lab_cardiac_choice" : body.reason ?? null,
     });
-
-    // ── On "removed" (downgrade accepted): remove the protocol from user's state ──
-    if (body.status === "removed") {
-      const [currentUser] = await db
-        .select({ specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition })
-        .from(users)
-        .where(eq(users.id, userId as any))
-        .limit(1);
-
-      const currentConditions = (currentUser?.specialtyConditions as string[]) ?? [];
-      const newConditions = currentConditions.filter(c => c !== body.protocol);
-      const newPrimary = currentUser?.specialtyCondition === body.protocol
-        ? (newConditions[0] ?? null)
-        : (currentUser?.specialtyCondition ?? null);
-
-      await db
-        .update(users)
-        .set({ specialtyConditions: newConditions, specialtyCondition: newPrimary, updatedAt: new Date() } as any)
-        .where(eq(users.id, userId as any));
-
-      console.log(`[labs/recommendation] User ${userId} removed ${body.protocol} → specialty_conditions updated`);
+    if (mutating) {
+      const next = normalizeClinicalProtocols([
+        ...changeClinicalProtocols(currentConditions, canonical, body.status as "accepted" | "removed"),
+        ...(body.status === "accepted" ? acceptedThyroidSubtypes : []),
+      ]);
+      await tx.update(users).set({
+        specialtyConditions: next,
+        specialtyCondition: next[0] ?? null,
+      }).where(eq(users.id, userId));
     }
-
-    // ── On accept: activate the protocol ─────────────────────────────────────
-    if (body.status === "accepted") {
-      // Additive-only conditions — do not switch meal builder, just add to specialtyConditions
-      const additiveOnlyConditions = [
-        'thyroid-support',
-        'hashimotos', 'hypothyroid', 'hyperthyroid',
-        'hormone-optimization', 'menopause', 'perimenopause',
-      ];
-
-      if (additiveOnlyConditions.includes(body.protocol)) {
-        const [currentUser] = await db
-          .select({ specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition })
-          .from(users)
-          .where(eq(users.id, userId as any))
-          .limit(1);
-
-        const currentConditions = (currentUser?.specialtyConditions as string[]) ?? [];
-        if (!currentConditions.includes(body.protocol)) {
-          const newConditions = [...currentConditions, body.protocol];
-          const newPrimary = currentUser?.specialtyCondition ?? body.protocol;
-          await db
-            .update(users)
-            .set({ specialtyConditions: newConditions, specialtyCondition: newPrimary, updatedAt: new Date() } as any)
-            .where(eq(users.id, userId as any));
-        }
-        console.log(`[labs/recommendation] User ${userId} accepted ${body.protocol} → specialty_conditions updated (additive)`);
-      } else {
-        // All primary clinical protocols:
-        //   1. Switch meal builder to anti_inflammatory (enables clinical protocol routing)
-        //   2. Write protocol to specialtyCondition + specialtyConditions
-        const [currentUser] = await db
-          .select({ specialtyConditions: users.specialtyConditions, specialtyCondition: users.specialtyCondition })
-          .from(users)
-          .where(eq(users.id, userId as any))
-          .limit(1);
-
-        const currentConditions = (currentUser?.specialtyConditions as string[]) ?? [];
-        const newConditions = currentConditions.includes(body.protocol)
-          ? currentConditions
-          : [...currentConditions, body.protocol];
-        const newPrimary = currentUser?.specialtyCondition ?? body.protocol;
-
-        await db
-          .update(users)
-          .set({
-            selectedMealBuilder: "anti_inflammatory",
-            specialtyConditions: newConditions,
-            specialtyCondition:  newPrimary,
-            updatedAt: new Date(),
-          } as any)
-          .where(eq(users.id, userId as any));
-
-        // Stamp active studio memberships as clinically assigned
-        await db
-          .update(studioMemberships)
-          .set({ assignedBuilder: "anti_inflammatory", builderSource: "clinical", updatedAt: new Date() } as any)
-          .where(
-            and(
-              eq(studioMemberships.clientUserId, userId as any),
-              eq(studioMemberships.status, "active"),
-              eq(studioMemberships.isArchived, false)
-            )
-          );
-
-        console.log(`[labs/recommendation] User ${userId} accepted ${body.protocol} → builder=anti_inflammatory, specialty_conditions updated`);
-      }
-    }
-
+    });
+    if (mutating) invalidatePrefix(`profile:${userId}`);
     res.json({ ok: true, status: body.status });
   } catch (error: any) {
     console.error("[labs/recommendation POST]", error);

@@ -1,4 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffectiveClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
+import { isClinicalIndicatorActive } from "@shared/clinicalProtocolIdentity";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
@@ -155,6 +157,7 @@ export default function ClinicianClientDashboard({ syntheticSource }: { syntheti
 
   // Must be defined BEFORE any useEffect that references it in deps or body.
   const resolvedClientUserId = syntheticSource ? null : resolveVerifiedProClientUserId(client, clientId);
+  const { protocols: effectiveIndicatorProtocols } = useEffectiveClinicalProtocols(resolvedClientUserId);
   const syntheticStarchState: StudioStarchState | undefined = syntheticSource ? {
     clientUserId: clientId,
     savedPreferences: {
@@ -705,7 +708,7 @@ export default function ClinicianClientDashboard({ syntheticSource }: { syntheti
               { key: "oncology-support",   label: "Oncology Support",  isActive: !!macros?.flags?.oncologySupport  || labDerivedConditions.includes('oncology-support'), activeColor: "text-pink-400",   dotColor: "bg-pink-400",   dotGlow: "shadow-[0_0_4px_rgba(244,114,182,0.9)]" },
               { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!macros?.flags?.thyroidSupport,                                                                                                                                    activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
               { key: "hormone-optimization", label: "Hormone Opt.",  isActive: !!((client as any)?.specialtyConditions as string[] | undefined)?.includes("hormone-optimization"), activeColor: "text-orange-400", dotColor: "bg-orange-400", dotGlow: "shadow-[0_0_4px_rgba(251,146,60,0.9)]" },
-            ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
+            ].map(indicator => ({ ...indicator, isActive: isClinicalIndicatorActive(indicator.key, effectiveIndicatorProtocols) })).map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
               <span key={key} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
                 <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
                 {label}
@@ -714,7 +717,7 @@ export default function ClinicianClientDashboard({ syntheticSource }: { syntheti
           </div>
           {/* Hormonal & Metabolic — Second Row */}
           {(() => {
-            const clientSc: string[] = ((client as any)?.specialtyConditions as string[] | undefined) ?? [];
+            const clientSc: string[] = effectiveIndicatorProtocols;
             return (
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
                 <span className="font-medium text-white/70">Hormonal & Metabolic:</span>
@@ -726,8 +729,8 @@ export default function ClinicianClientDashboard({ syntheticSource }: { syntheti
                   { key: "perimenopause",      label: "Perimenopause",     activeColor: "text-purple-400", dotColor: "bg-purple-400", dotGlow: "shadow-[0_0_4px_rgba(192,132,252,0.9)]" },
                   { key: "metabolic-recovery", label: "Metabolic Recovery", activeColor: "text-amber-400", dotColor: "bg-amber-400",  dotGlow: "shadow-[0_0_4px_rgba(251,191,36,0.8)]"  },
                 ].map(({ key, label, activeColor, dotColor, dotGlow }) => (
-                  <span key={key} className={`flex items-center gap-1 ${clientSc.includes(key) ? `${activeColor} font-semibold` : "text-white/25"}`}>
-                    <span className={`inline-block w-1.5 h-1.5 rounded-full ${clientSc.includes(key) ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
+                  <span key={key} className={`flex items-center gap-1 ${isClinicalIndicatorActive(key, effectiveIndicatorProtocols) ? `${activeColor} font-semibold` : "text-white/25"}`}>
+                    <span className={`inline-block w-1.5 h-1.5 rounded-full ${isClinicalIndicatorActive(key, effectiveIndicatorProtocols) ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
                     {label}
                   </span>
                 ))}

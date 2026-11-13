@@ -61,8 +61,8 @@ An interrupted release-type check can leave a temporary lock after its compiler 
 
 ### Full-root compiler memory
 
-Historical snapshots must include imported configuration outside the root
-tsconfig's include directories, not only the listed source trees.
+Historical snapshots must include all imported code outside the root
+tsconfig's include directories, including scripts and configuration, not only the listed source trees.
 
 **Why:** TypeScript follows imports into root Vite configuration; omitting that
 file introduces artificial missing-module diagnostics into an otherwise matching

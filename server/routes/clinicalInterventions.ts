@@ -16,6 +16,7 @@ import { studioMemberships, studios } from "../db/schema/studio";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
+import { verifyClinicalAccess } from "../utils/verifyClinicalAccess";
 
 const router = Router();
 
@@ -38,13 +39,19 @@ const upsertSchema = z.object({
 
 // ── Helper: verify provider owns a studio that has this client ────────────────
 async function getProviderStudio(providerUserId: string, clientUserId: string) {
+  if (providerUserId === clientUserId ||
+      !await verifyClinicalAccess(providerUserId, clientUserId)) return null;
   const [studio] = await db
     .select({ id: studios.id })
     .from(studios)
-    .where(eq(studios.ownerUserId, providerUserId))
+    .where(and(eq(studios.ownerUserId, providerUserId), eq(studios.type, "clinic")))
     .limit(1);
 
   if (!studio) return null;
+  const { users } = await import("@shared/schema");
+  const [provider] = await db.select({ role: users.professionalRole }).from(users)
+    .where(eq(users.id, providerUserId)).limit(1);
+  if (provider?.role !== "physician") return null;
 
   const [membership] = await db
     .select({ id: studioMemberships.id })
@@ -52,7 +59,9 @@ async function getProviderStudio(providerUserId: string, clientUserId: string) {
     .where(
       and(
         eq(studioMemberships.studioId, studio.id),
-        eq(studioMemberships.clientUserId, clientUserId)
+        eq(studioMemberships.clientUserId, clientUserId),
+        eq(studioMemberships.status, "active"),
+        eq(studioMemberships.isArchived, false)
       )
     )
     .limit(1);
