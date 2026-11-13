@@ -17,9 +17,12 @@ describe("Phase 2B profile specialty activation persistence", () => {
   );
 
   it("accepts pregnancy support through the self-selected specialty route", () => {
-    expect(routes).toMatch(/ALLOWED\s*=\s*\[[^\]]*"pregnancy-support"/);
+    expect(routes).toMatch(/ALLOWED\s*=\s*SELF_SELECTABLE_SPECIALTY_CONDITIONS/);
+    const specialtyPolicy = read("services/consumerOncologySupport.ts");
+    expect(specialtyPolicy).toContain('"pregnancy-support"');
     expect(routes).toMatch(/getPhysicianLockStatus\(userId\)/);
-    expect(routes).toMatch(/getLabDrivenConditions\(userId\)/);
+    // Measurements inform recommendations; they no longer lock a member's choices.
+    expect(routes).toContain("getPhysicianLockStatus(userId)");
   });
 
   it("keeps pregnancy setup active and preserves unrelated conditions", () => {

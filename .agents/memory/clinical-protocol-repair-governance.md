@@ -14,3 +14,9 @@ Ordinary trainer enrollment or a cached builder assignment does not establish ph
 **Why:** The founder requires member-owned choices without erasing genuine clinical restrictions.
 
 **How to apply:** Resolve authority from evidence, not membership labels alone. Preserve distinct liver, thyroid, and metabolic identities. Do not invent clinical guidance or thresholds to fill a missing mapping, and do not activate paused clinical features merely to satisfy coverage.
+
+Metabolic Support and Metabolic Stress are advisory-only unless an existing verified, clinically appropriate protocol is established for Metabolic Support. Never map either automatically to Metabolic Recovery. Inflammation Support may offer the existing optional Anti-Inflammatory workflow only if the live implementation establishes that relationship; a shadow-registry mapping is insufficient.
+
+**Why:** The founder approved these product-level safety decisions and continuation of the repair.
+
+**How to apply:** Preserve measurements and recommendation records, show non-diagnostic explanations, and expose no unsupported activation action, active indicator, builder change, specialty mutation, or claim of applied nutritional adjustment. Keep supported recommendations and physician restrictions intact.

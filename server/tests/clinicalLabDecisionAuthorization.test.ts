@@ -23,10 +23,15 @@ const mockDb: any = {
     };
     return query;
   },
-  insert: () => ({
-    values: async (value: any) => {
-      if (mockFailWrite) throw new Error("Simulated failed write");
-      mockDecisionWrites.push(value);
+  insert: (table: any) => ({
+    values: (value: any) => {
+      const write = Promise.resolve().then(() => {
+        if (mockFailWrite) throw new Error("Simulated failed write");
+        if (tableName(table) === "clinical_labs") return { id: 7, ...value };
+        mockDecisionWrites.push(value);
+        return value;
+      });
+      return Object.assign(write, { returning: () => write.then(row => [row]) });
     },
   }),
   update: () => ({
@@ -99,8 +104,33 @@ test("unsupported recommendation cannot be accepted using Cardiac measurement ev
 test("unknown clinical protocol is rejected", async () => {
   expect((await decide({ protocol: "invented-protocol", status: "accepted", labId: 7 })).status).toBe(400);
 });
+test.each(["physician_directed_protocol_decision", "subject_profile_protocol_decision"])("a client cannot forge reserved provenance %s", async reason => {
+  expect((await decide({ protocol: "heart-failure", status: "accepted", labId: 7, reason })).status).toBe(400);
+  expect(mockDecisionWrites).toHaveLength(0);
+});
+test.each(["metabolic-support", "metabolic-stress", "inflammation-support"])("%s cannot be activated or presented as active nutrition", async protocol => {
+  mockConditions = ["cardiac", "liver-support"];
+  const result = await decide({ protocol, status: "accepted", labId: 7 });
+  expect(result.status).toBe(422);
+  expect(result.body.code).toBe("advisory_only");
+  expect(mockConditions).toEqual(["cardiac", "liver-support"]);
+  expect(mockDecisionWrites).toHaveLength(0);
+  expect((await decide({ protocol, status: "advisory", labId: 7 })).status).toBe(200);
+  expect(mockDecisionWrites[0].status).toBe("advisory");
+  expect(mockConditions).toEqual(["cardiac", "liver-support"]);
+});
 test("a failed persistence operation does not return success", async () => {
   mockFailWrite = true;
   expect((await decide({ protocol: "heart-failure", status: "accepted", labId: 7 })).status).toBe(400);
+  expect(mockConditions).toEqual([]);
+});
+test("saving unsupported metabolic measurements preserves an advisory record without changing nutrition", async () => {
+  const response = await request(app).post("/api/biometrics/labs").send({ a1c: 6 });
+  expect(response.status).toBe(201);
+  expect(response.body.protocolSignal.protocol).toBe("metabolic-support");
+  expect(response.body.protocolSignal.reason).toContain("No nutrition settings have been changed");
+  expect(mockDecisionWrites).toEqual([expect.objectContaining({
+    recommendedProtocol: "metabolic-support", clinicalLabId: 7, status: "advisory",
+  })]);
   expect(mockConditions).toEqual([]);
 });

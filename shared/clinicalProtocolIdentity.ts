@@ -54,6 +54,17 @@ export const LAB_PROTOCOL_IDS = [
   "hormone-optimization", "menopause", "perimenopause",
 ] as const;
 
+/** No verified live nutrition mapping: a measurement signal is not activation. */
+export const ADVISORY_LAB_PROTOCOLS = ["metabolic-support", "metabolic-stress", "inflammation-support"] as const;
+export function isAdvisoryLabProtocol(protocol: string): boolean {
+  return (ADVISORY_LAB_PROTOCOLS as readonly string[]).includes(protocol);
+}
+export function advisoryLabExplanation(protocol: string): string {
+  if (protocol === "metabolic-stress") return "The measured indicators may warrant further evaluation with your care team. This signal does not establish a diagnosis of metabolic stress, diabetes, or another condition. No nutrition settings have been changed.";
+  if (protocol === "inflammation-support") return "Your measured inflammation marker may warrant review with your care team. This signal does not diagnose a condition or activate Anti-Inflammatory support. No nutrition settings have been changed.";
+  return "Your measured metabolic indicators may warrant further evaluation with your care team. This signal does not establish a diagnosis or activate Metabolic Recovery or another nutrition protocol. No nutrition settings have been changed.";
+}
+
 export interface ExistingClinicalProfile {
   specialtyConditions?: string[] | null;
   specialtyCondition?: string | null;
@@ -61,6 +72,7 @@ export interface ExistingClinicalProfile {
   medicalConditions?: string[] | null;
   selectedMealBuilder?: string | null;
   oncologySupportContext?: { enabled?: boolean } | null;
+  thyroidType?: "hypothyroid" | "hyperthyroid" | "hashimotos" | null;
 }
 
 export const EXISTING_CLINICAL_PROTOCOLS = [
@@ -68,18 +80,23 @@ export const EXISTING_CLINICAL_PROTOCOLS = [
   "oncology-support", "thyroid-support", "alpha-gal-syndrome", "hashimotos",
   "hypothyroid", "hyperthyroid", "menopause", "perimenopause", "metabolic-recovery",
   "hormone-optimization", "pregnancy-support", "glp1",
-  "diabetes", "metabolic-support", "inflammation-support", "metabolic-stress",
+   "diabetes",
   "performance-nutrition", "therapeutic-support", "competition-prep",
 ] as const;
 
 /** Stored state only. A raw recommendation, trainer assignment, or macro flag is not activation. */
 export function effectiveClinicalProtocols(profile: ExistingClinicalProfile): string[] {
-  return normalizeClinicalProtocols([
+  const stored = normalizeClinicalProtocols([
     ...(profile.specialtyConditions ?? []),
     ...(profile.specialtyCondition ? [profile.specialtyCondition] : []),
     ...(profile.healthConditions ?? []),
     ...(profile.medicalConditions ?? []),
     ...(profile.oncologySupportContext?.enabled ? ["oncology-support"] : []),
+  ]);
+  return normalizeClinicalProtocols([
+    ...stored,
+    ...(stored.includes("thyroid-support") && profile.thyroidType
+      ? [profile.thyroidType] : []),
     // Existing personal Builder strategy, not users.activeBoard or membership cache.
     ...(["anti_inflammatory", "anti-inflammatory"].includes(profile.selectedMealBuilder ?? "")
       ? ["anti-inflammatory"] : []),

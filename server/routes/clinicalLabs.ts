@@ -18,8 +18,9 @@ import {
 import { verifyClinicalAccess } from "../utils/verifyClinicalAccess";
 import { logAudit, getClientIp } from "../lib/auditLog";
 import { getPhysicianLockStatus } from "../services/labProtocolOwnership";
-import { canonicalClinicalProtocol, normalizeClinicalProtocols, changeClinicalProtocols, LAB_PROTOCOL_IDS } from "@shared/clinicalProtocolIdentity";
+import { canonicalClinicalProtocol, normalizeClinicalProtocols, changeClinicalProtocols, LAB_PROTOCOL_IDS, isAdvisoryLabProtocol, advisoryLabExplanation } from "@shared/clinicalProtocolIdentity";
 import { invalidatePrefix } from "../services/queryCache";
+import { PHYSICIAN_PROTOCOL_DECISION, SUBJECT_PROFILE_DECISION } from "../services/clinicalProtocolProvenance";
 
 const router = express.Router();
 
@@ -162,7 +163,8 @@ router.post("/", requireAuth, async (req, res) => {
       previousProtocol = prevSignal?.protocol ?? null;
     }
 
-    const inserted = await db
+     const inserted = await db.transaction(async tx => {
+     const records = await tx
       .insert(clinicalLabs)
       .values({
         userId: targetUserId as any,
@@ -207,7 +209,19 @@ router.post("/", requireAuth, async (req, res) => {
         labDate: body.lab_date || new Date().toISOString().split("T")[0],
         recordedAt: body.recorded_at ? new Date(body.recorded_at) : new Date(),
       })
-      .returning({ id: clinicalLabs.id });
+       .returning();
+     const saved = records[0];
+     const recommendation = saved ? resolveProtocolFromLabs(saved) : null;
+     if (saved && recommendation && isAdvisoryLabProtocol(recommendation.protocol)) {
+       await tx.insert(clinicalProtocolRecommendations).values({
+         userId: targetUserId as string, clinicalLabId: saved.id,
+         recommendedProtocol: recommendation.protocol, status: "advisory",
+         reason: advisoryLabExplanation(recommendation.protocol),
+         confidenceLevel: recommendation.confidence, triggerFields: recommendation.triggerFields,
+       });
+     }
+     return records;
+     });
 
     const labId = inserted[0]?.id ?? null;
 
@@ -346,6 +360,9 @@ router.post("/recommendation", requireAuth, async (req, res) => {
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     const body = recommendationPayloadSchema.parse(req.body);
+    if (body.status === "accepted" && isAdvisoryLabProtocol(body.protocol)) {
+      return res.status(422).json({ code: "advisory_only", error: advisoryLabExplanation(body.protocol) });
+    }
     let acceptedThyroidSubtypes: string[] = [];
 
     const mutating = body.status === "accepted" || body.status === "removed";
@@ -355,7 +372,7 @@ router.post("/recommendation", requireAuth, async (req, res) => {
         error: "Your clinical settings include physician-directed or earlier clinical assignments. Your care team must review this change.",
       });
     }
-    if (body.reason === "subject_disabled_lab_cardiac_support") {
+    if (["subject_disabled_lab_cardiac_support", "subject_lab_cardiac_choice", PHYSICIAN_PROTOCOL_DECISION, SUBJECT_PROFILE_DECISION].includes(body.reason ?? "")) {
       return res.status(400).json({ error: "Reserved clinical decision reason." });
     }
     // Recommendation evidence must belong to this subject. Never trust a
@@ -402,8 +419,8 @@ router.post("/recommendation", requireAuth, async (req, res) => {
       status:              body.status,
       confidenceLevel:     body.confidenceLevel ?? null,
       triggerFields:       body.triggerFields ? (body.triggerFields as any) : null,
-       reason:              body.status === "removed" && canonical === "cardiac"
-        ? "subject_disabled_lab_cardiac_support" : body.reason ?? null,
+       reason:              mutating && canonical === "cardiac"
+         ? "subject_lab_cardiac_choice" : body.reason ?? null,
     });
     if (mutating) {
       const next = normalizeClinicalProtocols([
