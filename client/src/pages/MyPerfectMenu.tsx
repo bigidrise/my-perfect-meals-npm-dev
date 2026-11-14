@@ -174,6 +174,7 @@ export default function MyPerfectMenu() {
   }, [search]);
   const [ideaType, setIdeaType] = useState<IdeaType | null>(() => returnedIdeaType);
   const [conceptSets, setConceptSets] = useState<ConceptSets>({});
+  const [partialChoicesEnabled, setPartialChoicesEnabled] = useState(false);
   const [snackType, setSnackType] = useState<MyPerfectMenuSnackType | null>(null);
   const [snackChoiceOpen, setSnackChoiceOpen] = useState(false);
   const [snackSwitchType, setSnackSwitchType] = useState<MyPerfectMenuSnackType | null>(null);
@@ -238,6 +239,7 @@ export default function MyPerfectMenu() {
     cancelMeal();
     cancelSnack();
     setConceptSets({});
+    setPartialChoicesEnabled(false);
     setIdeaType(null);
     setSnackType(null);
     setSnackChoiceOpen(false);
@@ -288,6 +290,7 @@ export default function MyPerfectMenu() {
           throw new Error("We couldn't verify your saved menu ideas. Please reload.");
         }
         setConceptSets(payload.categories ?? {});
+        setPartialChoicesEnabled(payload.partialChoicesEnabled === true);
         const restoredSnack = payload.categories.snack?.[0]?.snackType;
         if (!requestedSnackTypeRef.current && (restoredSnack === "food" || restoredSnack === "dessert")) setSnackType(restoredSnack);
         setRestorationStatus("succeeded");
@@ -348,9 +351,9 @@ export default function MyPerfectMenu() {
       ) return;
       if (!response.ok) {
         const availability = payload.previousChoicesAvailability;
-        const verifiedAvailability = availability === "compatible" || availability === "stale" || availability === "none"
+        const verifiedAvailability = availability === "compatible" || availability === "stale" || availability === "none" || availability === "unavailable"
           ? availability : undefined;
-        if (verifiedAvailability === "stale" || verifiedAvailability === "none") {
+        if (verifiedAvailability === "stale" || verifiedAvailability === "none" || verifiedAvailability === "unavailable") {
           setConceptSets(current => {
             const next = { ...current };
             delete next[nextType];
@@ -361,6 +364,7 @@ export default function MyPerfectMenu() {
         throw new Error(menuFailureMessage(failure.message, verifiedAvailability));
       }
       setConceptSets((current) => ({ ...current, [nextType]: payload.concepts || [] }));
+      setPartialChoicesEnabled(payload.partialChoicesEnabled === true);
       if (payload.builder) setBuilderContext(payload.builder);
     } catch (cause) {
       if (subjectEpochRef.current !== requestedEpoch || subjectRef.current !== requestedSubject) return;
@@ -1005,7 +1009,7 @@ export default function MyPerfectMenu() {
           <section className="mt-8">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-300">Three choices</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-300">{partialChoicesEnabled && concepts.length > 0 && concepts.length < 3 ? `${concepts.length} verified ${concepts.length === 1 ? "choice" : "choices"}` : "Three choices"}</p>
                 <h2 className="mt-1 text-2xl font-black">{ideaType === "snack" && snackType
                   ? `${snackType === "dessert" ? "Dessert" : "Food"} Snack Ideas`
                   : activeType?.title}</h2>
@@ -1210,6 +1214,11 @@ export default function MyPerfectMenu() {
               </>
             )}
 
+             {partialChoicesEnabled && !loadingIdeas && !loadingContext && concepts.length > 0 && concepts.length < 3 && (
+               <div role="status" className="mt-6 rounded-2xl border border-violet-300/25 bg-black/30 p-4 text-sm text-violet-100">
+                 We could verify only {concepts.length} of three ideas this time. You can choose any shown idea or try again for a new set. No unverified ideas are shown, and your food settings and nutrition targets were not changed.
+               </div>
+             )}
              {restorationStatus !== "loading" && !loadingContext && !pendingIdeaType && loadingIdeas && concepts.length === 0 ? (
                <div role="status" aria-live="polite" className="mt-6 flex min-h-56 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45 px-6 text-center">
                  <BouncingDots />
