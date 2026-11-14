@@ -600,7 +600,15 @@ router.post("/validate-selection", requireAuth, async (req, res) => {
           typeof item === "string" ? item : item.name ?? item.item ?? "").filter(Boolean),
         instructions: completed.instructions,
         snackType: concept.snackType,
-      }], { selectedIdea: concept });
+      }], { selectedIdea: {
+        title: concept.title,
+        description: concept.validationDescription ?? concept.description,
+        primaryIngredients: concept.primaryIngredients,
+        cuisine: concept.cuisine,
+        preparationMethod: concept.preparationMethod,
+        culinaryIdentity: concept.culinaryIdentity,
+        snackType: concept.snackType,
+      } });
       if (issues.length) {
         return res.status(422).json({
           code: "MY_PERFECT_MENU_OCCASION_IDENTITY_CHANGED",
