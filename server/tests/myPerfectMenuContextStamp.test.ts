@@ -36,6 +36,28 @@ const base: MyPerfectMenuAuthorityMaterial = {
 describe("My Perfect Menu context stamps", () => {
   const fixed = new Date("2026-01-02T03:04:05.000Z");
 
+  it("invalidates pre-repair ideas only in unpublished Development, without altering Production stamps", () => {
+    const oldMode = process.env.NODE_ENV;
+    const oldDeployment = process.env.REPLIT_DEPLOYMENT;
+    try {
+      process.env.NODE_ENV = "production";
+      delete process.env.REPLIT_DEPLOYMENT;
+      const production = buildMyPerfectMenuContextStamp(base, "breakfast", fixed);
+      process.env.NODE_ENV = "development";
+      const development = buildMyPerfectMenuContextStamp(base, "breakfast", fixed);
+      expect(isMyPerfectMenuContextStampFresh(production, development)).toBe(false);
+      process.env.REPLIT_DEPLOYMENT = "1";
+      expect(buildMyPerfectMenuContextStamp(base, "breakfast", fixed).digest).toBe(production.digest);
+      process.env.NODE_ENV = "production";
+      expect(buildMyPerfectMenuContextStamp(base, "breakfast", fixed).digest).toBe(production.digest);
+    } finally {
+      if (oldMode === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = oldMode;
+      if (oldDeployment === undefined) delete process.env.REPLIT_DEPLOYMENT;
+      else process.env.REPLIT_DEPLOYMENT = oldDeployment;
+    }
+  });
+
   it("parses legacy preferences and defaults additive per-category stamps", () => {
     const legacy = myPerfectMenuPreferencesSchema.parse({
       version: 1,

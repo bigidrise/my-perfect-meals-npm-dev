@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import type { MyPerfectMenuCategory, MyPerfectMenuContextStamp, MyPerfectMenuMealSlot } from "@shared/myPerfectMenu";
 import type { MyPerfectMenuBuilderContext } from "@shared/builderNamespaces";
+import { developmentMenuOccasionEnabled, MENU_OCCASION_POLICY } from "./occasionSuitability";
 
 export interface MyPerfectMenuAuthorityMaterial {
   subject: { kind: "user" | "household"; id: string };
@@ -50,7 +51,10 @@ export function buildMyPerfectMenuContextStamp(
 ): MyPerfectMenuContextStamp {
   const secret = process.env.SESSION_SECRET;
   if (!secret) throw new Error("SESSION_SECRET is required to build My Perfect Menu context stamps.");
-  const authority = normalize({ ...material, category });
+  const authority = normalize({
+    ...material, category,
+    ...(developmentMenuOccasionEnabled() ? { occasionPolicy: MENU_OCCASION_POLICY } : {}),
+  });
   const digest = createHmac("sha256", secret)
     .update(JSON.stringify(authority))
     .digest("base64url");
