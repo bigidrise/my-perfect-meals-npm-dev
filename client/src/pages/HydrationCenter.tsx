@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
+import { BasicHydrationLogger } from "@/components/biometrics/BasicHydrationLogger";
+import { useAuth } from "@/contexts/AuthContext";
 import HydrationFourDoorPanels from "@/components/HydrationFourDoorPanels";
 import HydrationHubGuide from "@/components/HydrationHubGuide";
 import HydrationInterventionCards from "@/components/HydrationInterventionCards";
@@ -109,6 +111,7 @@ function policyCopy(policy: HydrationNumericPolicyState) {
 type Intervention = NonNullable<HydrationCenterState["interventions"]>[number];
 
 export default function HydrationCenter() {
+  const { user } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const initializedSetup = useRef(false);
@@ -281,6 +284,7 @@ export default function HydrationCenter() {
           <ArrowLeft className="h-4 w-4" />
           Back to Biometrics
         </button>
+        {user?.id && <BasicHydrationLogger userId={user.id} />}
         <HydrationFourDoorPanels state={state} navigate={navigate} onReload={load} />
         <HydrationHubGuide />
         {error && !state ? (

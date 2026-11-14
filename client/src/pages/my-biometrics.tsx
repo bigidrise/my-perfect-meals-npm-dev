@@ -86,11 +86,9 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ClinicalLabsCard from "@/components/biometrics/ClinicalLabsCard";
 import TherapeuticNutritionCard from "@/components/biometrics/TherapeuticNutritionCard";
 import MacroConsistencyTimeline from "@/components/biometrics/MacroConsistencyTimeline";
-import { purchasedPlanIncludesFeature } from "@/lib/entitlements";
 import { canAccessClinicalLabs, canAccessTherapeuticNutrition } from "@/lib/subscriptionCheck";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { convertWeightLbsDisplay } from "@shared/units";
-import { BasicHydrationLogger } from "@/components/biometrics/BasicHydrationLogger";
 
 // ============================== CONFIG ==============================
 const SYNC_ENDPOINT = ""; // optional API endpoint; if set, we POST after local save
@@ -189,7 +187,7 @@ export default function MyBiometrics() {
     {
       title: "Track Your Water",
       description:
-        "Use Basic Hydration Tracking at the bottom of the page to log fluids and review today's total.",
+        "Use Basic Hydration Tracking at the top of the Hydration Center page to log fluids and review today's total.",
     },
     {
       icon: "📐",
@@ -2813,41 +2811,6 @@ export default function MyBiometrics() {
             </CardContent>
           </Card>
         )}
-
-        {/* CANONICAL HYDRATION */}
-        <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-white text-xl flex items-center gap-2">
-              My Perfect Hydration Center
-            </CardTitle>
-            <Badge className="border-sky-300/25 bg-sky-500/15 text-sky-100">Pro</Badge>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm leading-relaxed text-white/65">
-              Build hydration support around activity, nutrition context,
-              preferences, barriers, and verified professional guidance—without
-              relying on a generic one-size-fits-all water target.
-            </p>
-            {user?.id && <BasicHydrationLogger userId={user.id} />}
-            <Button
-              onClick={() => {
-                if (purchasedPlanIncludesFeature(user, "hydration_center")) {
-                  setLocation("/hydration");
-                  return;
-                }
-                requestUpgrade({
-                  requiredTier: "pro",
-                  featureName: "My Perfect Hydration Center",
-                  valueMessage: "Build hydration support around your activity, nutrition context, preferences, barriers, and verified professional guidance—without relying on a generic one-size-fits-all water target.",
-                });
-              }}
-              className="w-full bg-sky-600 text-white hover:bg-sky-500"
-              data-testid="open-hydration-center"
-            >
-              Open My Perfect Hydration Center
-            </Button>
-          </CardContent>
-        </Card>
 
         {/* Version tag for deployment tracking */}
         <div className="text-[10px] text-white/40 text-center mt-4 mb-2">

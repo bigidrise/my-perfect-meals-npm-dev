@@ -13,7 +13,13 @@ Hydration Center should be a prominent consumer Dashboard feature, not treated a
 
 **Why:** The user considers its full support experience too valuable to remain buried in Biometrics and approved a compact Dashboard entry rather than duplicating the entire interface.
 
-**How to apply:** Preserve the full-page Center and its access rules. Keep basic tracking and Biometrics access intact unless the user separately authorizes their relocation.
+**How to apply:** Preserve the full-page Center and its access rules. The user authorized moving only Basic Hydration Tracking from Biometrics to the top of the Center page and removing its old surrounding card and open-center button.
+
+The hydration tracker relocation must not change plan access, paywalls, or logging behavior.
+
+**Why:** The user explicitly corrected a proposed access change: “I said move this to there that's it.”
+
+**How to apply:** Treat this as placement-only work; do not expand it into entitlement or hydration feature changes.
 
 Barrier selection must not make Everyday beverage creation appear unavailable.
 
