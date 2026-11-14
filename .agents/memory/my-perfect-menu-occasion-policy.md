@@ -1,6 +1,6 @@
 ---
 name: My Perfect Menu occasion policy
-description: Culinary occasion suitability, cultural breadth, destination freedom, and the Development release hold.
+description: Culinary occasion suitability, cultural breadth, destination freedom, and Production synchronization authority.
 ---
 
 My Perfect Menu ideas must fit the selected eating occasion based on their actual preparation, not merely a breakfast/lunch/dinner/snack label. Preserve American, international, high-protein, and legitimate nontraditional breakfasts without ingredient blacklists. Lunch and dinner may overlap; culinary completeness is not a new nutrition or food-group rule. Food Snack and Dessert Snack identity remains authoritative.
@@ -15,8 +15,8 @@ Mocked classifier tests alone do not establish culinary suitability or recipe id
 
 **How to apply:** Keep culinary completeness separate from nutritional completeness and occasion fit separate from recipe identity. Verify compatible ingredient adaptations as well as genuine dish changes before promoting reviewer changes.
 
-This repair is approved for Development only. Report files, tests, results, and limitations before any GitHub push; do not promote or activate it in Production without separate authorization.
+The user subsequently authorized importing the merged occasion and snack repair into the Production workspace. This permits source synchronization and preview rebuilding, not live publication or changes to existing feature gates.
 
-**Why:** The user's written repair requirements explicitly set that release boundary.
+**Why:** The original repair was Development-only, but the user explicitly requested the merged Production changes in the Production workspace on 2026-11-14.
 
-**How to apply:** Preserve the Development-only boundary during unrelated merges and releases. A prior request to promote other changes does not authorize promoting this repair.
+**How to apply:** Preserve the approved source and its existing runtime gates. Distinguish workspace synchronization from live publication; obtain separate publication authority.
