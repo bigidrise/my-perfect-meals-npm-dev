@@ -50,6 +50,9 @@ import {
 } from "../services/myPerfectMenu/generationContract";
 import { generateCulinaryConcepts } from "../services/myPerfectMenu/culinaryConceptEngine";
 import {
+  developmentMenuPreferencesSchema, developmentPreviousChoicesAvailability,
+} from "../services/myPerfectMenu/generationReliability";
+import {
   developmentMenuOccasionEnabled, MENU_OCCASION_GUIDANCE, validateMenuOccasionBatch,
 } from "../services/myPerfectMenu/occasionSuitability";
 import { completedSnackMatchesConcept, matchesSnackType } from "../services/myPerfectMenu/snackIdentity";
@@ -212,7 +215,7 @@ async function readPreferences(target: SubjectTarget): Promise<MyPerfectMenuPref
         .from(householdProfiles)
         .where(eq(householdProfiles.id, target.id))
         .limit(1);
-  const parsed = myPerfectMenuPreferencesSchema.safeParse(rows[0]?.value);
+  const parsed = (developmentMenuOccasionEnabled() ? developmentMenuPreferencesSchema : myPerfectMenuPreferencesSchema).safeParse(rows[0]?.value);
   return parsed.success ? parsed.data : emptyMyPerfectMenuPreferences();
 }
 
@@ -239,7 +242,7 @@ async function mutatePreferences(
           .limit(1)
           .for("update");
     if (!rows[0]) throw new Error("My Perfect Menu subject disappeared during update.");
-    const parsed = myPerfectMenuPreferencesSchema.safeParse(rows[0].value);
+    const parsed = (developmentMenuOccasionEnabled() ? developmentMenuPreferencesSchema : myPerfectMenuPreferencesSchema).safeParse(rows[0].value);
     const updated = mutate(parsed.success ? parsed.data : emptyMyPerfectMenuPreferences());
     if (target.kind === "user") {
       await transaction.update(users).set({ myPerfectMenuPreferences: updated }).where(eq(users.id, target.id));
@@ -438,7 +441,9 @@ router.get("/concepts", requireAuth, requireFullMyPerfectMenuRestorationPayload,
       categories[category] = preferences.categories[category];
     } else staleCategories.push(category);
   }));
-  return res.json({ categories, staleCategories, subject: { id: target.id, label: target.label }, builder });
+  return res.json({ categories, staleCategories, subject: { id: target.id, label: target.label }, builder,
+    ...(developmentMenuOccasionEnabled() ? { partialChoicesEnabled: true } : {}),
+  });
 });
 
 router.get("/context-status", requireAuth, async (req, res) => {
@@ -695,7 +700,7 @@ async function handleConceptGeneration(
     authorizationAction: "my_perfect_menu",
   });
 
-  let previousChoicesAvailability: "compatible" | "stale" | "none" | undefined;
+  let previousChoicesAvailability: "compatible" | "stale" | "none" | "unavailable" | undefined;
   try {
     let context = await scope.resolve();
     if (context.status === "review_required" || context.status === "blocked") {
@@ -760,16 +765,17 @@ async function handleConceptGeneration(
         target.kind === "user" ? await resolveGLP1GlobalContext(actorUserId,
           parsed.data.destinationDate ?? new Date().toISOString().slice(0, 10), parsed.data.ideaType) : null,
         builder, parsed.data.destinationDate, parsed.data.mealSlot);
-      previousChoicesAvailability =
-        isMyPerfectMenuContextStampFresh(stored.contextStamps[parsed.data.ideaType], stamp) &&
-        previous.length === 3 && previous.every(concept =>
+      const fresh = isMyPerfectMenuContextStampFresh(stored.contextStamps[parsed.data.ideaType], stamp);
+      const compatible = previous.every(concept =>
           conceptViolations(concept.validationDescription
             ? { ...concept, description: concept.validationDescription } : concept,
             context, envelope, context.flavor.cuisine.available ? context.flavor.cuisine.value : null).length === 0 &&
           (parsed.data.ideaType !== "snack" ||
             (concept.snackType === parsed.data.snackType &&
-             matchesSnackType(concept.foodIdentity, parsed.data.snackType!))))
-          ? "compatible" : "stale";
+             matchesSnackType(concept.foodIdentity, parsed.data.snackType!))));
+      previousChoicesAvailability = developmentMenuOccasionEnabled()
+        ? developmentPreviousChoicesAvailability(previous.length, fresh, compatible)
+        : fresh && previous.length === 3 && compatible ? "compatible" : "stale";
     }
     const priorSignatures = new Set([
       ...stored.recentSignatures.map(normalize),
@@ -787,6 +793,7 @@ async function handleConceptGeneration(
     }
     const generated = await generateCulinaryConcepts({
       occasion,
+      developmentPartialChoices: developmentMenuOccasionEnabled(),
       ...(developmentMenuOccasionEnabled() ? {
         extraInstructions: [MENU_OCCASION_GUIDANCE[occasion]],
         validateBatch: (concepts) => validateMenuOccasionBatch(occasion, concepts.map(concept => ({
@@ -855,7 +862,9 @@ async function handleConceptGeneration(
       updatedAt: new Date().toISOString(),
     }));
     await scope.completeAuthorization();
-    return res.json({ concepts, subject: { id: target.id, label: target.label }, builder });
+    return res.json({ concepts, subject: { id: target.id, label: target.label }, builder,
+      ...(developmentMenuOccasionEnabled() ? { partialChoicesEnabled: true } : {}),
+    });
   } catch (error) {
     await scope.releaseAuthorization().catch(() => {});
     if (error instanceof Error && "code" in error &&
