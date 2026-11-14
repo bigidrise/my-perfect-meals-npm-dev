@@ -76,6 +76,17 @@ export function consumerOncologyUpdate(previous: typeof users.$inferSelect.oncol
 /** One locked subject row: nutrition state and ownership decisions commit together. */
 export async function saveConsumerSpecialtySupport(userId: string, conditions: string[], input: unknown) {
   parseConsumerOncologyInput(input);
+  return persistConsumerSpecialtySupport(userId, conditions, input, true);
+}
+
+/** Production retention must not activate Development-only oncology editing. */
+export async function saveConsumerSpecialtyConditions(userId: string, conditions: string[]) {
+  return persistConsumerSpecialtySupport(userId, conditions, undefined, false);
+}
+
+async function persistConsumerSpecialtySupport(
+  userId: string, conditions: string[], input: unknown, updateOncologyContext: boolean,
+) {
   return db.transaction(async tx => {
     const [record] = await tx.select({
       context: users.oncologySupportContext,
@@ -90,11 +101,13 @@ export async function saveConsumerSpecialtySupport(userId: string, conditions: s
     }
     const resolvedConditions = resolveConsumerSpecialtyConditions(
       conditions, [...(record.conditions ?? []), ...(record.primaryCondition ? [record.primaryCondition] : [])]);
-    const context = consumerOncologyUpdate(record.context, resolvedConditions, input, userId);
+    const context = updateOncologyContext
+      ? consumerOncologyUpdate(record.context, resolvedConditions, input, userId)
+      : record.context;
     await tx.update(users).set({
       specialtyCondition: resolvedConditions[0] ?? null,
       specialtyConditions: resolvedConditions,
-      oncologySupportContext: context,
+      ...(updateOncologyContext ? { oncologySupportContext: context } : {}),
     }).where(eq(users.id, userId));
     await recordSubjectProtocolChanges(tx, userId,
       [...(record.conditions ?? []), ...(record.primaryCondition ? [record.primaryCondition] : [])],
