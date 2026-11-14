@@ -25,6 +25,7 @@ export interface DessertDiagnostic {
   providerFailureCount?: number;
   invalidResponseCount?: number;
   rejectionCounts?: Record<string, number>;
+  rejectionRules?: string[];
 }
 
 export type DessertDiagnosticSink = (event: DessertDiagnostic) => void;

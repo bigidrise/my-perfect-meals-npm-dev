@@ -8,3 +8,4 @@ description: Culinary breadth, subject/context authority, builder ownership, sta
 - [Builder authority](my-perfect-menu-builder-authority.md) — one server-resolved builder governs generation, board scope, cache events, and destination.
 - [Stable choices](my-perfect-menu-stable-choices.md) — keep one stable set of three; Builders create meals and Favorites preserves them.
 - [Restoration payloads](my-perfect-menu-restoration-payloads.md) — remount APIs must return full authoritative JSON and never treat transport failure as an empty set.
+- [Occasion policy](my-perfect-menu-occasion-policy.md) — judge actual preparation, retain cultural breadth and slot freedom; repair remains Development-only pending review.

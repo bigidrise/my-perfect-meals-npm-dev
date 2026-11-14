@@ -102,7 +102,9 @@ describe("My Perfect Menu dessert completion with Development-only diagnostics",
     const source = readFileSync("server/routes/myPerfectMenu.ts", "utf8");
     const mealAdapter = source.slice(source.indexOf("function conceptMeal("), source.indexOf("function conceptViolations("));
     expect(mealAdapter).toContain("description: concept.validationDescription ?? concept.description");
-    expect(source.match(/description: concept.validationDescription \?\? concept.description/g)).toHaveLength(2);
+    // Meal adaptation, Builder handoff, and the independent occasion review
+    // must all retain the unshortened food evidence.
+    expect(source.match(/description: concept.validationDescription \?\? concept.description/g)).toHaveLength(3);
   });
 
   it("retains two valid desserts, supplies their identities on retries, and completes only the third", async () => {
