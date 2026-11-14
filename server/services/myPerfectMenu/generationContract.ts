@@ -272,6 +272,7 @@ export function rejectionCategory(reason: string): string {
   if (reason.startsWith("schema_metadata_failure:")) return "schema_metadata_failure";
   if (reason.startsWith("repetition:")) return "repetition_rejection";
   if (reason.startsWith("history_uncertainty:")) return "history_evidence_required";
+  if (reason.startsWith("occasion_fit:") || reason.startsWith("occasion_identity:")) return "occasion_suitability";
   return "governance_rejection";
 }
 

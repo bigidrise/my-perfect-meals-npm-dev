@@ -49,6 +49,12 @@ import {
   cuisineLabelsCompatible,
 } from "../services/myPerfectMenu/generationContract";
 import { generateCulinaryConcepts } from "../services/myPerfectMenu/culinaryConceptEngine";
+import {
+  developmentMenuPreferencesSchema, developmentPreviousChoicesAvailability,
+} from "../services/myPerfectMenu/generationReliability";
+import {
+  developmentMenuOccasionEnabled, MENU_OCCASION_GUIDANCE, validateMenuOccasionBatch,
+} from "../services/myPerfectMenu/occasionSuitability";
 import { completedSnackMatchesConcept, matchesSnackType } from "../services/myPerfectMenu/snackIdentity";
 import {
   resolveMyPerfectMenuBuilderForActor,
@@ -209,7 +215,7 @@ async function readPreferences(target: SubjectTarget): Promise<MyPerfectMenuPref
         .from(householdProfiles)
         .where(eq(householdProfiles.id, target.id))
         .limit(1);
-  const parsed = myPerfectMenuPreferencesSchema.safeParse(rows[0]?.value);
+  const parsed = (developmentMenuOccasionEnabled() ? developmentMenuPreferencesSchema : myPerfectMenuPreferencesSchema).safeParse(rows[0]?.value);
   return parsed.success ? parsed.data : emptyMyPerfectMenuPreferences();
 }
 
@@ -236,7 +242,7 @@ async function mutatePreferences(
           .limit(1)
           .for("update");
     if (!rows[0]) throw new Error("My Perfect Menu subject disappeared during update.");
-    const parsed = myPerfectMenuPreferencesSchema.safeParse(rows[0].value);
+    const parsed = (developmentMenuOccasionEnabled() ? developmentMenuPreferencesSchema : myPerfectMenuPreferencesSchema).safeParse(rows[0].value);
     const updated = mutate(parsed.success ? parsed.data : emptyMyPerfectMenuPreferences());
     if (target.kind === "user") {
       await transaction.update(users).set({ myPerfectMenuPreferences: updated }).where(eq(users.id, target.id));
@@ -435,7 +441,9 @@ router.get("/concepts", requireAuth, requireFullMyPerfectMenuRestorationPayload,
       categories[category] = preferences.categories[category];
     } else staleCategories.push(category);
   }));
-  return res.json({ categories, staleCategories, subject: { id: target.id, label: target.label }, builder });
+  return res.json({ categories, staleCategories, subject: { id: target.id, label: target.label }, builder,
+    ...(developmentMenuOccasionEnabled() ? { partialChoicesEnabled: true } : {}),
+  });
 });
 
 router.get("/context-status", requireAuth, async (req, res) => {
@@ -512,17 +520,20 @@ router.delete("/concepts", requireAuth, async (req, res) => {
   });
 });
 
+const completedMenuRecipeSchema = z.object({
+  name: z.string().trim().min(1).max(180),
+  description: z.string().max(4000).optional(),
+  ingredients: z.array(z.union([z.string(), z.object({ name: z.string().optional(), item: z.string().optional() }).passthrough()])).max(100).optional(),
+  instructions: z.union([z.string(), z.array(z.string())]).optional(),
+}).passthrough();
+
 router.post("/validate-selection", requireAuth, async (req, res) => {
   const parsed = subjectSchema.extend({
     ideaType: categorySchema,
     conceptId: z.string().min(1).max(100),
     snackType: myPerfectMenuSnackTypeSchema.optional(),
-    completedSnack: z.object({
-      name: z.string().trim().min(1).max(180),
-      description: z.string().max(4000).optional(),
-      ingredients: z.array(z.union([z.string(), z.object({ name: z.string().optional(), item: z.string().optional() }).passthrough()])).max(100).optional(),
-      instructions: z.union([z.string(), z.array(z.string())]).optional(),
-    }).passthrough().optional(),
+    completedSnack: completedMenuRecipeSchema.optional(),
+    completedMeal: completedMenuRecipeSchema.optional(),
   }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Choose a valid menu concept." });
   const actorUserId = String((req as AuthenticatedRequest).authUser.id);
@@ -571,6 +582,46 @@ router.post("/validate-selection", requireAuth, async (req, res) => {
       error: "The finished recipe doesn't match your selected snack idea. Please choose it again.",
     });
   }
+  if (developmentMenuOccasionEnabled() && parsed.data.completedMeal) {
+    const completed = parsed.data.completedMeal;
+    // Keep the existing deterministic snack-family check in addition to the
+    // independent occasion/dish review. Never use the destination slot as intent.
+    if (concept.ideaType === "snack" && !completedSnackMatchesConcept(concept, completed)) {
+      return res.status(422).json({
+        code: "MY_PERFECT_MENU_SNACK_IDENTITY_CHANGED",
+        error: "The finished recipe doesn't match your selected snack idea. Please choose it again.",
+      });
+    }
+    try {
+      const [issues] = await validateMenuOccasionBatch(concept.ideaType, [{
+        title: completed.name,
+        description: completed.description,
+        primaryIngredients: (completed.ingredients ?? []).map(item =>
+          typeof item === "string" ? item : item.name ?? item.item ?? "").filter(Boolean),
+        instructions: completed.instructions,
+        snackType: concept.snackType,
+      }], { selectedIdea: {
+        title: concept.title,
+        description: concept.validationDescription ?? concept.description,
+        primaryIngredients: concept.primaryIngredients,
+        cuisine: concept.cuisine,
+        preparationMethod: concept.preparationMethod,
+        culinaryIdentity: concept.culinaryIdentity,
+        snackType: concept.snackType,
+      } });
+      if (issues.length) {
+        return res.status(422).json({
+          code: "MY_PERFECT_MENU_OCCASION_IDENTITY_CHANGED",
+          error: "The finished recipe no longer matches your selected idea and meal type. It was not added to your plan. Please choose the idea again.",
+        });
+      }
+    } catch {
+      return res.status(502).json({
+        code: "MY_PERFECT_MENU_OCCASION_CHECK_UNAVAILABLE",
+        error: "We couldn't verify the finished recipe's meal type. It was not added to your plan. Please try again.",
+      });
+    }
+  }
   const performance = builder.key === "performance_competition"
     ? await resolveMyPerfectMenuPerformanceContext(target.id, parsed.data.destinationDate!, parsed.data.mealSlot!)
     : null;
@@ -593,7 +644,10 @@ router.post("/validate-selection", requireAuth, async (req, res) => {
         authority: performance,
       })
     : null;
-  return res.json({ valid: true, concept, builder, performance, performanceAuthorityToken });
+  return res.json({
+    valid: true, concept, builder, performance, performanceAuthorityToken,
+    ...(developmentMenuOccasionEnabled() ? { occasionSuitabilityRequired: true } : {}),
+  });
 });
 
 router.post("/concepts", requireAuth, (req, res, next) => {
@@ -654,7 +708,7 @@ async function handleConceptGeneration(
     authorizationAction: "my_perfect_menu",
   });
 
-  let previousChoicesAvailability: "compatible" | "stale" | "none" | undefined;
+  let previousChoicesAvailability: "compatible" | "stale" | "none" | "unavailable" | undefined;
   try {
     let context = await scope.resolve();
     if (context.status === "review_required" || context.status === "blocked") {
@@ -719,16 +773,17 @@ async function handleConceptGeneration(
         target.kind === "user" ? await resolveGLP1GlobalContext(actorUserId,
           parsed.data.destinationDate ?? new Date().toISOString().slice(0, 10), parsed.data.ideaType) : null,
         builder, parsed.data.destinationDate, parsed.data.mealSlot);
-      previousChoicesAvailability =
-        isMyPerfectMenuContextStampFresh(stored.contextStamps[parsed.data.ideaType], stamp) &&
-        previous.length === 3 && previous.every(concept =>
+      const fresh = isMyPerfectMenuContextStampFresh(stored.contextStamps[parsed.data.ideaType], stamp);
+      const compatible = previous.every(concept =>
           conceptViolations(concept.validationDescription
             ? { ...concept, description: concept.validationDescription } : concept,
             context, envelope, context.flavor.cuisine.available ? context.flavor.cuisine.value : null).length === 0 &&
           (parsed.data.ideaType !== "snack" ||
             (concept.snackType === parsed.data.snackType &&
-             matchesSnackType(concept.foodIdentity, parsed.data.snackType!))))
-          ? "compatible" : "stale";
+             matchesSnackType(concept.foodIdentity, parsed.data.snackType!))));
+      previousChoicesAvailability = developmentMenuOccasionEnabled()
+        ? developmentPreviousChoicesAvailability(previous.length, fresh, compatible)
+        : fresh && previous.length === 3 && compatible ? "compatible" : "stale";
     }
     const priorSignatures = new Set([
       ...stored.recentSignatures.map(normalize),
@@ -746,6 +801,15 @@ async function handleConceptGeneration(
     }
     const generated = await generateCulinaryConcepts({
       occasion,
+      developmentPartialChoices: developmentMenuOccasionEnabled(),
+      ...(developmentMenuOccasionEnabled() ? {
+        extraInstructions: [MENU_OCCASION_GUIDANCE[occasion]],
+        validateBatch: (concepts) => validateMenuOccasionBatch(occasion, concepts.map(concept => ({
+          ...concept,
+          description: concept.validationDescription ?? concept.description,
+          ...(occasion === "snack" ? { snackType: parsed.data.snackType } : {}),
+        }))),
+      } : {}),
       ...(diagnostics ? { onDiagnostic: diagnostics.capture } : {}),
       developmentDessertCompletion: occasion === "snack" && parsed.data.snackType === "dessert",
       ...(occasion === "snack" ? { menuShape: "craving" as const, cravingCategory: parsed.data.snackType } : {}),
@@ -806,11 +870,14 @@ async function handleConceptGeneration(
       updatedAt: new Date().toISOString(),
     }));
     await scope.completeAuthorization();
-    return res.json({ concepts, subject: { id: target.id, label: target.label }, builder });
+    return res.json({ concepts, subject: { id: target.id, label: target.label }, builder,
+      ...(developmentMenuOccasionEnabled() ? { partialChoicesEnabled: true } : {}),
+    });
   } catch (error) {
     await scope.releaseAuthorization().catch(() => {});
     if (error instanceof Error && "code" in error &&
       typeof error.code === "string" && (error.code.startsWith("CONCEPT_") ||
+        error.code === "MY_PERFECT_MENU_OCCASION_CHECK_UNAVAILABLE" ||
         (test && error.code.startsWith("DEVELOPMENT_DESSERT_TEST_"))) &&
       "status" in error && typeof error.status === "number") {
       return res.status(error.status).json({

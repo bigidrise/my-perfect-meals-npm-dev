@@ -5,6 +5,12 @@ description: Product boundaries for idea retention, completed meals, Favorites, 
 
 My Perfect Menu owns one stable working set of three ideas per category. Selecting an idea does not consume it. Returning after inspecting a completed meal restores the same three unless authoritative food or clinical context makes them stale. “Try 3 More” explicitly replaces the current three; choices never accumulate to six, nine, or fifteen.
 
+Development-only reliability exception: aim for three, retain verified ideas while replacing only missing positions, and show one or two verified choices with an explicit partial-result explanation when bounded retries are exhausted. Partial sets must survive restoration and remain subject to the same current-context checks. Production retains the existing three-choice contract until separately authorized.
+
+**Why:** The user explicitly requested useful verified partial results instead of displaying zero when generation could safely complete only one or two choices. Unverified filler is never permitted.
+
+**How to apply:** Keep the standard three-choice experience when available; do not mistake a partial count or ordinary generation exhaustion for changed food context. Distinguish actual stamp staleness from other compatibility failures. Rejection diagnostics may name controlled validator rules, never raw ingredient, profile, or clinical details.
+
 **Why:** Users cannot judge whether they want to keep an idea until its governing Builder creates the complete meal. A second Menu-specific save system would duplicate Favorites and blur the difference between discovery, creation, planning, and retention.
 
 **How to apply:** My Perfect Menu discovers, the resolved Builder creates and labels the completed meal, Favorites keeps it for later, and the Weekly Board represents the current plan. Builder navigation must carry an allowlisted return target with the originating Builder, category, authorized subject, and Performance destination when applicable; navigation alone never changes food authority. Teach users to Favorite a completed meal before deleting or replacing it, and confirm before replacing the current three.

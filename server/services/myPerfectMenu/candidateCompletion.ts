@@ -23,8 +23,15 @@ export function conceptCompletionFailure(
   const historyFailures = rejectionCounts.history_evidence_required ?? 0;
   const authorityFailures = Object.entries(rejectionCounts)
     .filter(([category]) => category !== "schema_metadata_failure" && category !== "repetition_rejection" &&
-      category !== "history_evidence_required")
+      category !== "history_evidence_required" && category !== "occasion_suitability")
     .reduce((total, [, count]) => total + count, 0);
+  if ((rejectionCounts.occasion_suitability ?? 0) > 0 && authorityFailures === 0) {
+    return {
+      status: 422,
+      code: "CONCEPT_OCCASION_COMPLETION_FAILED",
+      error: "We couldn't finish three distinct ideas that fit this meal type. Please try again. Your food settings and nutrition targets were not changed.",
+    };
+  }
 
   if (options?.dessertCompletion && historyFailures > 0 && authorityFailures === 0) {
     return {
