@@ -744,6 +744,9 @@ export default function MyPerfectMenu() {
       setBuilderContext(resolvedBuilder);
       const conceptIntent = [
         "My Perfect Menu selected concept. Preserve this dish and cuisine identity.",
+        validationPayload.occasionSuitabilityRequired
+          ? `Original intended eating occasion: ${conceptToGenerate.ideaType}. Preserve its recognizable preparation and occasion even if the user places it in a different Meal 1–6 slot. A slot is a destination, not permission to turn the selected dish into another meal.`
+          : "",
         `Resolved builder: ${resolvedBuilder.key}. Use its established generation contract.`,
         `Title: ${conceptToGenerate.title}`,
         conceptToGenerate.snackType === "dessert"
@@ -815,20 +818,20 @@ export default function MyPerfectMenu() {
       if (subjectRef.current !== requestedSubject) throw new Error("The active food profile changed. Please choose the meal again.");
       const finalMeal = await finalizeMeal(meal, destination.slot === "snacks" ? "snack" : destination.slot);
       if (subjectRef.current !== requestedSubject) throw new Error("The active food profile changed. Please choose the meal again.");
-      if (conceptToGenerate.ideaType === "snack") {
+      if (validationPayload.occasionSuitabilityRequired || conceptToGenerate.ideaType === "snack") {
         const identityResponse = await fetch(apiUrl("/api/my-perfect-menu/validate-selection"), {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
           body: JSON.stringify({
-            ideaType: "snack",
+            ideaType: conceptToGenerate.ideaType,
             conceptId: conceptToGenerate.id,
             snackType: conceptToGenerate.snackType,
             subjectUserId,
             requestedBuilderKey: requestedBuilderForSubject,
             destinationDate: destination.dateISO,
             mealSlot: destination.slot,
-            completedSnack: {
+            [validationPayload.occasionSuitabilityRequired ? "completedMeal" : "completedSnack"]: {
               name: finalMeal.name || finalMeal.title,
               description: finalMeal.description,
               ingredients: finalMeal.ingredients,
@@ -837,8 +840,12 @@ export default function MyPerfectMenu() {
           }),
         });
         const identityPayload = await identityResponse.json().catch(() => ({}));
-        if (!identityResponse.ok) throw responseError(identityResponse, identityPayload, "The finished snack did not match your selected idea.");
+        if (!identityResponse.ok) throw responseError(identityResponse, identityPayload,
+          validationPayload.occasionSuitabilityRequired
+            ? "The finished recipe did not match your selected idea."
+            : "The finished snack did not match your selected idea.");
       }
+      if (validationPayload.occasionSuitabilityRequired && subjectRef.current !== requestedSubject) throw new Error("The active food profile changed. Please choose the meal again.");
       await addCompletedMeal(destination, finalMeal, resolvedBuilder);
       setPickerOpen(false);
       window.dispatchEvent(new CustomEvent("show-toast", {

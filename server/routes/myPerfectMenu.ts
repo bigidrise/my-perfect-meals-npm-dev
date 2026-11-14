@@ -49,6 +49,9 @@ import {
   cuisineLabelsCompatible,
 } from "../services/myPerfectMenu/generationContract";
 import { generateCulinaryConcepts } from "../services/myPerfectMenu/culinaryConceptEngine";
+import {
+  developmentMenuOccasionEnabled, MENU_OCCASION_GUIDANCE, validateMenuOccasionBatch,
+} from "../services/myPerfectMenu/occasionSuitability";
 import { completedSnackMatchesConcept, matchesSnackType } from "../services/myPerfectMenu/snackIdentity";
 import {
   resolveMyPerfectMenuBuilderForActor,
@@ -512,17 +515,20 @@ router.delete("/concepts", requireAuth, async (req, res) => {
   });
 });
 
+const completedMenuRecipeSchema = z.object({
+  name: z.string().trim().min(1).max(180),
+  description: z.string().max(4000).optional(),
+  ingredients: z.array(z.union([z.string(), z.object({ name: z.string().optional(), item: z.string().optional() }).passthrough()])).max(100).optional(),
+  instructions: z.union([z.string(), z.array(z.string())]).optional(),
+}).passthrough();
+
 router.post("/validate-selection", requireAuth, async (req, res) => {
   const parsed = subjectSchema.extend({
     ideaType: categorySchema,
     conceptId: z.string().min(1).max(100),
     snackType: myPerfectMenuSnackTypeSchema.optional(),
-    completedSnack: z.object({
-      name: z.string().trim().min(1).max(180),
-      description: z.string().max(4000).optional(),
-      ingredients: z.array(z.union([z.string(), z.object({ name: z.string().optional(), item: z.string().optional() }).passthrough()])).max(100).optional(),
-      instructions: z.union([z.string(), z.array(z.string())]).optional(),
-    }).passthrough().optional(),
+    completedSnack: completedMenuRecipeSchema.optional(),
+    completedMeal: completedMenuRecipeSchema.optional(),
   }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Choose a valid menu concept." });
   const actorUserId = String((req as AuthenticatedRequest).authUser.id);
@@ -571,6 +577,38 @@ router.post("/validate-selection", requireAuth, async (req, res) => {
       error: "The finished recipe doesn't match your selected snack idea. Please choose it again.",
     });
   }
+  if (developmentMenuOccasionEnabled() && parsed.data.completedMeal) {
+    const completed = parsed.data.completedMeal;
+    // Keep the existing deterministic snack-family check in addition to the
+    // independent occasion/dish review. Never use the destination slot as intent.
+    if (concept.ideaType === "snack" && !completedSnackMatchesConcept(concept, completed)) {
+      return res.status(422).json({
+        code: "MY_PERFECT_MENU_SNACK_IDENTITY_CHANGED",
+        error: "The finished recipe doesn't match your selected snack idea. Please choose it again.",
+      });
+    }
+    try {
+      const [issues] = await validateMenuOccasionBatch(concept.ideaType, [{
+        title: completed.name,
+        description: completed.description,
+        primaryIngredients: (completed.ingredients ?? []).map(item =>
+          typeof item === "string" ? item : item.name ?? item.item ?? "").filter(Boolean),
+        instructions: completed.instructions,
+        snackType: concept.snackType,
+      }], { selectedIdea: concept });
+      if (issues.length) {
+        return res.status(422).json({
+          code: "MY_PERFECT_MENU_OCCASION_IDENTITY_CHANGED",
+          error: "The finished recipe no longer matches your selected idea and meal type. It was not added to your plan. Please choose the idea again.",
+        });
+      }
+    } catch {
+      return res.status(502).json({
+        code: "MY_PERFECT_MENU_OCCASION_CHECK_UNAVAILABLE",
+        error: "We couldn't verify the finished recipe's meal type. It was not added to your plan. Please try again.",
+      });
+    }
+  }
   const performance = builder.key === "performance_competition"
     ? await resolveMyPerfectMenuPerformanceContext(target.id, parsed.data.destinationDate!, parsed.data.mealSlot!)
     : null;
@@ -593,7 +631,10 @@ router.post("/validate-selection", requireAuth, async (req, res) => {
         authority: performance,
       })
     : null;
-  return res.json({ valid: true, concept, builder, performance, performanceAuthorityToken });
+  return res.json({
+    valid: true, concept, builder, performance, performanceAuthorityToken,
+    ...(developmentMenuOccasionEnabled() ? { occasionSuitabilityRequired: true } : {}),
+  });
 });
 
 router.post("/concepts", requireAuth, (req, res, next) => {
@@ -746,6 +787,14 @@ async function handleConceptGeneration(
     }
     const generated = await generateCulinaryConcepts({
       occasion,
+      ...(developmentMenuOccasionEnabled() ? {
+        extraInstructions: [MENU_OCCASION_GUIDANCE[occasion]],
+        validateBatch: (concepts) => validateMenuOccasionBatch(occasion, concepts.map(concept => ({
+          ...concept,
+          description: concept.validationDescription ?? concept.description,
+          ...(occasion === "snack" ? { snackType: parsed.data.snackType } : {}),
+        }))),
+      } : {}),
       ...(diagnostics ? { onDiagnostic: diagnostics.capture } : {}),
       developmentDessertCompletion: occasion === "snack" && parsed.data.snackType === "dessert",
       ...(occasion === "snack" ? { menuShape: "craving" as const, cravingCategory: parsed.data.snackType } : {}),
@@ -811,6 +860,7 @@ async function handleConceptGeneration(
     await scope.releaseAuthorization().catch(() => {});
     if (error instanceof Error && "code" in error &&
       typeof error.code === "string" && (error.code.startsWith("CONCEPT_") ||
+        error.code === "MY_PERFECT_MENU_OCCASION_CHECK_UNAVAILABLE" ||
         (test && error.code.startsWith("DEVELOPMENT_DESSERT_TEST_"))) &&
       "status" in error && typeof error.status === "number") {
       return res.status(error.status).json({
