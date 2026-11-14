@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { myPerfectMenuConceptSchema, myPerfectMenuPreferencesSchema } from "@shared/myPerfectMenu";
+import type { MyPerfectMenuCategory } from "@shared/myPerfectMenuCategory";
+import { developmentMenuOccasionEnabled } from "./occasionSuitability";
 
-// Selected by the route only in unpublished Development; Production retains
-// its existing three-choice storage contract.
+// Other meal occasions retain their Development-only partial-choice rollout.
 export const developmentMenuPreferencesSchema = myPerfectMenuPreferencesSchema.extend({
   categories: z.object({
     breakfast: z.array(myPerfectMenuConceptSchema).min(1).max(3).optional(),
@@ -11,6 +12,25 @@ export const developmentMenuPreferencesSchema = myPerfectMenuPreferencesSchema.e
     snack: z.array(myPerfectMenuConceptSchema).min(1).max(3).optional(),
   }),
 });
+
+/** Only My Perfect Menu may opt in; delegated Creators remain all-or-error. */
+export function menuPartialChoicesEnabled(occasion: MyPerfectMenuCategory): boolean {
+  return occasion === "snack" || developmentMenuOccasionEnabled();
+}
+
+// Accept partial snacks on reads as well as writes, without relaxing other
+// Production meal categories or the shared Creator storage contract.
+export const productionSnackPreferencesSchema = myPerfectMenuPreferencesSchema.extend({
+  categories: myPerfectMenuPreferencesSchema.shape.categories.extend({
+    snack: z.array(myPerfectMenuConceptSchema).min(1).max(3).optional(),
+  }),
+});
+
+export function menuPreferencesSchema() {
+  return developmentMenuOccasionEnabled()
+    ? developmentMenuPreferencesSchema
+    : productionSnackPreferencesSchema;
+}
 
 /** Never emit the suffix: it may contain ingredients or private clinical text. */
 export function safeMenuRejectionRules(reasons: string[]): string[] {

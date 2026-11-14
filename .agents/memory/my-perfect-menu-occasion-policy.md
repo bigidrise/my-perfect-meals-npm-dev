@@ -15,8 +15,8 @@ Mocked classifier tests alone do not establish culinary suitability or recipe id
 
 **How to apply:** Keep culinary completeness separate from nutritional completeness and occasion fit separate from recipe identity. Verify compatible ingredient adaptations as well as genuine dish changes before promoting reviewer changes.
 
-The user subsequently authorized importing the merged occasion and snack repair into the Production workspace. This permits source synchronization and preview rebuilding, not live publication or changes to existing feature gates.
+The user authorized Production snack reliability: retain one or two fully verified snack choices when three cannot be completed, including persistence, restoration, and explanatory UI. Other occasions' partial-choice rollout, independent occasion-review activation, and diagnostic/test endpoints retain their existing boundaries.
 
-**Why:** The original repair was Development-only, but the user explicitly requested the merged Production changes in the Production workspace on 2026-11-14.
+**Why:** On 2026-11-14, the user approved enabling the Production repair after a real snack request retained two valid choices but failed the three-choice requirement. Importing the merged source had not activated Development-gated partial success.
 
-**How to apply:** Preserve the approved source and its existing runtime gates. Distinguish workspace synchronization from live publication; obtain separate publication authority.
+**How to apply:** Enable only the approved snack reliability behavior, keep all existing safety checks and opt-in caller boundaries, and keep test endpoints Development-only. Workspace changes do not authorize live publication.

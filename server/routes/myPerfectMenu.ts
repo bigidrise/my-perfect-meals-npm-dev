@@ -9,7 +9,6 @@ import {
   myPerfectMenuCategorySchema,
   myPerfectMenuMealSlotSchema,
   myPerfectMenuSnackTypeSchema,
-  myPerfectMenuPreferencesSchema,
   type MyPerfectMenuCategory,
   type MyPerfectMenuConcept,
   type MyPerfectMenuMealSlot,
@@ -50,7 +49,7 @@ import {
 } from "../services/myPerfectMenu/generationContract";
 import { generateCulinaryConcepts } from "../services/myPerfectMenu/culinaryConceptEngine";
 import {
-  developmentMenuPreferencesSchema, developmentPreviousChoicesAvailability,
+  menuPreferencesSchema, menuPartialChoicesEnabled, developmentPreviousChoicesAvailability,
 } from "../services/myPerfectMenu/generationReliability";
 import {
   developmentMenuOccasionEnabled, MENU_OCCASION_GUIDANCE, validateMenuOccasionBatch,
@@ -215,7 +214,7 @@ async function readPreferences(target: SubjectTarget): Promise<MyPerfectMenuPref
         .from(householdProfiles)
         .where(eq(householdProfiles.id, target.id))
         .limit(1);
-  const parsed = (developmentMenuOccasionEnabled() ? developmentMenuPreferencesSchema : myPerfectMenuPreferencesSchema).safeParse(rows[0]?.value);
+  const parsed = menuPreferencesSchema().safeParse(rows[0]?.value);
   return parsed.success ? parsed.data : emptyMyPerfectMenuPreferences();
 }
 
@@ -242,7 +241,7 @@ async function mutatePreferences(
           .limit(1)
           .for("update");
     if (!rows[0]) throw new Error("My Perfect Menu subject disappeared during update.");
-    const parsed = (developmentMenuOccasionEnabled() ? developmentMenuPreferencesSchema : myPerfectMenuPreferencesSchema).safeParse(rows[0].value);
+    const parsed = menuPreferencesSchema().safeParse(rows[0].value);
     const updated = mutate(parsed.success ? parsed.data : emptyMyPerfectMenuPreferences());
     if (target.kind === "user") {
       await transaction.update(users).set({ myPerfectMenuPreferences: updated }).where(eq(users.id, target.id));
@@ -442,7 +441,7 @@ router.get("/concepts", requireAuth, requireFullMyPerfectMenuRestorationPayload,
     } else staleCategories.push(category);
   }));
   return res.json({ categories, staleCategories, subject: { id: target.id, label: target.label }, builder,
-    ...(developmentMenuOccasionEnabled() ? { partialChoicesEnabled: true } : {}),
+    partialChoicesEnabled: true,
   });
 });
 
@@ -781,7 +780,7 @@ async function handleConceptGeneration(
           (parsed.data.ideaType !== "snack" ||
             (concept.snackType === parsed.data.snackType &&
              matchesSnackType(concept.foodIdentity, parsed.data.snackType!))));
-      previousChoicesAvailability = developmentMenuOccasionEnabled()
+      previousChoicesAvailability = menuPartialChoicesEnabled(parsed.data.ideaType)
         ? developmentPreviousChoicesAvailability(previous.length, fresh, compatible)
         : fresh && previous.length === 3 && compatible ? "compatible" : "stale";
     }
@@ -801,7 +800,7 @@ async function handleConceptGeneration(
     }
     const generated = await generateCulinaryConcepts({
       occasion,
-      developmentPartialChoices: developmentMenuOccasionEnabled(),
+      developmentPartialChoices: menuPartialChoicesEnabled(occasion),
       ...(developmentMenuOccasionEnabled() ? {
         extraInstructions: [MENU_OCCASION_GUIDANCE[occasion]],
         validateBatch: (concepts) => validateMenuOccasionBatch(occasion, concepts.map(concept => ({
@@ -871,7 +870,7 @@ async function handleConceptGeneration(
     }));
     await scope.completeAuthorization();
     return res.json({ concepts, subject: { id: target.id, label: target.label }, builder,
-      ...(developmentMenuOccasionEnabled() ? { partialChoicesEnabled: true } : {}),
+      ...(menuPartialChoicesEnabled(occasion) ? { partialChoicesEnabled: true } : {}),
     });
   } catch (error) {
     await scope.releaseAuthorization().catch(() => {});

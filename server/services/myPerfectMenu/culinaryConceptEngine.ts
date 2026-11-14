@@ -22,8 +22,7 @@ import {
   type DessertReference,
 } from "./developmentDessertCompletion";
 import type { DessertDiagnostic, DessertDiagnosticSink } from "./dessertDiagnostics";
-import { developmentMenuOccasionEnabled } from "./occasionSuitability";
-import { safeMenuRejectionRules } from "./generationReliability";
+import { menuPartialChoicesEnabled, safeMenuRejectionRules } from "./generationReliability";
 
 export interface CulinaryConceptRequest {
   occasion: MyPerfectMenuCategory;
@@ -73,7 +72,7 @@ const normalizeSignature = (signature: string) =>
  * Creators. The caller owns authorization, history storage, and destination.
  */
 export async function generateCulinaryConcepts(input: CulinaryConceptRequest): Promise<CulinaryConceptResult> {
-  const reliabilityEnabled = input.developmentPartialChoices === true && developmentMenuOccasionEnabled();
+  const reliabilityEnabled = input.developmentPartialChoices === true && menuPartialChoicesEnabled(input.occasion);
   const dessertRepairEnabled = input.developmentDessertCompletion === true &&
     input.occasion === "snack" && input.cravingCategory === "dessert";
   const targetCount = input.targetCount ?? 3;

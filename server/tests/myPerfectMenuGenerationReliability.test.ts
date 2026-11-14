@@ -6,7 +6,9 @@ jest.mock("../db", () => ({
 
 import { readFileSync } from "node:fs";
 import { generateCulinaryConcepts } from "../services/myPerfectMenu/culinaryConceptEngine";
-import { developmentMenuPreferencesSchema, developmentPreviousChoicesAvailability, safeMenuRejectionRules } from "../services/myPerfectMenu/generationReliability";
+import { developmentMenuPreferencesSchema, developmentPreviousChoicesAvailability, safeMenuRejectionRules, menuPartialChoicesEnabled, menuPreferencesSchema } from "../services/myPerfectMenu/generationReliability";
+import { developmentMenuOccasionEnabled } from "../services/myPerfectMenu/occasionSuitability";
+import { developmentSnackRepairEnabled } from "../services/snackCompatibilityRepair";
 import { emptyMyPerfectMenuPreferences, myPerfectMenuPreferencesSchema } from "../../shared/myPerfectMenu";
 import { menuFailureMessage } from "../../shared/menuFailureMessage";
 import { validateHumanFoodResult } from "../services/humanFoodContext/validateHumanFoodResult";
@@ -42,7 +44,7 @@ const scenarios: [MyPerfectMenuCategory, "food" | "dessert" | undefined][] = [
   ["snack", "food"], ["snack", "dessert"],
 ];
 
-describe("Development-only verified partial My Perfect Menu choices", () => {
+describe("Verified partial My Perfect Menu choices with Production snack support", () => {
   const originalMode = process.env.NODE_ENV;
   const originalDeployment = process.env.REPLIT_DEPLOYMENT;
   beforeEach(() => {
@@ -140,6 +142,59 @@ describe("Development-only verified partial My Perfect Menu choices", () => {
       ...base, occasion: "dinner", generate: async () => ({ concepts: [a, blocked] }),
     })).rejects.toMatchObject({ code: "CONCEPT_REPAIR_EXHAUSTED" });
   });
+
+  it.each(["food", "dessert"] as const)("retains two verified %s snacks in a published Production runtime", async cravingCategory => {
+    process.env.NODE_ENV = "production";
+    process.env.REPLIT_DEPLOYMENT = "1";
+    expect(menuPartialChoicesEnabled("snack")).toBe(true);
+    expect(menuPartialChoicesEnabled("dinner")).toBe(false);
+    expect(developmentMenuOccasionEnabled()).toBe(false);
+    expect(developmentSnackRepairEnabled()).toBe(false);
+    const generate = jest.fn(async () => ({ concepts: [a, b, blocked] }));
+    const result = await generateCulinaryConcepts({
+      ...base, occasion: "snack", cravingCategory,
+      generate,
+    });
+    expect(result.concepts.map(item => item.title)).toEqual([a.title, b.title]);
+    expect(generate).toHaveBeenCalledTimes(5);
+    expect(result.rejectionCodes).toContain("forbidden_ingredient:milk");
+  });
+
+  it("does not return unsafe snacks or allow other Creators to opt in implicitly in Production", async () => {
+    process.env.NODE_ENV = "production";
+    process.env.REPLIT_DEPLOYMENT = "1";
+    await expect(generateCulinaryConcepts({
+      ...base, occasion: "snack",
+      generate: async () => ({ concepts: [blocked] }),
+    })).rejects.toMatchObject({ code: "CONCEPT_REPAIR_EXHAUSTED" });
+    await expect(generateCulinaryConcepts({
+      ...base, occasion: "snack", developmentPartialChoices: false,
+      generate: async () => ({ concepts: [a, blocked] }),
+    })).rejects.toMatchObject({ code: "CONCEPT_REPAIR_EXHAUSTED" });
+  });
+
+  it.each([1, 2, 3])("round-trips %s saved snacks in Production without relaxing other meals", count => {
+    process.env.NODE_ENV = "production";
+    process.env.REPLIT_DEPLOYMENT = "1";
+    const preferences = {
+      ...emptyMyPerfectMenuPreferences(),
+      categories: { snack: [a, b, c].slice(0, count).map((item, i) => ({
+        ...item, id: `synthetic-${i}`, ideaType: "snack", snackType: "dessert",
+      })) },
+    };
+    const schema = menuPreferencesSchema();
+    const saved = schema.parse(preferences);
+    expect(schema.parse(JSON.parse(JSON.stringify(saved))).categories.snack).toHaveLength(count);
+    expect(developmentPreviousChoicesAvailability(count, true, true)).toBe("compatible");
+    expect(schema.safeParse({ ...preferences, categories: { snack: [] } }).success).toBe(false);
+    expect(schema.safeParse({ ...preferences, categories: { snack: [preferences.categories.snack[0], b, c, a] } }).success).toBe(false);
+    expect(schema.safeParse({
+      ...preferences, categories: { dinner: preferences.categories.snack.map(item => ({ ...item, ideaType: "dinner" })) },
+    }).success).toBe(count === 3);
+    expect(schema.safeParse({
+      ...preferences, categories: { snack: [{ ...preferences.categories.snack[0], primaryIngredients: [] }] },
+    }).success).toBe(false);
+  });
   it("does not activate partial success in a deployment or another Creator caller", async () => {
     process.env.REPLIT_DEPLOYMENT = "1";
     await expect(generateCulinaryConcepts({
@@ -223,11 +278,14 @@ describe("Development-only verified partial My Perfect Menu choices", () => {
     expect(safeMenuRejectionRules(["unsafe-private-rule:secret"])).toEqual(["unclassified_food_check"]);
   });
 
-  it("wires partial persistence, restoration and the explanatory UI without changing shared Production schema", () => {
+  it("wires partial snack persistence, restoration and the explanatory UI without changing shared Creator schema", () => {
     const route = readFileSync("server/routes/myPerfectMenu.ts", "utf8");
     const page = readFileSync("client/src/pages/MyPerfectMenu.tsx", "utf8");
-    expect(route.match(/developmentMenuPreferencesSchema : myPerfectMenuPreferencesSchema/g)).toHaveLength(2);
+    expect(route.match(/menuPreferencesSchema\(\).safeParse/g)).toHaveLength(2);
     expect(route.match(/partialChoicesEnabled: true/g)).toHaveLength(2);
+    expect(route).toContain("developmentPartialChoices: menuPartialChoicesEnabled(occasion)");
+    expect(route).toContain("previousChoicesAvailability = menuPartialChoicesEnabled(parsed.data.ideaType)");
+    expect(route).toContain('if (!developmentSnackRepairEnabled()) return res.sendStatus(404)');
     expect(page).toContain("We could verify only {concepts.length} of three ideas");
     expect(page).toContain("No unverified ideas are shown");
     expect(page).toContain('availability === "unavailable"');
