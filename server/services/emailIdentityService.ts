@@ -1,6 +1,7 @@
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { sql } from "drizzle-orm";
+import { accountEmailUniquenessEnabled } from "./accountEmailUniqueness";
 
 export interface EmailIdentityCandidate {
   id: string;
@@ -56,7 +57,9 @@ export async function findEmailIdentityCandidates(email: string): Promise<EmailI
   return db
     .select({ id: users.id, email: users.email })
     .from(users)
-    .where(sql`LOWER(${users.email}) = ${normalizedEmail}`)
+    .where(accountEmailUniquenessEnabled()
+      ? sql`mpm_normalized_email(${users.email}) = ${normalizedEmail}`
+      : sql`LOWER(${users.email}) = ${normalizedEmail}`)
     .orderBy(users.id);
 }
 

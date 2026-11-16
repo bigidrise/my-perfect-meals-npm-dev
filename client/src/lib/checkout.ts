@@ -132,6 +132,7 @@ export async function startCheckout(
       const checkoutError = new Error(data?.error || "Checkout failed");
       (checkoutError as any).code = data?.code;
       (checkoutError as any).billingPath = data?.billingPath;
+      (checkoutError as any).canChangePlan = data?.canChangePlan === true;
       throw checkoutError;
     }
 
@@ -153,6 +154,30 @@ export async function startCheckout(
   } finally {
     pendingCheckoutPlans.delete(priceLookupKey);
   }
+}
+
+/** Explicit consent changes the existing contract; it never falls back to a new Checkout. */
+export async function changePersonalSubscriptionPlan(sku: CheckoutLookupKey): Promise<boolean> {
+  if (isIosNativeShell()) throw new Error("Manage App Store subscriptions through Apple.");
+  const send = async (path: string, body: object) => {
+    const response = await fetch(apiUrl(`/api/stripe/plan-change/${path}`), {
+      method: "POST", credentials: "include",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify(body),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.error || "Plan changes require billing review. Do not pay again.");
+    return data;
+  };
+  const preview = await send("preview", { sku });
+  const monthly = new Intl.NumberFormat(undefined, { style: "currency", currency: preview.currency })
+    .format(preview.monthlyAmount / 100);
+  const renewal = new Date(preview.nextRenewalAt * 1000).toLocaleDateString();
+  if (!window.confirm(`Change your existing subscription to ${monthly}/month?\n\n${preview.disclosure}\n\nNext renewal: ${renewal}. No new subscription will be created.`)) {
+    return false;
+  }
+  await send("confirm", { operationId: preview.operationId, acceptedDisclosure: true });
+  return true;
 }
 
 export async function openCustomerPortal(

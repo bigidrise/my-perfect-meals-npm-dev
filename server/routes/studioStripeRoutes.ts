@@ -5,7 +5,8 @@ import { getProviderStudioReadiness } from "../services/procareStudioReadiness";
 import { randomUUID } from "node:crypto";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
-import { db } from "../db";
+import { db, pool } from "../db";
+import { billingCheckoutCreator, billingSafetyResponse } from "../services/billingSafeguards/runtime";
 import { users } from "@shared/schema";
 import { studios, studioBilling } from "../db/schema/studio";
 import { stripeIdentityOwners } from "../db/schema/stripeBilling";
@@ -326,7 +327,9 @@ router.post("/checkout", requireAuth, async (req, res) => {
     if (!reserved) throw new Error("Studio checkout reservation could not be saved.");
 
     const appUrl = checkoutBaseUrl();
-    const session = await stripe.checkout.sessions.create({
+    const session = await billingCheckoutCreator(stripe, pool, {
+      kind: "studio", ownerUserId: userId, scopeId: studio.id,
+    })({
       mode: "subscription",
       customer: customerId,
       line_items: [{ price: trustedPlan.priceId, quantity: 1 }],
@@ -371,6 +374,7 @@ router.post("/checkout", requireAuth, async (req, res) => {
     }
     return res.json({ url: session.url });
   } catch (error: any) {
+    if (billingSafetyResponse(error, res)) return;
     const message = error?.message ?? "Studio checkout could not be created.";
     console.error("[studio/checkout] Refused or failed:", message);
     const status = message.includes("disabled outside the production billing runtime") ? 503 : 409;

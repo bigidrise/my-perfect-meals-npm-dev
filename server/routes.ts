@@ -880,7 +880,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount auth session and alcohol log
   app.use("/api/ios", iosVerifyRouter);
+  const { billingSafeguardsRouter, initializeBillingSafeguardMonitor } = await import("./routes/billingSafeguards");
+  app.use("/api/admin/billing-safety", billingSafeguardsRouter);
+  initializeBillingSafeguardMonitor();
   app.use("/api/stripe", stripeCheckoutRouter);
+  const { BILLING_CHECKOUT_IMPLEMENTATION_VERSION } = await import("./services/billingSafeguards/runtime");
+  const { BILLING_CANCELLATION_IMPLEMENTATION_VERSION } = await import("./services/subscriptionService");
+  app.locals.billingSafetyHandlers = {
+    checkout: BILLING_CHECKOUT_IMPLEMENTATION_VERSION,
+    cancellation: BILLING_CANCELLATION_IMPLEMENTATION_VERSION,
+  };
   app.use("/api/stripe/studio", studioStripeRouter);
   app.use("/api/stripe", stripeRouter);
 
@@ -5066,7 +5075,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (firstName !== undefined) updateData.firstName = firstName;
       if (lastName !== undefined) updateData.lastName = lastName;
       if (nickname !== undefined) updateData.nickname = nickname;
-      if (email !== undefined && email.trim()) updateData.email = email.trim();
+      if (email !== undefined && email.trim()) {
+        const { accountEmailUniquenessEnabled } = await import("./services/accountEmailUniqueness");
+        if (accountEmailUniquenessEnabled()) {
+          // Email is login identity, not an ordinary profile field. Use the MFA-reviewed
+          // identity-change route until mailbox-verification self-service is available.
+          const [identityOwner] = await db.select({ email: users.email }).from(users)
+            .where(eq(users.id, userId)).limit(1);
+          if (!identityOwner || email.trim().toLowerCase() !== identityOwner.email.trim().toLowerCase()) {
+            return res.status(409).json({
+              code: "EMAIL_CHANGE_VERIFICATION_REQUIRED",
+              error: "Email changes require verified account-identity review. Your current sign-in email has not changed.",
+            });
+          }
+        } else {
+          updateData.email = email.trim();
+        }
+      }
       // Keep display name in sync with firstName/lastName
       if (firstName !== undefined || lastName !== undefined) {
         const [currentUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);

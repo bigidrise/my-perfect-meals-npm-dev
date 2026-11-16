@@ -24,7 +24,7 @@ import {
   getDisplayFeaturesForTier,
   IOS_DISPLAY_FEATURES,
 } from "@shared/planFeatures";
-import { startCheckout, IOS_BLOCK_ERROR, SUBSCRIPTION_ALREADY_ACTIVE } from "@/lib/checkout";
+import { startCheckout, changePersonalSubscriptionPlan, IOS_BLOCK_ERROR, SUBSCRIPTION_ALREADY_ACTIVE } from "@/lib/checkout";
 import { getAuthHeaders } from "@/lib/auth";
 import {
   isIosNativeShell,
@@ -527,6 +527,19 @@ export default function PricingPage() {
         return;
       }
       if ((error as any)?.code === SUBSCRIPTION_ALREADY_ACTIVE) {
+        if ((error as any)?.canChangePlan === true) {
+          try {
+            const changed = await changePersonalSubscriptionPlan(sku);
+            if (changed) {
+              toast({ title: "Existing subscription updated",
+                description: "No new subscription was created. Membership changes are being verified." });
+              setLocation("/settings");
+            }
+          } catch (changeError: any) {
+            toast({ title: "Plan change needs review", description: changeError.message, variant: "destructive" });
+          }
+          return;
+        }
         toast({
           title: "Subscription already active",
           description: "Your payment is confirmed. Opening billing settings.",
