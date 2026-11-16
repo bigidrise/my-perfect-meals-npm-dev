@@ -1,6 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "include": [
+    "server/services/billingSafeguards/**/*.ts",
+    "server/services/accountEmailUniqueness.ts",
+    "server/routes/billingSafeguards.ts",
     "shared/clinicalProtocolIdentity.ts",
     "shared/clinical/clinicalModeResolver.ts",
     "server/services/clinicalProtocolAuthority.ts",

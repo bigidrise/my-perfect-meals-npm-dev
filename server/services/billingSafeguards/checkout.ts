@@ -83,7 +83,9 @@ export async function guardedSubscriptionCheckout(input: GuardedCheckoutInput): 
     await input.store.bindCustomer(op, customerId);
   }
   const customer = await input.stripe.customers.retrieve(customerId);
-  if (customer.deleted || customer.livemode !== input.livemode ||
+  // Property checks also narrow the SDK union in the server-only non-strict build.
+  if (customer.deleted === true || !("livemode" in customer) || !("metadata" in customer) ||
+      customer.livemode !== input.livemode ||
       (customer.metadata?.userId && customer.metadata.userId !== input.subject.ownerUserId)) {
     await input.store.review(op);
     throw new BillingSafetyError("BILLING_CUSTOMER_IDENTITY_CONFLICT", "Billing customer needs review.");

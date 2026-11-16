@@ -929,3 +929,31 @@ mtime_ms = 1794861788683
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/1a3601b5-791c-40a9-bc60-d5e3a715752e/6890b939-1351-41f9-9139-3ce7f9dc5cba"
 storage_version_token = "1794861962791665"
 content_type = "text/html"
+
+[[outputs]]
+id = "AhkyYvD-RmBZ7kKMEJbX-"
+uri = "file://.agents/outputs/billing-release-preparation-2026-11-16.html"
+type = "html"
+title = "Billing release preparation and exact approval decisions"
+description = "Read-only account findings, type proof, Neon migration review, release sequence, four pending refunds, and the three exact December 7 renewal-stop targets."
+logical_id = "07b4e81a-c04b-41d2-ac7e-58ef430c80be"
+content_hash = "sha256:3e6f5ad06199e87a7e87f98f216a4461ba832d5b1c17d58154cc5315b12a0a99"
+size = 25752
+mtime_ms = 1794863460519
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/07b4e81a-c04b-41d2-ac7e-58ef430c80be/ea1a253f-044f-4107-8c6f-4217550412a6"
+storage_version_token = "1794863555268262"
+content_type = "text/html"
+
+[[outputs]]
+id = "FVGTlEQ-QNxIuZ_ZYqS5h"
+uri = "file://.agents/outputs/tiffany-refund-status-recheck-2026-11-16.csv"
+type = "table"
+title = "Tiffany — current refund status, not a refund instruction"
+description = "Twelve audited payments and four verified pending refund IDs. All additional refunds/payments are on hold; the possible $179.94 direct payment is unconfirmed."
+logical_id = "0c2c1a8a-10c9-4e6d-82ff-a3b1020b398c"
+content_hash = "sha256:32aa55a4334f33a69679a93c4b3e879ce863a96ecffd430932c0ca8c4be90316"
+size = 3580
+mtime_ms = 1794863460519
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/0c2c1a8a-10c9-4e6d-82ff-a3b1020b398c/19bdff1d-6afc-4219-bb5a-bba4eb6e740b"
+storage_version_token = "1794863555945939"
+content_type = "text/csv"

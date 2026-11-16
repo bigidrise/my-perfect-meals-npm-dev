@@ -177,6 +177,12 @@ test("wrong customer binding is not silently rebound", async () => {
   await assert.rejects(guardedSubscriptionCheckout(different), { code: "BILLING_CANONICAL_CUSTOMER_CHANGED" });
   assert.equal(p.state.creates, 1);
 });
+test("a deleted canonical customer fails closed without creating a payable session", async () => {
+  const p = provider();
+  (p.stripe.customers as any).retrieve = async (id: string) => ({ id, deleted: true });
+  await assert.rejects(guardedSubscriptionCheckout(input(p)), { code: "BILLING_CUSTOMER_IDENTITY_CONFLICT" });
+  assert.equal(p.state.creates, 0);
+});
 for (const status of ["active", "trialing", "incomplete", "past_due", "unpaid", "paused"]) {
   test(`historical customer ${status} subscription blocks new Personal checkout`, async () => {
     const p = provider();
