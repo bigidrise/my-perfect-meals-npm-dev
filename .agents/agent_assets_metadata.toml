@@ -957,3 +957,45 @@ mtime_ms = 1794863460519
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/0c2c1a8a-10c9-4e6d-82ff-a3b1020b398c/19bdff1d-6afc-4219-bb5a-bba4eb6e740b"
 storage_version_token = "1794863555945939"
 content_type = "text/csv"
+
+[[outputs]]
+id = "LoYgjdUipWn3KuaHoenK9"
+uri = "file://.agents/outputs/founder-billing-preflight-2026-11-16.html"
+type = "html"
+title = "Founder preflight — exact targets and execution hold"
+description = "Fresh Production/account/ownership results, exact renewal-stop targets, the one new navigation regression, and the safe promotion sequence. No live action is authorized."
+logical_id = "ef8a5edf-9e9c-4186-ad71-a9f2343db015"
+content_hash = "sha256:2d3c4be11b066131770a9982699a4ea80e2cf740985bb706a1c5a0614c7d6332"
+size = 21666
+mtime_ms = 1794865330719
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/ef8a5edf-9e9c-4186-ad71-a9f2343db015/b21eddaa-3db2-482a-b45b-5f0e39b2fea7"
+storage_version_token = "1794865367072215"
+content_type = "text/html"
+
+[[outputs]]
+id = "H3D6wrpX3L-8DCBzU8O0s"
+uri = "file://.agents/outputs/tiffany-refund-ledger-2026-11-16.csv"
+type = "table"
+title = "Tiffany — refreshed refund ledger"
+description = "Twelve audited payments; four pending refunds totaling $119.96. No additional refund/payment instruction; direct reimbursement remains unconfirmed."
+logical_id = "6a8ebbab-1dff-4366-9fb1-05602be7ab4f"
+content_hash = "sha256:7235b3df0a66d9fb0a2d04e3c05073607484c6a9b174eb7f6758c3c049128cc8"
+size = 3730
+mtime_ms = 1794865330695
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/6a8ebbab-1dff-4366-9fb1-05602be7ab4f/ef2d9edd-5a83-4e62-a0f3-971ad3ed6e5d"
+storage_version_token = "1794865368007205"
+content_type = "text/csv"
+
+[[outputs]]
+id = "mrbXbZwZ038XMWGH0R4p9"
+uri = "file://.agents/outputs/billing-navigation-provenance-2026-11-16.csv"
+type = "table"
+title = "Navigation findings — preexisting versus new"
+description = "All 438 findings classified: 71 preexisting invalid literals, one new Pricing redirect, and 366 preexisting unresolved expressions."
+logical_id = "9d56e545-3697-4c34-8028-65a05db452b6"
+content_hash = "sha256:f237e3ebe0ac9cd42e721fefad75ee808b87404cd676fda4137700f16170f2c2"
+size = 54755
+mtime_ms = 1794865330703
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/9d56e545-3697-4c34-8028-65a05db452b6/a0de2e8b-77fb-4cd3-b1dc-2ef17b8f7522"
+storage_version_token = "1794865368745982"
+content_type = "text/csv"

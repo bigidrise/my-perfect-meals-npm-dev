@@ -1,6 +1,7 @@
 # Billing safeguards — implementation and release review
 
-**Latest preparation:** see `billing-release-preparation-2026-11-16.md`.
+**Latest founder preflight:** see `billing-founder-preflight-2026-11-16.md`;
+the earlier detailed preparation is `billing-release-preparation-2026-11-16.md`.
 The type fingerprint hold is now resolved by exact historical comparison.
 The newer review supersedes the original refund proposal: four Stripe refunds
 are pending, including one on the retained subscription. Do not execute the
@@ -112,7 +113,8 @@ was one app user with four Stripe customers/subscriptions.
 1. Review the two SQL files:
    - `server/db/migrations/billing-checkout-safeguards.sql`
    - `server/db/migrations/account-normalized-email-uniqueness.sql`
-2. Approve resolution of the existing normalized-email collision separately.
+2. For the email migration only, approve resolution of the existing
+   normalized-email collision separately. Billing may be staged independently.
    Establish ownership, paid entitlements, related records and the intended
    account for each person. Do not merge or delete solely on an email match.
 3. Confirm the external-Neon target through the existing approved procedure.
@@ -126,10 +128,10 @@ was one app user with four Stripe customers/subscriptions.
    `users_normalized_email_unique`. Check the normalization function body.
 5. Confirm no generic Drizzle push proposes dropping these manually managed
    tables/indexes. These SQL-owned objects must remain release-managed.
-6. Only after schema verification and source review may a separately approved
-   release enable `BILLING_CHECKOUT_SAFEGUARDS_ENABLED=true` and
-   `ACCOUNT_EMAIL_UNIQUENESS_ENABLED=true` in the intended runtime.
-   Do not enable either flag on an unprovisioned runtime.
+6. Only after its own schema verification and source review may a separately
+   approved release enable each flag in the intended runtime. Billing-first
+   activation leaves `ACCOUNT_EMAIL_UNIQUENESS_ENABLED` off. Do not enable either
+   flag on an unprovisioned runtime or couple their approvals.
 
 ## Isolated validation commands
 
@@ -164,13 +166,15 @@ suppressed or added to the baseline. The strict gate now passes.
 
 1. Review this implementation, the chosen no-proration plan-change policy,
    fixtures, and SQL. Review the remaining operational limits below.
-2. Resolve the identity collision and obtain the separate shared-schema approval
-   described above. Verify the schema, without activating it on shared
-   Development by accident.
-3. Resolve the location-only strict type fingerprint hold without accepting new
-   diagnostics. Run the normal full release checks, reviewed server-only/pre-push validation,
-   and authorized Stripe-test-account integration. The present work used
-   fixtures only, not external Stripe object creation.
+2. Obtain the separate shared-billing-schema approval described above. Email
+   collision resolution and its migration are a separate later decision.
+   Do not activate either gate on shared Development by accident.
+3. The location-only type hold is resolved. The current navigation gate still
+   fails: 71 preexisting literals plus one new Pricing redirect; all 366
+   unresolved expressions are preexisting. Review the proposed smallest fix
+   in the latest preflight, then clear the remaining failures without weakening
+   checks. Complete normal full checks and authorized Stripe-test-account
+   integration. Existing tests used fixtures, not external Stripe object creation.
 4. Obtain approval for normal GitHub promotion. No push/merge was performed by
    this authorization. In the Production workspace, verify the exact reviewed
    source and compiled artifact. Do not discard Production-only work.
@@ -179,7 +183,8 @@ suppressed or added to the baseline. The strict gate now passes.
 6. On the actual live domain, retrieve `/api/health` and `/api/release`; compare
    the exact expected build identity. After complete initialization, require:
    - `billingSafety.checkoutEnabled: true`
-   - `billingSafety.emailUniquenessEnabled: true`
+    - `billingSafety.emailUniquenessEnabled: false` for billing-first rollout;
+      true only after its separate migration/activation approval
    - loaded checkout `durable-subject-checkout-v1`
    - loaded cancellation `exact-selected-provider-pair-v1`
    Verify the canonical signed webhook route and deployed exact-pair guard, not
@@ -188,8 +193,10 @@ suppressed or added to the baseline. The strict gate now passes.
    an actual configured alert destination. Run controlled noncharging/test-mode
    handler integration against the released code. No live checkout submission
    or event replay is authorized here.
-8. Repeat the read-only full-account scan and selected-entitlement check.
-   Only then ask for authorization of the exact customer remediation.
+8. Repeat the read-only full-account scan and selected-entitlement check for the
+   permanent rollout. The bounded renewal stop is independent and may be
+   separately approved earlier after its exact Production-handler preflight;
+   it does not require the new billing tables or the email index.
 
 Production at audit time reported git SHA `57ce6f309`, built
 2026-11-14T06:40:46.653Z, with billing enforcement enabled. That revision was
@@ -199,10 +206,11 @@ cancellation sign-off remains an explicit unresolved release hold**.
 
 ## Customer remediation — preparation only
 
-Use the separately delivered, ignored audit/CSV for the exact original
-subscription, three duplicates and nine invoice/payment-intent/charge mappings.
-No refund IDs exist until actual refunds are created. Freshly recheck provider
-state and authorization immediately before any action.
+Use the latest separately delivered preflight/ledger for the original,
+three duplicates and twelve audited payments. Four actual refund IDs now exist:
+all are pending, totaling $119.96, including one on the retained original.
+The older proposed-refund CSV is historical and must not be executed.
+Freshly recheck provider state and obtain separate execution approval.
 
 The preferred reversible protective step, **after deployed-handler verification
 and explicit authorization**, is scheduling the three duplicates not to renew.
@@ -211,22 +219,22 @@ Verify the original pair and active Pro entitlements after each action.
 Duplicates remain active-but-ending until their December 7 renewal boundary and
 must be classified accordingly by the monitor.
 
-Immediate cancellation is a separate irreversible decision and must suppress
-proration/immediate invoicing so it cannot double-refund. It cannot be undone by
-a Git or database rollback. Refund only the nine individually approved charges,
-$29.99 each ($269.91 total), with fresh refund/dispute checks, stable provider
-keys and an authorized durable execution record. Store actual refund IDs and
-states; pending is not succeeded. Do not recreate subscriptions or recharge
-customers to undo an operational mistake.
+No immediate cancellation, additional refund or direct payment is authorized.
+The possible $179.94 direct payment is unconfirmed. Resolve the original refund's
+intended treatment and any actual direct-payment receipt separately; do not
+automatically net pending refunds against a payout. Pending is not succeeded.
+Do not recreate subscriptions, reverse a refund or recharge the customer to undo
+an operational mistake. Git/database rollback cannot reverse a Stripe action.
 
 If release timing threatens the December 7 duplicate renewals, escalate for a
 separate protective-action decision rather than silently waiting or acting.
 
 ## Remaining limits
 
-- Default-off source is not deployed protection. Schema approval, identity
-  resolution, publication, activation, exact handler verification and alert
-  delivery verification remain required.
+- Default-off source is not deployed protection. Billing schema approval,
+  publication, activation, exact handler verification and alert delivery
+  verification remain required. Identity resolution is required for the
+  independent email migration, not as a blanket billing-release prerequisite.
 - PostgreSQL and Stripe cannot share one atomic transaction. This implementation
   makes ambiguous outcomes fail closed for recovery; it does not assert zero
   recurrence risk.
@@ -249,14 +257,17 @@ separate protective-action decision rather than silently waiting or acting.
 
 ## Final verification result
 
-- 35 isolated PostgreSQL/provider-fixture cases passed; the runner stopped and
+- 36 isolated PostgreSQL/provider-fixture cases passed; the runner stopped and
   removed its own temporary cluster.
-- 125 regression tests across 12 Jest suites passed, including the actual
-  retained-subscription cancellation service and client plan-change consent.
+- 180 assertions across 19 regression suites were verified, including actual
+  retained-subscription cancellation and client plan-change consent. Two suites
+  were rerun successfully with the missing synthetic Studio price configured.
+- 76 production-support tests passed; client/server production builds passed.
 - Production-entrypoint server bundle compiled successfully.
 - The root compiler retained all 109 existing diagnostic messages/codes with no
-  new diagnostic content. The strict release fingerprint gate remains blocked
-  by one moved legacy diagnostic; the original baseline remains unchanged.
+  new diagnostic content. The authorized location-only fingerprint update
+  passed exact historical reconstruction. Root, focused safety and server-only
+  type gates pass; the aggregate no-start gate remains blocked by navigation.
 - `git diff --check` passed.
 - Public Pricing rendered in the existing Development preview. The capture was
   signed out and showed the existing update overlay and unavailable authenticated
