@@ -887,3 +887,31 @@ mtime_ms = 1794606065698
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/a746a83d-23f5-48ea-bf3f-88d302ddf569/38841dcd-c676-40cb-9355-e8a47c5a5657"
 storage_version_token = "1794606087015138"
 content_type = "text/html"
+
+[[outputs]]
+id = "Ue5bv57r-BjIIIgfRb8vZ"
+uri = "file://.agents/outputs/duplicate-billing-audit-2026-11-16.html"
+type = "html"
+title = "Duplicate billing audit and prevention plan"
+description = "Completed read-only audit with access binding, Production limits, exact refund targets and phased implementation plan."
+logical_id = "38d1314c-0a88-4226-bff9-a5ab8b41a163"
+content_hash = "sha256:c7c8e58f06babd28439292000c9fa6add46897313a811561a674c078b8981ce1"
+size = 31600
+mtime_ms = 1794859200138
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/38d1314c-0a88-4226-bff9-a5ab8b41a163/988cb5f5-7602-4ab8-bc02-09056267bd3f"
+storage_version_token = "1794859210238517"
+content_type = "text/html"
+
+[[outputs]]
+id = "KSU5ZWMiFUuZo5l55bwzO"
+uri = "file://.agents/outputs/tiffany-proposed-refunds-2026-11-16.csv"
+type = "table"
+title = "Nine proposed refund targets — $269.91"
+description = "Exact subscription, invoice, payment-intent and charge IDs; proposed idempotency keys. No refunds or cancellations performed."
+logical_id = "414f526e-799c-4be4-8e2b-9a69ff0e8013"
+content_hash = "sha256:8d43645bf82f0fbc32bb65df60e9c111ba19c569750cbab93c55354ab26f64c7"
+size = 2595
+mtime_ms = 1794859178118
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/414f526e-799c-4be4-8e2b-9a69ff0e8013/30debf00-6dc0-4747-b2f5-03402e7c3c7f"
+storage_version_token = "1794859179941103"
+content_type = "text/csv"
