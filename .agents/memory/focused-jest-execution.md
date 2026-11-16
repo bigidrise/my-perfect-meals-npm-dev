@@ -66,3 +66,17 @@ produced transport failures unrelated to application behavior.
 only a listening-event whitelist. Continue blocking the running application's
 ports, shared databases and providers; distinguish guard setup failures from
 product regressions.
+
+## Sanitized release-test environments
+
+Use the Node entrypoint for Jest in a minimal child environment rather than
+depending on the system `npx` wrapper. Supply synthetic configured price IDs for
+every catalog family exercised by the selected tests, not just Personal plans.
+
+**Why:** The Nix `npx` wrapper required an unset `XDG_CONFIG_HOME`, and stripping
+inherited Studio price configuration caused valid billing guards to fail closed
+in fixtures. Neither failure demonstrated a product regression.
+
+**How to apply:** Keep real database/provider secrets out of the child; invoke
+`node node_modules/jest/bin/jest.js`, provide only fixture catalog values, and
+rerun only suites affected by an isolation-setup correction.

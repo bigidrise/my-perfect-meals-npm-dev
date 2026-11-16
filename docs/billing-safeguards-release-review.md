@@ -1,5 +1,11 @@
 # Billing safeguards — implementation and release review
 
+**Latest preparation:** see `billing-release-preparation-2026-11-16.md`.
+The type fingerprint hold is now resolved by exact historical comparison.
+The newer review supersedes the original refund proposal: four Stripe refunds
+are pending, including one on the retained subscription. Do not execute the
+earlier proposed-refund CSV or assume the possible direct payment occurred.
+
 ## Authorization boundary
 
 Development implementation and isolated testing only. Nothing here authorizes a
@@ -149,12 +155,10 @@ regressions call the actual subscription service against transaction fixtures;
 canonical webhook suites cover signed replay and claim behavior. These are not
 live Stripe integration or authenticated Production-browser tests.
 
-The original release type baseline was preserved. The strict fingerprint gate
-remains blocked by a 17-line movement of one preexisting ProCare diagnostic.
-Mapping that location back reproduced the original fingerprint exactly; all 109
-preexisting diagnostic messages/codes remain. No new type error was suppressed
-or added to the baseline. A reviewed reconciliation of this location-only gate
-change is required before release; it was not silently approved here.
+The strict fingerprint was updated only after the newly authorized historical
+review reproduced the original baseline and mapped the sole 17-line movement
+back exactly. All 109 preexisting diagnostic messages/codes remain; none was
+suppressed or added to the baseline. The strict gate now passes.
 
 ## Exact release steps and hold points
 
