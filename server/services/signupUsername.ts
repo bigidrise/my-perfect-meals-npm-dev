@@ -22,7 +22,8 @@ export function signupDatabaseError(error: unknown): { code?: string; constraint
 
 export function isSignupEmailConflict(error: unknown): boolean {
   const failure = signupDatabaseError(error);
-  return failure.code === "23505" && failure.constraint === "users_email_unique";
+  return failure.code === "23505" &&
+    (failure.constraint === "users_email_unique" || failure.constraint === "users_normalized_email_unique");
 }
 
 /**
