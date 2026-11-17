@@ -1,5 +1,31 @@
 # Release Typecheck Baseline
 
+## Reviewed location-only refresh — 2026-11-16
+
+The founder approved preparing the reviewed meal-discovery fixes for Production
+runtime, resolving the reported release-check mismatch, and pushing GitHub `dev`.
+The strict compiler still reports **109 existing diagnostics**. No diagnostic was
+added, removed, filtered, suppressed, or changed in message, code, or column.
+
+Source review and a fresh complete compiler capture established exactly two
+line relocations:
+
+| Source | Reviewed former location → current location | Diagnostic |
+| --- | --- | --- |
+| `client/src/pages/SocialRestaurantGuide.tsx` | `(565,55)` → `(608,55)` | Existing TS2322 recipe-filter callback inference |
+| `client/src/pages/SocialFindMeals.tsx` | `(389,58)` → `(393,58)` | Existing TS2322 recipe-filter callback inference |
+
+Reconstructing only those two former locations in the fresh, sorted, complete
+109-diagnostic array reproduces the prior reviewed SHA-256 exactly:
+`23386276a3c69dcf737e7a0b96d41142a7d66e5ce6aaae8e2d790cbd9e244af9`.
+The current unmodified diagnostic array hashes to
+`f35815894759a318412b3c26a05fed54432b0335d5ae4f84158ce144c2ca0133`.
+
+Only fingerprint metadata was refreshed after this equivalence proof. The
+compiler settings, strict safety slice, validator and acceptance rules remain
+unchanged. A passing reviewed-debt gate is **not** a clean repository-wide type
+check or evidence of authenticated live model generation.
+
 ## Reviewed integration refresh — 2026-10-31
 
 The owner conditionally authorized an integration-branch refresh only after exact

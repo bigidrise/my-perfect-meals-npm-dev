@@ -319,7 +319,7 @@ export default function MealFinder() {
   const { imageMap: chefFlowImages, failedSet: chefFlowFailed } = useChefFlowImages(
     chefFlowMeals,
     "restaurant",
-    import.meta.env.DEV ? { developmentRestaurantImages: true, ownerId: user?.id } : undefined,
+    { restaurantImageOptimization: true, ownerId: user?.id },
   );
 
   const [progress, setProgress] = useState(0);

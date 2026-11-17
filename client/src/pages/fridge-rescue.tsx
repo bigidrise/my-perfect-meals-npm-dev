@@ -384,9 +384,7 @@ const FridgeRescuePage = () => {
         imageUrl: m.imageUrl || lookupHydratedImageUrl(m.id) || undefined,
       }));
       setMeals(enrichedMeals);
-      if (import.meta.env.DEV) {
-        setResultNotice(restoredFridgeRescueNotice(cached.resultNotice, enrichedMeals.length));
-      }
+      setResultNotice(restoredFridgeRescueNotice(cached.resultNotice, enrichedMeals.length));
       setIngredients(cached.ingredients || "");
       setShowResults(true);
       // Re-fetch only meals still missing imageUrl after mini-cache lookup
@@ -412,7 +410,7 @@ const FridgeRescuePage = () => {
         generatedMeals: meals,
         ingredients: ingredients,
         generatedAtISO: new Date().toISOString(),
-        ...(import.meta.env.DEV ? { resultNotice } : {}),
+        resultNotice,
       });
     }
   }, [meals, ingredients, resultNotice]); // Save the explanation with its results
@@ -577,11 +575,9 @@ const FridgeRescuePage = () => {
       }
 
       console.log("✅ Setting meals:", mealsArray.length);
-      if (import.meta.env.DEV) {
-        setResultNotice(fridgeRescueResultNotice(
-          mealsArray.length, data.completion, mealsArray.length < serverMealCount,
-        ));
-      }
+      setResultNotice(fridgeRescueResultNotice(
+        mealsArray.length, data.completion, mealsArray.length < serverMealCount,
+      ));
       mealsArray = mealsArray.map((meal: MealData) => ({
         ...meal, servings: meal.servings ?? servings,
       }));
@@ -1192,7 +1188,7 @@ const FridgeRescuePage = () => {
               </div>
 
               {/* Diet Adapted Notice (soft chip when AI adapted for dietary preference) */}
-              {import.meta.env.DEV && resultNotice && (
+              {resultNotice && (
                 <p role="status" data-testid="fridge-partial-results" className="mb-6 rounded-lg border border-amber-300/40 bg-amber-950/40 p-3 text-sm text-amber-100">
                   {resultNotice}
                 </p>

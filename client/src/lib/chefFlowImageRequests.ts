@@ -1,7 +1,7 @@
 type ImageValue = string | null;
 type RequestResult = { status: "complete"; photograph: ImageValue } | { status: "skipped" };
 interface RequestOptions {
-  /** Only the Development Find Meals caller opts into six; default stays three. */
+  /** Only the reviewed Find Meals caller opts into six; default stays three. */
   concurrency?: 3 | 6;
   key?: string;
   isCurrent?: () => boolean;

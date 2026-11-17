@@ -67,10 +67,10 @@ export interface ChefFlowImagesResult {
 export function useChefFlowImages(
   meals: ChefFlowMeal[],
   mealType: string,
-  options?: { developmentRestaurantImages?: boolean; ownerId?: string },
+  options?: { restaurantImageOptimization?: boolean; ownerId?: string },
 ): ChefFlowImagesResult {
   const ownerId = options?.ownerId;
-  const optimized = options?.developmentRestaurantImages === true &&
+  const optimized = options?.restaurantImageOptimization === true &&
     mealType === "restaurant" && Boolean(ownerId);
   const cacheIdentity = (meal: ChefFlowMeal) => optimized
     ? restaurantImageContentIdentity(meal, mealType, ownerId!)
