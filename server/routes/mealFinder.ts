@@ -13,6 +13,7 @@ import { resolveDailyNutritionState } from '../services/nutritionStateService';
 import { buildRemainingMacrosBlock } from '../services/restaurantMealGeneratorAI';
 import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from '../services/glp1/resolveGLP1GlobalContext';
 import { findUserByValidAuthToken } from '../services/authTokenService';
+import { requireAuth } from '../middleware/requireAuth';
 import { createHumanFoodRequestScope } from '../services/humanFoodContext/requestScope';
 import { buildHumanFoodPromptBlock } from '../services/humanFoodContext/buildHumanFoodPromptBlock';
 import { applyRestaurantGlucoseProduceAdvisory } from '../services/restaurantGlucoseAdvisory';
@@ -30,7 +31,12 @@ const router = express.Router();
  * Body: { mealQuery: string, zipCode: string }
  * Returns: Array of restaurant + meal recommendations
  */
-router.post('/meal-finder', async (req, res) => {
+router.post('/meal-finder', (req, res, next) => {
+  // Development review only. Resolve the browser session through the standard
+  // security/expiry checks before any personalized discovery or food-context work.
+  if (process.env.NODE_ENV === "development") return requireAuth(req, res, next);
+  next();
+}, async (req, res) => {
   let claimedGovernanceToken: string | undefined;
   const releaseClaimedGovernanceToken = () => {
     if (claimedGovernanceToken) {
@@ -70,9 +76,13 @@ router.post('/meal-finder', async (req, res) => {
     console.log("📍 Meal Finder request received");
     
     // ── Resolve userId from auth token header ──────────────────────────────
-    let userId: string | undefined;
+    let userId: string | undefined = process.env.NODE_ENV === "development"
+      ? (req as any).authUser?.id
+      : undefined;
     const authToken = req.headers['x-auth-token'] as string | undefined;
-    if (authToken) {
+    // Never let a second token lookup replace the session identity authenticated
+    // above (including a stale token belonging to a different account).
+    if (process.env.NODE_ENV !== "development" && authToken) {
       try {
         const tokenUser = await findUserByValidAuthToken(authToken);
         if (tokenUser) userId = tokenUser.id;

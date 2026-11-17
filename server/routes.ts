@@ -2741,8 +2741,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fridgeHumanFoodPrompt,
       ].filter(Boolean).join('\n\n') || undefined;
 
-      // Generate multiple meals with proper macros and amounts
-      const generatedFridgeMeals = await generateFridgeRescueMeals({
+      // Development-only choice completion. Every batch reuses the exact
+      // resolved context and runs the same complete validation chain below.
+      const fridgeCompletionEnabled = process.env.NODE_ENV === "development";
+      const { completeFridgeRescueChoices } = await import("./services/fridgeRescueChoiceCompletion");
+      const { getFridgeRescueReleaseStatus } = await import("./services/fridgeRescueHumanFoodAdapter");
+      const generateFridgeBatch = async ({ count, excludedMeals }: { count: number; excludedMeals: string[] }) =>
+        generateFridgeRescueMeals({
         fridgeItems, 
         user: { healthConditions: userHealthConditions },
         servings,
@@ -2752,7 +2757,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         strictMode: strictMode === true,
         protocolEnvelope: fridgeProtocolEnvelope,
         builderBlock: combinedBuilderBlock,
+        ...(fridgeCompletionEnabled ? { count, excludedMeals } : {}),
       });
+      const validateFridgeBatch = async (
+        generatedFridgeMeals: Awaited<ReturnType<typeof generateFridgeRescueMeals>>,
+      ) => {
       const { enforceFridgeRescueCuisineCompliance } = await import(
         "./services/fridgeRescueCuisineCompliance"
       );
@@ -2769,24 +2778,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
       });
 
-      if (cleanFridgeMeals.length === 0 && meals.length > 0) {
-        console.log(`⚠️ [FRIDGE] All generated meals violated protocol — returning error`);
-        return res.status(400).json({
-          error: "PROTOCOL_VIOLATION_ALL_MEALS",
-          message: "All generated meals contained ingredients or preparation steps that conflict with your dietary protocol. Please try different fridge items.",
-          retryable: true,
-        });
-      }
-
       if (cleanFridgeMeals.length < meals.length) {
         console.log(`⚠️ [FRIDGE] Removed ${meals.length - cleanFridgeMeals.length} violating meal(s) — serving ${cleanFridgeMeals.length}`);
       }
-
-      const { recordGeneration } = await import("./services/aiHealthMetrics");
-      const durationMs = Date.now() - startTime;
-      recordGeneration('/api/meals/fridge-rescue', 'ai', durationMs);
-
-      console.log("[FRIDGE] ok returning", cleanFridgeMeals.length, "meals");
 
       // ── GLP-1 post-generation validation — fail closed ───────────────────
       // Filter out any fridge-rescue meal that fails GLP-1 targets. Do NOT
@@ -2841,7 +2835,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const {
-        getFridgeRescueReleaseStatus,
         validateFridgeRescueMealsWithHumanFood,
       } = await import(
         "./services/fridgeRescueHumanFoodAdapter"
@@ -2861,12 +2854,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
           rejection.validation.findings.map((finding) => finding.code),
         );
       }
+      const reasonCodes = Array.from(new Set(
+        humanFoodValidation.rejected.flatMap(({ validation }) =>
+          validation.findings.map((finding) => finding.code as string),
+        ),
+      ));
+      if (meals.length < generatedFridgeMeals.length) reasonCodes.push("CUISINE_CANDIDATES_REJECTED");
+      if (cleanFridgeMeals.length < meals.length) reasonCodes.push("PROTOCOL_CANDIDATES_REJECTED");
+      if (glp1ValidatedFridgeMeals.length < cleanFridgeMeals.length) reasonCodes.push("GLP1_CANDIDATES_REJECTED");
+      return {
+        accepted: humanFoodValidatedFridgeMeals,
+        reasonCodes,
+        meals,
+        cleanFridgeMeals,
+        glp1ValidatedFridgeMeals,
+        humanFoodValidation,
+      };
+      };
+      let latestFridgeBatch: Awaited<ReturnType<typeof validateFridgeBatch>> | undefined;
+      const fridgeChoices = await completeFridgeRescueChoices({
+        enabled: fridgeCompletionEnabled,
+        generate: generateFridgeBatch,
+        validate: async (generated) => {
+          const validated = await validateFridgeBatch(generated);
+          latestFridgeBatch = validated;
+          return validated;
+        },
+      });
+      const lastBatch = latestFridgeBatch as Awaited<ReturnType<typeof validateFridgeBatch>> | undefined;
+      if (!lastBatch) throw new Error("Fridge Rescue validation did not complete");
+      const { meals, cleanFridgeMeals, glp1ValidatedFridgeMeals, humanFoodValidation } = lastBatch;
+      const humanFoodValidatedFridgeMeals = fridgeChoices.meals;
+
+      // Retain the pre-review Production response contract. Development can
+      // replenish an entirely rejected batch, but never release an unsafe meal.
+      if (!fridgeCompletionEnabled && cleanFridgeMeals.length === 0 && meals.length > 0) {
+        return res.status(400).json({
+          error: "PROTOCOL_VIOLATION_ALL_MEALS",
+          message: "All generated meals contained ingredients or preparation steps that conflict with your dietary protocol. Please try different fridge items.",
+          retryable: true,
+        });
+      }
       const releaseStatus = getFridgeRescueReleaseStatus({
-        generatedCount: cleanFridgeMeals.length,
-        glp1ValidatedCount: glp1ValidatedFridgeMeals.length,
+        generatedCount: fridgeCompletionEnabled ? humanFoodValidatedFridgeMeals.length : cleanFridgeMeals.length,
+        glp1ValidatedCount: fridgeCompletionEnabled ? humanFoodValidatedFridgeMeals.length : glp1ValidatedFridgeMeals.length,
         humanFoodValidatedCount: humanFoodValidatedFridgeMeals.length,
       });
       if (releaseStatus === 422) {
+        if (fridgeCompletionEnabled) {
+          return res.status(422).json({
+            error: "NO_VERIFIED_FRIDGE_CHOICES",
+            message: fridgeChoices.completion.message,
+            reasonCodes: fridgeChoices.completion.reasonCodes,
+            completion: fridgeChoices.completion,
+            retryable: true,
+          });
+        }
         const reasonCodes = Array.from(new Set(
           humanFoodValidation.rejected.flatMap(({ validation }) =>
             validation.findings.map((finding) => finding.code)
@@ -2887,6 +2930,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      const { recordGeneration } = await import("./services/aiHealthMetrics");
+      recordGeneration('/api/meals/fridge-rescue', 'ai', Date.now() - startTime);
+      console.log("[FRIDGE] verified choices", {
+        returnedCount: humanFoodValidatedFridgeMeals.length,
+        ...(fridgeCompletionEnabled ? {
+          attempts: fridgeChoices.completion.attempts,
+          reasonCodes: fridgeChoices.completion.reasonCodes,
+        } : {}),
+      });
       const fridgeMealsWithCompliance = humanFoodValidatedFridgeMeals.map(meal => {
         const { complianceSection, dietClassification } = buildMealComplianceBundle(
           meal, fridgeProtocolEnvelope
@@ -2918,6 +2970,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         meals: mealsForResponse,
+        ...(fridgeCompletionEnabled ? { completion: fridgeChoices.completion } : {}),
         quota: {
           remaining: quotaCheck.remaining,
           limit: quotaCheck.limit,
