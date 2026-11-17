@@ -887,3 +887,157 @@ mtime_ms = 1794606065698
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/a746a83d-23f5-48ea-bf3f-88d302ddf569/38841dcd-c676-40cb-9355-e8a47c5a5657"
 storage_version_token = "1794606087015138"
 content_type = "text/html"
+
+[[outputs]]
+id = "Ue5bv57r-BjIIIgfRb8vZ"
+uri = "file://.agents/outputs/duplicate-billing-audit-2026-11-16.html"
+type = "html"
+title = "Duplicate billing audit and prevention plan"
+description = "Completed read-only audit with access binding, Production limits, exact refund targets and phased implementation plan."
+logical_id = "38d1314c-0a88-4226-bff9-a5ab8b41a163"
+content_hash = "sha256:c7c8e58f06babd28439292000c9fa6add46897313a811561a674c078b8981ce1"
+size = 31600
+mtime_ms = 1794859200138
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/38d1314c-0a88-4226-bff9-a5ab8b41a163/988cb5f5-7602-4ab8-bc02-09056267bd3f"
+storage_version_token = "1794859210238517"
+content_type = "text/html"
+
+[[outputs]]
+id = "KSU5ZWMiFUuZo5l55bwzO"
+uri = "file://.agents/outputs/tiffany-proposed-refunds-2026-11-16.csv"
+type = "table"
+title = "Tiffany — proposed refund targets"
+description = "Nine audited charge targets totaling $269.91, with proposed idempotency keys. Preparation only; no refunds were executed."
+logical_id = "414f526e-799c-4be4-8e2b-9a69ff0e8013"
+content_hash = "sha256:8d43645bf82f0fbc32bb65df60e9c111ba19c569750cbab93c55354ab26f64c7"
+size = 2595
+mtime_ms = 1794859178118
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/414f526e-799c-4be4-8e2b-9a69ff0e8013/7694071b-7075-409b-86ec-15323af9f4fb"
+storage_version_token = "1794861713125454"
+content_type = "text/csv"
+
+[[outputs]]
+id = "AWkfo-280qbLOp81EZ5oA"
+uri = "file://.agents/outputs/duplicate-billing-implementation-review-2026-11-16.html"
+type = "html"
+title = "Final billing safeguards review — three release holds"
+description = "160 passing tests; original type baseline preserved. Includes changes, migration plan, exact release steps and proposed Tiffany remediation. Not activated or deployed."
+logical_id = "1a3601b5-791c-40a9-bc60-d5e3a715752e"
+content_hash = "sha256:8fda8587f3dbd79770419e47c68079f948dbbc49531de3299e586834211eac97"
+size = 17714
+mtime_ms = 1794861788683
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/1a3601b5-791c-40a9-bc60-d5e3a715752e/6890b939-1351-41f9-9139-3ce7f9dc5cba"
+storage_version_token = "1794861962791665"
+content_type = "text/html"
+
+[[outputs]]
+id = "AhkyYvD-RmBZ7kKMEJbX-"
+uri = "file://.agents/outputs/billing-release-preparation-2026-11-16.html"
+type = "html"
+title = "Billing release preparation and exact approval decisions"
+description = "Read-only account findings, type proof, Neon migration review, release sequence, four pending refunds, and the three exact December 7 renewal-stop targets."
+logical_id = "07b4e81a-c04b-41d2-ac7e-58ef430c80be"
+content_hash = "sha256:3e6f5ad06199e87a7e87f98f216a4461ba832d5b1c17d58154cc5315b12a0a99"
+size = 25752
+mtime_ms = 1794863460519
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/07b4e81a-c04b-41d2-ac7e-58ef430c80be/ea1a253f-044f-4107-8c6f-4217550412a6"
+storage_version_token = "1794863555268262"
+content_type = "text/html"
+
+[[outputs]]
+id = "FVGTlEQ-QNxIuZ_ZYqS5h"
+uri = "file://.agents/outputs/tiffany-refund-status-recheck-2026-11-16.csv"
+type = "table"
+title = "Tiffany — current refund status, not a refund instruction"
+description = "Twelve audited payments and four verified pending refund IDs. All additional refunds/payments are on hold; the possible $179.94 direct payment is unconfirmed."
+logical_id = "0c2c1a8a-10c9-4e6d-82ff-a3b1020b398c"
+content_hash = "sha256:32aa55a4334f33a69679a93c4b3e879ce863a96ecffd430932c0ca8c4be90316"
+size = 3580
+mtime_ms = 1794863460519
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/0c2c1a8a-10c9-4e6d-82ff-a3b1020b398c/19bdff1d-6afc-4219-bb5a-bba4eb6e740b"
+storage_version_token = "1794863555945939"
+content_type = "text/csv"
+
+[[outputs]]
+id = "LoYgjdUipWn3KuaHoenK9"
+uri = "file://.agents/outputs/founder-billing-preflight-2026-11-16.html"
+type = "html"
+title = "Founder preflight — exact targets and execution hold"
+description = "Fresh Production/account/ownership results, exact renewal-stop targets, the one new navigation regression, and the safe promotion sequence. No live action is authorized."
+logical_id = "ef8a5edf-9e9c-4186-ad71-a9f2343db015"
+content_hash = "sha256:2d3c4be11b066131770a9982699a4ea80e2cf740985bb706a1c5a0614c7d6332"
+size = 21666
+mtime_ms = 1794865330719
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/ef8a5edf-9e9c-4186-ad71-a9f2343db015/b21eddaa-3db2-482a-b45b-5f0e39b2fea7"
+storage_version_token = "1794865367072215"
+content_type = "text/html"
+
+[[outputs]]
+id = "H3D6wrpX3L-8DCBzU8O0s"
+uri = "file://.agents/outputs/tiffany-refund-ledger-2026-11-16.csv"
+type = "table"
+title = "Tiffany — refreshed refund ledger"
+description = "Twelve audited payments; four pending refunds totaling $119.96. No additional refund/payment instruction; direct reimbursement remains unconfirmed."
+logical_id = "6a8ebbab-1dff-4366-9fb1-05602be7ab4f"
+content_hash = "sha256:7235b3df0a66d9fb0a2d04e3c05073607484c6a9b174eb7f6758c3c049128cc8"
+size = 3730
+mtime_ms = 1794865330695
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/6a8ebbab-1dff-4366-9fb1-05602be7ab4f/ef2d9edd-5a83-4e62-a0f3-971ad3ed6e5d"
+storage_version_token = "1794865368007205"
+content_type = "text/csv"
+
+[[outputs]]
+id = "mrbXbZwZ038XMWGH0R4p9"
+uri = "file://.agents/outputs/billing-navigation-provenance-2026-11-16.csv"
+type = "table"
+title = "Navigation findings — preexisting versus new"
+description = "All 438 findings classified: 71 preexisting invalid literals, one new Pricing redirect, and 366 preexisting unresolved expressions."
+logical_id = "9d56e545-3697-4c34-8028-65a05db452b6"
+content_hash = "sha256:f237e3ebe0ac9cd42e721fefad75ee808b87404cd676fda4137700f16170f2c2"
+size = 54755
+mtime_ms = 1794865330703
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/9d56e545-3697-4c34-8028-65a05db452b6/a0de2e8b-77fb-4cd3-b1dc-2ef17b8f7522"
+storage_version_token = "1794865368745982"
+content_type = "text/csv"
+
+[[outputs]]
+id = "a0H00aIRuyA-PG2UtvraL"
+uri = "file://.agents/outputs/restaurant-assistant-cuisine-diagnostic-2026-11-16.html"
+type = "html"
+title = "Updated cuisine diagnostic"
+description = "Incorporates your clarification that Chinese was selected on Edit Profile, not as display language."
+logical_id = "a0414018-7f2b-4e0c-9cdf-7c5b22bbfd8f"
+content_hash = "sha256:554bb5b777c4f36bcd96fcc479a7a7c0db43b5a64d7da5d38148a9c8393662b3"
+size = 19115
+mtime_ms = 1794882458917
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/a0414018-7f2b-4e0c-9cdf-7c5b22bbfd8f/1943003c-0935-4c3b-b1b5-271d7a91e70e"
+storage_version_token = "1794882462657111"
+content_type = "text/html"
+
+[[outputs]]
+id = "g-ibulPRRY54qpwk5VOD_"
+uri = "file://.agents/outputs/restaurant-cuisine-correction-verification-2026-11-16.html"
+type = "html"
+title = "Restaurant Assistant Development correction and verification"
+description = "Exact changed files, 161 passing tests, Development-only behavior, remaining limits, and the unchanged release-gate hold."
+logical_id = "d24a4c73-c596-4041-aebc-3866403ace3e"
+content_hash = "sha256:4fc89a0219ab91b1a9b9d49630eb682f20e45edb1e9355a2ed964ce0cd6f2d08"
+size = 14109
+mtime_ms = 1794883699037
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d24a4c73-c596-4041-aebc-3866403ace3e/93347b32-3ba3-4f86-a47e-a1f2062d238b"
+storage_version_token = "1794883722603456"
+content_type = "text/html"
+
+[[outputs]]
+id = "KAiUd5f8UTKvf29vwmPk7"
+uri = "file://.agents/outputs/meal-discovery-fridge-development-report-2026-11-16.html"
+type = "html"
+title = "Development meal corrections — implementation report"
+description = "Confirmed causes, bounded Fridge replenishment, all 15 changed application/test files, 97 passing tests, safe restart evidence, and remaining release limitations."
+logical_id = "ebe1c8e7-3e78-4643-a0d6-a67d2a14fe21"
+content_hash = "sha256:0ca86fc556be89bd7467a82b541d9cb5e61f121d2b3e2f9096fd4fea8ef5f28e"
+size = 15697
+mtime_ms = 1794886038249
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/ebe1c8e7-3e78-4643-a0d6-a67d2a14fe21/08203ba6-65d5-4f5b-979b-0680a6df8be1"
+storage_version_token = "1794886060163158"
+content_type = "text/html"

@@ -2,6 +2,7 @@
 // BACKUP: backups/fridge-rescue-stable-version.tsx
 // FEATURES: Perfect fridge ingredient rescue, AI meal generation, ingredient optimization, medical personalization
 import { useState, useRef, useEffect } from "react";
+import { fridgeRescueResultNotice, restoredFridgeRescueNotice } from "@/lib/fridgeRescueResultNotice";
 import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
@@ -213,6 +214,7 @@ const FridgeRescuePage = () => {
   const [ingredients, setIngredients] = useState("");
   const ingredientsInputRef = useRef<HTMLTextAreaElement>(null);
   const [meals, setMeals] = useState<MealData[]>([]);
+  const [resultNotice, setResultNotice] = useState<string | null>(null);
   const [refineIndex, setRefineIndex] = useState<number | null>(null);
   const [preRefinedMealsByIndex, setPreRefinedMealsByIndex] = useState<Record<number, MealData>>({});
   const { loadingImages, hydrateImages } = useMealImages(setMeals, { mealType: "dinner" });
@@ -340,6 +342,7 @@ const FridgeRescuePage = () => {
     generatedMeals: MealData[];
     ingredients: string;
     generatedAtISO: string;
+    resultNotice?: string | null;
   }
 
   // Save state to localStorage
@@ -381,6 +384,7 @@ const FridgeRescuePage = () => {
         imageUrl: m.imageUrl || lookupHydratedImageUrl(m.id) || undefined,
       }));
       setMeals(enrichedMeals);
+      setResultNotice(restoredFridgeRescueNotice(cached.resultNotice, enrichedMeals.length));
       setIngredients(cached.ingredients || "");
       setShowResults(true);
       // Re-fetch only meals still missing imageUrl after mini-cache lookup
@@ -406,9 +410,10 @@ const FridgeRescuePage = () => {
         generatedMeals: meals,
         ingredients: ingredients,
         generatedAtISO: new Date().toISOString(),
+        resultNotice,
       });
     }
-  }, [meals, ingredients]); // Save when either changes
+  }, [meals, ingredients, resultNotice]); // Save the explanation with its results
 
   // 🔋 Progress ticker functions (same as Restaurant Guide)
   const startProgressTicker = () => {
@@ -543,6 +548,7 @@ const FridgeRescuePage = () => {
       }
 
       // 🥗 Scenario A: server already flagged diet adaptation — accept all meals, show soft notice
+      const serverMealCount = mealsArray.length;
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
       const effectiveDiet = normalizeDiet(
         getEffectiveDietPreference(user?.dietaryRestrictions, dietOverrideValue, dietOverrideEnabled)
@@ -569,6 +575,9 @@ const FridgeRescuePage = () => {
       }
 
       console.log("✅ Setting meals:", mealsArray.length);
+      setResultNotice(fridgeRescueResultNotice(
+        mealsArray.length, data.completion, mealsArray.length < serverMealCount,
+      ));
       mealsArray = mealsArray.map((meal: MealData) => ({
         ...meal, servings: meal.servings ?? servings,
       }));
@@ -1179,6 +1188,11 @@ const FridgeRescuePage = () => {
               </div>
 
               {/* Diet Adapted Notice (soft chip when AI adapted for dietary preference) */}
+              {resultNotice && (
+                <p role="status" data-testid="fridge-partial-results" className="mb-6 rounded-lg border border-amber-300/40 bg-amber-950/40 p-3 text-sm text-amber-100">
+                  {resultNotice}
+                </p>
+              )}
               {dietAdaptedNotice && (
                 <DietAdaptedNotice
                   diet={normalizeDiet(user?.dietaryRestrictions)}

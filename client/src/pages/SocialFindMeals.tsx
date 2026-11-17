@@ -316,7 +316,11 @@ export default function MealFinder() {
       })),
     [results],
   );
-  const { imageMap: chefFlowImages, failedSet: chefFlowFailed } = useChefFlowImages(chefFlowMeals, "restaurant");
+  const { imageMap: chefFlowImages, failedSet: chefFlowFailed } = useChefFlowImages(
+    chefFlowMeals,
+    "restaurant",
+    { restaurantImageOptimization: true, ownerId: user?.id },
+  );
 
   const [progress, setProgress] = useState(0);
   const [mealTranslations, setMealTranslations] = useState<Record<string, { lang: string; data: any }>>({});

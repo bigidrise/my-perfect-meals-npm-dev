@@ -2,5 +2,5 @@
   "description": "Reviewed strict root TypeScript diagnostic fingerprint. The validator supplies a stable development build-version module during typechecking and restores the workspace afterward, removing generated-file presence and timestamp artifacts without filtering, suppressing, fabricating, or allowlisting diagnostics. Release validation fails on any unreviewed change to this legacy-error set.",
   "command": "node_modules/.bin/tsc --pretty false --incremental false --project tsconfig.json",
   "diagnosticCount": 109,
-  "diagnosticsSha256": "28071d5435443b552aa67e30f900f4ea098077a89671a7aab5f0433fe8ed89b3"
+  "diagnosticsSha256": "f35815894759a318412b3c26a05fed54432b0335d5ae4f84158ce144c2ca0133"
 }

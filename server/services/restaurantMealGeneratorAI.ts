@@ -16,6 +16,7 @@ import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { classifyRestaurantArchetype } from './restaurantCuisineArchetype';
 import { validateDiabeticMeal } from './guardrails/validators/diabeticValidator';
 import { appendWholeFoodStandardPrompt, evaluateWholeFoodCandidate, type WholeFoodPurpose } from './wholeFoodStandard';
+import { restaurantCuisinePrompt, restaurantMealHonorsCuisine, type RestaurantCuisineContext } from "../../shared/restaurantCuisine";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -53,6 +54,7 @@ function detectFormatGroup(mealName: string): string | null {
 // ────────────────────────────────────────────────────────────────────────────
 
 interface RestaurantMealRequest {
+  cuisineContext?: RestaurantCuisineContext;
   restaurantName: string;
   cuisine: string;
   user?: User;
@@ -126,6 +128,7 @@ Daily numbers, including exhausted starch, never eliminate options or silently c
 // ────────────────────────────────────────────────────────────────────────────
 
 interface RestaurantMeal {
+  cuisine?: string;
   id: string;
   name: string;
   description: string;
@@ -411,14 +414,17 @@ export async function generateRestaurantMealsAI(request: RestaurantMealRequest):
   const remainingMacrosBlock = request.remainingMacrosBlock ?? "";
 
   // ── Cuisine archetype classification ────────────────────────────────────────
-  const archetypeResult = classifyRestaurantArchetype(restaurantName, [], cravingContext);
+  const cuisineContext = development ? request.cuisineContext : undefined;
+  const archetypeResult = classifyRestaurantArchetype(restaurantName,
+    cuisineContext?.observed || cuisineContext?.explicit ? [cuisineContext.observed || cuisineContext.explicit!] : [],
+    cravingContext);
   const archetype = archetypeResult.archetype;
   const anchorPool = archetypeResult.chainPatterns ?? archetype.anchorItems;
   const chainNote = archetypeResult.chainName
     ? `This is a ${archetypeResult.chainName} location.`
     : `This restaurant is classified as: ${archetype.label}.`;
 
-  const archetypeRealism = development && archetype.id === "buffet" ? archetype.menuRealism : `
+  const archetypeRealism = development && ["buffet", "unknown", "chinese"].includes(archetype.id) ? archetype.menuRealism : `
 RESTAURANT REALISM RULES (CRITICAL — do NOT violate these):
 ${chainNote}
 ${archetype.menuRealism}
@@ -505,7 +511,7 @@ Adjustments go in "howToOrder.modify" and "howToOrder.swap" — NOT in the meal 
       ...((String((user as any)?.goalType ?? "").toLowerCase().includes("performance")) ? ["performance" as const] : []),
     ];
     const prompt = appendWholeFoodStandardPrompt(`You are a nutrition expert helping someone order healthy meals at "${restaurantName}", a ${cuisine} restaurant.
-${protocolBlock ? `\n${protocolBlock}\n` : ""}${builderBlock ? `\n${builderBlock}\n` : ""}
+${cuisineContext ? `${restaurantCuisinePrompt(cuisineContext)}\nThese are unverified suggestions to discuss with the venue, NOT verified dishes available today. Do not claim current availability.\n` : ""}${protocolBlock ? `\n${protocolBlock}\n` : ""}${builderBlock ? `\n${builderBlock}\n` : ""}
 ${medicalWaiterBlock}${allergyContext}${dietaryContext}${avoidContext}${cravingInstructions}${remainingMacrosBlock}${dietBehaviorBlock}
 ${archetypeRealism}
 
@@ -526,7 +532,7 @@ CUISINE VARIETY RULES:
 - Fast food: all 3 items must sound like real fast food menu items (burger, sandwich, nuggets, etc.) — not generic bowls.
 - All other cuisines: ensure the 3 meals cover clearly different meal structures and preparation styles — never repeat the same base format.
 
-Generate 3 specific meal recommendations that a person could walk into this restaurant and order TODAY. Each meal should:
+${cuisineContext ? "Generate up to 3 cuisine-appropriate suggestions to discuss with the restaurant. Availability is unverified; never state that a person can order these today." : "Generate 3 specific meal recommendations that a person could walk into this restaurant and order TODAY."} Each meal should:
 1. Have a realistic name matching this restaurant type's menu language (see RESTAURANT REALISM RULES above)
 2. Be a healthier choice (grilled, baked, or steamed options preferred)
 3. Include approximate macro estimates (calories, protein, carbs, fat); these are not verified menu nutrition or proof of clinical compliance
@@ -592,7 +598,9 @@ Make the meals sound like something you would genuinely see on the menu at ${res
             const rawLang = (request.user as any)?.preferredLanguage || "auto";
             const baseLang = rawLang !== "auto" ? rawLang.split("-")[0].toLowerCase() : "en";
             const langInstr = baseLang !== "en" && langNames[baseLang]
-              ? ` 🌐 LANGUAGE REQUIREMENT — MANDATORY: Generate ALL content entirely in ${langNames[baseLang]}. Every word must be in ${langNames[baseLang]}.`
+              ? cuisineContext
+                ? ` LANGUAGE REQUIREMENT: Generate human-readable content in ${langNames[baseLang]}. Keep JSON keys and the structured cuisine field's required value unchanged. Language does not select cuisine.`
+                : ` 🌐 LANGUAGE REQUIREMENT — MANDATORY: Generate ALL content entirely in ${langNames[baseLang]}. Every word must be in ${langNames[baseLang]}.`
               : "";
             return `You are a nutrition expert who provides accurate, restaurant-specific meal recommendations. Return only valid JSON. Always generate unique and varied meal suggestions.${langInstr}`;
           })()
@@ -643,6 +651,7 @@ Make the meals sound like something you would genuinely see on the menu at ${res
     // ingredient lists, calories, protein or fat. No new clinical thresholds.
     if (development) {
       const estimate = z.object({
+        cuisine: z.string().optional(),
         name: z.string().trim().min(1),
         ingredients: z.array(z.string().trim().min(1)).min(1),
         calories: z.number().finite().positive(),
@@ -681,6 +690,7 @@ Make the meals sound like something you would genuinely see on the menu at ${res
       return {
         id: mealId,
         name: meal.name || `${cuisine} Specialty ${index + 1}`,
+        ...(development ? { cuisine: meal.cuisine } : {}),
         description: meal.description || "A delicious and healthy option",
         calories: development ? meal.calories : meal.calories || 400,
         protein: development ? meal.protein : meal.protein || 25,
@@ -1032,6 +1042,7 @@ ${development ? RESTAURANT_SERVING_INSTRUCTIONS : ""}
       // Final boundary after every transform/repair. The structured envelope owns
       // diet, avoidances, clinical and provider restrictions; no prompt-only pass.
       const safe = enforcedMeals.filter(meal => {
+        if (!restaurantMealHonorsCuisine(meal, cuisineContext)) return false;
         meal.serving = currentRestaurantServing(meal.serving, meal) ?? bindRestaurantServing(undefined, meal);
         meal.buffetItems = meal.serving?.buffetItems;
         meal.portionGuidance = meal.serving?.portionGuidance;

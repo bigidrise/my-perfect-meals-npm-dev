@@ -17,3 +17,14 @@ username allocation separate from email identity and keep duplicate-email
 outcomes distinct from username collisions. Preserve the atomic account and
 invitation-claim creation boundary when retrying; do not broaden retries to
 unrelated failures or modify existing accounts to accommodate a signup.
+
+Account-collision investigations must include soft user-ID links, email-bound
+invitations and relevant session JSON, not only declared foreign keys.
+
+**Why:** A read-only collision review found important Studio and historical
+care relationships that a foreign-key-only count missed. A less-populated or
+tester-marked row is not proof that it is safe to delete or reassign.
+
+**How to apply:** Gather bounded relationship counts/statuses without reading
+clinical content or credentials. Treat the more active account as a preservation
+candidate, not proven ownership, until mailbox-owner review is complete.

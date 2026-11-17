@@ -1,8 +1,12 @@
 import { db } from "../db";
 import { users, meals, mealIngredients, mealInstructions } from "../../shared/schema";
 import { eq, and, inArray, asc } from "drizzle-orm";
+import { accountEmailUniquenessEnabled } from "../services/accountEmailUniqueness";
 
 export async function getOrCreateUser(email: string, name?: string) {
+  if (accountEmailUniquenessEnabled()) {
+    throw new Error("Unverified email-based account creation/linking is retired. Use authenticated signup or recovery.");
+  }
   const existing = await db.select().from(users).where(eq(users.email, email)).limit(1);
   if (existing.length) return existing[0];
   const [u] = await db.insert(users).values({ 
@@ -26,6 +30,7 @@ export async function upsertProfile(userId: string, data: any) {
   if (current) {
     await db.update(users).set(data).where(eq(users.id, userId));
   } else {
+    if (accountEmailUniquenessEnabled()) throw new Error("Profile writes cannot create login identities.");
     await db.insert(users).values({ id: userId, username: userId, email: `${userId}@temp.com`, password: 'temp', ...data });
   }
 }

@@ -880,7 +880,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount auth session and alcohol log
   app.use("/api/ios", iosVerifyRouter);
+  const { billingSafeguardsRouter, initializeBillingSafeguardMonitor } = await import("./routes/billingSafeguards");
+  app.use("/api/admin/billing-safety", billingSafeguardsRouter);
+  initializeBillingSafeguardMonitor();
   app.use("/api/stripe", stripeCheckoutRouter);
+  const { BILLING_CHECKOUT_IMPLEMENTATION_VERSION } = await import("./services/billingSafeguards/runtime");
+  const { BILLING_CANCELLATION_IMPLEMENTATION_VERSION } = await import("./services/subscriptionService");
+  app.locals.billingSafetyHandlers = {
+    checkout: BILLING_CHECKOUT_IMPLEMENTATION_VERSION,
+    cancellation: BILLING_CANCELLATION_IMPLEMENTATION_VERSION,
+  };
   app.use("/api/stripe/studio", studioStripeRouter);
   app.use("/api/stripe", stripeRouter);
 
@@ -2732,8 +2741,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fridgeHumanFoodPrompt,
       ].filter(Boolean).join('\n\n') || undefined;
 
-      // Generate multiple meals with proper macros and amounts
-      const generatedFridgeMeals = await generateFridgeRescueMeals({
+      // Released choice completion. Every batch reuses the exact
+      // resolved context and runs the same complete validation chain below.
+      const { completeFridgeRescueChoices } = await import("./services/fridgeRescueChoiceCompletion");
+      const generateFridgeBatch = async ({ count, excludedMeals }: { count: number; excludedMeals: string[] }) =>
+        generateFridgeRescueMeals({
         fridgeItems, 
         user: { healthConditions: userHealthConditions },
         servings,
@@ -2743,7 +2755,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         strictMode: strictMode === true,
         protocolEnvelope: fridgeProtocolEnvelope,
         builderBlock: combinedBuilderBlock,
+        count, excludedMeals,
       });
+      const validateFridgeBatch = async (
+        generatedFridgeMeals: Awaited<ReturnType<typeof generateFridgeRescueMeals>>,
+      ) => {
       const { enforceFridgeRescueCuisineCompliance } = await import(
         "./services/fridgeRescueCuisineCompliance"
       );
@@ -2760,24 +2776,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
       });
 
-      if (cleanFridgeMeals.length === 0 && meals.length > 0) {
-        console.log(`⚠️ [FRIDGE] All generated meals violated protocol — returning error`);
-        return res.status(400).json({
-          error: "PROTOCOL_VIOLATION_ALL_MEALS",
-          message: "All generated meals contained ingredients or preparation steps that conflict with your dietary protocol. Please try different fridge items.",
-          retryable: true,
-        });
-      }
-
       if (cleanFridgeMeals.length < meals.length) {
         console.log(`⚠️ [FRIDGE] Removed ${meals.length - cleanFridgeMeals.length} violating meal(s) — serving ${cleanFridgeMeals.length}`);
       }
-
-      const { recordGeneration } = await import("./services/aiHealthMetrics");
-      const durationMs = Date.now() - startTime;
-      recordGeneration('/api/meals/fridge-rescue', 'ai', durationMs);
-
-      console.log("[FRIDGE] ok returning", cleanFridgeMeals.length, "meals");
 
       // ── GLP-1 post-generation validation — fail closed ───────────────────
       // Filter out any fridge-rescue meal that fails GLP-1 targets. Do NOT
@@ -2832,7 +2833,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const {
-        getFridgeRescueReleaseStatus,
         validateFridgeRescueMealsWithHumanFood,
       } = await import(
         "./services/fridgeRescueHumanFoodAdapter"
@@ -2852,32 +2852,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
           rejection.validation.findings.map((finding) => finding.code),
         );
       }
-      const releaseStatus = getFridgeRescueReleaseStatus({
-        generatedCount: cleanFridgeMeals.length,
-        glp1ValidatedCount: glp1ValidatedFridgeMeals.length,
-        humanFoodValidatedCount: humanFoodValidatedFridgeMeals.length,
+      const reasonCodes = Array.from(new Set(
+        humanFoodValidation.rejected.flatMap(({ validation }) =>
+          validation.findings.map((finding) => finding.code as string),
+        ),
+      ));
+      if (meals.length < generatedFridgeMeals.length) reasonCodes.push("CUISINE_CANDIDATES_REJECTED");
+      if (cleanFridgeMeals.length < meals.length) reasonCodes.push("PROTOCOL_CANDIDATES_REJECTED");
+      if (glp1ValidatedFridgeMeals.length < cleanFridgeMeals.length) reasonCodes.push("GLP1_CANDIDATES_REJECTED");
+      return {
+        accepted: humanFoodValidatedFridgeMeals,
+        reasonCodes,
+      };
+      };
+      const fridgeChoices = await completeFridgeRescueChoices({
+        enabled: true,
+        generate: generateFridgeBatch,
+        validate: validateFridgeBatch,
       });
-      if (releaseStatus === 422) {
-        const reasonCodes = Array.from(new Set(
-          humanFoodValidation.rejected.flatMap(({ validation }) =>
-            validation.findings.map((finding) => finding.code)
-          ),
-        ));
-        if (glp1FridgeTargets !== null && glp1ValidatedFridgeMeals.length === 0) {
-          reasonCodes.push("GLP1_ALL_CANDIDATES_REJECTED");
-        }
-        return res.status(releaseStatus).json({
-          error: glp1ValidatedFridgeMeals.length === 0
-            ? "GLP1_VALIDATION_FAILED"
-            : "HUMAN_FOOD_VALIDATION_FAILED",
-          message: glp1ValidatedFridgeMeals.length === 0
-            ? "Generated meals exceeded your current GLP-1 meal limits. Please try different fridge items."
-            : "Generated meals could not be verified against your current food and nutrition requirements. Please try different fridge items.",
-          reasonCodes: Array.from(new Set(reasonCodes)),
+      const humanFoodValidatedFridgeMeals = fridgeChoices.meals;
+
+      // Replenish rejected batches, but never release a meal that failed any
+      // validator. The bounded collector preserves partial verified results.
+      if (humanFoodValidatedFridgeMeals.length === 0) {
+        return res.status(422).json({
+          error: "NO_VERIFIED_FRIDGE_CHOICES",
+          message: fridgeChoices.completion.message,
+          reasonCodes: fridgeChoices.completion.reasonCodes,
+          completion: fridgeChoices.completion,
           retryable: true,
         });
       }
 
+      const { recordGeneration } = await import("./services/aiHealthMetrics");
+      recordGeneration('/api/meals/fridge-rescue', 'ai', Date.now() - startTime);
+      console.log("[FRIDGE] verified choices", {
+        returnedCount: humanFoodValidatedFridgeMeals.length,
+        attempts: fridgeChoices.completion.attempts,
+        reasonCodes: fridgeChoices.completion.reasonCodes,
+      });
       const fridgeMealsWithCompliance = humanFoodValidatedFridgeMeals.map(meal => {
         const { complianceSection, dietClassification } = buildMealComplianceBundle(
           meal, fridgeProtocolEnvelope
@@ -2909,6 +2922,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         meals: mealsForResponse,
+        completion: fridgeChoices.completion,
         quota: {
           remaining: quotaCheck.remaining,
           limit: quotaCheck.limit,
@@ -5051,7 +5065,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (firstName !== undefined) updateData.firstName = firstName;
       if (lastName !== undefined) updateData.lastName = lastName;
       if (nickname !== undefined) updateData.nickname = nickname;
-      if (email !== undefined && email.trim()) updateData.email = email.trim();
+      if (email !== undefined && email.trim()) {
+        const { accountEmailUniquenessEnabled } = await import("./services/accountEmailUniqueness");
+        if (accountEmailUniquenessEnabled()) {
+          // Email is login identity, not an ordinary profile field. Use the MFA-reviewed
+          // identity-change route until mailbox-verification self-service is available.
+          const [identityOwner] = await db.select({ email: users.email }).from(users)
+            .where(eq(users.id, userId)).limit(1);
+          if (!identityOwner || email.trim().toLowerCase() !== identityOwner.email.trim().toLowerCase()) {
+            return res.status(409).json({
+              code: "EMAIL_CHANGE_VERIFICATION_REQUIRED",
+              error: "Email changes require verified account-identity review. Your current sign-in email has not changed.",
+            });
+          }
+        } else {
+          updateData.email = email.trim();
+        }
+      }
       // Keep display name in sync with firstName/lastName
       if (firstName !== undefined || lastName !== undefined) {
         const [currentUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);

@@ -8,6 +8,9 @@ import {
   validateFridgeRescueMealsWithHumanFood,
 } from "../services/fridgeRescueHumanFoodAdapter";
 
+// Pure candidate contracts must never initialize the shared application DB.
+jest.mock("../db", () => ({ db: {}, pool: {} }));
+
 function context(overrides: Partial<HumanFoodContext> = {}): HumanFoodContext {
   const unavailablePreference = {
     value: null,

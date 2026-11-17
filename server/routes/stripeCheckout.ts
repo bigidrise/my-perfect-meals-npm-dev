@@ -14,7 +14,11 @@ import {
 } from "../services/stripeCheckoutGuard";
 import { updateUserSubscription } from "../services/subscriptionService";
 import { claimStripeIdentityOwnership } from "../services/stripeIdentityOwnershipService";
-import { db } from "../db";
+import { db, pool } from "../db";
+import { billingCheckoutCreator, billingSafeguardsEnabled, billingSafetyResponse, managedBillingPrices } from "../services/billingSafeguards/runtime";
+import { assertPersonalCheckoutPlan } from "../services/billingSafeguards/subjects";
+import { previewPersonalPlanChange, confirmPersonalPlanChange } from "../services/billingSafeguards/planChanges";
+import { STRIPE_PRICE_IDS } from "../config/stripePrices";
 import { users } from "@shared/schema";
 import { and, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { stripeBillingEvents, stripeIdentityOwners } from "../db/schema/stripeBilling";
@@ -166,6 +170,7 @@ router.post("/checkout", requireAuth, async (req, res) => {
         error: "Missing plan selection (sku or priceLookupKey)",
       });
     }
+    if (billingSafeguardsEnabled()) assertPersonalCheckoutPlan(lookupKey);
 
     const trustedPlan = getTrustedCheckoutPlan(lookupKey);
     const priceId = trustedPlan?.priceId;
@@ -307,6 +312,7 @@ router.post("/checkout", requireAuth, async (req, res) => {
         code: "SUBSCRIPTION_ALREADY_ACTIVE",
         error: "This account already has an active subscription.",
         billingPath: "/settings",
+        canChangePlan: billingSafeguardsEnabled(),
       });
     }
 
@@ -363,7 +369,7 @@ router.post("/checkout", requireAuth, async (req, res) => {
       );
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await billingCheckoutCreator(stripe, pool, { kind: "personal", ownerUserId: userId })({
       mode: "subscription",
       customer: customer.id,
 
@@ -427,6 +433,7 @@ router.post("/checkout", requireAuth, async (req, res) => {
 
     return res.json({ url: session.url });
   } catch (err: any) {
+    if (billingSafetyResponse(err, res)) return;
     console.error("❌ Stripe checkout error:", err?.message || err);
 
     const msg = err?.message || "";
@@ -455,6 +462,40 @@ router.post("/checkout", requireAuth, async (req, res) => {
     });
   }
 });
+
+for (const action of ["preview", "confirm"] as const) {
+  router.post(`/plan-change/${action}`, requireAuth, async (req: any, res) => {
+    if (!billingSafeguardsEnabled() || !stripe) {
+      return res.status(503).json({ code: "BILLING_SAFEGUARDS_NOT_RELEASED" });
+    }
+    try {
+      assertStripeBillingOwnership(stripeKey);
+      const userId = getUserId(req);
+      const [user] = await db.select({
+        id: users.id, customerId: users.stripeCustomerId, subscriptionId: users.stripeSubscriptionId,
+      }).from(users).where(eq(users.id, userId!)).limit(1);
+      if (!user?.customerId || !user.subscriptionId) {
+        return res.status(409).json({ code: "BILLING_IDENTITY_REVIEW_REQUIRED" });
+      }
+      const input = { stripe, pool, ownerUserId: user.id, customerId: user.customerId,
+        subscriptionId: user.subscriptionId, managedPrices: managedBillingPrices(STRIPE_PRICE_IDS) };
+      if (action === "preview") {
+        const plan = typeof req.body?.sku === "string" ? getTrustedCheckoutPlan(req.body.sku) : null;
+        if (!plan) return res.status(400).json({ code: "BILLING_PRICE_INVALID" });
+        return res.json(await previewPersonalPlanChange({
+          ...input, targetPlanKey: plan.planLookupKey, targetPriceId: plan.priceId,
+        }));
+      }
+      return res.json(await confirmPersonalPlanChange({
+        ...input, operationId: req.body?.operationId, acceptedDisclosure: req.body?.acceptedDisclosure === true,
+      }));
+    } catch (error) {
+      if (billingSafetyResponse(error, res)) return;
+      return res.status(503).json({ code: "BILLING_PLAN_CHANGE_UNAVAILABLE",
+        error: "Plan changes could not be verified. Do not start another checkout." });
+    }
+  });
+}
 
 router.post("/reconcile-checkout", requireAuth, async (req: any, res) => {
   if (!stripe) {
@@ -712,7 +753,9 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
       if (billingQuote) await recordOrganizationCheckoutConsent(
         reservedBusiness.reservationId!, reservedBusiness.id, userId, billingQuote,
       );
-      const session = await stripe.checkout.sessions.create({
+      const session = await billingCheckoutCreator(stripe, pool, {
+        kind: "organization", ownerUserId: userId, scopeId: reservedBusiness.id,
+      })({
         mode: "subscription",
         customer: previousIdentity.stripeCustomerId,
         line_items: [{ price: trustedBusinessPlan.priceId, quantity: requestedSeats }],
@@ -841,7 +884,9 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
     if (billingQuote) await recordOrganizationCheckoutConsent(
       reservedBusiness.reservationId!, reservedBusiness.id, userId, billingQuote,
     );
-    const session = await stripe.checkout.sessions.create({
+    const session = await billingCheckoutCreator(stripe, pool, {
+      kind: "organization", ownerUserId: userId, scopeId: reservedBusiness.id,
+    })({
       mode: "subscription",
       line_items: [
         {
@@ -902,6 +947,7 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
 
     return res.json({ url: session.url });
   } catch (err: any) {
+    if (billingSafetyResponse(err, res)) return;
     console.error("❌ Business checkout error:", err?.message || err);
     if (pilotBillingError(err, res)) return;
 

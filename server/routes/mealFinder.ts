@@ -12,7 +12,7 @@ import { loadUserProtocolEnvelope } from '../services/protocolEnvelope';
 import { resolveDailyNutritionState } from '../services/nutritionStateService';
 import { buildRemainingMacrosBlock } from '../services/restaurantMealGeneratorAI';
 import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from '../services/glp1/resolveGLP1GlobalContext';
-import { findUserByValidAuthToken } from '../services/authTokenService';
+import { requireAuth } from '../middleware/requireAuth';
 import { createHumanFoodRequestScope } from '../services/humanFoodContext/requestScope';
 import { buildHumanFoodPromptBlock } from '../services/humanFoodContext/buildHumanFoodPromptBlock';
 import { applyRestaurantGlucoseProduceAdvisory } from '../services/restaurantGlucoseAdvisory';
@@ -30,7 +30,9 @@ const router = express.Router();
  * Body: { mealQuery: string, zipCode: string }
  * Returns: Array of restaurant + meal recommendations
  */
-router.post('/meal-finder', async (req, res) => {
+// Resolve cookie and native-token sessions through the same security/expiry
+// checks before any personalized discovery, in preview and published builds.
+router.post('/meal-finder', requireAuth, async (req, res) => {
   let claimedGovernanceToken: string | undefined;
   const releaseClaimedGovernanceToken = () => {
     if (claimedGovernanceToken) {
@@ -69,22 +71,9 @@ router.post('/meal-finder', async (req, res) => {
     
     console.log("📍 Meal Finder request received");
     
-    // ── Resolve userId from auth token header ──────────────────────────────
-    let userId: string | undefined;
-    const authToken = req.headers['x-auth-token'] as string | undefined;
-    if (authToken) {
-      try {
-        const tokenUser = await findUserByValidAuthToken(authToken);
-        if (tokenUser) userId = tokenUser.id;
-      } catch {}
-    }
-    // Fallback: session/req.user
+    // Never replace the authenticated identity with a second token/body lookup.
+    const userId: string | undefined = (req as any).authUser?.id;
     if (!userId) {
-      const reqUser = (req as any).authUser || (req as any).user;
-      if (reqUser?.id && reqUser.id !== 'mock-user-id') userId = reqUser.id;
-    }
-    // Anonymous finder requests have no server-owned glucose profile.
-    if (process.env.NODE_ENV === "development" && !userId) {
       return res.status(401).json({ error: "Please sign in to receive personalized meal recommendations." });
     }
     // For authenticated requests, bind all diabetes produce guidance to that user,
