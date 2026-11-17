@@ -22,17 +22,47 @@ function availability(
 
 describe("Studio navigation access", () => {
   it.each(["general_nutrition", "legacy_provider", null])(
-    "keeps an active owned Studio visible for atypical role %p",
+    "keeps an authorized Studio and its Care Team visible for atypical role %p",
     (role) => {
       const access = deriveStudioNavigationAccess(availability(), role);
 
       expect(access.studioVisible).toBe(true);
       expect(access.studioDestination).toBe("/pro/clients");
       expect(access.proPortalVisible).toBe(true);
-      expect(access.careTeamVisible).toBe(false);
-      expect(access.careTeamDestination).toBeNull();
+      expect(access.careTeamVisible).toBe(true);
+      expect(access.careTeamDestination).toBe("/care-team/trainer");
     },
   );
+
+  it.each([undefined, null])(
+    "does not hide Care Team when optional role context is %p",
+    (role) => {
+      const access = deriveStudioNavigationAccess(availability(), role);
+      expect(access.careTeamVisible).toBe(true);
+      expect(access.careTeamDestination).toBe("/care-team/trainer");
+    },
+  );
+
+  it("does not let a missing optional operating context hide an authorized physician's Care Team", () => {
+    const access = deriveStudioNavigationAccess(availability({
+      destination: "/pro/physician-clients",
+      operatingContext: null,
+    }), "physician");
+    expect(access.careTeamVisible).toBe(true);
+    expect(access.careTeamDestination).toBe("/care-team/physician");
+  });
+
+  it.each([
+    { available: false },
+    { readiness: null },
+    { readiness: "phase2_required" as const },
+    { destination: null },
+    { destination: "/business-dashboard" },
+  ])("does not expose Care Team without ready, authorized Studio navigation: %p", (studio) => {
+    const access = deriveStudioNavigationAccess(availability(studio), undefined);
+    expect(access.careTeamVisible).toBe(false);
+    expect(access.careTeamDestination).toBeNull();
+  });
 
   it("does not grant Studio navigation without authoritative availability", () => {
     const access = deriveStudioNavigationAccess(
