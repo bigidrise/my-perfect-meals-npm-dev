@@ -15,6 +15,18 @@ The product goal is a consistent Spanish experience across every applicable supp
 
 **How to apply:** Keep interface, generated content, professional workflows, and delivery channels within their approved phase. Never interpret an interface phase as authorization to change clinical or nutrition rules.
 
+Current authorized implementation and translation work concentrates on English and Spanish. Preserve existing translations and support for other languages, but do not undertake French, German, Arabic, Japanese or other-language completion.
+
+**Why:** The founder explicitly said they are not paying to complete other languages right now.
+
+**How to apply:** Limit new translation and broad journey-verification work to English/Spanish. Document other-language limitations without silently expanding the work or weakening release checks.
+
+The first-time Spanish experience must begin before login or registration by automatically detecting Spanish on the device, without requiring an account, saved preference or manual language selection.
+
+**Why:** The founder identified this as the original device experience problem and explicitly required it not be lost in broader localization work.
+
+**How to apply:** Include fresh-session Spanish-device checks on public entry, login and registration alongside English fallback and explicit-language-choice checks.
+
 Hardcoded-string scanner results are candidates, not confirmed customer defects.
 
 **Why:** The founder specifically said not to chase scanner findings blindly and to prioritize text actually visible to customers.
