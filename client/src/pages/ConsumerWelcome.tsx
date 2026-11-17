@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { NarrationBar } from "@/components/NarrationBar";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 const COPILOT_SECTIONS = [
   {
@@ -12,13 +13,26 @@ const COPILOT_SECTIONS = [
   },
 ];
 
-import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+// Preserve the two approved emphasis spans; never interpret translated HTML.
+function renderApprovedEmphasis(text: string) {
+  return text.split("**").map((part, index) =>
+    index % 2 ? <span key={index} className="font-semibold text-white">{part}</span> : part,
+  );
+}
 
 export default function ConsumerWelcome() {
-  const { t } = useConsumerCopy();
+  const { t, i18n } = useConsumerCopy();
   const [, setLocation] = useLocation();
   const [hasReadExplanation, setHasReadExplanation] = useState(false);
   const [hasAcceptedDisclaimer, setHasAcceptedDisclaimer] = useState(false);
+  const narrationSections = useMemo(() => COPILOT_SECTIONS.map(section => ({
+    heading: t(section.heading),
+    text: t(section.text),
+  })), [t]);
+  const narrationControls = useMemo(() => Object.fromEntries(
+    ["Listen", "Pause", "Resume", "Play", "10s Back", "Next", "Start Over", "Hide", "Transcript", "Stop"]
+      .map(label => [label, t(label)]),
+  ), [t]);
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
@@ -43,7 +57,12 @@ export default function ConsumerWelcome() {
           <p className="text-xs text-white/50 mb-2">
               {t("Hear a quick intro from Chef — your AI nutrition coach")}
           </p>
-          <NarrationBar sections={COPILOT_SECTIONS} speedOverride="1.0" />
+          <NarrationBar
+            key={i18n.resolvedLanguage || i18n.language}
+            sections={narrationSections}
+            controlLabels={narrationControls}
+            speedOverride="1.0"
+          />
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-5 mb-6">
@@ -51,32 +70,18 @@ export default function ConsumerWelcome() {
                 {t("How My Perfect Meals Works")}
           </h2>
           <div className="space-y-3 text-sm text-white/70 leading-relaxed">
-            <p>My Perfect Meals works like a real nutrition coach.</p>
+            <p>{t("My Perfect Meals works like a real nutrition coach.")}</p>
             <p>
-              During setup you will answer a few questions about your goals, how
-              you normally eat, your lifestyle, and any health considerations
-              that may affect your food choices. This information allows the
-              system to calculate your personal nutrition targets and guide your
-              daily food decisions.
+              {t("During setup you will answer a few questions about your goals, how you normally eat, your lifestyle, and any health considerations that may affect your food choices. This information allows the system to calculate your personal nutrition targets and guide your daily food decisions.")}
             </p>
             <p>
-              For people managing real health concerns such as diabetes,
-              inflammation, digestive sensitivities, or other dietary
-              restrictions, the system includes built-in guardrails designed to
-              help filter and guide food choices more responsibly.
+              {t("For people managing real health concerns such as diabetes, inflammation, digestive sensitivities, or other dietary restrictions, the system includes built-in guardrails designed to help filter and guide food choices more responsibly.")}
             </p>
             <p>
-              Instead of simply logging food after you eat it, My Perfect Meals
-              helps guide what to eat{" "}
-              <span className="font-semibold text-white">before</span> you eat
-              it.
+              {renderApprovedEmphasis(t("Instead of simply logging food after you eat it, My Perfect Meals helps guide what to eat **before** you eat it."))}
             </p>
             <p>
-              Think of it as a{" "}
-              <span className="font-semibold text-white">
-                nutrition coach in your pocket
-              </span>{" "}
-              helping you make smarter food decisions wherever you eat.
+              {renderApprovedEmphasis(t("Think of it as a ** nutrition coach in your pocket ** helping you make smarter food decisions wherever you eat."))}
             </p>
           </div>
         </div>
@@ -94,88 +99,78 @@ export default function ConsumerWelcome() {
             htmlFor="read-explanation"
             className="text-sm text-white/80 leading-tight cursor-pointer"
           >
-            I have read and understand how My Perfect Meals works
+            {t("I have read and understand how My Perfect Meals works")}
           </label>
         </div>
 
         <div className="rounded-xl border border-red-500/30 bg-red-950/30 p-5 mb-4">
           <h2 className="text-lg font-bold text-red-400 mb-3">
-            MEDICAL DISCLAIMER
+            {t("MEDICAL DISCLAIMER")}
           </h2>
           <p className="text-sm text-white/70 leading-relaxed mb-4">
-            My Perfect Meals is not a medical service. The information you
-            provide during onboarding is used to generate personalized meal
-            suggestions based on your preferences, goals, and health inputs.
-            This app does not diagnose, treat, or cure any medical conditions.
-            It is not a substitute for professional medical advice, diagnosis,
-            or treatment. Always consult your physician or a qualified
-            healthcare provider before making changes to your diet, medications,
-            or lifestyle.
+            {t("My Perfect Meals is not a medical service. The information you provide during onboarding is used to generate personalized meal suggestions based on your preferences, goals, and health inputs. This app does not diagnose, treat, or cure any medical conditions. It is not a substitute for professional medical advice, diagnosis, or treatment. Always consult your physician or a qualified healthcare provider before making changes to your diet, medications, or lifestyle.")}
           </p>
 
           <div className="space-y-3">
             <div className="bg-yellow-950/30 border border-yellow-500/20 rounded-lg p-3">
               <h3 className="text-sm font-semibold text-yellow-400 mb-2">
-                CONSULT YOUR HEALTHCARE PROVIDER
+                {t("CONSULT YOUR HEALTHCARE PROVIDER")}
               </h3>
               <ul className="list-disc pl-5 space-y-1 text-xs text-white/60">
-                <li>Before starting any new diet or nutrition plan</li>
-                <li>If you have any medical conditions or take medications</li>
+                <li>{t("Before starting any new diet or nutrition plan")}</li>
+                <li>{t("If you have any medical conditions or take medications")}</li>
                 <li>
-                  If you are pregnant, breastfeeding, or have special dietary
-                  needs
+                  {t("If you are pregnant, breastfeeding, or have special dietary needs")}
                 </li>
-                <li>If you have food allergies or intolerances</li>
+                <li>{t("If you have food allergies or intolerances")}</li>
               </ul>
             </div>
 
             <div className="bg-blue-950/30 border border-blue-500/20 rounded-lg p-3">
               <h3 className="text-sm font-semibold text-blue-400 mb-2">
-                AI-GENERATED CONTENT
+                {t("AI-GENERATED CONTENT")}
               </h3>
               <ul className="list-disc pl-5 space-y-1 text-xs text-white/60">
                 <li>
-                  Meal suggestions are generated by artificial intelligence
+                  {t("Meal suggestions are generated by artificial intelligence")}
                 </li>
                 <li>
-                  Content may contain errors or be inappropriate for your
-                  specific needs
+                  {t("Content may contain errors or be inappropriate for your specific needs")}
                 </li>
-                <li>Always verify nutritional information independently</li>
+                <li>{t("Always verify nutritional information independently")}</li>
                 <li>
-                  Use your own judgment when following meal recommendations
+                  {t("Use your own judgment when following meal recommendations")}
                 </li>
               </ul>
             </div>
 
             <div className="bg-white/5 border border-white/10 rounded-lg p-3">
               <h3 className="text-sm font-semibold text-white/80 mb-2">
-                YOUR RESPONSIBILITY
+                {t("YOUR RESPONSIBILITY")}
               </h3>
               <ul className="list-disc pl-5 space-y-1 text-xs text-white/60">
-                <li>You are responsible for your own health and safety</li>
-                <li>This app does not provide medical advice or treatment</li>
+                <li>{t("You are responsible for your own health and safety")}</li>
+                <li>{t("This app does not provide medical advice or treatment")}</li>
                 <li>
-                  Never ignore professional medical advice because of
-                  information from this app
+                  {t("Never ignore professional medical advice because of information from this app")}
                 </li>
                 <li>
-                  Seek immediate medical attention for any health emergencies
+                  {t("Seek immediate medical attention for any health emergencies")}
                 </li>
               </ul>
             </div>
 
             <div className="bg-red-950/40 border border-red-500/20 rounded-lg p-3">
               <h3 className="text-sm font-semibold text-red-400 mb-2">
-                LIMITATIONS
+                {t("LIMITATIONS")}
               </h3>
               <ul className="list-disc pl-5 space-y-1 text-xs text-white/60">
-                <li>This app is not approved by the FDA</li>
+                <li>{t("This app is not approved by the FDA")}</li>
                 <li>
-                  Not intended to diagnose, treat, cure, or prevent any disease
+                  {t("Not intended to diagnose, treat, cure, or prevent any disease")}
                 </li>
-                <li>Individual results may vary</li>
-                <li>No guarantee of accuracy of nutritional information</li>
+                <li>{t("Individual results may vary")}</li>
+                <li>{t("No guarantee of accuracy of nutritional information")}</li>
               </ul>
             </div>
           </div>
@@ -194,8 +189,7 @@ export default function ConsumerWelcome() {
             htmlFor="accept-disclaimer"
             className="text-sm text-white/80 leading-tight cursor-pointer"
           >
-            I accept the medical disclaimer and understand this app does not
-            replace professional medical advice
+            {t("I accept the medical disclaimer and understand this app does not replace professional medical advice")}
           </label>
         </div>
       </div>

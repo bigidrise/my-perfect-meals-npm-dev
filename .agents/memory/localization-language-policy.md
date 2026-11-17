@@ -45,7 +45,13 @@ Required first-run consent gates cannot be treated as optional untranslated exce
 
 **How to apply:** Prepare exact Spanish wording for explicit approval without activating unapproved clinical/legal copy. Keep the task incomplete until the required explanation and acknowledgments are translated and their existing checkbox behavior is verified.
 
-Finish the current Spanish onboarding review, then inventory the entire application before authorizing more translation work. Do not expand the current task into platform-wide implementation without approval.
+The founder approved the revised 32-section English/Spanish onboarding comparison for Development implementation only. Preserve both required consent checkboxes, the onboarding route, all medical/AI disclosures and current clinical safeguards; no Production deployment is authorized.
+
+**Why:** The founder explicitly approved this bounded wording after the side-by-side source-fidelity review.
+
+**How to apply:** This approval is for onboarding copy, not broader clinical language or medical/legal certification. Changes to the approved disclosure/acknowledgment meanings need renewed approval.
+
+Keep the application-wide localization inventory as a separate task. Do not begin additional translation work until the founder reviews that inventory and authorizes the next scope.
 
 **Why:** The founder requested a customer-surface inventory that distinguishes actual text from scanner candidates and identifies shared fixes, rather than assuming a centralized language engine translates every feature.
 
