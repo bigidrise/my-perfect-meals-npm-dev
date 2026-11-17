@@ -49,6 +49,9 @@ jest.mock("../services/protocolEnvelope", () => {
   return {
     ...actual,
     loadUserProtocolEnvelope: (...args: any[]) => mockLoadEnvelope(...args),
+    // The unified generator now uses the generation-context entry point. Keep
+    // this fallback-scan fixture at that boundary, not on a stale export only.
+    loadGenerationProtocolEnvelope: (...args: any[]) => mockLoadEnvelope(...args),
   };
 });
 

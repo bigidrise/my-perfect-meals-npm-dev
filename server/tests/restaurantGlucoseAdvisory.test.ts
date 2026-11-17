@@ -1,6 +1,9 @@
 import { HUMAN_FOOD_CONTEXT_VERSION, type HumanFoodContext } from "../../shared/humanFoodContext";
 import { applyRestaurantGlucoseProduceAdvisory } from "../services/restaurantGlucoseAdvisory";
 
+// Advisory validation is pure; never initialize the shared database in tests.
+jest.mock("../db", () => ({ db: {}, pool: {} }));
+
 const unavailable = { value: null, source: "unavailable" as const, available: false };
 const context: HumanFoodContext = {
   version: HUMAN_FOOD_CONTEXT_VERSION, status: "resolved", creator: "recipe_maker",
