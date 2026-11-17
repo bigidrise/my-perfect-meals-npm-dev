@@ -1125,3 +1125,31 @@ mtime_ms = 1794956884404
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/c3f5e204-b80a-4929-80bb-e6360f29a987/b3b37ec0-2875-42ea-9a57-8bb7d94ea40b"
 storage_version_token = "1794956885406871"
 content_type = "text/html"
+
+[[outputs]]
+id = "6HFt3KtKrrw4EoDrVbCKM"
+uri = "file://generated-artifacts/spanish-phase2/onboarding-wording-comparison.html"
+type = "html"
+title = "Spanish onboarding — side-by-side founder review"
+description = "All 32 English/Spanish sections, medical and AI disclosure fidelity notes, both consent labels and unchanged-flow requirements. Not activated."
+logical_id = "7f7f7493-71dc-49bc-8c76-b4d81aa3ff5c"
+content_hash = "sha256:e7cdca92f365ac1c6cb05edb01264d1ed9f58a7cd83dc86a6418ecd5dd7fcb38"
+size = 22365
+mtime_ms = 1794957685292
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7f7f7493-71dc-49bc-8c76-b4d81aa3ff5c/7bd22592-4cbc-4bc5-b579-40a214adabd6"
+storage_version_token = "1794957752905768"
+content_type = "text/html"
+
+[[outputs]]
+id = "V1TnyqOPQNw4m7ry911kK"
+uri = "file://generated-artifacts/spanish-phase2/localization-inventory-scope.html"
+type = "html"
+title = "Application-wide localization inventory — proposed scope"
+description = "Documents every surface and shared-owner mapping needed for a future inventory. No audit, implementation or coverage percentages claimed."
+logical_id = "80b60be5-9f95-4a72-9f67-c76065cf4e7b"
+content_hash = "sha256:fede31d9c3edfe3ac6e4b124edfba2cbdb0115e8337c1793e2d1083282729e70"
+size = 6870
+mtime_ms = 1794957685864
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/80b60be5-9f95-4a72-9f67-c76065cf4e7b/2d615252-3361-4c06-b2e6-672121c93b4e"
+storage_version_token = "1794957753510553"
+content_type = "text/html"
