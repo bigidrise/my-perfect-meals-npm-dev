@@ -1013,3 +1013,17 @@ mtime_ms = 1794882458917
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/a0414018-7f2b-4e0c-9cdf-7c5b22bbfd8f/1943003c-0935-4c3b-b1b5-271d7a91e70e"
 storage_version_token = "1794882462657111"
 content_type = "text/html"
+
+[[outputs]]
+id = "g-ibulPRRY54qpwk5VOD_"
+uri = "file://.agents/outputs/restaurant-cuisine-correction-verification-2026-11-16.html"
+type = "html"
+title = "Restaurant Assistant Development correction and verification"
+description = "Exact changed files, 161 passing tests, Development-only behavior, remaining limits, and the unchanged release-gate hold."
+logical_id = "d24a4c73-c596-4041-aebc-3866403ace3e"
+content_hash = "sha256:4fc89a0219ab91b1a9b9d49630eb682f20e45edb1e9355a2ed964ce0cd6f2d08"
+size = 14109
+mtime_ms = 1794883699037
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d24a4c73-c596-4041-aebc-3866403ace3e/93347b32-3ba3-4f86-a47e-a1f2062d238b"
+storage_version_token = "1794883722603456"
+content_type = "text/html"

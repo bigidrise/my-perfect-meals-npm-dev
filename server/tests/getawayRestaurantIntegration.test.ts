@@ -1,8 +1,12 @@
 const mockCreate = jest.fn();
+let mockProfile: any;
+const chineseRequest = () => ({
+  restaurantName: "Golden Lotus", craving: "ginger chicken", zipCode: "60601",
+});
 jest.mock("openai", () => ({ __esModule: true,
   default: jest.fn().mockImplementation(() => ({ chat: { completions: { create: mockCreate } } })) }));
 jest.mock("../db", () => ({ db: {
-  select: jest.fn(() => ({ from: () => ({ where: async () => [{ id: "member", dietaryRestrictions: [], allergies: [] }] }) })),
+  select: jest.fn(() => ({ from: () => ({ where: async () => [mockProfile] }) })),
   insert: jest.fn(() => ({ values: async () => [] })), execute: jest.fn(),
 } }));
 jest.mock("../services/restaurantMealGenerator", () => ({ generateRestaurantMeals: jest.fn() }));
@@ -53,6 +57,8 @@ const canonicalMeal = () => ({
 let envelope = buildGuestEnvelope();
 beforeEach(() => {
   process.env.NODE_ENV = "development"; jest.clearAllMocks(); mockCreate.mockReset();
+  mockProfile = { id: "member", dietaryRestrictions: [], allergies: [] };
+  (resolveRestaurantsByZip as jest.Mock).mockResolvedValue({ success: false, restaurants: [] });
   envelope = { ...buildGuestEnvelope(), userId: "member" };
   (restaurantEngine.resolve as jest.Mock).mockResolvedValue({ status: "unavailable", reason: "no provider" });
   (getActiveNutritionContext as jest.Mock).mockImplementation(async () => ({
@@ -71,6 +77,136 @@ afterAll(() => { process.env.NODE_ENV = oldEnvironment; });
 afterEach(() => {
   expect(generateRestaurantMeals).not.toHaveBeenCalled();
   expect(generateMealImageUnified).not.toHaveBeenCalled();
+});
+
+const chineseMeal = () => ({ ...meal, name: "Steamed ginger chicken", cuisine: "Chinese",
+  description: "Steamed chicken with ginger and vegetables", ingredients: ["chicken", "ginger", "broccoli"] });
+const aiReply = (value = chineseMeal()) => mockCreate.mockResolvedValueOnce({
+  choices: [{ message: { content: JSON.stringify({ meals: [value] }) } }],
+});
+const listing = (cuisine: string) => (resolveRestaurantsByZip as jest.Mock).mockResolvedValue({
+  success: true, restaurants: [{ name: "Golden Lotus", cuisine, address: "Synthetic address" }],
+});
+test.each(["en", "zh"])("saved Chinese reaches the request pipeline independently of %s display language", async language => {
+  mockProfile.cuisinePreference = "Chinese"; mockProfile.preferredLanguage = language;
+  aiReply();
+  const response = await guide(chineseRequest());
+  expect(response.code).toBe(200);
+  expect(response.body.cuisineContext).toMatchObject({ saved: "chinese", explicit: null, observed: null, displayLanguage: language });
+  expect(response.body.restaurantInfo.cuisineRequestContext).toMatchObject({ saved: "chinese", owner: "member" });
+  const prompt = JSON.stringify(mockCreate.mock.calls[0][0]);
+  expect(prompt).toContain("Saved cuisine guidance: chinese");
+  expect(prompt).not.toContain("This restaurant is classified as: American");
+});
+test("Chinese-language interface alone does not set Chinese cuisine", async () => {
+  mockProfile.preferredLanguage = "zh";
+  aiReply();
+  const response = await guide(chineseRequest());
+  expect(response.body.cuisineContext).toMatchObject({ saved: null, explicit: null, observed: null });
+});
+test("explicit Chinese is preserved and unverified meals stay disclosed", async () => {
+  listing("Chinese"); aiReply();
+  const response = await guide({ ...chineseRequest(), requestedCuisine: "Chinese" });
+  expect(response.code).toBe(200);
+  expect(response.body.recommendations[0].cuisine).toBe("Chinese");
+  expect(response.body.cuisineContext).toMatchObject({ explicit: "chinese", observed: "chinese" });
+  expect(response.body.compositionEvidence).toBe("unverified");
+  expect(response.body.restaurantInfo.compositionNote).toContain("Unverified");
+  expect(JSON.stringify(mockCreate.mock.calls[0][0])).not.toContain("order TODAY");
+});
+test.each(["American Casual", "Chinese-American"])("explicit Chinese is not overwritten by %s", async classification => {
+  listing(classification);
+  const response = await guide({ ...chineseRequest(), requestedCuisine: "Chinese" });
+  expect(response.code).toBe(422);
+  expect(response.body.code).toBe("RESTAURANT_CUISINE_MISMATCH");
+  expect(response.body.error).toContain("You requested chinese");
+  expect(mockCreate).not.toHaveBeenCalled();
+});
+test("saved Chinese permits an American restaurant with an explanation, without profile mutation", async () => {
+  mockProfile.cuisinePreference = "Chinese";
+  listing("American Casual");
+  const response = await guide(chineseRequest());
+  expect(response.code).toBe(200);
+  expect(response.body.cuisineContext.note).toContain("rather than inventing");
+  expect(mockProfile.cuisinePreference).toBe("Chinese");
+});
+test("explicit Mexican overrides saved Chinese for this action", async () => {
+  mockProfile.cuisinePreference = "Chinese";
+  listing("Mexican");
+  aiReply({ ...chineseMeal(), cuisine: "Mexican", name: "Chicken taco" });
+  const response = await guide({ ...chineseRequest(), requestedCuisine: "Mexican" });
+  expect(response.code).toBe(200);
+  expect(response.body.cuisineContext).toMatchObject({ saved: "chinese", explicit: "mexican", observed: "mexican" });
+  expect(mockProfile.cuisinePreference).toBe("Chinese");
+});
+test.each([
+  { name: "Hamburger", cuisine: "American" },
+  { name: "Cheeseburger", cuisine: "Chinese" },
+  { name: "Steamed ginger chicken", cuisine: undefined },
+])("contradictory AI dish is removed rather than substituted: %j", async change => {
+  aiReply({ ...chineseMeal(), ...change });
+  const response = await guide({ ...chineseRequest(), requestedCuisine: "Chinese" });
+  expect(response.code).toBe(422);
+  expect(response.body.code).toBe("RESTAURANT_CUISINE_UNAVAILABLE");
+  expect(response.body.error).toContain("No other cuisine was substituted");
+});
+test("fresh profile reads recognize cuisine changes in an active session", async () => {
+  mockProfile.cuisinePreference = "American"; aiReply();
+  const first = await guide(chineseRequest());
+  mockProfile.cuisinePreference = "Chinese"; aiReply();
+  const second = await guide(chineseRequest());
+  expect(first.body.restaurantInfo.cuisineRequestContext.saved).toBe("american");
+  expect(second.body.restaurantInfo.cuisineRequestContext.saved).toBe("chinese");
+});
+test("conflicting listing/menu cuisine evidence stops without generating", async () => {
+  listing("Chinese");
+  (restaurantEngine.resolve as jest.Mock).mockResolvedValue({
+    status: "ok", identity: { cuisineType: "American", displayName: "Synthetic Diner" },
+    items: [{ id: "burger" }], source: "internal_canonical",
+  });
+  const response = await guide({ ...chineseRequest(), requestedCuisine: "Chinese" });
+  expect(response.code).toBe(422);
+  expect(response.body.code).toBe("RESTAURANT_CUISINE_EVIDENCE_CONFLICT");
+  expect(generateMenuItemRecommendations).not.toHaveBeenCalled();
+});
+test("explicit cuisine reaches verified-menu selection and wrong-cuisine output is rejected", async () => {
+  (restaurantEngine.resolve as jest.Mock).mockResolvedValue({
+    status: "ok", identity: { cuisineType: "Chinese", displayName: "Golden Lotus" },
+    items: [{ id: "ginger-chicken" }], source: "internal_canonical",
+  });
+  (generateMenuItemRecommendations as jest.Mock).mockResolvedValue([{ ...canonicalMeal(), cuisine: "American" }]);
+  const response = await guide({ ...chineseRequest(), requestedCuisine: "Chinese" });
+  expect((generateMenuItemRecommendations as jest.Mock).mock.calls[0][0].cuisineContext.explicit).toBe("chinese");
+  expect(response.code).toBe(422);
+  expect(response.body.code).toBe("RESTAURANT_CUISINE_UNAVAILABLE");
+});
+test("explicit Chinese never bypasses an unknown-ingredients peanut allergy", async () => {
+  envelope.allergies = ["peanut"];
+  const response = await guide({ ...chineseRequest(), requestedCuisine: "Chinese" });
+  expect(response.code).toBe(503);
+  expect(response.body.error).toContain("verified menu ingredients");
+  expect(mockCreate).not.toHaveBeenCalled();
+});
+test("Chinese intent never bypasses diabetes or anti-inflammatory protocol scans", async () => {
+  envelope.hasDiabetes = true; envelope.diabeticGlucoseState = "high-risk";
+  aiReply({ ...chineseMeal(), name: "Chicken with white potatoes", carbs: 70, starchyCarbs: 62,
+    ingredients: ["chicken", "white potatoes"] });
+  expect((await guide({ ...chineseRequest(), requestedCuisine: "Chinese" })).code).toBe(422);
+  envelope.hasDiabetes = false; envelope.personalAntiInflammatorySupport = true;
+  aiReply({ ...chineseMeal(), name: "Chicken with vegetables", ingredients: ["chicken", "canola oil"] });
+  expect((await guide({ ...chineseRequest(), requestedCuisine: "Chinese" })).code).toBe(422);
+});
+test("the new cuisine behavior is inactive in Production", async () => {
+  process.env.NODE_ENV = "production";
+  listing("American Casual");
+  (restaurantEngine.resolve as jest.Mock).mockResolvedValue({ status: "ok",
+    identity: { displayName: "Synthetic Diner", cuisineType: "American" },
+    items: [{ id: "menu-1" }], source: "internal_canonical" });
+  (generateMenuItemRecommendations as jest.Mock).mockResolvedValue([canonicalMeal()]);
+  const response = await guide({ ...chineseRequest(), requestedCuisine: "Chinese" });
+  expect(response.code).toBe(200);
+  expect(response.body.cuisineContext).toBeUndefined();
+  expect(response.body.restaurantInfo.cuisineRequestContext).toBeUndefined();
 });
 async function guide(body: any) {
   const layer = (router as any).stack.find((entry: any) => entry.route?.path === "/guide");

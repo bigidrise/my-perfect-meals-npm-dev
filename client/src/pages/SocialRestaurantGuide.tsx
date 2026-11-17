@@ -23,6 +23,7 @@ import { useTranslation } from "react-i18next";
 import { useChefFlowImages, chefFlowMealId } from "@/hooks/useChefFlowImages";
 import { ChefFlowImage } from "@/components/ChefFlowImage";
 import RestaurantPortions from "@/components/away-from-home/RestaurantPortions";
+import RestaurantCuisineFeedback from "@/components/away-from-home/RestaurantCuisineFeedback";
 import { useAuth } from "@/contexts/AuthContext";
 import MealGenerationProgress from "@/components/MealGenerationProgress";
 import { normalizeDiet, filterMealsByDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
@@ -76,6 +77,9 @@ import VoiceInputButton from "@/components/voice/VoiceInputButton";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
+import { normalizeRestaurantCuisine, restaurantResultContextMatches, type RestaurantResultContext } from "@shared/restaurantCuisine";
+
+const CUISINE_FIDELITY = import.meta.env.DEV;
 
 // Guided flow step type - step-by-step wizard
 // entry → step1 (craving) → step2 (restaurant) → step3 (location) → generating → results
@@ -393,6 +397,11 @@ export default function RestaurantGuidePage() {
   );
 
   const [cravingInput, setCravingInput] = useState("");
+  const [requestedCuisine, setRequestedCuisine] = useState("");
+  const [resultContext, setResultContext] = useState<RestaurantResultContext>();
+  const [cuisineNotice, setCuisineNotice] = useState<string | null>(null);
+  const [compositionNotice, setCompositionNotice] = useState<string | null>(null);
+  const hasSubmittedRef = useRef(false);
   const [restaurantInput, setRestaurantInput] = useState("");
   const [zipCode, setZipCode] = useState("");
   const [isGettingLocation, setIsGettingLocation] = useState(false);
@@ -420,6 +429,13 @@ export default function RestaurantGuidePage() {
 
   const { toast } = useToast();
   const { user } = useAuth();
+  const currentCuisineContext: RestaurantResultContext = {
+    owner: user?.id || "",
+    saved: normalizeRestaurantCuisine(user?.cuisinePreference),
+    explicit: normalizeRestaurantCuisine(requestedCuisine),
+  };
+  const currentCuisineContextRef = useRef(currentCuisineContext);
+  currentCuisineContextRef.current = currentCuisineContext;
   const {
     checking: safetyChecking,
     alert: safetyAlert,
@@ -467,6 +483,18 @@ export default function RestaurantGuidePage() {
   useEffect(() => {
     const cached = loadRestaurantCache();
     if (cached?.restaurantData?.meals?.length) {
+      if (CUISINE_FIDELITY) {
+        const info = cached.restaurantData.restaurantInfo;
+        if (info?.cuisineRequestContext?.owner &&
+          info.cuisineRequestContext.owner !== localStorage.getItem("userId")) {
+          setGuidedStep("entry");
+          return; // Preserve the cache, but never display another account's meals.
+        }
+        setResultContext(info?.cuisineRequestContext);
+        setRequestedCuisine(info?.cuisineRequestContext?.explicit || "");
+        setCuisineNotice(info?.cuisineNote || null);
+        setCompositionNotice(info?.compositionNote || null);
+      }
       setGeneratedMeals(normalizeCachedMeals(cached.restaurantData.meals));
       setRestaurantInput(cached.restaurant || "");
       setCravingInput(cached.craving || "");
@@ -482,6 +510,13 @@ export default function RestaurantGuidePage() {
   useEffect(() => {
     const session = serverSessionData?.session;
     if (!session?.meals?.length) return;
+    if (CUISINE_FIDELITY && hasSubmittedRef.current) return;
+    if (CUISINE_FIDELITY) {
+      setResultContext(session.restaurantInfo?.cuisineRequestContext);
+      setRequestedCuisine(session.restaurantInfo?.cuisineRequestContext?.explicit || "");
+      setCuisineNotice(session.restaurantInfo?.cuisineNote || null);
+      setCompositionNotice(session.restaurantInfo?.compositionNote || null);
+    }
     serverRestoredRef.current = true;
     const normalized = normalizeCachedMeals(session.meals as any[]);
     // Restaurant responses are already filtered by the server's action
@@ -531,6 +566,8 @@ export default function RestaurantGuidePage() {
       restaurantName: string;
       craving: string;
       cuisine: string;
+      requestedCuisine?: string | null;
+      resultContext?: RestaurantResultContext;
       zipCode: string;
       governanceOverrideToken?: string;
       acknowledgedAction?: boolean;
@@ -542,6 +579,7 @@ export default function RestaurantGuidePage() {
           restaurantName: params.restaurantName,
           craving: params.craving,
           cuisine: params.cuisine,
+          ...(CUISINE_FIDELITY ? { requestedCuisine: params.requestedCuisine } : {}),
           zipCode: params.zipCode,
           userId: localStorage.getItem("userId") || "1",
           dietaryRestrictions: normalizeDiet(user?.dietaryRestrictions),
@@ -555,6 +593,11 @@ export default function RestaurantGuidePage() {
     },
     onSuccess: (data, params) => {
       stopProgressTicker();
+      if (CUISINE_FIDELITY && !restaurantResultContextMatches(params.resultContext, currentCuisineContextRef.current)) {
+        setGuidedStep("step1");
+        toast({ title: "Preferences changed", description: "The completed request used earlier cuisine preferences. Generate again to use your current choices." });
+        return;
+      }
       const rawRecs = data.recommendations || [];
       // An acknowledgement applies only to this action; do not re-apply the
       // saved identity filter to the server-authorized response.
@@ -594,12 +637,17 @@ export default function RestaurantGuidePage() {
           .forEach((k) => localStorage.removeItem(k));
       } catch {}
       setGeneratedMeals(compliantRecs);
+      if (CUISINE_FIDELITY) {
+        setResultContext(data.restaurantInfo?.cuisineRequestContext || params.resultContext);
+        setCuisineNotice(data.cuisineContext?.note || null);
+        setCompositionNotice(data.compositionNote || null);
+      }
       setGuidedStep("results");
       if (data.restaurantInfo) setRestaurantInfo(data.restaurantInfo);
       saveRestaurantCache({
         restaurantData: { meals: compliantRecs, restaurantInfo: data.restaurantInfo },
-        restaurant: restaurantInput,
-        craving: cravingInput,
+        restaurant: CUISINE_FIDELITY ? params.restaurantName : restaurantInput,
+        craving: CUISINE_FIDELITY ? params.craving : cravingInput,
         cuisine: matchedCuisine || "",
         generatedAtISO: new Date().toISOString(),
       });
@@ -616,6 +664,7 @@ export default function RestaurantGuidePage() {
     },
     onError: (error: Error) => {
       stopProgressTicker();
+      if (CUISINE_FIDELITY) setGuidedStep("step3");
       toast({
         title: t("restaurant.generationFailed"),
         description:
@@ -652,7 +701,7 @@ export default function RestaurantGuidePage() {
       lowerInput.includes(keyword),
     );
 
-    const match = keywordMatch
+    const match = CUISINE_FIDELITY ? null : keywordMatch
       ? cuisineKeywords[keywordMatch]
       : Object.keys(cuisineTips).find((cuisine) =>
           lowerInput.includes(cuisine.toLowerCase()),
@@ -660,6 +709,7 @@ export default function RestaurantGuidePage() {
 
     setMatchedCuisine(match || null);
     setRestaurantInfo(null);
+    hasSubmittedRef.current = true;
     advanceGuided("generating");
 
     // The acknowledgement belongs to this request only. Clear the client copy
@@ -671,7 +721,9 @@ export default function RestaurantGuidePage() {
     generateMealsMutation.mutate({
       restaurantName: restaurantInput,
       craving: cravingInput,
-      cuisine: match || "American",
+      cuisine: CUISINE_FIDELITY ? "" : match || "American",
+      requestedCuisine: normalizeRestaurantCuisine(requestedCuisine),
+      resultContext: currentCuisineContext,
       zipCode: zipCode,
       governanceOverrideToken: actionToken,
       acknowledgedAction: Boolean(actionToken),
@@ -913,6 +965,26 @@ export default function RestaurantGuidePage() {
                     mode="append"
                     label="Add craving by voice"
                   />
+                  {CUISINE_FIDELITY && (
+                    <div className="space-y-2">
+                      <p className="text-sm text-white/80">
+                        {t("restaurant.savedCuisineGuidance", {
+                          defaultValue: "Saved cuisine guidance: {{cuisine}}. This is a preference, not a restriction.",
+                          cuisine: user?.cuisinePreference || t("common.notSet", { defaultValue: "Not set" }),
+                        })}
+                      </p>
+                      <label htmlFor="restaurant-requested-cuisine" className="block text-sm font-medium text-white">
+                        {t("restaurant.requestedCuisineLabel", { defaultValue: "Cuisine for this request (optional)" })}
+                      </label>
+                      <Input id="restaurant-requested-cuisine" value={requestedCuisine} maxLength={80}
+                        onChange={event => setRequestedCuisine(event.target.value)}
+                        placeholder={t("restaurant.requestedCuisinePlaceholder", { defaultValue: "For example: Chinese or Chinese-American" })}
+                        className="bg-black/40 border-white/30 text-white" />
+                      <p className="text-xs text-white/70">
+                        {t("restaurant.requestedCuisineHelp", { defaultValue: "This choice overrides saved cuisine guidance for this request only. It does not change your profile or the restaurant's menu. Display language is separate." })}
+                      </p>
+                    </div>
+                  )}
                   <Button
                     onClick={() => advanceGuided("step2")}
                     disabled={!cravingInput.trim()}
@@ -1140,6 +1212,11 @@ export default function RestaurantGuidePage() {
           {guidedStep === "results" && generatedMeals.length > 0 && (
             <Card className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl">
               <CardContent className="p-6">
+                {CUISINE_FIDELITY && (
+                  <RestaurantCuisineFeedback previous={resultContext} current={currentCuisineContext}
+                    cuisineNotice={cuisineNotice} compositionNotice={compositionNotice}
+                    onRegenerate={() => advanceGuided("step1")} />
+                )}
                 <div data-wt="rg-results-list" className="space-y-6 mb-6">
                   <div className="mb-4">
                     <div className="flex items-center justify-between">
