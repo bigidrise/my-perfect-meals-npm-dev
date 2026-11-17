@@ -35,6 +35,12 @@ jest.mock('framer-motion', () => ({
 }));
 jest.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: jest.fn() }) }));
 jest.mock('@/lib/api', () => ({ get: jest.fn(), post: jest.fn() }));
+jest.mock('@/lib/queryClient', () => ({
+  apiRequest: jest.fn(),
+  queryClient: { invalidateQueries: jest.fn() },
+}));
+jest.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: { items: [] } }) }));
+jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 jest.mock('@/stores/shoppingListStore', () => ({
   useShoppingListStore: jest.fn(() => jest.fn()),
 }));
@@ -64,29 +70,30 @@ import GroceryStoreCoachSheet from '@/components/shopping/GroceryStoreCoachSheet
 
 const USER_A_ID = 'user-ps-a';
 const USER_B_ID = 'user-ps-b';
-const KEY_A = `grocery-coach-product-search:${USER_A_ID}`;
-const KEY_B = `grocery-coach-product-search:${USER_B_ID}`;
+const KEY_A = `grocery-coach-product-search:by-name:${USER_A_ID}`;
+const KEY_B = `grocery-coach-product-search:by-name:${USER_B_ID}`;
 
-const PRODUCT_RESULT = {
-  advice: [
-    {
-      ingredient: 'Greek Yogurt',
-      category: 'Dairy & Eggs',
-      usualPick: null,
-      recommended: [
-        { brand: 'Fage Total', rank: 1, grade: 'A', reason: 'High protein, low sugar' },
-        { brand: 'Chobani Plain', rank: 2, grade: 'A', reason: 'Clean ingredients' },
-      ],
-      avoid: [],
-    },
+const PRODUCT_ANALYSIS = {
+  productName: 'Greek Yogurt', analysisMethod: 'by_name', alignmentGrade: 'B',
+  overallSummary: 'Compare current yogurt labels.', verdict: 'Check the current label.',
+  verdictLevel: 'caution', analysisProfile: [],
+  scoreCards: Object.fromEntries(['kids', 'adults', 'diet', 'fitnessGoal'].map(key => [key, { verdict: 'neutral', reason: 'Compare current labels.' }])),
+  betterAlternatives: [
+    { category: 'Fage Total', whyBetter: ['Compare current protein.'], targetCriteria: 'Check label.' },
+    { category: 'Chobani Plain', whyBetter: ['Compare current ingredients.'], targetCriteria: 'Check label.' },
   ],
-  profileUsed: ['High Protein'],
+  ingredientConsiderations: [], educationalFooter: 'Not a verified label scan.',
+  extractedIngredients: [], highRiskFindings: [], outcomeCards: [], ingredientDecoder: [],
+  mayNotAlignWith: [], betterFor: [], householdNotes: [], profileFactorsUsed: [],
+  whatMattersMost: [], fallbackUsed: false,
 };
+const PRODUCT_RESULT = { ok: true, result: PRODUCT_ANALYSIS };
 
 function makeProductSession(overrides: Partial<{ savedAt: number; query: string }> = {}) {
   return {
     query: overrides.query ?? 'high-protein yogurt',
-    advice: PRODUCT_RESULT,
+    advice: { advice: [], profileUsed: [] },
+    analysis: PRODUCT_ANALYSIS,
     savedAt: overrides.savedAt ?? Date.now(),
   };
 }
@@ -105,9 +112,11 @@ async function switchToFindProduct() {
 beforeEach(() => {
   localStorage.clear();
   jest.clearAllMocks();
+  jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
   (get as jest.Mock).mockResolvedValue({ items: [] });
   (useAuth as jest.Mock).mockReturnValue({ user: { id: USER_A_ID } });
 });
+afterEach(() => jest.restoreAllMocks());
 
 // ── 1. Restore within 24 h ────────────────────────────────────────────────────
 
@@ -240,7 +249,7 @@ describe('user account isolation', () => {
     // User A's key must not be cleared or overwritten by user B's session lifecycle
     const raw = localStorage.getItem(KEY_A);
     expect(raw).not.toBeNull();
-    expect(JSON.parse(raw!).advice.advice[0].ingredient).toBe('Greek Yogurt');
+    expect(JSON.parse(raw!).analysis.productName).toBe('Greek Yogurt');
   });
 });
 

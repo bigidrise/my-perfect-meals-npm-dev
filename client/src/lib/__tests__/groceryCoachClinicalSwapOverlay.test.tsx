@@ -131,8 +131,10 @@ async function renderAndGetMeal() {
 beforeEach(() => {
   localStorage.clear();
   jest.clearAllMocks();
+  jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
   setupMocks();
 });
+afterEach(() => jest.restoreAllMocks());
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Swap overlay opens with a clinical response (alternatives: [])

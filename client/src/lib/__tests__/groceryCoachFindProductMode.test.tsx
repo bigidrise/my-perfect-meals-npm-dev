@@ -111,8 +111,10 @@ const PRODUCT_RESULT = {
 beforeEach(() => {
   localStorage.clear();
   jest.clearAllMocks();
+  jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
   (get as jest.Mock).mockResolvedValue({ items: [] });
 });
+afterEach(() => jest.restoreAllMocks());
 
 function seedMealSession() {
   localStorage.setItem(

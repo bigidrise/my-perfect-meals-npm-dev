@@ -1,0 +1,107 @@
+.grocery-coach-sheet .grocery-coach-product-input {
+  height: 48px;
+  resize: none !important;
+}
+
+@media (max-width: 639px) {
+  .grocery-coach-sheet {
+    bottom: auto !important;
+    top: calc(var(--coach-viewport-top, 0px) + var(--coach-viewport-height, 100dvh)) !important;
+    transform: translate(-50%, -100%) !important;
+    max-height: calc(var(--coach-viewport-height, 100dvh) - max(8px, env(safe-area-inset-top, 0px))) !important;
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  .grocery-coach-sheet .grocery-coach-modes {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #0d0d0d;
+    padding-bottom: 12px !important;
+  }
+
+  .grocery-coach-sheet .grocery-coach-composer {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    min-width: 0;
+  }
+
+  .grocery-coach-composer > textarea {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    overflow-wrap: anywhere;
+  }
+
+  .grocery-coach-sheet .grocery-coach-product-input {
+    height: 88px;
+    max-height: 22dvh;
+  }
+
+  .grocery-coach-sheet .grocery-coach-product-actions {
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
+  }
+
+  .grocery-coach-product-actions .grocery-coach-send {
+    font-size: 13px;
+    line-height: 18px;
+    white-space: nowrap;
+  }
+
+  .grocery-coach-sheet .grocery-coach-send {
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .grocery-coach-sheet .grocery-coach-product-label {
+    display: inline;
+  }
+
+  .grocery-coach-sheet .grocery-coach-product-footer {
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .grocery-coach-sheet .grocery-coach-body {
+    scroll-padding-top: 72px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Keep essential controls visible when the keyboard leaves little height.
+     Help and explanatory copy return immediately when the viewport expands. */
+  .grocery-coach-sheet[data-compact-viewport="true"] .grocery-coach-header {
+    padding: 8px 12px !important;
+  }
+
+  .grocery-coach-sheet[data-compact-viewport="true"] .grocery-coach-subtitle,
+  .grocery-coach-sheet[data-compact-viewport="true"] .grocery-coach-help,
+  .grocery-coach-sheet[data-compact-viewport="true"] .grocery-coach-composer-caption {
+    display: none;
+  }
+
+  .grocery-coach-sheet[data-compact-viewport="true"] .grocery-coach-product-footer,
+  .grocery-coach-sheet[data-compact-viewport="true"] .grocery-coach-meal-footer {
+    padding-top: 8px !important;
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .grocery-coach-sheet[data-compact-viewport="true"] .grocery-coach-composer > textarea {
+    height: 56px;
+  }
+}
+
+@media (min-width: 640px) {
+  .grocery-coach-product-label {
+    display: none;
+  }
+
+  .grocery-coach-sheet .grocery-coach-product-input {
+    white-space: pre !important;
+    overflow-wrap: normal !important;
+  }
+}
