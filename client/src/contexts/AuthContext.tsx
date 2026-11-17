@@ -3,6 +3,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useLayoutEffect,
   useRef,
   ReactNode,
   useCallback,
@@ -11,6 +12,8 @@ import {
 import { User, getCurrentUser, getAuthHeaders, clearAuthToken, setCachedUser } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import i18n, { resolveI18nLang } from "@/i18n";
+import { storeLanguagePreference } from "@/i18n/languagePreference";
+import { useTranslation } from "react-i18next";
 import { isGuestMode, getGuestSession } from "@/lib/guestMode";
 import { setUserContext, clearUserContext } from "@/lib/sentry";
 import { refreshClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
@@ -37,6 +40,7 @@ interface AuthProviderProps {
 }
 
 function WakingUpScreen() {
+  const { t } = useTranslation();
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9999,
@@ -44,12 +48,12 @@ function WakingUpScreen() {
       display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center", gap: "20px",
     }}>
-      <img src="/icons/chef.png?v=2026b" alt="Loading" style={{ width: "80px", height: "80px" }} />
+      <img src="/icons/chef.png?v=2026b" alt={t("common.loading")} style={{ width: "80px", height: "80px" }} />
       <p style={{ color: "#f97316", fontSize: "16px", fontWeight: 600, margin: 0 }}>
-        Waking up your meal engine…
+        {t("localeFoundation.wakingUp")}
       </p>
       <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "13px", margin: 0, textAlign: "center", maxWidth: "260px" }}>
-        First load takes a few extra seconds. Hang tight!
+        {t("localeFoundation.startupHint")}
       </p>
     </div>
   );
@@ -274,31 +278,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => window.removeEventListener("mpm:plan-downgraded", handlePlanDowngraded);
   }, [refreshUser]);
 
-  // Sync i18n language whenever user's preferredLanguage changes.
-  useEffect(() => {
-    if (!user) return;
-    const lang = resolveI18nLang(user.preferredLanguage);
+  // Resolve before paint; never expose a new account in the prior account's locale.
+  // While verification is pending/unavailable, keep only the non-sensitive startup hint.
+  useLayoutEffect(() => {
+    if (!user && (loading || initializationError)) return;
+    const preference = user?.preferredLanguage || "auto";
+    storeLanguagePreference(preference);
+    const lang = resolveI18nLang(preference);
     if (i18n.language !== lang) {
-      i18n.changeLanguage(lang);
+      void i18n.changeLanguage(lang);
     }
-  }, [user?.preferredLanguage]);
-
-  // Auto-detect language from device when user's preference is "auto".
-  // Saves the resolved language to the profile so all AI generation uses it.
-  useEffect(() => {
-    if (!user || user.preferredLanguage !== "auto") return;
-    const SUPPORTED = ["es","fr","de","it","pt","zh","ja","ko","ar","hi","ru","vi","tl"];
-    const deviceLang = (navigator.language || "en").split("-")[0].toLowerCase();
-    if (!SUPPORTED.includes(deviceLang)) return; // English or unsupported → keep "auto"
-    fetch(apiUrl("/api/user/preferences"), {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-      body: JSON.stringify({ preferredLanguage: deviceLang }),
-    }).then(() => {
-      refreshUser().catch(() => {});
-    }).catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, user?.preferredLanguage]);
+  }, [user?.id, user?.preferredLanguage, loading, initializationError]);
 
   // On app resume (tab becomes visible after being hidden), re-probe the session
   // if it has been more than 5 minutes since the last successful refresh.

@@ -1,4 +1,13 @@
 {
+  "localeFoundation": {
+    "wakingUp": "Đang chuẩn bị công cụ bữa ăn của bạn…",
+    "startupHint": "Lần tải đầu mất thêm vài giây. Vui lòng chờ một chút!",
+    "sessionUnavailable": "Không thể xác minh phiên của bạn. Kiểm tra kết nối rồi thử lại.",
+    "sessionRetry": "Xác minh lại phiên",
+    "required": "Bắt buộc",
+    "invalidEmail": "Email không hợp lệ",
+    "preferencesNote": "Tự động dùng ngôn ngữ của thiết bị này. Ngôn ngữ bạn chọn cụ thể được lưu vào tài khoản. Một số tính năng vẫn đang được dịch."
+  },
   "shoppingTransfer": {
     "addedTitle": "Đã thêm vào danh sách mua sắm",
     "savedTitle": "Đã lưu vào danh sách mua sắm",

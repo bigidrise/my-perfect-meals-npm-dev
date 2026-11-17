@@ -1,4 +1,5 @@
 - [Production source and publication history](production-source-publication-history.md) — separate source authority from automatic publication checkpoints; clean builds alone cannot keep the branch fast-forwardable.
+- [Localization language policy](localization-language-policy.md) — preserve Auto as user intent; complete existing localization in approved phases using verified customer-facing evidence.
 - [Pregnancy visibility and safety hold](pregnancy-release-safety-pause.md) — Development may show the page with coaching hidden; activation and paused guidance stay unchanged; no Production promotion.
 - [Interface layout references](interface-layout-reference-index.md) — safe-area modals, mobile scrolling, compact selectors, frontend assets and CSS testing limits.
 - [Development runtime references](development-runtime-reference-index.md) — startup evidence, Vite caches, dependencies, provider runtime and bounded migration lifecycles.

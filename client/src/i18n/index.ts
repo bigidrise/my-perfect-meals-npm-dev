@@ -1,5 +1,6 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+import { readLanguagePreference, resolveLanguagePreference } from "./languagePreference";
 
 import en from "./locales/en.json";
 import es from "./locales/es.json";
@@ -46,7 +47,7 @@ i18n.use(initReactI18next).init({
     tl: { ...tl, translation: tl },
     xq: { ...xq, translation: xq },
   },
-  lng: "en",
+  lng: resolveLanguagePreference(readLanguagePreference()),
   fallbackLng: "en",
   interpolation: { escapeValue: false },
 });
@@ -54,6 +55,11 @@ i18n.use(initReactI18next).init({
 // Apply direction immediately for the initial language, then track all changes.
 applyDocumentDir(i18n.language);
 i18n.on("languageChanged", applyDocumentDir);
+window.addEventListener("languagechange", () => {
+  if (readLanguagePreference() === "auto") {
+    void i18n.changeLanguage(resolveLanguagePreference("auto"));
+  }
+});
 
 // Expose on window so Playwright and other test tools can call i18n.changeLanguage().
 // Both keys are supported: window.i18n (our convention) and window.i18next (used in
@@ -66,12 +72,8 @@ if (typeof window !== "undefined") {
 export default i18n;
 
 export function resolveI18nLang(preferredLanguage: string | null | undefined): string {
-  if (!preferredLanguage || preferredLanguage === "auto" || preferredLanguage === "null") {
-    const device = navigator.language?.split("-")[0]?.toLowerCase() ?? "en";
-    const supported = ["en","es","fr","de","it","pt","zh","ja","ko","ar","hi","ru","vi","tl"];
-    return supported.includes(device) ? device : "en";
-  }
-  const base = preferredLanguage.split("-")[0].toLowerCase();
-  const supported = ["en","es","fr","de","it","pt","zh","ja","ko","ar","hi","ru","vi","tl"];
-  return supported.includes(base) ? base : "en";
+  // Preserve the established fallback for unsupported explicit preferences.
+  if (preferredLanguage && !["auto", "null"].includes(preferredLanguage) &&
+      resolveLanguagePreference(preferredLanguage, "en") === "en") return "en";
+  return resolveLanguagePreference(preferredLanguage);
 }

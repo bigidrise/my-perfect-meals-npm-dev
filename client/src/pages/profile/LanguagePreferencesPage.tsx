@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/apiRequest";
 import i18n, { resolveI18nLang } from "@/i18n";
+import { storeLanguagePreference } from "@/i18n/languagePreference";
 import { Globe, ChevronLeft, Loader2, Check } from "lucide-react";
 
 const LANGUAGES = [
@@ -36,6 +37,8 @@ export default function LanguagePreferencesPage() {
   const [, setLocation] = useLocation();
   const { t } = useTranslation();
   const { user, setUser } = useAuth();
+  const currentUserId = useRef(user?.id);
+  currentUserId.current = user?.id;
   const { toast } = useToast();
 
   const [selected, setSelected] = useState<LanguageCode>("auto");
@@ -55,6 +58,7 @@ export default function LanguagePreferencesPage() {
     // Capture rollback state before any mutations.
     const previousCode = selected;
     const previousI18nLang = i18n.language;
+    const ownerId = user?.id;
 
     // ── Optimistic: update everything immediately ──────────────────────────
     setSelected(code);
@@ -70,24 +74,28 @@ export default function LanguagePreferencesPage() {
         method: "PATCH",
         body: JSON.stringify({ preferredLanguage: code }),
       });
+      if (currentUserId.current !== ownerId) return;
+      storeLanguagePreference(code);
       // Success — i18n, selected, and local user state are already correct.
       const lang = LANGUAGES.find((l) => l.code === code);
       toast({
-        title: t("language.saved"),
+        title: i18n.t("language.saved"),
         description: code === "auto"
-          ? t("language.savedAutoDesc")
-          : t("language.savedLangDesc", { language: lang?.label ?? code }),
+          ? i18n.t("language.savedAutoDesc")
+          : i18n.t("language.savedLangDesc", { language: lang?.native ?? code }),
       });
     } catch {
+      if (currentUserId.current !== ownerId) return;
       // ── Rollback all three layers ──────────────────────────────────────
       setSelected(previousCode);
       i18n.changeLanguage(previousI18nLang);
+      storeLanguagePreference(previousCode);
       if (user) {
         setUser({ ...user, preferredLanguage: previousCode });
       }
       toast({
-        title: t("language.errorSave"),
-        description: t("language.errorSaveDesc"),
+        title: i18n.t("language.errorSave"),
+        description: i18n.t("language.errorSaveDesc"),
         variant: "destructive",
       });
     } finally {
@@ -113,6 +121,7 @@ export default function LanguagePreferencesPage() {
         <button
           onClick={() => setLocation("/dashboard")}
           className="p-1.5 rounded-lg bg-white/5 text-white/60 active:bg-white/10"
+          aria-label={t("common.back")}
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -151,13 +160,13 @@ export default function LanguagePreferencesPage() {
                 <div className="min-w-0">
                   <div className="flex items-baseline gap-2">
                     <p className={["text-sm font-semibold", isActive ? "text-orange-300" : "text-white"].join(" ")}>
-                      {lang.native}
+                      {lang.code === "auto" ? t("language.auto") : lang.native}
                     </p>
                     {lang.code !== "auto" && (
                       <p className="text-xs text-white/40">{lang.label}</p>
                     )}
                   </div>
-                  <p className="text-xs text-white/50 mt-0.5 leading-relaxed">{lang.description}</p>
+                  <p className="text-xs text-white/50 mt-0.5 leading-relaxed">{lang.code === "auto" ? t("language.autoDesc") : lang.description}</p>
                 </div>
                 {isActive && (
                   <div className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center">
@@ -171,7 +180,7 @@ export default function LanguagePreferencesPage() {
 
         {/* Footer note */}
         <p className="text-xs text-white/30 text-center leading-relaxed px-2">
-          {t("language.footerNote")}
+          {t("localeFoundation.preferencesNote")}
         </p>
       </div>
     </div>

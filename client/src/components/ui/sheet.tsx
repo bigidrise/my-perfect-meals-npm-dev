@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useTranslation } from "react-i18next"
 import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Trash2 } from "lucide-react"
@@ -57,7 +58,9 @@ interface SheetContentProps
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
->(({ side = "right", className, children, ...props }, ref) => (
+>(({ side = "right", className, children, ...props }, ref) => {
+  const { t } = useTranslation()
+  return (
   <SheetPortal>
     <SheetOverlay />
     <SheetPrimitive.Content
@@ -68,11 +71,12 @@ const SheetContent = React.forwardRef<
       {children}
       <SheetPrimitive.Close className={cn(TRASH_CONTROL_CLASSES, "absolute right-4 top-[max(1rem,env(safe-area-inset-top))] h-8 w-8 rounded-xl active:scale-[0.98] disabled:pointer-events-none")}>
         <Trash2 className="relative z-[1] h-4 w-4" />
-        <span className="sr-only">Close</span>
+        <span className="sr-only">{t("common.close")}</span>
       </SheetPrimitive.Close>
     </SheetPrimitive.Content>
   </SheetPortal>
-))
+  )
+})
 SheetContent.displayName = SheetPrimitive.Content.displayName
 
 const SheetHeader = ({

@@ -1,4 +1,6 @@
 import * as React from "react"
+import { useTranslation } from "react-i18next"
+import { translateSharedLabel } from "@/i18n/sharedLabels"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -40,14 +42,17 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, children, ...props }, ref) => {
+    const { t } = useTranslation()
     const Comp = asChild ? Slot : "button"
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         {...props}
-      />
+      >
+        {asChild ? children : translateSharedLabel(children, t)}
+      </Comp>
     )
   }
 )

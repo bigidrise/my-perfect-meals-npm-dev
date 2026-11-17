@@ -4,6 +4,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import AppRouter from "@/components/AppRouter";
 import { clearAuthToken } from "@/lib/auth";
+import i18n from "@/i18n";
+import { LANGUAGE_PREFERENCE_KEY } from "@/i18n/languagePreference";
 
 let mockCachedUser: any = null;
 let mockDevelopmentPublicPaths: string[] = [];
@@ -22,7 +24,12 @@ jest.mock("@/lib/resolveApiBase", () => ({ apiUrl: (path: string) => path }));
 jest.mock("@/i18n", () => ({
   __esModule: true,
   default: { language: "en", changeLanguage: jest.fn() },
-  resolveI18nLang: () => "en",
+  resolveI18nLang: (language: string) => require("@/i18n/languagePreference").resolveLanguagePreference(language),
+}));
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) => key.split(".").reduce((value, part) => value?.[part], require("@/i18n/locales/en.json")),
+  }),
 }));
 jest.mock("@/lib/guestMode", () => ({
   isGuestMode: () => false,
@@ -70,6 +77,61 @@ test("restores cookie-backed identity from server after localStorage is cleared,
   expect(fetch).toHaveBeenCalledWith("/api/user/profile", expect.objectContaining({ credentials: "include" }));
   expect(mockCachedUser.operatingStatus).toBe("demo_only");
   expect(mockCachedUser.isProCare).not.toBe(true);
+});
+
+test("cookie restoration applies saved Spanish and stores only a language hint", async () => {
+  (fetch as jest.Mock).mockResolvedValue({
+    ok: true, json: async () => ({ id: "synthetic-spanish", preferredLanguage: "es" }),
+  });
+  render(<AuthProvider><Identity /></AuthProvider>);
+  await screen.findByText("synthetic-spanish:ordinary");
+  expect(i18n.changeLanguage).toHaveBeenCalledWith("es");
+  expect(localStorage.getItem(LANGUAGE_PREFERENCE_KEY)).toBe("es");
+  expect(fetch).toHaveBeenCalledTimes(1);
+});
+
+test("Auto uses the device language without PATCHing an explicit preference", async () => {
+  const device = jest.spyOn(window.navigator, "language", "get").mockReturnValue("es-MX");
+  (fetch as jest.Mock).mockResolvedValue({
+    ok: true, json: async () => ({ id: "synthetic-auto", preferredLanguage: "auto" }),
+  });
+  render(<AuthProvider><Identity /></AuthProvider>);
+  await screen.findByText("synthetic-auto:ordinary");
+  expect(i18n.changeLanguage).toHaveBeenCalledWith("es");
+  expect(localStorage.getItem(LANGUAGE_PREFERENCE_KEY)).toBe("auto");
+  expect(fetch).toHaveBeenCalledTimes(1);
+  device.mockRestore();
+});
+
+test("a verified anonymous session clears a previous account's language hint", async () => {
+  localStorage.setItem(LANGUAGE_PREFERENCE_KEY, "es");
+  (fetch as jest.Mock).mockResolvedValue({ ok: false, status: 401 });
+  render(<AuthProvider><Identity /></AuthProvider>);
+  await screen.findByText("anonymous");
+  expect(localStorage.getItem(LANGUAGE_PREFERENCE_KEY)).toBe("auto");
+});
+
+test("login, account changes and logout synchronize the UI hint without altering identity rules", async () => {
+  let changeIdentity!: ReturnType<typeof useAuth>["setUser"];
+  function IdentityControls() {
+    const auth = useAuth();
+    changeIdentity = auth.setUser;
+    return <Identity />;
+  }
+  (fetch as jest.Mock).mockResolvedValue({
+    ok: true, json: async () => ({ id: "synthetic-first-account", preferredLanguage: "en" }),
+  });
+  render(<AuthProvider><IdentityControls /></AuthProvider>);
+  await screen.findByText("synthetic-first-account:ordinary");
+  const { act } = await import("@testing-library/react");
+  await act(async () => { changeIdentity({ id: "synthetic-spanish-login", preferredLanguage: "es" } as any); });
+  expect(localStorage.getItem(LANGUAGE_PREFERENCE_KEY)).toBe("es");
+  await act(async () => { changeIdentity({ id: "synthetic-english-login", preferredLanguage: "en" } as any); });
+  expect(localStorage.getItem(LANGUAGE_PREFERENCE_KEY)).toBe("en");
+  await act(async () => { changeIdentity(null); });
+  expect(localStorage.getItem(LANGUAGE_PREFERENCE_KEY)).toBe("auto");
+  expect(screen.getByText("anonymous")).toBeTruthy();
+  expect(fetch).toHaveBeenCalledTimes(1);
 });
 
 test("a 401 with no routing cache does not manufacture an authenticated identity", async () => {

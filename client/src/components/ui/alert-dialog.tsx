@@ -1,4 +1,6 @@
 import * as React from "react"
+import { useTranslation } from "react-i18next"
+import { translateSharedLabel } from "@/i18n/sharedLabels"
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
 import { cn } from "@/lib/utils"
@@ -99,19 +101,24 @@ AlertDialogDescription.displayName =
 const AlertDialogAction = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Action>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action>
->(({ className, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => {
+  const { t } = useTranslation()
+  return (
   <AlertDialogPrimitive.Action
     ref={ref}
     className={cn(buttonVariants(), className)}
     {...props}
-  />
-))
+  >{translateSharedLabel(children, t)}</AlertDialogPrimitive.Action>
+  )
+})
 AlertDialogAction.displayName = AlertDialogPrimitive.Action.displayName
 
 const AlertDialogCancel = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Cancel>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Cancel>
->(({ className, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => {
+  const { t } = useTranslation()
+  return (
   <AlertDialogPrimitive.Cancel
     ref={ref}
     className={cn(
@@ -120,8 +127,9 @@ const AlertDialogCancel = React.forwardRef<
       className
     )}
     {...props}
-  />
-))
+  >{translateSharedLabel(children, t)}</AlertDialogPrimitive.Cancel>
+  )
+})
 AlertDialogCancel.displayName = AlertDialogPrimitive.Cancel.displayName
 
 export {
