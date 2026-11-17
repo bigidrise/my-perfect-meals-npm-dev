@@ -1,4 +1,13 @@
 {
+  "localeFoundation": {
+    "wakingUp": "正在准备您的膳食引擎…",
+    "startupHint": "首次加载需要多几秒钟，请稍候！",
+    "sessionUnavailable": "无法验证您的会话。请检查网络连接并重试。",
+    "sessionRetry": "重新验证会话",
+    "required": "必填",
+    "invalidEmail": "电子邮件地址无效",
+    "preferencesNote": "自动模式会使用此设备的语言。明确选择的语言会保存到您的账户。部分功能仍在本地化中。"
+  },
   "shoppingTransfer": {
     "addedTitle": "已添加到购物清单",
     "savedTitle": "已保存到购物清单",

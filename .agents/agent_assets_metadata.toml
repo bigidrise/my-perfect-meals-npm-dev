@@ -1083,3 +1083,31 @@ mtime_ms = 1794952143946
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/5568365c-a3ad-4260-85c4-300a9ce4ceea/9175fae7-e0cb-4846-8c2c-0a47b0d093e0"
 storage_version_token = "1794952175673623"
 content_type = "text/plain"
+
+[[outputs]]
+id = "QhfZ-MmuZzqJtzddSn4rV"
+uri = "file://.local/reports/spanish-phase1-review.html"
+type = "html"
+title = "Spanish Phase 1 — implementation and founder review"
+description = "Implementation summary, files changed, English/Spanish desktop/mobile screenshots, 114 passing tests, remaining blockers, and recommended Phase 2 scope."
+logical_id = "eab965a8-a4cb-4e69-a12a-825bb7b14800"
+content_hash = "sha256:00ad498a1c0cf38d4e249e61254c7cda729c0df4bc7f7c941df68f323ceaac02"
+size = 377584
+mtime_ms = 1794953357617
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/eab965a8-a4cb-4e69-a12a-825bb7b14800/a76f92a0-4b25-4a05-bf4e-4d23ea707d0d"
+storage_version_token = "1794953359746646"
+content_type = "text/html"
+
+[[outputs]]
+id = "WgU-IrNGkpYew0O8HqFQa"
+uri = "file://.local/reports/spanish-phase1-verification.txt"
+type = "text"
+title = "Spanish Phase 1 — verification evidence"
+description = "Focused tests, strict localization results, full type-gate output, safety types, compilation results, and browser-fixture limitations."
+logical_id = "f9e9672c-933a-486d-a6bf-f54f8146bbc7"
+content_hash = "sha256:baf7e44422378f362a96a06ce0dc391ff0a41072953817751283ae7a553c6607"
+size = 139894
+mtime_ms = 1794953358737
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/f9e9672c-933a-486d-a6bf-f54f8146bbc7/721d2dd4-68ef-4132-99de-5db93a261b84"
+storage_version_token = "1794953360423055"
+content_type = "text/plain"

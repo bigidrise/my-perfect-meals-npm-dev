@@ -1,4 +1,13 @@
 {
+  "localeFoundation": {
+    "wakingUp": "Inihahanda ang iyong meal engine…",
+    "startupHint": "Mas matagal nang ilang segundo ang unang pag-load. Sandali lang!",
+    "sessionUnavailable": "Hindi namin ma-verify ang iyong session. Suriin ang koneksyon at subukang muli.",
+    "sessionRetry": "I-verify muli ang session",
+    "required": "Kinakailangan",
+    "invalidEmail": "Hindi wastong email",
+    "preferencesNote": "Sinusunod ng Auto ang wika ng device na ito. Ang pinili mong tiyak na wika ay sine-save sa iyong account. Isinasalin pa ang ilang feature."
+  },
   "shoppingTransfer": {
     "addedTitle": "Naidagdag sa listahan ng pamimili",
     "savedTitle": "Nai-save sa listahan ng pamimili",

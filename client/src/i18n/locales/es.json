@@ -1,4 +1,13 @@
 {
+  "localeFoundation": {
+    "wakingUp": "Preparando tu motor de comidas…",
+    "startupHint": "La primera carga tarda unos segundos más. ¡Un momento!",
+    "sessionUnavailable": "No pudimos verificar tu sesión. Comprueba tu conexión e inténtalo de nuevo.",
+    "sessionRetry": "Volver a verificar la sesión",
+    "required": "Obligatorio",
+    "invalidEmail": "Correo electrónico no válido",
+    "preferencesNote": "Auto sigue el idioma de este dispositivo. Si eliges un idioma específico, se guarda en tu cuenta. Algunas funciones aún se están traduciendo."
+  },
   "shoppingTransfer": {
     "addedTitle": "Añadido a la lista de compras",
     "savedTitle": "Guardado en la lista de compras",

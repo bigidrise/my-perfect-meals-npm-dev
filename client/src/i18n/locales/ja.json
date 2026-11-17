@@ -1,4 +1,13 @@
 {
+  "localeFoundation": {
+    "wakingUp": "食事エンジンを準備しています…",
+    "startupHint": "初回の読み込みには少し時間がかかります。しばらくお待ちください。",
+    "sessionUnavailable": "セッションを確認できませんでした。接続を確認して、もう一度お試しください。",
+    "sessionRetry": "セッションを再確認",
+    "required": "必須",
+    "invalidEmail": "無効なメールアドレス",
+    "preferencesNote": "自動では、この端末の言語を使用します。明示的に選択した言語はアカウントに保存されます。一部の機能は引き続き翻訳中です。"
+  },
   "shoppingTransfer": {
     "addedTitle": "買い物リストに追加しました",
     "savedTitle": "買い物リストに保存しました",

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import WelcomeGate from "./WelcomeGate";
 import { SessionVerificationRecovery } from "./SessionVerificationRecovery";
@@ -68,6 +69,7 @@ function isProfessional(user: any): boolean {
 export default function AppRouter({ children }: AppRouterProps) {
   const [location, setLocation] = useLocation();
   const [showWelcomeGate, setShowWelcomeGate] = useState(false);
+  const { t } = useTranslation();
   const { user, loading: sessionLoading, initializationError, retryInitialization } = useAuth();
   const loading = sessionLoading || !!initializationError;
   const isPublicRoute = useMemo(() => isPublicAppRoute(location), [location]);
@@ -207,7 +209,7 @@ export default function AppRouter({ children }: AppRouterProps) {
           alt=""
           className="mb-4 h-20 w-20"
         />
-        <p className="text-sm text-white/60">Loading your personalized experience…</p>
+        <p className="text-sm text-white/60">{t("common.loading")}</p>
       </div>
     );
   }

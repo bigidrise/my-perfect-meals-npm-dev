@@ -1,4 +1,13 @@
 {
+  "localeFoundation": {
+    "wakingUp": "Deine Mahlzeiten werden vorbereitet…",
+    "startupHint": "Das erste Laden dauert ein paar Sekunden länger. Einen Moment!",
+    "sessionUnavailable": "Deine Sitzung konnte nicht überprüft werden. Prüfe deine Verbindung und versuche es erneut.",
+    "sessionRetry": "Sitzung erneut überprüfen",
+    "required": "Erforderlich",
+    "invalidEmail": "Ungültige E-Mail-Adresse",
+    "preferencesNote": "Auto verwendet die Sprache dieses Geräts. Eine ausdrücklich gewählte Sprache wird in deinem Konto gespeichert. Einige Funktionen werden noch übersetzt."
+  },
   "shoppingTransfer": {
     "addedTitle": "Zur Einkaufsliste hinzugefügt",
     "savedTitle": "In der Einkaufsliste gespeichert",
