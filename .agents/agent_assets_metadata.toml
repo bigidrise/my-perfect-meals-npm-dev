@@ -1153,3 +1153,17 @@ mtime_ms = 1794957685864
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/80b60be5-9f95-4a72-9f67-c76065cf4e7b/2d615252-3361-4c06-b2e6-672121c93b4e"
 storage_version_token = "1794957753510553"
 content_type = "text/html"
+
+[[outputs]]
+id = "imkQtw4W6MbsYBSnDth-U"
+uri = "file://generated-artifacts/spanish-phase2/approved-onboarding-verification.html"
+type = "html"
+title = "Approved Spanish onboarding — verification"
+description = "21 focused tests, desktop/mobile consent checks, healthy Spanish onboarding navigation, release-gate status and verification limits."
+logical_id = "d8551755-afdc-4fc6-a19f-de831c08ec5e"
+content_hash = "sha256:45e559db2f151719c392cbca715812ecc5aea1240750eb16fc723cc1df48954e"
+size = 8195
+mtime_ms = 1794959079756
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d8551755-afdc-4fc6-a19f-de831c08ec5e/4bb63fd9-8e0d-45e5-a258-848de7f7c295"
+storage_version_token = "1794959080544434"
+content_type = "text/html"

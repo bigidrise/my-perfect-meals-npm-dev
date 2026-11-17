@@ -2,12 +2,25 @@
  * Additive consumer-journey namespace. English source phrases are stable keys.
  * Deliberately EN/ES only: other languages retain their existing catalogs and
  * use i18next's normal English fallback for this new, explicitly scoped copy.
- * Do not add clinical advice, legal attestations or machine identifiers here.
+ * Clinical/legal copy enters only through the separately founder-approved
+ * onboarding resource. Never add unreviewed advice or machine identifiers.
  */
 import { startupPhraseTranslations } from "@shared/consumerStartupCopy";
+import { approvedConsumerOnboardingSpanish } from "./approvedConsumerOnboarding";
 
 export const consumerSpanish: Record<string, string> = {
   ...startupPhraseTranslations,
+  ...approvedConsumerOnboardingSpanish,
+  // Ordinary narration controls, connected only by the consumer first-run page.
+  "Listen": "Escuchar",
+  "Pause": "Pausar",
+  "Resume": "Reanudar",
+  "Play": "Reproducir",
+  "10s Back": "Retroceder 10 s",
+  "Start Over": "Volver a empezar",
+  "Hide": "Ocultar",
+  "Transcript": "Transcripción",
+  "Stop": "Detener",
   "Completed": "Completado",
   "Remaining": "Pendiente",
   "Needs check": "Requiere comprobación",
