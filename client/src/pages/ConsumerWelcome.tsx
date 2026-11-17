@@ -12,7 +12,10 @@ const COPILOT_SECTIONS = [
   },
 ];
 
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+
 export default function ConsumerWelcome() {
+  const { t } = useConsumerCopy();
   const [, setLocation] = useLocation();
   const [hasReadExplanation, setHasReadExplanation] = useState(false);
   const [hasAcceptedDisclaimer, setHasAcceptedDisclaimer] = useState(false);
@@ -29,23 +32,23 @@ export default function ConsumerWelcome() {
             className="w-[26rem] h-auto -mb-3"
           />
           <h1 className="text-2xl font-bold italic mt-0">
-            Welcome to My Perfect Meals
+              {t("Welcome to My Perfect Meals")}
           </h1>
           <p className="text-white/60 text-sm leading-relaxed text-center mt-1 max-w-xs">
-            Meals built around your goals, your preferences, and your life.
+              {t("Meals built around your goals, your preferences, and your life.")}
           </p>
         </div>
 
         <div className="mb-6 px-4 py-3 rounded-xl bg-gradient-to-r from-orange-900/50 to-amber-900/50 border border-orange-400/20">
           <p className="text-xs text-white/50 mb-2">
-            Hear a quick intro from Chef — your AI nutrition coach
+              {t("Hear a quick intro from Chef — your AI nutrition coach")}
           </p>
           <NarrationBar sections={COPILOT_SECTIONS} speedOverride="1.0" />
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-5 mb-6">
           <h2 className="text-lg font-bold text-white mb-3">
-            How My Perfect Meals Works
+                {t("How My Perfect Meals Works")}
           </h2>
           <div className="space-y-3 text-sm text-white/70 leading-relaxed">
             <p>My Perfect Meals works like a real nutrition coach.</p>
@@ -203,7 +206,7 @@ export default function ConsumerWelcome() {
           disabled={!hasReadExplanation || !hasAcceptedDisclaimer}
           className="w-full h-14 text-md font-semibold rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          Continue to Onboarding
+                {t("Continue to Onboarding")}
           <ArrowRight className="w-5 h-5" />
         </Button>
       </div>

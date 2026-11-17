@@ -14,7 +14,7 @@ import { useState } from "react";
 import { Bell, ChevronDown, ChevronUp, ShieldCheck, Layers, FlaskConical, Activity, Droplets } from "lucide-react";
 import { useNutritionSummary } from "@/hooks/useNutritionSummary";
 import type { NutritionPersonalizationSummary, NutritionSummaryHealthItem } from "@/types/nutritionSummary";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import { useLocation } from "wouter";
 import {
   CLINICAL_NUTRITION_PRIORITY_SUMMARY_COPY,
@@ -115,10 +115,10 @@ export function NutritionPersonalizationSummaryCard({
         <div className="px-4 pb-4" aria-busy={isLoading}>
           <p role="status" className="text-xs text-white/60">
             {isLoading
-              ? t("loadingPlan", { defaultValue: "Loading your personalized plan…" })
+              ? t("Loading your personalized plan…", { defaultValue: "Loading your personalized plan…" })
               : failed
-                ? t("planUnavailable", { defaultValue: "Your nutrition plan is temporarily unavailable." })
-                : t("planEmpty", { defaultValue: "No nutrition plan is available yet." })}
+                ? t("Your nutrition plan is temporarily unavailable.", { defaultValue: "Your nutrition plan is temporarily unavailable." })
+                : t("No nutrition plan is available yet.", { defaultValue: "No nutrition plan is available yet." })}
           </p>
           {isLoading && (
             <div aria-hidden="true" className="mt-3 space-y-2 animate-pulse">
@@ -132,7 +132,7 @@ export function NutritionPersonalizationSummaryCard({
               onClick={() => { void hook.refetch(); }}
               className="mt-3 rounded-lg border border-orange-400/40 px-3 py-2 text-xs font-semibold text-orange-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
             >
-              {t("retryPlan", { defaultValue: "Retry loading plan" })}
+              {t("Retry loading plan", { defaultValue: "Retry loading plan" })}
             </button>
           )}
         </div>

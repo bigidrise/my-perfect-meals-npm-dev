@@ -19,6 +19,8 @@ const stateLabels: Record<string, string> = {
   not_applicable: "Not applicable",
 };
 
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+
 export function GettingStartedCardView({
   model,
   onContinue,
@@ -30,6 +32,7 @@ export function GettingStartedCardView({
   canExplain = false,
   presentationNotice,
 }: GettingStartedCardViewProps) {
+  const { t } = useConsumerCopy();
   return (
     <section
       data-testid="guided-journey-card"
@@ -38,48 +41,48 @@ export function GettingStartedCardView({
     >
       <div className="border-b border-white/10 bg-gradient-to-r from-orange-500/10 via-transparent to-transparent px-5 py-4 sm:px-6">
         <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-orange-300">
-          Your next steps
+          {t("Your next steps")}
         </p>
         <h2 id="getting-started-title" className="text-lg font-bold tracking-tight">
-          Getting Started
+          {t("Getting Started")}
         </h2>
-        <p className="mt-0.5 text-sm text-zinc-300">Your My Perfect Meals Journey.</p>
+        <p className="mt-0.5 text-sm text-zinc-300">{t("Your My Perfect Meals Journey.")}</p>
       </div>
 
       <div className="space-y-4 px-5 py-4 sm:px-6">
         <p role="status" aria-live="polite" className="text-sm leading-relaxed text-zinc-300">
-          {model.statusText}
+          {t(model.statusText)}
         </p>
 
         {model.replayRequested && (
           <p className="rounded-lg border border-orange-300/20 bg-orange-300/5 px-3 py-2 text-sm leading-relaxed text-orange-100">
-            Replay requested. Open an explanation to review your journey; your saved work is unchanged.
+            {t("Replay requested. Open an explanation to review your journey; your saved work is unchanged.")}
           </p>
         )}
 
         {model.paused && (
           <p className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-zinc-300">
-            Guidance is paused. You may continue setup manually.
+            {t("Guidance is paused. You may continue setup manually.")}
           </p>
         )}
         {model.automaticDisabled && (
           <p className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-zinc-300">
-            Automatic guidance is off. Manual setup is still available.
+            {t("Automatic guidance is off. Manual setup is still available.")}
           </p>
         )}
         {model.preferenceNotice && (
           <p className="rounded-lg border border-amber-300/25 bg-amber-300/5 px-3 py-2 text-sm leading-relaxed text-amber-100">
-            {model.preferenceNotice}
+            {t(model.preferenceNotice)}
           </p>
         )}
         {presentationNotice && (
-          <p role="status" className="text-sm leading-relaxed text-amber-200">{presentationNotice}</p>
+          <p role="status" className="text-sm leading-relaxed text-amber-200">{t(presentationNotice)}</p>
         )}
 
         {model.stages.length > 0 && (
           <ol className="space-y-2" aria-label="Setup stages">
             {model.stages.map((stage) => {
-              const stateLabel = stateLabels[stage.state] ?? "Needs check";
+              const stateLabel = t(stateLabels[stage.state] ?? "Needs check");
               return (
                 <li
                   key={stage.id}
@@ -102,10 +105,10 @@ export function GettingStartedCardView({
                     }`}
                   />
                   <span className="min-w-0 flex-1 text-sm font-medium leading-5 text-zinc-100">
-                    {stage.label}
+                    {t(stage.label)}
                     {stage.current && (
                       <span className="ml-2 inline-block rounded-full bg-orange-400/15 px-2 py-0.5 align-middle text-[10px] font-semibold uppercase tracking-wide text-orange-200">
-                        Current
+                        {t("Current")}
                       </span>
                     )}
                   </span>
@@ -121,7 +124,7 @@ export function GettingStartedCardView({
             <button type="button" data-testid="guided-journey-explain" onClick={onExplain}
               disabled={!canExplain}
               className="inline-flex min-h-11 items-center justify-center rounded-xl border border-orange-300/40 px-4 py-2.5 text-sm font-semibold text-orange-200 hover:bg-orange-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-45">
-              Show Explanation
+              {t("Show Explanation")}
             </button>
           )}
           <button
@@ -131,7 +134,7 @@ export function GettingStartedCardView({
             disabled={!model.canContinue}
             className="inline-flex min-h-11 items-center justify-center rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-zinc-950 transition-colors hover:bg-orange-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500"
           >
-            Continue Setup
+            {t("Continue Setup")}
           </button>
           {model.canRetry && (
             <button
@@ -140,14 +143,14 @@ export function GettingStartedCardView({
               disabled={model.loading || model.busy}
               className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-zinc-200 transition-colors hover:border-orange-300/40 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Retry
+              {t("Retry")}
             </button>
           )}
         </div>
 
         <details className="group border-t border-white/10 pt-3">
           <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 rounded-lg text-sm font-semibold text-zinc-300 outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-orange-300 [&::-webkit-details-marker]:hidden">
-            <span>Guidance controls</span>
+            <span>{t("Guidance controls")}</span>
             <span aria-hidden="true" className="text-zinc-500 transition-transform group-open:rotate-180">
               ▾
             </span>
@@ -159,7 +162,7 @@ export function GettingStartedCardView({
               disabled={!model.controlsReady}
               className="min-h-10 rounded-lg border border-white/10 px-3 py-2 text-left text-sm font-medium text-zinc-200 hover:border-orange-300/30 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-45"
             >
-              {model.paused ? "Resume Guidance" : "Pause Guidance"}
+              {model.paused ? t("Resume Guidance") : t("Pause Guidance")}
             </button>
             <button
               type="button"
@@ -167,7 +170,7 @@ export function GettingStartedCardView({
               disabled={!model.controlsReady}
               className="min-h-10 rounded-lg border border-white/10 px-3 py-2 text-left text-sm font-medium text-zinc-200 hover:border-orange-300/30 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-45"
             >
-              {model.automaticDisabled ? "Enable Automatic Guidance" : "Disable Automatic Guidance"}
+              {model.automaticDisabled ? t("Enable Automatic Guidance") : t("Disable Automatic Guidance")}
             </button>
             <button
               type="button"
@@ -175,7 +178,7 @@ export function GettingStartedCardView({
               disabled={!model.controlsReady}
               className="min-h-10 rounded-lg border border-white/10 px-3 py-2 text-left text-sm font-medium text-zinc-200 hover:border-orange-300/30 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-45 sm:col-span-2"
             >
-              Restart Guidance
+              {t("Restart Guidance")}
             </button>
           </div>
         </details>

@@ -1,6 +1,7 @@
 // server/services/intelligentMealGenerator.ts
 // ChatGPT-level intelligent meal generation system
 import OpenAI from "openai";
+import { resolveRequestLanguagePreference } from "../utils/languageInstruction";
 import { storage } from "../storage";
 import { enforceMeasuredIngredients } from "./mealgenV2";
 import { generateMealImageUnified } from "./mealImageGenerator";
@@ -57,7 +58,7 @@ export async function generateIntelligentMeal(request: IntelligentMealRequest): 
       hi: "Hindi", ru: "Russian", vi: "Vietnamese", tl: "Filipino (Tagalog)",
     };
     const rawLang = (user as any)?.preferredLanguage || "auto";
-    const baseLang = rawLang !== "auto" ? rawLang.split("-")[0].toLowerCase() : "en";
+    const baseLang = resolveRequestLanguagePreference(rawLang);
     const langInstr = baseLang !== "en" && langNames[baseLang]
       ? `\n\n🌐 LANGUAGE REQUIREMENT — MANDATORY: Generate ALL content entirely in ${langNames[baseLang]}. Every word must be in ${langNames[baseLang]}.`
       : "";

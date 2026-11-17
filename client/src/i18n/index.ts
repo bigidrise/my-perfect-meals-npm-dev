@@ -1,6 +1,8 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { readLanguagePreference, resolveLanguagePreference } from "./languagePreference";
+import { consumerEnglish, consumerSpanish } from "./consumerJourney";
+import { startupEnglish, startupSpanish } from "@shared/consumerStartupCopy";
 
 import en from "./locales/en.json";
 import es from "./locales/es.json";
@@ -27,12 +29,19 @@ function applyDocumentDir(lng: string) {
   const dir = RTL_LANGS.has(base) ? "rtl" : "ltr";
   document.documentElement.dir = dir;
   document.documentElement.lang = base;
+  // Only the exact public MPM title is owned here; never replace tenant names
+  // or route-specific titles with a global translated string.
+  const publicTitle = startupEnglish.publicTitle;
+  const spanishTitle = startupSpanish.publicTitle;
+  if (document.title === publicTitle || document.title === spanishTitle) {
+    document.title = base === "es" ? spanishTitle : publicTitle;
+  }
 }
 
 i18n.use(initReactI18next).init({
   resources: {
-    en: { ...en, translation: en },
-    es: { ...es, translation: es },
+    en: { ...en, translation: en, consumerJourney: consumerEnglish },
+    es: { ...es, translation: es, consumerJourney: consumerSpanish },
     fr: { ...fr, translation: fr },
     de: { ...de, translation: de },
     it: { ...it, translation: it },

@@ -25,7 +25,7 @@ import { HealthContextControls } from "@/components/profile/HealthContextControl
 import { ConsumerHealthContextSection } from "@/components/profile/ConsumerHealthContextSection";
 import { persistOnboardingHealthInformation } from "@/lib/onboardingHealthPersistence";
 import { captureException } from "@/lib/sentry";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import { computeTrialDays } from "@shared/trialDays";
 import { NutritionPrioritiesSelector } from "@/components/NutritionPrioritiesSelector";
 import { useAdultNutritionPriorities } from "@/hooks/useNutritionPriorities";
@@ -386,7 +386,7 @@ function AccountOnboardingV3() {
       switch (step) {
         case 1:
           if (!firstName.trim() || !lastName.trim()) {
-            toast({ title: "Please enter your first and last name", variant: "destructive" });
+            toast({ title: t("Please enter your first and last name"), variant: "destructive" });
             setSaving(false);
             return;
           }
@@ -452,12 +452,12 @@ function AccountOnboardingV3() {
         }
         case 5: {
           if (!dietaryStyle) {
-            toast({ title: "Please select an eating style, or choose 'No Restriction'", variant: "destructive" });
+            toast({ title: t("Please select an eating style, or choose 'No Restriction'"), variant: "destructive" });
             setSaving(false);
             return;
           }
           if (dietaryStyle === "custom" && !customDietInput.trim()) {
-            toast({ title: "Please describe your eating style", variant: "destructive" });
+            toast({ title: t("Please describe your eating style"), variant: "destructive" });
             setSaving(false);
             return;
           }
@@ -474,7 +474,7 @@ function AccountOnboardingV3() {
           break;
         case 7:
           if (!goalType) {
-            toast({ title: "Please select your main goal", variant: "destructive" });
+            toast({ title: t("Please select your main goal"), variant: "destructive" });
             setSaving(false);
             return;
           }
@@ -487,7 +487,7 @@ function AccountOnboardingV3() {
           break;
         case 8:
           if (!flavorPreference) {
-            toast({ title: "Please pick a flavor style", variant: "destructive" });
+            toast({ title: t("Please pick a flavor style"), variant: "destructive" });
             setSaving(false);
             return;
           }
@@ -540,7 +540,7 @@ function AccountOnboardingV3() {
       return;
     }
     if (!selectedBuilder) {
-      toast({ title: "Please select a builder", variant: "destructive" });
+      toast({ title: t("Please select a builder"), variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -622,21 +622,21 @@ function AccountOnboardingV3() {
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
-              <h1 className="text-2xl font-bold text-white">What's your name?</h1>
-              <p className="text-white/60 text-sm">You can personalize your display name later in settings</p>
+              <h1 className="text-2xl font-bold text-white">{t("What's your name?")}</h1>
+              <p className="text-white/60 text-sm">{t("You can personalize your display name later in settings")}</p>
             </div>
             <div className="max-w-sm mx-auto space-y-3">
               <Input
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                placeholder="First name"
+                placeholder={t("First name")}
                 className="text-white bg-white/10 border-white/20 text-lg h-12 text-center"
                 autoFocus
               />
               <Input
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                placeholder="Last name"
+                placeholder={t("Last name")}
                 className="text-white bg-white/10 border-white/20 text-lg h-12 text-center"
               />
             </div>
@@ -647,7 +647,7 @@ function AccountOnboardingV3() {
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
-              <h1 className="text-2xl font-bold text-white">Any food allergies?</h1>
+              <h1 className="text-2xl font-bold text-white">{t("Any food allergies?")}</h1>
             </div>
             <div className="flex flex-wrap gap-2 max-w-md mx-auto">
               {ALLERGY_OPTIONS.map((item) => (
@@ -663,14 +663,14 @@ function AccountOnboardingV3() {
                 active={allergies.includes("None")}
                 onClick={() => handleAllergyToggle("None")}
               >
-                None
+                {t("None")}
               </PillButton>
             </div>
             <div className="max-w-md mx-auto flex gap-2">
               <Input
                 value={customAllergyInput}
                 onChange={(e) => setCustomAllergyInput(e.target.value)}
-                placeholder="Add custom allergy..."
+                placeholder={t("Add custom allergy...")}
                 className="text-white bg-white/10 border-white/20 flex-1"
                 onKeyDown={(e) => e.key === "Enter" && handleAddCustomAllergy()}
               />
@@ -679,7 +679,7 @@ function AccountOnboardingV3() {
                 disabled={!customAllergyInput.trim()}
                 onClick={handleAddCustomAllergy}
               >
-                Add
+                {t("Add")}
               </PillButton>
             </div>
             {allergies.filter((a) => !ALLERGY_OPTIONS.includes(a) && a !== "None").length > 0 && (
@@ -700,8 +700,8 @@ function AccountOnboardingV3() {
             <div className="max-w-md mx-auto w-full pt-2">
               <div className="rounded-xl border border-rose-500/30 bg-rose-950/10 p-4 space-y-3">
                 <div>
-                  <p className="text-rose-300 font-semibold text-sm mb-0.5">Foods to Avoid</p>
-                  <p className="text-white/50 text-xs">Foods or categories you never want in your meals — different from allergies, no PIN needed.</p>
+                  <p className="text-rose-300 font-semibold text-sm mb-0.5">{t("Foods to Avoid")}</p>
+                  <p className="text-white/50 text-xs">{t("Foods or categories you never want in your meals — different from allergies, no PIN needed.")}</p>
                 </div>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {["Vegetables", "Mushrooms", "Onions", "Seafood", "Pork", "Red Meat"].map((cat) => {
@@ -737,7 +737,7 @@ function AccountOnboardingV3() {
                         }
                       }
                     }}
-                    placeholder="Type a specific food..."
+                    placeholder={t("Type a specific food...")}
                     className="flex-1 bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-white/30"
                   />
                   <PillButton
@@ -751,7 +751,7 @@ function AccountOnboardingV3() {
                       }
                     }}
                   >
-                    Add
+                    {t("Add")}
                   </PillButton>
                 </div>
                 {avoidedFoods.filter(f => !["vegetables","mushrooms","onions","seafood","pork","red meat"].includes(f)).length > 0 && (
@@ -804,7 +804,7 @@ function AccountOnboardingV3() {
                 disabled={!customConditionInput.trim()}
                 onClick={handleAddCustomCondition}
               >
-                Add
+                {t("Add")}
               </PillButton>
             </div>
             {medicalConditions.filter(
@@ -832,7 +832,7 @@ function AccountOnboardingV3() {
                 <span className="text-sky-300 font-semibold text-sm">
                   Health information for your current meals
                 </span>
-                <span className="text-white/40 text-xs">(optional)</span>
+                <span className="text-white/40 text-xs">{t("(optional)")}</span>
               </div>
               <p className="text-white/60 text-xs mb-3">
                 Tell us what you already know applies to you. Health information is used by current meal settings and may require care-team or lab review.
@@ -1086,8 +1086,8 @@ function AccountOnboardingV3() {
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
-              <h1 className="text-2xl font-bold text-white">What eating style fits you best?</h1>
-              <p className="text-white/60 text-sm">We'll tailor every meal to this automatically.</p>
+              <h1 className="text-2xl font-bold text-white">{t("What eating style fits you best?")}</h1>
+              <p className="text-white/60 text-sm">{t("We'll tailor every meal to this automatically.")}</p>
             </div>
             <div className="flex flex-wrap justify-center gap-2 max-w-sm mx-auto">
               {DIET_OPTIONS.map((opt) => (
@@ -1096,7 +1096,7 @@ function AccountOnboardingV3() {
                   active={dietaryStyle === opt.value}
                   onClick={() => setDietaryStyle(opt.value)}
                 >
-                  {opt.label}
+                  {t(opt.label)}
                 </PillButton>
               ))}
             </div>
@@ -1113,7 +1113,7 @@ function AccountOnboardingV3() {
                   type="text"
                   value={customDietInput}
                   onChange={(e) => setCustomDietInput(e.target.value)}
-                  placeholder="e.g. Whole30, raw food, flexitarian..."
+                  placeholder={t("e.g. Whole30, raw food, flexitarian...")}
                   className="w-full bg-black/40 border border-white/20 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/60 placeholder:text-white/30"
                   autoFocus
                 />
@@ -1126,16 +1126,15 @@ function AccountOnboardingV3() {
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2 max-w-2xl mx-auto">
-              <h1 className="text-2xl font-bold text-white">Nutrition Priorities</h1>
+              <h1 className="text-2xl font-bold text-white">{t("Nutrition Priorities")}</h1>
               <p className="text-white/80 text-sm font-medium">
-                Tell us what you'd like My Perfect Meals to consider more often.
+                {t("Tell us what you'd like My Perfect Meals to consider more often.")}
               </p>
               <p className="text-white/55 text-sm leading-relaxed">
-                Choose foods, ingredients, or nutrition characteristics you'd like us to work into your meals when they fit.
-                We'll still consider your dietary needs, allergies, health context, preferences, and what you're asking for right now.
+                {t("Choose foods, ingredients, or nutrition characteristics you'd like us to work into your meals when they fit. We'll still consider your dietary needs, allergies, health context, preferences, and what you're asking for right now.")}
               </p>
               <p className="text-white/45 text-xs">
-                Select any number, or none. A selection means: consider this when it safely, naturally, and culinarily makes sense.
+                {t("Select any number, or none. A selection means: consider this when it safely, naturally, and culinarily makes sense.")}
               </p>
             </div>
             <div className="max-w-2xl mx-auto">
@@ -1170,27 +1169,27 @@ function AccountOnboardingV3() {
                   }`}
                 >
                   <span className="text-2xl">{opt.emoji}</span>
-                  {opt.label}
+                  {t(opt.label)}
                 </button>
               ))}
             </div>
             {goalType && goalType !== "maintain" && (
               <div className="max-w-xs mx-auto space-y-2">
                 <label className="text-white/70 text-sm">
-                  {goalType === "lose" ? "How much do you want to lose?" : "How much muscle do you want to gain?"}
-                  <span className="text-white/40 ml-1">(optional)</span>
+                  {goalType === "lose" ? t("How much do you want to lose?") : t("How much muscle do you want to gain?")}
+                  <span className="text-white/40 ml-1">{t("(optional)")}</span>
                 </label>
                 <Input
                   value={goalTarget}
                   onChange={(e) => setGoalTarget(e.target.value)}
-                  placeholder={goalType === "lose" ? "e.g. 20 lbs" : "e.g. 10 lbs"}
+                  placeholder={goalType === "lose" ? t("e.g. 20 lbs") : t("e.g. 10 lbs")}
                   className="text-white bg-white/10 border-white/20"
                 />
               </div>
             )}
             <div className="max-w-xs mx-auto space-y-2">
               <label className="text-white/70 text-sm">
-                Timeline <span className="text-white/40">(optional)</span>
+                {t("Timeline")} <span className="text-white/40">{t("(optional)")}</span>
               </label>
               <div className="flex flex-wrap gap-2">
                 {TIMELINE_OPTIONS.map((opt) => (
@@ -1199,7 +1198,7 @@ function AccountOnboardingV3() {
                     active={goalTimelineWeeks === opt.value}
                     onClick={() => setGoalTimelineWeeks(goalTimelineWeeks === opt.value ? null : opt.value)}
                   >
-                    {opt.label}
+                    {t(opt.label)}
                   </PillButton>
                 ))}
               </div>
@@ -1211,7 +1210,7 @@ function AccountOnboardingV3() {
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
-              <h1 className="text-2xl font-bold text-white">What's your flavor style?</h1>
+              <h1 className="text-2xl font-bold text-white">{t("What's your flavor style?")}</h1>
             </div>
             <div className="flex flex-wrap justify-center gap-3 max-w-md mx-auto">
               {FLAVOR_OPTIONS.map((opt) => (
@@ -1220,14 +1219,14 @@ function AccountOnboardingV3() {
                   active={flavorPreference === opt.value}
                   onClick={() => setFlavorPreference(opt.value)}
                 >
-                  {opt.label}
+                  {t(opt.label)}
                 </PillButton>
               ))}
             </div>
 
             <div className="text-center space-y-2 mt-8">
-              <h2 className="text-xl font-bold text-white">How much heat do you like?</h2>
-              <p className="text-white/60 text-sm">This is separate from flavor — you can love bold food with zero heat</p>
+              <h2 className="text-xl font-bold text-white">{t("How much heat do you like?")}</h2>
+              <p className="text-white/60 text-sm">{t("This is separate from flavor — you can love bold food with zero heat")}</p>
             </div>
             <div className="flex flex-col gap-2 max-w-sm mx-auto">
               {HEAT_OPTIONS.map((opt) => (
@@ -1240,17 +1239,17 @@ function AccountOnboardingV3() {
                       : "bg-white/5 border-white/20 text-white/80 hover:border-white/30"
                   }`}
                 >
-                  <span>{opt.label}</span>
+                  <span>{t(opt.label)}</span>
                   <span className={`text-xs ${heatPreference === opt.value ? "text-white/80" : "text-white/40"}`}>
-                    {opt.description}
+                    {t(opt.description)}
                   </span>
                 </button>
               ))}
             </div>
 
             <div className="text-center space-y-2 mt-8">
-              <h2 className="text-xl font-bold text-white">Sweetener Preference</h2>
-              <p className="text-white/60 text-sm">Select all that apply</p>
+              <h2 className="text-xl font-bold text-white">{t("Sweetener Preference")}</h2>
+              <p className="text-white/60 text-sm">{t("Select all that apply")}</p>
             </div>
             <div className="flex flex-wrap justify-center gap-3 max-w-md mx-auto">
               {SWEETENER_OPTIONS.map((opt) => (
@@ -1259,7 +1258,7 @@ function AccountOnboardingV3() {
                   active={sweetenerPreferences.includes(opt.value)}
                   onClick={() => toggleSweetener(opt.value)}
                 >
-                  {opt.label}
+                  {t(opt.label)}
                 </PillButton>
               ))}
             </div>
@@ -1270,8 +1269,8 @@ function AccountOnboardingV3() {
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
-              <h1 className="text-2xl font-bold text-white">What cuisine feels like home?</h1>
-              <p className="text-white/60 text-sm">Optional — every feature in the app will honor your food culture automatically.</p>
+              <h1 className="text-2xl font-bold text-white">{t("What cuisine feels like home?")}</h1>
+              <p className="text-white/60 text-sm">{t("Optional — every feature in the app will honor your food culture automatically.")}</p>
             </div>
 
             <div className="flex flex-wrap justify-center gap-2 max-w-sm mx-auto">
@@ -1288,21 +1287,21 @@ function AccountOnboardingV3() {
                     }
                   }}
                 >
-                  {cuisine}
+                  {t(cuisine)}
                 </PillButton>
               ))}
               <PillButton
                 active={!!customCuisineInput || (!PRESET_CUISINES_LOWER.includes(cuisinePreference) && !!cuisinePreference)}
                 onClick={() => {}}
               >
-                Something else…
+                {t("Something else…")}
               </PillButton>
             </div>
 
             <div className="max-w-sm mx-auto">
               <input
                 type="text"
-                placeholder="e.g. Armenian, Ethiopian, Caribbean, Filipino…"
+                placeholder={t("e.g. Armenian, Ethiopian, Caribbean, Filipino…")}
                 value={customCuisineInput}
                 onChange={(e) => {
                   setCustomCuisineInput(e.target.value);
@@ -1311,14 +1310,14 @@ function AccountOnboardingV3() {
                 className="w-full bg-black/40 border border-white/20 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/60 placeholder:text-white/30"
               />
               <p className="text-white/40 text-xs mt-2 text-center">
-                We'll use this to shape meals, snacks, drinks, and recipes across the app.
+                {t("We'll use this to shape meals, snacks, drinks, and recipes across the app.")}
               </p>
             </div>
 
             {cuisinePreference && (
               <div className="max-w-sm mx-auto space-y-3">
                 <label className="text-white/90 text-sm font-medium flex items-center gap-2">
-                  <span className="text-base">🎚️</span> How strongly should we follow this style?
+                  <span className="text-base">🎚️</span> {t("How strongly should we follow this style?")}
                 </label>
                 <div className="flex flex-col gap-2">
                   {([
@@ -1336,7 +1335,7 @@ function AccountOnboardingV3() {
                       }`}
                     >
                       <div>
-                        <p className="text-sm font-medium">{label}</p>
+                        <p className="text-sm font-medium">{t(label)}</p>
                         <p className="text-xs text-white/50 mt-0.5">{desc}</p>
                       </div>
                     </button>
@@ -1352,15 +1351,15 @@ function AccountOnboardingV3() {
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
               <div className="text-4xl mb-1">🌍</div>
-              <h1 className="text-2xl font-bold text-white">Where are you located?</h1>
+              <h1 className="text-2xl font-bold text-white">{t("Where are you located?")}</h1>
               <p className="text-white/60 text-sm max-w-sm mx-auto">
-                Optional — skip this step if you prefer. We use this to suggest the right measurement system for your meals and shopping list.
+                {t("Optional — skip this step if you prefer. We use this to suggest the right measurement system for your meals and shopping list.")}
               </p>
             </div>
 
             <div className="max-w-sm mx-auto space-y-4">
               <div className="space-y-2">
-                <p className="text-white/80 text-sm font-medium">Country</p>
+                <p className="text-white/80 text-sm font-medium">{t("Country")}</p>
                 <div className="flex flex-wrap gap-2">
                   {([
                     { label: "🇺🇸 United States", value: "US" },
@@ -1378,33 +1377,33 @@ function AccountOnboardingV3() {
                         else setMeasurementSystem("imperial");
                       }}
                     >
-                      {c.label}
+                      {t(c.label)}
                     </PillButton>
                   ))}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <p className="text-white/80 text-sm font-medium">Measurement System</p>
-                <p className="text-white/50 text-xs">Controls units in your meals, shopping list, and biometrics.</p>
+                <p className="text-white/80 text-sm font-medium">{t("Measurement System")}</p>
+                <p className="text-white/50 text-xs">{t("Controls units in your meals, shopping list, and biometrics.")}</p>
                 <div className="flex gap-2">
                   <PillButton
                     active={measurementSystem === "imperial"}
                     onClick={() => setMeasurementSystem("imperial")}
                   >
-                    🇺🇸 Imperial (oz, lbs, cups)
+                    {t("🇺🇸 Imperial (oz, lbs, cups)")}
                   </PillButton>
                   <PillButton
                     active={measurementSystem === "metric"}
                     onClick={() => setMeasurementSystem("metric")}
                   >
-                    🌍 Metric (g, kg, ml)
+                    {t("🌍 Metric (g, kg, ml)")}
                   </PillButton>
                 </div>
               </div>
 
               <div className="rounded-xl border border-orange-500/20 bg-orange-950/20 p-3 text-xs text-white/60">
-                You can always change this later in your profile settings.
+                {t("You can always change this later in your profile settings.")}
               </div>
             </div>
           </div>
@@ -1414,7 +1413,7 @@ function AccountOnboardingV3() {
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
-              <h1 className="text-2xl font-bold text-white">Based on your profile, we recommend:</h1>
+              <h1 className="text-2xl font-bold text-white">{t("Based on your profile, we recommend:")}</h1>
             </div>
             <div className="grid grid-cols-1 gap-3 max-w-md mx-auto">
               {BUILDER_OPTIONS.map((builder) => (
@@ -1431,13 +1430,13 @@ function AccountOnboardingV3() {
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className={`font-semibold ${selectedBuilder === builder.id ? "text-orange-300" : "text-white"}`}>
-                          {builder.name}
+                          {t(builder.name)}
                         </h3>
-                        <p className="text-white/60 text-sm mt-1">{builder.description}</p>
+                        <p className="text-white/60 text-sm mt-1">{t(builder.description)}</p>
                       </div>
                       {builder.id === recommended && (
                         <span className="text-xs bg-orange-500/30 text-orange-300 px-2 py-1 rounded-full whitespace-nowrap ml-2">
-                          Recommended
+                          {t("Recommended")}
                         </span>
                       )}
                     </div>
@@ -1449,10 +1448,10 @@ function AccountOnboardingV3() {
             <div className="max-w-md mx-auto border-t border-white/10 pt-6 space-y-4">
               <div className="flex items-center gap-2 text-white">
                 <Shield className="w-5 h-5 text-orange-400" />
-                <h2 className="text-lg font-semibold">Create Your Safety PIN</h2>
+                <h2 className="text-lg font-semibold">{t("Create Your Safety PIN")}</h2>
               </div>
               <p className="text-white/60 text-sm">
-                This PIN protects your allergy settings from accidental changes
+                {t("This PIN protects your allergy settings from accidental changes")}
               </p>
               <div className="space-y-3">
                 <div className="relative">
@@ -1460,13 +1459,14 @@ function AccountOnboardingV3() {
                     type={showPin ? "text" : "password"}
                     value={pin}
                     onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    placeholder="Enter 4-digit PIN"
+                    placeholder={t("Enter 4-digit PIN")}
                     className="text-white bg-white/10 border-white/20 pr-10"
                     inputMode="numeric"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPin(!showPin)}
+                    aria-label={showPin ? t("Hide PIN") : t("Show PIN")}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
                   >
                     {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -1476,11 +1476,11 @@ function AccountOnboardingV3() {
                   type={showPin ? "text" : "password"}
                   value={confirmPin}
                   onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  placeholder="Confirm PIN"
+                  placeholder={t("Confirm PIN")}
                   className="text-white bg-white/10 border-white/20"
                   inputMode="numeric"
                 />
-                {pinError && <p className="text-red-400 text-sm">{pinError}</p>}
+                {pinError && <p className="text-red-400 text-sm">{t(pinError)}</p>}
               </div>
             </div>
           </div>
@@ -1542,7 +1542,7 @@ function AccountOnboardingV3() {
 
       <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] space-y-2">
         <div className="flex items-center justify-between text-xs text-white/50">
-          <span>Step {step} of {TOTAL_STEPS}</span>
+          <span>{t("Step")} {step} {t("of")} {TOTAL_STEPS}</span>
           <span>{Math.round(progress)}%</span>
         </div>
         <Progress value={progress} className="h-2" />

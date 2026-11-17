@@ -1,4 +1,5 @@
 import express from "express";
+import { resolveRequestLanguagePreference } from "../utils/languageInstruction";
 import { OpenAI } from "openai";
 import { requireAuth } from "../middleware/requireAuth";
 import { requireActiveAccess } from "../middleware/requireActiveAccess";
@@ -38,7 +39,7 @@ router.post("/chef/ask", requireAuth, requireActiveAccess, async (req, res) => {
       hi: "Hindi", ru: "Russian", vi: "Vietnamese", tl: "Filipino (Tagalog)",
     };
     const rawLang = (req as any).authUser?.preferredLanguage || "auto";
-    const baseLang = rawLang !== "auto" ? rawLang.split("-")[0].toLowerCase() : "en";
+    const baseLang = resolveRequestLanguagePreference(rawLang);
     const langInstr = baseLang !== "en" && langNames[baseLang]
       ? ` Respond entirely in ${langNames[baseLang]}.`
       : "";

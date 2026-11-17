@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Check, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InformationModal } from "@/components/ui/universal-modal";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import {
   FOOD_INCLUSION_PRIORITY_REGISTRY,
   type FoodInclusionPriorityDefinition,
@@ -44,6 +45,7 @@ export function NutritionPrioritiesSelector({
   audience = "adult",
   accent = "orange",
 }: NutritionPrioritiesSelectorProps) {
+  const { t } = useConsumerCopy();
   const [learnMore, setLearnMore] = useState<FoodInclusionPriorityDefinition | null>(null);
   const accentStyles = accent === "emerald"
     ? {
@@ -66,7 +68,7 @@ export function NutritionPrioritiesSelector({
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" aria-label="Loading Nutrition Priorities">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" aria-label={t("Loading Nutrition Priorities")}>
         {Array.from({ length: 4 }).map((_, index) => (
           <div key={index} className="h-28 rounded-2xl border border-white/10 bg-white/5 animate-pulse" />
         ))}
@@ -77,11 +79,11 @@ export function NutritionPrioritiesSelector({
   if (error) {
     return (
       <div role="alert" className="rounded-xl border border-red-400/30 bg-red-950/30 p-4 text-center">
-        <p className="text-sm font-medium text-red-100">We couldn't load your Nutrition Priorities.</p>
-        <p className="mt-1 text-xs text-red-100/70">Your existing choices have not been changed.</p>
+        <p className="text-sm font-medium text-red-100">{t("We couldn't load your Nutrition Priorities.")}</p>
+        <p className="mt-1 text-xs text-red-100/70">{t("Your existing choices have not been changed.")}</p>
         {onRetry && (
           <Button type="button" variant="outline" className="mt-3 border-red-300/40 bg-black/20 text-white" onClick={onRetry}>
-            Try Again
+            {t("Try Again")}
           </Button>
         )}
       </div>
@@ -124,8 +126,8 @@ export function NutritionPrioritiesSelector({
                     {selected && <Check className="h-4 w-4" />}
                   </span>
                   <span>
-                    <span className="block text-sm font-semibold text-white">{definition.label}</span>
-                    <span className="mt-1 block text-xs leading-relaxed text-white/65">{summary}</span>
+                    <span className="block text-sm font-semibold text-white">{t(definition.label)}</span>
+                    <span className="mt-1 block text-xs leading-relaxed text-white/65">{audience === "adult" ? t(summary) : summary}</span>
                   </span>
                 </span>
               </button>
@@ -144,7 +146,7 @@ export function NutritionPrioritiesSelector({
                 onClick={() => setLearnMore(definition)}
                 className={`absolute bottom-3 left-[3.25rem] text-xs font-medium focus-visible:outline-none focus-visible:underline ${accentStyles.link}`}
               >
-                Learn More
+                {t("Learn More")}
               </button>
             </div>
           );

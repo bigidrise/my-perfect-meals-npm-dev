@@ -4,6 +4,14 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import Auth from "@/pages/Auth";
 import { login, signUp } from "@/lib/auth";
 
+// Consumer-password fixtures must not evaluate Vite-only professional gates.
+jest.mock("@/lib/professionalOnboarding", () => ({
+  professionalRequestsEnabled: false,
+  saveNewAccountProfessionalDraft: jest.fn(),
+}));
+jest.mock("@/lib/developmentAuthRoutes", () => ({ IS_DEVELOPMENT: true }));
+jest.mock("@/lib/businessPilotEntrance", () => ({ pendingBusinessPilotReturn: () => null }));
+
 jest.mock("wouter", () => ({
   useLocation: () => [window.location.pathname, jest.fn()],
   useSearch: () => window.location.search,

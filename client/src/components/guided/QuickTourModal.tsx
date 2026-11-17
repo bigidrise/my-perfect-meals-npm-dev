@@ -3,6 +3,7 @@ import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/di
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
 import { useState } from "react";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import "./OnboardingWelcome.css";
 
@@ -39,6 +40,7 @@ export function QuickTourModal({
   onRestoreFocus,
   completionDriven = false,
 }: QuickTourModalProps) {
+  const { t } = useConsumerCopy();
   const [dontShowAgain, setDontShowAgain] = useState(!welcome);
 
   const handleDisableAll = () => {
@@ -49,14 +51,14 @@ export function QuickTourModal({
   };
 
   const header = <DialogHeader className={welcome ? "shrink-0" : undefined}>
-    {welcome && <p className="mb-3 text-sm font-semibold tracking-widest text-orange-400">MY PERFECT MEALS · WELCOME</p>}
+    {welcome && <p className="mb-3 text-sm font-semibold tracking-widest text-orange-400">{t("MY PERFECT MEALS · WELCOME")}</p>}
     <DialogTitle className={welcome
       ? "text-3xl font-bold leading-tight text-white break-words [text-wrap:balance] sm:text-4xl"
       : "text-xl font-bold text-white text-center break-words [text-wrap:balance]"}>
       {title}
     </DialogTitle>
     <VisuallyHidden>
-      <DialogDescription>Quick tour guide showing {steps.length} tips for this page</DialogDescription>
+      <DialogDescription>{t("Quick tour guide showing {{count}} tips for this page", { count: steps.length })}</DialogDescription>
     </VisuallyHidden>
   </DialogHeader>;
 
@@ -76,7 +78,7 @@ export function QuickTourModal({
         {!welcome && header}
         <div data-onboarding-welcome={welcome ? "" : undefined}
           role={welcome ? "region" : undefined}
-          aria-label={welcome ? "Page introduction" : undefined}
+          aria-label={welcome ? t("Page introduction") : undefined}
           tabIndex={welcome ? 0 : undefined}
           className={welcome ? "min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain py-5 pr-2" : "space-y-4 py-4 max-h-[50vh] overflow-y-auto pr-2"}>
           {welcome && header}
@@ -105,18 +107,18 @@ export function QuickTourModal({
               onClick={() => onClose(dontShowAgain)}
               className="w-full min-h-12 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-base font-semibold"
             >
-              {primaryLabel}
+              {t(primaryLabel)}
             </Button>
             <div className="flex flex-wrap items-center justify-between gap-2">
               {!completionDriven && <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-white/75">
                 <input type="checkbox" checked={dontShowAgain}
                   onChange={event => setDontShowAgain(event.target.checked)}
                   className="h-4 w-4 accent-orange-500" />
-                Don't show again
+                {t("Don't show again")}
               </label>}
               <button type="button" onClick={() => onClose(dontShowAgain)}
                 className="min-h-11 rounded-lg px-3 text-sm text-white/70 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400">
-                Skip introduction
+                {t("Skip introduction")}
               </button>
             </div>
           </> : <div className="flex items-center justify-between">
@@ -125,14 +127,14 @@ export function QuickTourModal({
               onClick={() => setDontShowAgain(!dontShowAgain)}
               data-testid="toggle-dismiss-tour"
             >
-              Don't show again
+              {t("Don't show again")}
             </PillButton>}
 
             <Button
               onClick={() => onClose(dontShowAgain)}
               className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 py-2 rounded-xl"
             >
-              {primaryLabel}
+              {t(primaryLabel)}
             </Button>
           </div>}
 
@@ -141,7 +143,7 @@ export function QuickTourModal({
               onClick={handleDisableAll}
               className="text-xs text-white/75 hover:text-white/75 underline text-center transition-colors"
             >
-              Turn Off All Tour Guides
+              {t("Turn Off All Tour Guides")}
             </button>
           )}
         </div>

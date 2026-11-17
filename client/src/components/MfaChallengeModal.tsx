@@ -10,6 +10,7 @@ import { useState } from "react";
 import { Shield, KeyRound, AlertCircle } from "lucide-react";
 import { completeMfaChallenge } from "@/lib/auth";
 import type { User } from "@/lib/auth";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 interface Props {
   onSuccess: (user: User) => void | Promise<void>;
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function MfaChallengeModal({ onSuccess, onCancel }: Props) {
+  const { t } = useConsumerCopy();
   const [code, setCode] = useState("");
   const [useBackup, setUseBackup] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,11 +47,11 @@ export function MfaChallengeModal({ onSuccess, onCancel }: Props) {
           <div className="w-12 h-12 rounded-full bg-orange-600/20 flex items-center justify-center mb-3">
             <Shield className="w-6 h-6 text-orange-400" />
           </div>
-          <h2 className="text-lg font-semibold text-white">Two-Factor Verification</h2>
+          <h2 className="text-lg font-semibold text-white">{t("Two-Factor Verification")}</h2>
           <p className="text-sm text-white/60 text-center mt-1">
             {useBackup
-              ? "Enter one of your saved backup codes."
-              : "Open your authenticator app and enter the 6-digit code."}
+              ? t("Enter one of your saved backup codes.")
+              : t("Open your authenticator app and enter the 6-digit code.")}
           </p>
         </div>
 
@@ -70,7 +72,7 @@ export function MfaChallengeModal({ onSuccess, onCancel }: Props) {
           {error && (
             <div className="flex items-start gap-2 bg-red-900/30 border border-red-500/30 rounded-xl px-3 py-2.5">
               <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
-              <span className="text-sm text-red-300">{error}</span>
+              <span className="text-sm text-red-300">{t(error)}</span>
             </div>
           )}
 
@@ -79,7 +81,7 @@ export function MfaChallengeModal({ onSuccess, onCancel }: Props) {
             disabled={loading || !code.trim()}
             className="w-full bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white font-semibold rounded-xl py-3 transition-colors"
           >
-            {loading ? "Verifying…" : "Verify"}
+            {loading ? t("Verifying…") : t("Verify")}
           </button>
         </form>
 
@@ -90,7 +92,7 @@ export function MfaChallengeModal({ onSuccess, onCancel }: Props) {
             className="w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-white/70 text-sm rounded-xl py-2.5 transition-colors hover:bg-white/10"
           >
             <KeyRound className="w-4 h-4" />
-            {useBackup ? "Use authenticator app instead" : "Use a backup code instead"}
+            {useBackup ? t("Use authenticator app instead") : t("Use a backup code instead")}
           </button>
 
           <button
@@ -98,7 +100,7 @@ export function MfaChallengeModal({ onSuccess, onCancel }: Props) {
             onClick={onCancel}
             className="w-full text-white/40 text-sm py-2"
           >
-            Cancel
+            {t("Cancel")}
           </button>
         </div>
       </div>
