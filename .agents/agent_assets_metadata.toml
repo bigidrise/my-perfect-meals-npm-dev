@@ -1167,3 +1167,17 @@ mtime_ms = 1794959079756
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d8551755-afdc-4fc6-a19f-de831c08ec5e/4bb63fd9-8e0d-45e5-a258-848de7f7c295"
 storage_version_token = "1794959080544434"
 content_type = "text/html"
+
+[[outputs]]
+id = "Z8ZxxKLArBznLTR-maBAJ"
+uri = "file://.local/reports/international-layout-measurement-audit.html"
+type = "html"
+title = "International layout and measurement audit"
+description = "Read-only Development review: EN/ES layout evidence, RTL limits, storage-to-display unit inventory, prioritized recommendations and release blockers."
+logical_id = "66d52047-4a46-4c5b-b31d-1bedd8a51437"
+content_hash = "sha256:a0986ae349e327cb0fbb351d8006893ed3f715e527a3caa80b63e89bfc64855c"
+size = 23467
+mtime_ms = 1794959425112
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/66d52047-4a46-4c5b-b31d-1bedd8a51437/ea21be99-9014-4e22-858e-e409119c2aed"
+storage_version_token = "1794959449437082"
+content_type = "text/html"
