@@ -44,3 +44,9 @@ Required first-run consent gates cannot be treated as optional untranslated exce
 **Why:** Translating headings and buttons still makes a Spanish-speaking new user read and accept English; clinical/legal review requirements block completion rather than remove the gate from scope.
 
 **How to apply:** Prepare exact Spanish wording for explicit approval without activating unapproved clinical/legal copy. Keep the task incomplete until the required explanation and acknowledgments are translated and their existing checkbox behavior is verified.
+
+Finish the current Spanish onboarding review, then inventory the entire application before authorizing more translation work. Do not expand the current task into platform-wide implementation without approval.
+
+**Why:** The founder requested a customer-surface inventory that distinguishes actual text from scanner candidates and identifies shared fixes, rather than assuming a centralized language engine translates every feature.
+
+**How to apply:** Include routes, features, modals, sheets, menus, notifications, shared components and mobile/desktop variants. Report broad phase scope separately from measured coverage; connect future languages through the existing architecture.
