@@ -185,16 +185,17 @@ test("a failed replenishment preserves the original verified card", async () => 
   expect(res.body.completion.message).toContain("could not be completed");
 });
 
-test("Production retains one generation, existing protocol rejection, and no new completion metadata", async () => {
+test("Production replenishes bounded rejected batches and reports verified partial results", async () => {
   generate.mockResolvedValue([makeMeal("Protocol unsafe")]);
   const failed = await invoke({}, "production");
-  expect(failed.statusCode).toBe(400);
-  expect(failed.body.error).toBe("PROTOCOL_VIOLATION_ALL_MEALS");
-  expect(generate).toHaveBeenCalledTimes(1);
+  expect(failed.statusCode).toBe(422);
+  expect(failed.body.error).toBe("NO_VERIFIED_FRIDGE_CHOICES");
+  expect(failed.body.completion.attempts).toBe(3);
+  expect(generate).toHaveBeenCalledTimes(3);
   generate.mockClear().mockResolvedValue([makeMeal("Soup")]);
   const partial = await invoke({}, "production");
   expect(partial.statusCode).toBe(200);
   expect(partial.body.meals).toHaveLength(1);
-  expect(partial.body).not.toHaveProperty("completion");
-  expect(generate).toHaveBeenCalledTimes(1);
+  expect(partial.body.completion).toMatchObject({ returnedCount: 1, partial: true, attempts: 3 });
+  expect(generate).toHaveBeenCalledTimes(3);
 });

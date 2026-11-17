@@ -208,10 +208,8 @@ function getMedicalBadges(meal: any, userConditions: string[] = []): Array<{
 
 export async function generateFridgeRescueMeals(request: FridgeRescueRequest): Promise<FridgeRescueMeal[]> {
   const { fridgeItems, user, servings = 2, macroTargets, skipPalate, palatePrefs, strictMode = false, protocolEnvelope, builderBlock, measurementSystem = "imperial" } = request;
-  const requestedCount = process.env.NODE_ENV === "development"
-    ? Math.max(1, Math.min(3, Math.trunc(request.count || 3)))
-    : 3;
-  const excludedMealBlock = process.env.NODE_ENV === "development" && request.excludedMeals?.length
+  const requestedCount = Math.max(1, Math.min(3, Math.trunc(request.count || 3)));
+  const excludedMealBlock = request.excludedMeals?.length
     ? `\nDo not repeat these already accepted meals or rename the same recipe: ${JSON.stringify(request.excludedMeals)}\n`
     : "";
   const userConditions = user?.healthConditions || [];

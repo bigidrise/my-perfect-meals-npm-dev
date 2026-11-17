@@ -90,7 +90,7 @@ test("initial generation and validation errors retain the existing failure path"
   })).rejects.toThrow("initial failure");
 });
 
-test("Production-disabled completion preserves the one-batch result without deduplication or retries", async () => {
+test("explicitly disabled completion preserves the one-batch result without deduplication or retries", async () => {
   const generate = jest.fn().mockResolvedValue([meal("Soup"), meal("Soup")]);
   const result = await completeFridgeRescueChoices({ enabled: false, generate, validate });
   expect(result.meals).toHaveLength(2);

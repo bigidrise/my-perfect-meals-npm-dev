@@ -2741,11 +2741,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fridgeHumanFoodPrompt,
       ].filter(Boolean).join('\n\n') || undefined;
 
-      // Development-only choice completion. Every batch reuses the exact
+      // Released choice completion. Every batch reuses the exact
       // resolved context and runs the same complete validation chain below.
-      const fridgeCompletionEnabled = process.env.NODE_ENV === "development";
       const { completeFridgeRescueChoices } = await import("./services/fridgeRescueChoiceCompletion");
-      const { getFridgeRescueReleaseStatus } = await import("./services/fridgeRescueHumanFoodAdapter");
       const generateFridgeBatch = async ({ count, excludedMeals }: { count: number; excludedMeals: string[] }) =>
         generateFridgeRescueMeals({
         fridgeItems, 
@@ -2757,7 +2755,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         strictMode: strictMode === true,
         protocolEnvelope: fridgeProtocolEnvelope,
         builderBlock: combinedBuilderBlock,
-        ...(fridgeCompletionEnabled ? { count, excludedMeals } : {}),
+        count, excludedMeals,
       });
       const validateFridgeBatch = async (
         generatedFridgeMeals: Awaited<ReturnType<typeof generateFridgeRescueMeals>>,
@@ -2865,67 +2863,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return {
         accepted: humanFoodValidatedFridgeMeals,
         reasonCodes,
-        meals,
-        cleanFridgeMeals,
-        glp1ValidatedFridgeMeals,
-        humanFoodValidation,
       };
       };
-      let latestFridgeBatch: Awaited<ReturnType<typeof validateFridgeBatch>> | undefined;
       const fridgeChoices = await completeFridgeRescueChoices({
-        enabled: fridgeCompletionEnabled,
+        enabled: true,
         generate: generateFridgeBatch,
-        validate: async (generated) => {
-          const validated = await validateFridgeBatch(generated);
-          latestFridgeBatch = validated;
-          return validated;
-        },
+        validate: validateFridgeBatch,
       });
-      const lastBatch = latestFridgeBatch as Awaited<ReturnType<typeof validateFridgeBatch>> | undefined;
-      if (!lastBatch) throw new Error("Fridge Rescue validation did not complete");
-      const { meals, cleanFridgeMeals, glp1ValidatedFridgeMeals, humanFoodValidation } = lastBatch;
       const humanFoodValidatedFridgeMeals = fridgeChoices.meals;
 
-      // Retain the pre-review Production response contract. Development can
-      // replenish an entirely rejected batch, but never release an unsafe meal.
-      if (!fridgeCompletionEnabled && cleanFridgeMeals.length === 0 && meals.length > 0) {
-        return res.status(400).json({
-          error: "PROTOCOL_VIOLATION_ALL_MEALS",
-          message: "All generated meals contained ingredients or preparation steps that conflict with your dietary protocol. Please try different fridge items.",
-          retryable: true,
-        });
-      }
-      const releaseStatus = getFridgeRescueReleaseStatus({
-        generatedCount: fridgeCompletionEnabled ? humanFoodValidatedFridgeMeals.length : cleanFridgeMeals.length,
-        glp1ValidatedCount: fridgeCompletionEnabled ? humanFoodValidatedFridgeMeals.length : glp1ValidatedFridgeMeals.length,
-        humanFoodValidatedCount: humanFoodValidatedFridgeMeals.length,
-      });
-      if (releaseStatus === 422) {
-        if (fridgeCompletionEnabled) {
-          return res.status(422).json({
-            error: "NO_VERIFIED_FRIDGE_CHOICES",
-            message: fridgeChoices.completion.message,
-            reasonCodes: fridgeChoices.completion.reasonCodes,
-            completion: fridgeChoices.completion,
-            retryable: true,
-          });
-        }
-        const reasonCodes = Array.from(new Set(
-          humanFoodValidation.rejected.flatMap(({ validation }) =>
-            validation.findings.map((finding) => finding.code)
-          ),
-        ));
-        if (glp1FridgeTargets !== null && glp1ValidatedFridgeMeals.length === 0) {
-          reasonCodes.push("GLP1_ALL_CANDIDATES_REJECTED");
-        }
-        return res.status(releaseStatus).json({
-          error: glp1ValidatedFridgeMeals.length === 0
-            ? "GLP1_VALIDATION_FAILED"
-            : "HUMAN_FOOD_VALIDATION_FAILED",
-          message: glp1ValidatedFridgeMeals.length === 0
-            ? "Generated meals exceeded your current GLP-1 meal limits. Please try different fridge items."
-            : "Generated meals could not be verified against your current food and nutrition requirements. Please try different fridge items.",
-          reasonCodes: Array.from(new Set(reasonCodes)),
+      // Replenish rejected batches, but never release a meal that failed any
+      // validator. The bounded collector preserves partial verified results.
+      if (humanFoodValidatedFridgeMeals.length === 0) {
+        return res.status(422).json({
+          error: "NO_VERIFIED_FRIDGE_CHOICES",
+          message: fridgeChoices.completion.message,
+          reasonCodes: fridgeChoices.completion.reasonCodes,
+          completion: fridgeChoices.completion,
           retryable: true,
         });
       }
@@ -2934,10 +2888,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       recordGeneration('/api/meals/fridge-rescue', 'ai', Date.now() - startTime);
       console.log("[FRIDGE] verified choices", {
         returnedCount: humanFoodValidatedFridgeMeals.length,
-        ...(fridgeCompletionEnabled ? {
-          attempts: fridgeChoices.completion.attempts,
-          reasonCodes: fridgeChoices.completion.reasonCodes,
-        } : {}),
+        attempts: fridgeChoices.completion.attempts,
+        reasonCodes: fridgeChoices.completion.reasonCodes,
       });
       const fridgeMealsWithCompliance = humanFoodValidatedFridgeMeals.map(meal => {
         const { complianceSection, dietClassification } = buildMealComplianceBundle(
@@ -2970,7 +2922,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         meals: mealsForResponse,
-        ...(fridgeCompletionEnabled ? { completion: fridgeChoices.completion } : {}),
+        completion: fridgeChoices.completion,
         quota: {
           remaining: quotaCheck.remaining,
           limit: quotaCheck.limit,

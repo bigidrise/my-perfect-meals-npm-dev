@@ -11,7 +11,7 @@ const response = (imageUrl: string) => ({ ok: true, json: async () => ({ imageUr
 const meals = (prefix: string, count = 6): ChefFlowMeal[] => Array.from({ length: count }, (_, index) => ({
   id: `${prefix}-${index}`, name: `${prefix} meal ${index}`, ingredients: ["chicken", `vegetable ${index}`],
 }));
-const options = (ownerId: string) => ({ developmentRestaurantImages: true, ownerId });
+const options = (ownerId: string) => ({ restaurantImageOptimization: true, ownerId });
 const flush = async () => { await act(async () => { await Promise.resolve(); }); };
 
 beforeEach(() => {
@@ -28,7 +28,7 @@ afterEach(async () => {
   global.fetch = originalFetch;
 });
 
-test("Development Find Meals starts all six image requests without a second batch", async () => {
+test("Find Meals starts all six image requests without a second batch", async () => {
   const input = meals("six");
   renderHook(() => useChefFlowImages(input, "restaurant", options("owner-six")));
   await flush();
@@ -40,7 +40,7 @@ test("Development Find Meals starts all six image requests without a second batc
   }
 });
 
-test("Production/default callers retain the original three-request limit", async () => {
+test("other/default callers retain the original three-request limit", async () => {
   const input = meals("default");
   renderHook(() => useChefFlowImages(input, "restaurant"));
   await flush();
@@ -56,7 +56,7 @@ test.each(["snack", "beverage"])("other surfaces do not get the restaurant burst
 
 test("a missing account fails closed to the standard scheduler", async () => {
   const input = meals("missing-owner");
-  renderHook(() => useChefFlowImages(input, "restaurant", { developmentRestaurantImages: true }));
+  renderHook(() => useChefFlowImages(input, "restaurant", { restaurantImageOptimization: true }));
   await flush();
   expect(fetch).toHaveBeenCalledTimes(3);
 });

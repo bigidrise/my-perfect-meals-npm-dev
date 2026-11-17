@@ -54,9 +54,10 @@ app.use("/api", router);
 const search = () => request(app).post("/api/meal-finder")
   .send({ mealQuery: "vegetable tacos", zipCode: "60601", userId: "finder-fixture-b" });
 
+describe.each(["development", "production"])("meal discovery authentication in %s", (runtimeMode) => {
 beforeEach(() => {
   jest.clearAllMocks();
-  process.env.NODE_ENV = "development";
+  process.env.NODE_ENV = runtimeMode;
   session = { userId: actor.id, authSecurityVersion: 7, lastActiveAt: Date.now(), destroy: jest.fn() };
   (db.select as jest.Mock).mockReturnValue({
     from: () => ({ where: () => ({ limit: async () => [{ ...actor }] }) }),
@@ -158,11 +159,16 @@ test("zero verified nearby options is distinct from an authentication failure", 
   (findMealsNearby as jest.Mock).mockResolvedValue([]);
   const response = await search();
   expect(response.status).toBe(200);
-  expect(response.body).toMatchObject({ count: 0, message: expect.stringContaining("No verified nearby restaurants") });
+  expect(response.body).toMatchObject({
+    count: 0,
+    message: expect.stringContaining(runtimeMode === "development"
+      ? "No verified nearby restaurants" : "No restaurants found"),
+  });
 });
 
-test("the Development-only correction does not change the Production route's existing behavior", async () => {
+test("Production rejects anonymous requests before personalized discovery", async () => {
   process.env.NODE_ENV = "production";
   session = {};
-  expect((await search()).status).toBe(200);
+  expect((await search()).status).toBe(401);
+});
 });
