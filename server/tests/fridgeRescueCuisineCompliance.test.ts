@@ -8,6 +8,9 @@ import {
   filterMealsByProtocol,
 } from "../services/protocolEnvelope";
 
+// buildGuestEnvelope and final scanning are pure; block DB initialization.
+jest.mock("../db", () => ({ db: {}, pool: {} }));
+
 function meal(name: string, ingredients = ["chicken", "rice"]): CuisineMealCandidate {
   return {
     name,

@@ -1,5 +1,6 @@
 import { db } from "../db";
 import { users } from "@shared/schema";
+export const BILLING_CANCELLATION_IMPLEMENTATION_VERSION = "exact-selected-provider-pair-v1";
 import type { LookupKey } from "../../client/src/data/planSkus";
 import { getEntitlementsForPlan } from "../entitlements";
 import { getTierForLookupKey } from "@shared/planFeatures";

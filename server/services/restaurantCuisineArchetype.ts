@@ -102,6 +102,16 @@ const FAST_FOOD_CHAINS: Array<{
 
 // ── Archetype Definitions ─────────────────────────────────────────────────────
 const ARCHETYPES: Record<string, CuisineArchetype> = {
+  unknown: {
+    id: "unknown", label: "Unknown", mustIncludeTerms: [], anchorItems: [],
+    realistExample: "Ask the venue which dishes are available",
+    menuRealism: "The restaurant cuisine and current menu are unknown. Do not assume American food or invent current menu availability. Suggestions must be explicitly described as unverified ideas to discuss with the venue.",
+  },
+  chinese: {
+    id: "chinese", label: "Chinese", mustIncludeTerms: [], anchorItems: [],
+    realistExample: "A Chinese dish supported by the restaurant's actual menu",
+    menuRealism: "Preserve Chinese culinary identity and regional dish names. Chinese-American is a separate classification, not an automatic substitute. Do not claim a dish is available without menu evidence.",
+  },
   fast_food_burger: {
     id: "fast_food_burger",
     label: "Fast Food Burger",
@@ -273,6 +283,10 @@ export function classifyRestaurantArchetype(
   const nameLower = restaurantName.toLowerCase().trim();
   const typesLower = placeTypes.map((t) => t.toLowerCase());
   const queryLower = (searchQuery || "").toLowerCase();
+  const development = process.env.NODE_ENV === "development";
+  const contains = (text: string, keyword: string) => development
+    ? new RegExp(`(?:^|[^\\p{L}\\p{N}])${keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?=$|[^\\p{L}\\p{N}])`, "u").test(text)
+    : text.includes(keyword);
   if (process.env.NODE_ENV === "development" && /\bbuffet\b/.test(nameLower)) {
     return {
       confidence: "name",
@@ -288,7 +302,7 @@ export function classifyRestaurantArchetype(
 
   // Priority 1 — chain name match
   for (const chain of FAST_FOOD_CHAINS) {
-    if (chain.namePatterns.some((p) => nameLower.includes(p))) {
+    if (chain.namePatterns.some((p) => contains(nameLower, p))) {
       const archetype = ARCHETYPES[chain.archetype] ?? ARCHETYPES.american_casual;
       return {
         archetype,
@@ -300,11 +314,15 @@ export function classifyRestaurantArchetype(
   }
 
   // Priority 2 — Google Places types
+  if (development && typesLower.some(t => /^chinese[-_ ]american(?:_restaurant)?$/.test(t))) {
+    return { archetype: ARCHETYPES.chinese_american, confidence: "types" };
+  }
   const typeMap: Array<[string[], string]> = [
+    ...(development ? [[["american", "american_restaurant"], "american_casual"]] as Array<[string[], string]> : []),
     [["mexican_restaurant", "mexican"], "mexican"],
     [["italian_restaurant", "italian"], "italian"],
     [["japanese_restaurant", "sushi_restaurant", "japanese"], "japanese"],
-    [["chinese_restaurant", "chinese"], "chinese_american"],
+    [["chinese_restaurant", "chinese"], development ? "chinese" : "chinese_american"],
     [["indian_restaurant", "indian"], "indian"],
     [["thai_restaurant", "thai"], "thai"],
     [["mediterranean_restaurant", "greek_restaurant"], "mediterranean"],
@@ -322,13 +340,20 @@ export function classifyRestaurantArchetype(
     }
   }
 
+  if (development && /\bchinese[- ]american\b/.test(nameLower)) {
+    return { archetype: ARCHETYPES.chinese_american, confidence: "name" };
+  }
+  if (development && (/\b(?:chinese|china)\b/.test(nameLower) || /中餐|川菜|粤菜|湘菜|北京烤鸭/.test(nameLower))) {
+    return { archetype: ARCHETYPES.chinese, confidence: "name" };
+  }
+
   // Priority 3 — restaurant name keywords
   const nameKeywords: Array<[string[], string]> = [
     [["taco", "burrito", "cantina", "mexicana"], "mexican"],
     [["pizza", "pasta", "trattoria", "ristorante", "osteria"], "italian"],
     [["sushi", "ramen", "izakaya", "hibachi", "teriyaki"], "japanese"],
     [["pho", "banh mi", "viet"], "vietnamese"],
-    [["wok", "dim sum", "dragon", "panda", "peking"], "chinese_american"],
+    [development ? ["wok", "dim sum", "peking"] : ["wok", "dim sum", "dragon", "panda", "peking"], development ? "chinese" : "chinese_american"],
     [["curry", "tandoor", "chai", "masala", "india"], "indian"],
     [["thai", "pad"], "thai"],
     [["pita", "gyro", "shawarma", "kabob", "falafel", "hummus", "mezze"], "mediterranean"],
@@ -340,7 +365,7 @@ export function classifyRestaurantArchetype(
   ];
 
   for (const [keywords, archetypeId] of nameKeywords) {
-    if (keywords.some((kw) => nameLower.includes(kw))) {
+    if (keywords.some((kw) => contains(nameLower, kw))) {
       return { archetype: ARCHETYPES[archetypeId] ?? ARCHETYPES.american_casual, confidence: "name" };
     }
   }
@@ -355,22 +380,23 @@ export function classifyRestaurantArchetype(
     [["sandwich", "sub"], "sandwich"],
     [["thai"], "thai"],
     [["indian", "curry"], "indian"],
-    [["chinese"], "chinese_american"],
+    [["chinese"], development ? "chinese" : "chinese_american"],
     [["mediterranean", "gyro", "shawarma"], "mediterranean"],
     [["korean"], "korean"],
     [["vietnamese", "pho"], "vietnamese"],
   ];
 
   for (const [keywords, archetypeId] of queryKeywords) {
-    if (keywords.some((kw) => queryLower.includes(kw))) {
+    if (keywords.some((kw) => contains(queryLower, kw))) {
       return { archetype: ARCHETYPES[archetypeId] ?? ARCHETYPES.american_casual, confidence: "query" };
     }
   }
 
   // Fallback
-  return { archetype: ARCHETYPES.american_casual, confidence: "fallback" };
+  return { archetype: development ? ARCHETYPES.unknown : ARCHETYPES.american_casual, confidence: "fallback" };
 }
 
 export function getArchetypeById(id: string): CuisineArchetype {
+  if (process.env.NODE_ENV !== "development" && ["unknown", "chinese"].includes(id)) return ARCHETYPES.american_casual;
   return ARCHETYPES[id] ?? ARCHETYPES.american_casual;
 }

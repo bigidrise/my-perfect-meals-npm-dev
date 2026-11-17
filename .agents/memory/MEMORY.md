@@ -152,3 +152,4 @@
 - [Individual meal-card shopping](meal-card-shopping-intent.md) — shop chosen finalized recipes, not only entire menus; bulk/card adds must share repeat protection and retain translation.
 - [Meal-card presentation](meal-card-presentation-policy.md) — compact outlined meal deletion with red icons before hover; expanded Create a Dish puts controls above the full wrapping title.
 - [Clinical protocol repair governance](clinical-protocol-repair-governance.md) — all 17 conditions; preserve existing indicators and physician restrictions without treating ordinary trainer enrollment as authority.
+- [Restaurant cuisine correction](restaurant-cuisine-fidelity-boundary.md) — Development-only pending review; saved guidance, explicit cuisine, restaurant evidence and display language stay separate.

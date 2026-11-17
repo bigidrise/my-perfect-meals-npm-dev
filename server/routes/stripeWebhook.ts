@@ -28,6 +28,7 @@ import {
   prepareVerifiedSnapshotHook,
 } from "../services/verifiedServiceBillingWriter";
 import { isStripeBillingReady } from "../services/stripeBillingReadiness";
+import { requestBillingDuplicateScan } from "../services/billingSafeguards/monitor";
 import {
   applyStudioStripeSubscription,
   type StudioStripeMutation,
@@ -962,8 +963,10 @@ router.post("/", async (req, res) => {
       eventWasHandled ? "processed" : "ignored",
       processedUserId,
     );
+    requestBillingDuplicateScan();
     return res.json({ received: true });
   } catch (err: any) {
+    requestBillingDuplicateScan();
     try {
       await failBillingEvent(event.id, err);
     } catch (ledgerError) {

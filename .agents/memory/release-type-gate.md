@@ -98,3 +98,15 @@ Retain complete compiler stdout/stderr when diagnosing a fingerprint mismatch, n
 ## Locked-day target snapshot rule
 
 `onSaveDay` in builder pages must snapshot the same prescription-derived targets the RemainingMacrosFooter displays — **not** `getMacroTargets()` (localStorage cache). localStorage can be absent or stale. Use `prescription?.caloriesTarget` etc. directly, and guard with `if (!prescription || nutritionStateLoading) return` before the lockDay call.
+
+## Published frontend evidence
+
+Check the routed component's emitted chunk, not only the HTML entry script,
+when proving a feature survived Production compilation.
+
+**Why:** A small bootstrap entry can dynamically load the application and its
+route chunks; absence of a feature marker there produced false-negative checks.
+
+**How to apply:** Identify the build output from its actual configuration and
+trace the relevant emitted route chunks. Keep compile-time checks separate from
+claims about authenticated browser behavior.

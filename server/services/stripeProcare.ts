@@ -177,6 +177,7 @@ export async function isAccountActive(accountId: string): Promise<boolean> {
  * Create a checkout session for client subscription ($29.99/month)
  */
 export async function createCheckoutSession({
+  sessionCreator,
   stripeClient = getStripe(),
   customerId,
   clientUserId,
@@ -187,6 +188,7 @@ export async function createCheckoutSession({
   cancelUrl,
   priceId,
 }: {
+  sessionCreator?: (params: Stripe.Checkout.SessionCreateParams, options?: Stripe.RequestOptions) => Promise<Stripe.Checkout.Session>;
   stripeClient?: Stripe;
   customerId: string;
   clientUserId: string;
@@ -197,7 +199,14 @@ export async function createCheckoutSession({
   cancelUrl: string;
   priceId: string;
 }): Promise<{ id: string; url: string }> {
-  const session = await stripeClient.checkout.sessions.create({
+  if (process.env.BILLING_CHECKOUT_SAFEGUARDS_ENABLED === "true" && !sessionCreator) {
+    throw new ProcareCheckoutConflictError(
+      "PROCARE_BILLING_IDENTITY_REVIEW_REQUIRED", "Durable checkout authority is required.",
+    );
+  }
+  const createSession = sessionCreator ?? ((params: Stripe.Checkout.SessionCreateParams, options?: Stripe.RequestOptions) =>
+    stripeClient.checkout.sessions.create(params, options));
+  const session = await createSession({
     mode: "subscription",
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: successUrl,

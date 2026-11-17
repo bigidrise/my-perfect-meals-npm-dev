@@ -183,6 +183,11 @@ app.get("/api/release", (req, res) => {
       ...manifest,
       apiOrigin: req.hostname,
       nodeVersion: process.version,
+      billingSafety: {
+        checkoutEnabled: process.env.BILLING_CHECKOUT_SAFEGUARDS_ENABLED === "true",
+        emailUniquenessEnabled: process.env.ACCOUNT_EMAIL_UNIQUENESS_ENABLED === "true",
+        loadedHandlers: app.locals.billingSafetyHandlers ?? null,
+      },
     });
   } catch (e: any) {
     res.status(500).json({ error: "Failed to read release manifest", detail: e.message });

@@ -46,3 +46,31 @@ Test/live exclusion requires verified Stripe account identity as well as object 
 **Why:** During release review, the installed connector provided working test-mode access but belonged to a different account from the application's configured live credential. The disputed objects were inaccessible through that connector.
 
 **How to apply:** Verify the exact account, subscription/customer pair, mode, and ownership evidence before proposing a mode boundary. Preserve fail-closed reconciliation for live, unknown, mixed-mode, and unverified records; never bypass it solely by runtime environment or a missing-object response.
+
+## Permanent billing and login identity model
+
+Existing Personal and account-level Family plans share one continuing personal
+subscription; a plan change must not create another personal subscription.
+Legitimate independently authorized household, Studio, Organization and
+ProCare relationship billing remain separate. Do not consolidate subscriptions
+solely because the same account owns them. Everfit is outside MPM billing
+remediation.
+
+**Why:** The founder explicitly required permanent duplicate-billing prevention
+while preserving legitimate independent products and service relationships.
+
+**How to apply:** Preserve the canonical customer across failed, abandoned and
+expired checkout attempts, not only successful payments. Resolve exact billing
+subjects before considering replacements or changes. Never automatically
+cancel/refund an apparent duplicate.
+
+One login account is allowed per normalized, verified email address. Unverified
+email matches must never silently link or merge identities. Legacy collisions
+require individual ownership review, not automatic deletion.
+
+**Why:** The founder required account uniqueness alongside billing uniqueness
+without allowing email-only account takeover or destructive legacy cleanup.
+
+**How to apply:** Enforce uniqueness for every insert and email change, preserve
+existing account access during review, and distinguish uniqueness enforcement
+from actual mailbox verification and provider-subject ownership.

@@ -33,11 +33,32 @@ function matches(table: any, row: Row, condition: any): boolean {
   if (table === businesses) return row.id === params[0];
   if (table === users) {
     if (sql.includes('"stripe_customer_id"') && !sql.includes('"id" =')) {
+      // Candidate discovery is deliberately OR; the mutation below requires the exact pair.
       return row.stripeCustomerId === params[0] || row.stripeSubscriptionId === params[1];
     }
     if (row.id !== params[0]) return false;
     if (sql.includes('"stripe_customer_id"')) {
-      return row.stripeCustomerId === params[1] && row.stripeSubscriptionId === params[2];
+      if (row.stripeCustomerId !== params[1] || row.stripeSubscriptionId !== params[2]) return false;
+      if (sql.includes('"stripe_last_event_created_at"') && row.stripeLastEventCreatedAt) {
+        // Drizzle serializes Date parameters to strings; evaluate the actual SQL placeholders.
+        const dateParameter = sql.match(/"stripe_last_event_created_at" < \$(\d+)/);
+        const rankParameter = sql.match(/"stripe_last_event_rank" < \$(\d+)/);
+        const idParameter = sql.match(/"stripe_last_event_id" = \$(\d+)/);
+        if (dateParameter && rankParameter && idParameter) {
+          const priorTime = new Date(row.stripeLastEventCreatedAt).getTime();
+          const eventTime = new Date(params[Number(dateParameter[1]) - 1] as string).getTime();
+          const rank = Number(params[Number(rankParameter[1]) - 1]);
+          const eventId = params[Number(idParameter[1]) - 1];
+          if (priorTime > eventTime ||
+              priorTime === eventTime && row.stripeLastEventRank > rank ||
+              priorTime === eventTime && row.stripeLastEventRank === rank && row.stripeLastEventId !== eventId) {
+            return false;
+          }
+        } else {
+          throw new Error("Unrecognized event ordering SQL in the billing transaction fixture");
+        }
+      }
+      return true;
     }
     return true;
   }
@@ -202,6 +223,39 @@ describe("verified Clinical Business checkout reconciliation (no external servic
     if (!priceId) throw new Error("Clinical Business price must be configured for the regression fixture");
   });
   beforeEach(resetRows);
+
+  it("never revokes the retained personal entitlement when a duplicate on another customer is cancelled", async () => {
+    const before = structuredClone(mockState.users[0]);
+    const result = await cancelUserSubscription("cus_duplicate", "sub_duplicate", {
+      eventId: "evt_duplicate_cancel", eventCreatedAt: new Date("2026-11-16T20:00:00Z"),
+      eventRank: 100, source: "webhook",
+    });
+    expect(result.updated).toBe(false);
+    expect(mockState.users[0]).toEqual(before);
+  });
+
+  it("never revokes the retained entitlement for an old subscription on the same customer", async () => {
+    const before = structuredClone(mockState.users[0]);
+    await cancelUserSubscription("cus_personal_separate", "sub_older_unselected", {
+      eventId: "evt_old_cancel", eventCreatedAt: new Date("2026-11-16T20:00:00Z"),
+      eventRank: 100, source: "webhook",
+    });
+    expect(mockState.users[0]).toEqual(before);
+  });
+
+  it("keeps retained access when an out-of-order cancellation is older than the accepted renewal", async () => {
+    mockState.users[0].stripeLastEventCreatedAt = new Date("2026-11-16T20:00:00Z");
+    mockState.users[0].stripeLastEventRank = 75;
+    const before = structuredClone(mockState.users[0]);
+    const hook = jest.fn();
+    const result = await cancelUserSubscription("cus_personal_separate", "sub_personal_separate", {
+      eventId: "evt_older_cancel", eventCreatedAt: new Date("2026-10-16T20:00:00Z"),
+      eventRank: 100, source: "webhook",
+    }, true, hook);
+    expect(result.updated).toBe(false);
+    expect(hook).not.toHaveBeenCalled();
+    expect(mockState.users[0]).toEqual(before);
+  });
 
   it("rolls back and retries a personal transition when snapshot persistence fails", async () => {
     const mutation = {

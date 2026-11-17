@@ -15,6 +15,7 @@ import { logAudit, getClientIp } from "../lib/auditLog";
 import { emailServiceAvailable } from "../middleware/requireEmailService";
 import { sendTrialStartEmail } from "../services/emailService";
 import { normalizeEmailIdentity, resolveEmailIdentityForEmail } from "../services/emailIdentityService";
+import { accountEmailUniquenessEnabled, SAFE_REGISTRATION_GUIDANCE } from "../services/accountEmailUniqueness";
 import {
   findPendingPreRegistrationAccess,
   resolveSignupTrial,
@@ -115,6 +116,9 @@ router.post("/api/auth/signup", async (req, res) => {
 
     // Do not create another case-variant account when a legacy spelling exists.
     const existingIdentity = await resolveEmailIdentityForEmail(email);
+    if (accountEmailUniquenessEnabled() && existingIdentity.status !== "not_found") {
+      return res.status(409).json(SAFE_REGISTRATION_GUIDANCE);
+    }
     if (existingIdentity.status !== "not_found") {
       return res.status(400).json({
         code: "EMAIL_ALREADY_EXISTS",
@@ -361,6 +365,7 @@ router.post("/api/auth/signup", async (req, res) => {
     });
   } catch (error: any) {
     if (isSignupEmailConflict(error)) {
+      if (accountEmailUniquenessEnabled()) return res.status(409).json(SAFE_REGISTRATION_GUIDANCE);
       return res.status(400).json({
         code: "EMAIL_ALREADY_EXISTS",
         error: "An account with this email address already exists. Sign in or reset your password.",

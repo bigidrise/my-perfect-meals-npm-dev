@@ -141,6 +141,9 @@ interface FridgeRescueRequest {
   builderBlock?: string;
   /** Measurement system preference — drives ingredient unit format in the prompt. */
   measurementSystem?: "imperial" | "metric";
+  /** Development completion requests only the remaining slots. */
+  count?: number;
+  excludedMeals?: string[];
 }
 
 // Medical condition compatibility checker - using correct badge format
@@ -205,6 +208,10 @@ function getMedicalBadges(meal: any, userConditions: string[] = []): Array<{
 
 export async function generateFridgeRescueMeals(request: FridgeRescueRequest): Promise<FridgeRescueMeal[]> {
   const { fridgeItems, user, servings = 2, macroTargets, skipPalate, palatePrefs, strictMode = false, protocolEnvelope, builderBlock, measurementSystem = "imperial" } = request;
+  const requestedCount = Math.max(1, Math.min(3, Math.trunc(request.count || 3)));
+  const excludedMealBlock = request.excludedMeals?.length
+    ? `\nDo not repeat these already accepted meals or rename the same recipe: ${JSON.stringify(request.excludedMeals)}\n`
+    : "";
   const userConditions = user?.healthConditions || [];
   
   // 🎨 PALATE PREFERENCES: Build flavor guidance section
@@ -325,7 +332,7 @@ This is for athlete meal planning - precision is critical for contest preparatio
 - Do not replace the supplied ingredients with an unrelated recipe`;
   const prompt = `${fridgeLangInstruction ? fridgeLangInstruction + "\n\n" : ""}You are a creative chef helping someone make meals with limited ingredients from their fridge.
 ${fridgeEnforcementBlock ? `\n${fridgeEnforcementBlock}\n` : ""}${fridgeBehavioralMemorySection ? `\n${fridgeBehavioralMemorySection}\n` : ""}${strictMode ? `\n${buildStrictModeBlock(fridgeItems.join(", "))}\n` : ""}
-TASK: Create 3 different, realistic meals using ONLY these ingredients: ${fridgeItems.join(', ')}
+TASK: Create ${requestedCount} different, realistic meals using ONLY these ingredients: ${fridgeItems.join(', ')}${excludedMealBlock}
 Each meal should be portioned for ${servings} serving${servings > 1 ? 's' : ''}. Scale all ingredient quantities and nutritional values accordingly.
 ${macroTargetingText}
 ${palateGuidance}

@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import express from "express";
-import { db } from "../db";
+import { db, pool } from "../db";
+import { billingCheckoutCreator, billingSafetyResponse, billingSafeguardsEnabled } from "../services/billingSafeguards/runtime";
 import { proAccounts, clientLinks, subscriptions, payouts } from "../db/schema/procare";
 import { users, userGlycemicSettings, glp1Shots } from "@shared/schema";
 import { eq, and, gte, desc, sql, isNull, or } from "drizzle-orm";
@@ -467,6 +468,10 @@ router.post("/checkout/session", requireAuth, async (req, res) => {
     const priceId = process.env.STRIPE_PRICE_ID || "price_test_2999";
 
     const checkoutSession = await createCheckoutSession({
+      sessionCreator: billingCheckoutCreator(stripe!, pool, {
+        kind: "procare", ownerUserId: clientUserId,
+        scopeId: JSON.stringify([clientUserId, link.proUserId]),
+      }),
       customerId: customer.id,
       clientUserId,
       proUserId: link.proUserId,
@@ -487,6 +492,13 @@ router.post("/checkout/session", requireAuth, async (req, res) => {
       ))
       .returning({ id: clientLinks.id });
     if (!bound) {
+      const [alreadyBound] = await db.select({ sessionId: clientLinks.stripeCheckoutSessionId })
+        .from(clientLinks).where(and(
+          eq(clientLinks.id, link.id),
+          eq(clientLinks.stripeCheckoutReservationId, reservedLink.reservationId),
+          eq(clientLinks.stripeCheckoutSessionId, checkoutSession.id),
+        )).limit(1);
+      if (alreadyBound) return res.json({ url: checkoutSession.url });
       throw new ProcareCheckoutConflictError(
         "PROCARE_BILLING_IDENTITY_REVIEW_REQUIRED",
         "The ProCare checkout reservation changed before it could be bound.",
@@ -495,6 +507,7 @@ router.post("/checkout/session", requireAuth, async (req, res) => {
 
     res.json({ url: checkoutSession.url });
   } catch (error) {
+    if (billingSafetyResponse(error, res)) return;
     console.error("❌ Error creating checkout session:", error);
     if (error instanceof ProcareCheckoutConflictError) {
       return res.status(409).json({ code: error.code, error: error.message });
@@ -513,6 +526,10 @@ router.post("/checkout/session", requireAuth, async (req, res) => {
  * Phase 2 gate is not applicable here.
  */
 router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+  // The canonical signed, event-ledger-backed webhook is the only supported receiver.
+  if (billingSafeguardsEnabled()) {
+    return res.status(410).json({ code: "LEGACY_PROCARE_WEBHOOK_RETIRED" });
+  }
   const signature = req.headers["stripe-signature"] as string;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 

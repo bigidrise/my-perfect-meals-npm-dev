@@ -1,6 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "include": [
+    "server/services/billingSafeguards/**/*.ts",
+    "server/services/accountEmailUniqueness.ts",
+    "server/routes/billingSafeguards.ts",
     "shared/clinicalProtocolIdentity.ts",
     "shared/clinical/clinicalModeResolver.ts",
     "server/services/clinicalProtocolAuthority.ts",
@@ -12,6 +15,12 @@
     "client/src/components/clinical/ProtocolDowngradeModal.tsx",
     "client/src/components/clinical/ThyroidRecommendationModal.tsx",
     "server/services/imageDeliveryRecovery.ts",
+    "server/middleware/requireAuth.ts",
+    "shared/fridgeRescueCompletion.ts",
+    "server/services/fridgeRescueChoiceCompletion.ts",
+    "server/services/fridgeRescueHumanFoodAdapter.ts",
+    "client/src/lib/chefFlowImageRequests.ts",
+    "client/src/hooks/useChefFlowImages.ts",
     "server/services/organizationPaidContinuationPolicy.ts",
     "server/services/organizationCheckoutConsent.ts",
     "server/services/organizationRewardfulPolicy.ts",
