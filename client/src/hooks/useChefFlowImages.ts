@@ -3,6 +3,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { IMAGE_CLIENT_TIMEOUT_MS, photographFromResponse, isPlaceholderImage } from "@shared/imageResult";
 import { isPermanentImageUrl } from "@/lib/imageUrlUtils";
+import { chefFlowImageRequests, restaurantImageContentIdentity } from "@/lib/chefFlowImageRequests";
 
 export interface ChefFlowMeal {
   id?: string;
@@ -45,32 +46,6 @@ function writeToLS(id: string, url: string): void {
   }
 }
 
-// Module-level concurrency control — max 3 image requests at once globally
-// so the first visible cards get images before below-the-fold ones even start
-const MAX_CONCURRENT = 3;
-let globalInFlight = 0;
-const globalQueue: Array<() => void> = [];
-
-function acquireSlot(): Promise<void> {
-  return new Promise((resolve) => {
-    if (globalInFlight < MAX_CONCURRENT) {
-      globalInFlight++;
-      resolve();
-    } else {
-      globalQueue.push(() => {
-        globalInFlight++;
-        resolve();
-      });
-    }
-  });
-}
-
-function releaseSlot(): void {
-  globalInFlight--;
-  const next = globalQueue.shift();
-  if (next) next();
-}
-
 export function chefFlowMealId(meal: ChefFlowMeal, mealType: string): string {
   if (meal.id) return meal.id;
   const name = (meal.name || meal.meal || "")
@@ -92,7 +67,14 @@ export interface ChefFlowImagesResult {
 export function useChefFlowImages(
   meals: ChefFlowMeal[],
   mealType: string,
+  options?: { developmentRestaurantImages?: boolean; ownerId?: string },
 ): ChefFlowImagesResult {
+  const ownerId = options?.ownerId;
+  const optimized = options?.developmentRestaurantImages === true &&
+    mealType === "restaurant" && Boolean(ownerId);
+  const cacheIdentity = (meal: ChefFlowMeal) => optimized
+    ? restaurantImageContentIdentity(meal, mealType, ownerId!)
+    : chefFlowCacheIdentity(meal, mealType);
   const [imageMap, setImageMap] = useState<Record<string, string>>({});
   const [failedSet, setFailedSet] = useState<Set<string>>(new Set());
   const inFlightRef = useRef<Set<string>>(new Set());
@@ -102,7 +84,7 @@ export function useChefFlowImages(
   const currentRecipeRef = useRef(new Map<string, string>());
   currentRecipeRef.current = new Map(meals.map(meal => {
     const id = chefFlowMealId(meal, mealType);
-    return [id, chefFlowCacheIdentity(meal, mealType)];
+    return [id, cacheIdentity(meal)];
   }));
 
   useEffect(() => {
@@ -121,12 +103,16 @@ export function useChefFlowImages(
       if (!mealName) return;
 
       // Priority 1: imageUrl already provided by API response — use immediately
-      const cacheId = chefFlowCacheIdentity(meal, mealType);
+      const cacheId = cacheIdentity(meal);
       if (imageIdentityRef.current.get(id) !== cacheId) {
         imageIdentityRef.current.set(id, cacheId);
         setImageMap(prev => {
           if (!prev[id]) return prev;
           const next = { ...prev }; delete next[id]; return next;
+        });
+        if (optimized) setFailedSet(prev => {
+          if (!prev.has(id)) return prev;
+          const next = new Set(prev); next.delete(id); return next;
         });
       }
       if (meal.imageUrl && !isPlaceholderImage(meal.imageUrl)) {
@@ -159,38 +145,49 @@ export function useChefFlowImages(
       if (failedRef.current.has(cacheId)) return;
 
       // Priority 4: already queued or in-flight — do not duplicate
-      if (inFlightRef.current.has(cacheId)) return;
+      // Exact recipe requests can have several independent presentation cards.
+      // Each card subscribes, while the shared queue performs just one request.
+      const requestId = optimized ? JSON.stringify([id, cacheId]) : cacheId;
+      if (inFlightRef.current.has(requestId)) return;
 
       // Mark in-flight immediately to prevent duplicate queuing
-      inFlightRef.current.add(cacheId);
+      inFlightRef.current.add(requestId);
 
       // Waits for a concurrency slot before firing the network request.
       // Meals earlier in the array (top of screen) acquire slots first.
       const fire = async () => {
-        await acquireSlot();
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), IMAGE_CLIENT_TIMEOUT_MS);
-
         try {
-          const res = await fetch(apiUrl("/api/meals/generate-image"), {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-            body: JSON.stringify({
-              mealName,
-              mealType,
-              sourceType: mealType === "beverage" || mealType === "drink" ? "beverage" : mealType === "snack" ? "snack" : "meal",
-              ...(meal.ingredients && meal.ingredients.length > 0 ? { ingredients: meal.ingredients } : {}),
-            }),
-            signal: controller.signal,
+          const result = await chefFlowImageRequests.request({
+            concurrency: optimized ? 6 : 3,
+            ...(optimized ? {
+              key: cacheId,
+              isCurrent: () => mountedRef.current && currentRecipeRef.current.get(id) === cacheId,
+            } : {}),
+            generate: async () => {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), IMAGE_CLIENT_TIMEOUT_MS);
+              try {
+                const res = await fetch(apiUrl("/api/meals/generate-image"), {
+                  method: "POST",
+                  credentials: "include",
+                  headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                  body: JSON.stringify({
+                    mealName,
+                    mealType,
+                    sourceType: mealType === "beverage" || mealType === "drink" ? "beverage" : mealType === "snack" ? "snack" : "meal",
+                    ...(meal.ingredients && meal.ingredients.length > 0 ? { ingredients: meal.ingredients } : {}),
+                  }),
+                  signal: controller.signal,
+                });
+                const data = await res.json();
+                return res.ok ? photographFromResponse(data) : null;
+              } finally {
+                clearTimeout(timeoutId);
+              }
+            },
           });
-          const data = await res.json();
-          clearTimeout(timeoutId);
-          inFlightRef.current.delete(cacheId);
-          releaseSlot();
-
-          const photograph = res.ok ? photographFromResponse(data) : null;
+          if (result.status === "skipped") return;
+          const photograph = result.photograph;
           if (photograph) {
             sessionCache.set(cacheId, photograph);
             writeToLS(cacheId, photograph);
@@ -204,19 +201,23 @@ export function useChefFlowImages(
             }
           }
         } catch {
-          clearTimeout(timeoutId);
-          inFlightRef.current.delete(cacheId);
-          releaseSlot();
           failedRef.current.add(cacheId);
           if (mountedRef.current && currentRecipeRef.current.get(id) === cacheId) {
             setFailedSet((prev) => new Set([...prev, id]));
           }
+        } finally {
+          inFlightRef.current.delete(requestId);
         }
       };
 
       fire();
     });
-  }, [meals, mealType]);
+  }, [meals, mealType, optimized, ownerId]);
 
-  return { imageMap, failedSet };
+  return {
+    imageMap: optimized ? Object.fromEntries(Object.entries(imageMap).filter(([id]) =>
+      imageIdentityRef.current.get(id) === currentRecipeRef.current.get(id),
+    )) : imageMap,
+    failedSet,
+  };
 }
