@@ -1041,3 +1041,45 @@ mtime_ms = 1794886038249
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/ebe1c8e7-3e78-4643-a0d6-a67d2a14fe21/08203ba6-65d5-4f5b-979b-0680a6df8be1"
 storage_version_token = "1794886060163158"
 content_type = "text/html"
+
+[[outputs]]
+id = "8aa1MRGyC6SFUUa8X_GjO"
+uri = "file://.local/reports/spanish-localization-audit.html"
+type = "html"
+title = "Spanish localization architecture and coverage audit"
+description = "Full findings, feature coverage matrix, current diagnostics, risks, proposed remediation increments, and verification plan."
+logical_id = "d62acc3e-956a-47b1-a08b-137f37aa9b2b"
+content_hash = "sha256:99a5254d568a9635fb9f1a04780cccb53910c8366ba6438f1d0c57faa74a6e89"
+size = 45266
+mtime_ms = 1794952143398
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d62acc3e-956a-47b1-a08b-137f37aa9b2b/8e01531f-209e-46f6-ae15-0068c163048a"
+storage_version_token = "1794952173877873"
+content_type = "text/html"
+
+[[outputs]]
+id = "mpc8JDDGf1Nhz5CPnyJ4U"
+uri = "file://.local/reports/spanish-localization-file-inventory.csv"
+type = "table"
+title = "Spanish localization source inventory"
+description = "806 scanned client files with static coverage status, source examples, reachability, priorities, and verification limits."
+logical_id = "b4fe9fd8-4f3f-4644-9837-af0ed35920e4"
+content_hash = "sha256:78b27012bb94059437192d58202a2de1dd8aa6f658acfd5211069cafd19f7f92"
+size = 220688
+mtime_ms = 1794952143082
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/b4fe9fd8-4f3f-4644-9837-af0ed35920e4/c32c1b09-0526-4a15-a27c-a1bba28b94b2"
+storage_version_token = "1794952174921126"
+content_type = "text/csv"
+
+[[outputs]]
+id = "cblNEN_z7W-fHu3X3Wt3e"
+uri = "file://.local/reports/spanish-localization-diagnostics.txt"
+type = "text"
+title = "Reproduced localization diagnostics"
+description = "Fresh Development and Production-source validator output, Spanish catalog scans, 36 AI-language checks, and 79 passing tests."
+logical_id = "5568365c-a3ad-4260-85c4-300a9ce4ceea"
+content_hash = "sha256:2e1c9d8584372623b302893f8fb3f0c0bc380419c6294f9fa9b249c8871b29b0"
+size = 62450
+mtime_ms = 1794952143946
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/5568365c-a3ad-4260-85c4-300a9ce4ceea/9175fae7-e0cb-4846-8c2c-0a47b0d093e0"
+storage_version_token = "1794952175673623"
+content_type = "text/plain"
