@@ -33,6 +33,7 @@ import { buildHumanFoodPromptBlock } from "../services/humanFoodContext/buildHum
 import { applyRestaurantGlucoseProduceAdvisory } from "../services/restaurantGlucoseAdvisory";
 import { resolveGetawayRestaurantContext } from "../services/getawayRestaurantContext";
 import { validateDiabeticMeal } from "../services/guardrails/validators/diabeticValidator";
+import { normalizeRestaurantCuisine, restaurantCuisineNote, restaurantMealHonorsCuisine, type RestaurantCuisineContext } from "../../shared/restaurantCuisine";
 
 // ── Alpha-gal condition detection keys (mirrors medicalBadges.ts) ─────────────
 const ALPHA_GAL_KEYS = [
@@ -115,11 +116,16 @@ router.post("/guide", async (req, res) => {
       restaurantName: requestedRestaurantName,
       craving,
       cuisine,
+      requestedCuisine,
       zipCode,
       dietaryRestrictions,
       governanceOverrideToken,
       governanceAction = "restaurant-guide",
     } = req.body;
+    if (process.env.NODE_ENV === "development" && requestedCuisine !== undefined && requestedCuisine !== null &&
+      (typeof requestedCuisine !== "string" || requestedCuisine.length > 80)) {
+      return res.status(400).json({ error: "Enter a cuisine name of at most 80 characters." });
+    }
     let selectedVenue: ReturnType<typeof resolveGetawayRestaurantContext> | undefined;
     if (process.env.NODE_ENV === "development" && req.body.getawayVenue !== undefined) {
       try {
@@ -180,7 +186,13 @@ router.post("/guide", async (req, res) => {
         console.log(`👤 [Guide] User profile loaded`);
       }
     } catch (userError) {
+      if (process.env.NODE_ENV === "development") {
+        return res.status(503).json({ error: "Your current profile preferences could not be loaded. Please try again." });
+      }
       console.warn(`⚠️ [Guide] Could not fetch user profile:`, userError);
+    }
+    if (process.env.NODE_ENV === "development" && !user) {
+      return res.status(503).json({ error: "Your current profile preferences could not be loaded. Please try again." });
     }
 
     // An acknowledgement is a one-action exception. Claim it against the exact
@@ -225,8 +237,12 @@ router.post("/guide", async (req, res) => {
       searchMode: 'restaurant'
     });
 
-    let restaurantInfo: { name: string; address: string; rating?: number; photoUrl?: string };
-    let detectedCuisine = selectedVenue?.cuisine || cuisine || 'American';
+    let restaurantInfo: { name: string; address: string; rating?: number; photoUrl?: string;
+      cuisineRequestContext?: { owner: string; saved: string | null; explicit: string | null };
+      cuisineNote?: string | null; compositionNote?: string };
+    const cuisineFidelity = process.env.NODE_ENV === "development";
+    let cuisineContext: RestaurantCuisineContext | undefined;
+    let detectedCuisine = selectedVenue?.cuisine || (cuisineFidelity ? "Unknown" : cuisine || "American");
 
     if (resolverResult.success && resolverResult.restaurants.length > 0) {
       const r = resolverResult.restaurants[0];
@@ -247,6 +263,41 @@ router.post("/guide", async (req, res) => {
       dietaryRestrictions: effectiveDiet,
       allergies: effectiveAllergies,
     });
+
+    if (cuisineFidelity) {
+      const listingCuisine = normalizeRestaurantCuisine(detectedCuisine);
+      const menuCuisine = engineResult.status === "ok"
+        ? normalizeRestaurantCuisine(engineResult.identity.cuisineType) : null;
+      if (!selectedVenue && listingCuisine && menuCuisine && listingCuisine !== menuCuisine) {
+        releaseClaimedGovernanceToken();
+        return res.status(422).json({
+          code: "RESTAURANT_CUISINE_EVIDENCE_CONFLICT",
+          error: "The restaurant listing and menu provider disagree about its cuisine. Please confirm the restaurant or choose another location; no dishes were substituted.",
+        });
+      }
+      cuisineContext = {
+        saved: normalizeRestaurantCuisine(user?.cuisinePreference),
+        explicit: normalizeRestaurantCuisine(requestedCuisine),
+        observed: menuCuisine || listingCuisine,
+        displayLanguage: user?.preferredLanguage || "auto",
+        note: null,
+      };
+      cuisineContext.note = restaurantCuisineNote(cuisineContext);
+      restaurantInfo = { ...restaurantInfo,
+        cuisineRequestContext: { owner: userId, saved: cuisineContext.saved, explicit: cuisineContext.explicit },
+        cuisineNote: cuisineContext.note,
+      };
+      detectedCuisine = cuisineContext.observed || cuisineContext.explicit || "Unknown";
+      if (cuisineContext.explicit && cuisineContext.observed &&
+        cuisineContext.explicit !== cuisineContext.observed) {
+        releaseClaimedGovernanceToken();
+        return res.status(422).json({
+          code: "RESTAURANT_CUISINE_MISMATCH",
+          error: cuisineContext.note,
+          cuisineContext,
+        });
+      }
+    }
 
     if (engineResult.status === "unavailable") {
       if (selectedVenue && !selectedVenue.cuisineKnown) {
@@ -345,15 +396,17 @@ router.post("/guide", async (req, res) => {
         builderBlock: fallbackContext?.builderBlock || undefined,
         remainingMacrosBlock: fallbackRemainingMacrosBlock || undefined,
         skipImages: process.env.NODE_ENV === "development",
+        cuisineContext,
       });
 
       // ── GLP-1 post-gen meal filtering ─────────────────────────────────────────
       // Filter any AI-generated meal whose estimated fat exceeds the patient-
       // specific ceiling so non-compliant items never reach a GLP-1 patient.
-      let filteredAiRecs = aiRecs;
+      let filteredAiRecs = cuisineFidelity
+        ? aiRecs.filter(meal => restaurantMealHonorsCuisine(meal, cuisineContext)) : aiRecs;
       if (fallbackGlp1Ctx.isActive && fallbackGlp1Ctx.resolvedTargets) {
         const t = fallbackGlp1Ctx.resolvedTargets;
-        filteredAiRecs = aiRecs.filter((rec: any) => {
+        filteredAiRecs = filteredAiRecs.filter((rec: any) => {
           const fat = Number(rec.fat ?? rec.fatGrams);
           if (process.env.NODE_ENV === "development" &&
             (!Number.isFinite(rec.fat ?? rec.fatGrams) || !Number.isFinite(rec.calories))) return false;
@@ -382,6 +435,13 @@ router.post("/guide", async (req, res) => {
       );
       if (process.env.NODE_ENV === "development" && aiRecsWithBadges.length === 0) {
         releaseClaimedGovernanceToken();
+        if (cuisineContext?.explicit) {
+          return res.status(422).json({
+            code: "RESTAURANT_CUISINE_UNAVAILABLE",
+            error: `No ${cuisineContext.explicit} recommendations could be established for this restaurant under your dietary and clinical requirements. No other cuisine was substituted. Confirm its menu or choose another restaurant.`,
+            cuisineContext,
+          });
+        }
         return res.status(503).json({
           code: "RESTAURANT_RECOMMENDATIONS_UNAVAILABLE",
           error: "Suitable meal recommendations could not be verified. Please try again or confirm ingredients with the restaurant.",
@@ -395,8 +455,11 @@ router.post("/guide", async (req, res) => {
       } else if (claimedGovernanceToken) {
         releaseClaimedGovernanceToken();
       }
+      if (cuisineFidelity) restaurantInfo.compositionNote =
+        "Unverified suggestions, not confirmed menu items. Confirm current availability, complete ingredients, preparation and nutrition with the restaurant.";
       res.json({
         recommendations: aiRecsWithBadges,
+        ...(cuisineContext ? { cuisineContext } : {}),
         ...(selectedVenue ? { selectedVenue } : {}),
         compositionEvidence: "unverified",
         compositionNote: "Menu availability, complete ingredients, preparation, and nutrition were not verified. Nutrition numbers are estimates; confirm details with the restaurant.",
@@ -522,6 +585,7 @@ router.post("/guide", async (req, res) => {
       protocolBlock: guideProtocolBlock,
       protocolEnvelope: guideActionEnvelope,
       builderBlock: guideContext.builderBlock || undefined,
+      cuisineContext,
     });
 
     const generationTime = Date.now() - generationStart;
@@ -534,15 +598,17 @@ router.post("/guide", async (req, res) => {
     // ── GLP-1 post-gen meal filtering (verified-menu branch) ─────────────────
     // Filter any recommendation whose fat or calorie estimate exceeds the
     // patient-specific ceiling — verified menu items carry calorie/fat fields.
+    const cuisineSafeRecommendations = cuisineFidelity
+      ? recommendations.filter(meal => restaurantMealHonorsCuisine(meal, cuisineContext)) : recommendations;
     const diabeticSafeRecommendations = process.env.NODE_ENV === "development" && guideActionEnvelope.hasDiabetes
-      ? recommendations.filter((rec: any) => {
+      ? cuisineSafeRecommendations.filter((rec: any) => {
           const meal = rec.meal ?? rec;
           return validateDiabeticMeal({
             name: meal.name, description: meal.description, ingredients: meal.ingredients,
             macros: { carbs: meal.carbohydrateGrams ?? meal.carbs },
           }, { glucoseState: guideActionEnvelope.diabeticGlucoseState ?? undefined }).isValid;
         })
-      : recommendations;
+      : cuisineSafeRecommendations;
     let verifiedFiltered: typeof recommendations = diabeticSafeRecommendations;
     if (guideGlp1Ctx.isActive && guideGlp1Ctx.resolvedTargets) {
       const t = guideGlp1Ctx.resolvedTargets;
@@ -576,8 +642,19 @@ router.post("/guide", async (req, res) => {
     } else if (claimedGovernanceToken) {
       releaseClaimedGovernanceToken();
     }
+    if (cuisineFidelity) restaurantInfo.compositionNote =
+      "Menu items were found. Complete ingredients, preparation and clinical nutrient compliance were not verified.";
+    if (cuisineContext?.explicit && finalRecommendations.length === 0) {
+      releaseClaimedGovernanceToken();
+      return res.status(422).json({
+        code: "RESTAURANT_CUISINE_UNAVAILABLE",
+        error: `No ${cuisineContext.explicit} dishes could be verified against this menu and your dietary and clinical requirements. Choose another restaurant or change the cuisine for this request.`,
+        cuisineContext,
+      });
+    }
     res.json({
       status: "ok",
+      ...(cuisineContext ? { cuisineContext } : {}),
       ...(selectedVenue ? { selectedVenue } : {}),
       recommendations: finalRecommendations.map((meal: any) => ({
         ...meal,

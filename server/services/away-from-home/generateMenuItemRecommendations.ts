@@ -49,7 +49,10 @@ function getOpenAI(): OpenAI {
 
 // ── Request shape ─────────────────────────────────────────────────────────────
 
+import { restaurantCuisinePrompt, restaurantMealHonorsCuisine } from "../../../shared/restaurantCuisine";
+
 export interface GenerateFromMenuItemsRequest {
+  cuisineContext?: import("../../../shared/restaurantCuisine").RestaurantCuisineContext;
   restaurantName: string;
   restaurantIdentity: RestaurantIdentity;
   restaurantInfo: {
@@ -71,6 +74,7 @@ export interface GenerateFromMenuItemsRequest {
 // ── AI selection schema ────────────────────────────────────────────────────────
 
 interface AIItemSelection {
+  cuisine?: string;
   itemId: string;
   reason: string;
   modifications?: string;
@@ -235,8 +239,9 @@ export async function generateMenuItemRecommendations(
 
   // ── Build system prompt ─────────────────────────────────────────────────────
 
+  const cuisineContext = process.env.NODE_ENV === "development" ? request.cuisineContext : undefined;
   const systemPrompt = appendWholeFoodStandardPrompt(`You are a clinical nutrition advisor helping a user choose the healthiest options from a REAL, VERIFIED restaurant menu.
-
+${cuisineContext ? `${restaurantCuisinePrompt(cuisineContext)}\nWrite explanations in the user's display language (${cuisineContext.displayLanguage}); keep exact provider item IDs and original dish names. Display language is not cuisine.\n` : ""}
 CRITICAL RULE: You MUST select ONLY from the exact items listed below. You CANNOT invent, create, or combine items that are not on this list. Every itemId in your response must exactly match an id from the list.
 
 Restaurant: ${restaurantIdentity.displayName}${cravingLine}${allergyLine}${dietLine}${medicalLine}${canonicalProtocolSection}${protocolSection}${builderSection}
@@ -313,6 +318,7 @@ Return ONLY valid JSON — no commentary, no markdown fences:
       console.warn(`⚠️ [MenuRec] AI returned unknown itemId "${sel.itemId}" — dropped`);
       continue;
     }
+    if (!restaurantMealHonorsCuisine({ ...item, cuisine: sel.cuisine }, cuisineContext)) continue;
     if (protocolEnvelope && !isStructuredMenuItemCompatible(item, protocolEnvelope)) {
       console.warn(`🚫 [MenuRec/Structured] Dropped "${item.name}" — declared allergen or diet flags conflict with active protocol`);
       continue;
@@ -353,6 +359,7 @@ Return ONLY valid JSON — no commentary, no markdown fences:
     const nutritionStatus = resolveNutritionStatus(menuSource, hasSubstitutions);
 
     const rec: AwayFromHomeRecommendation = {
+      ...(cuisineContext ? { cuisine: sel.cuisine } : {}),
       id: `${item.id}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       source: "restaurant_guide",
 
