@@ -7,6 +7,32 @@
  *   - The Translate button is repurposed for cross-user communication
  */
 
+import { AsyncLocalStorage } from "node:async_hooks";
+
+const requestLanguage = new AsyncLocalStorage<string | undefined>();
+
+/** Request-scoped presentation locale; never mutate authUser or saved preferences. */
+export function requestLanguageContext(
+  req: { headers: Record<string, string | string[] | undefined> },
+  _res: unknown,
+  next: () => void,
+): void {
+  const header = req.headers["x-mpm-ui-language"];
+  const base = typeof header === "string" && /^[a-z]{2}(?:-[a-z0-9]{2,8})?$/i.test(header)
+    ? header.split("-")[0].toLowerCase() : undefined;
+  const language = base && (base === "en" || Object.prototype.hasOwnProperty.call(LANGUAGE_NAMES, base))
+    ? base : undefined;
+  requestLanguage.run(language, next);
+}
+
+/** Resolves presentation only; callers must never save this as the user's choice. */
+export function resolveRequestLanguagePreference(preference: string | null | undefined): string {
+  if (!preference || preference === "auto" || preference === "null") {
+    return requestLanguage.getStore() ?? "en";
+  }
+  return preference.split("-")[0].toLowerCase();
+}
+
 const LANGUAGE_NAMES: Record<string, string> = {
   es: "Spanish",
   fr: "French",
@@ -27,13 +53,16 @@ const LANGUAGE_NAMES: Record<string, string> = {
  * Given a preferredLanguage value (BCP-47 tag or "auto"), return the
  * language instruction string to append to any AI system prompt.
  *
- * Returns an empty string for English or unknown/auto — no instruction
- * is needed when the default language (English) is correct.
+ * Auto uses a validated, request-scoped resolved UI language when available.
+ * English or unknown languages still return no instruction. The saved account
+ * preference is never overwritten, and background calls default to English.
  *
  * @param lang - "auto", null, undefined, "en", "es", "fr-FR", etc.
  */
 export function getLanguageInstruction(lang: string | null | undefined): string {
-  if (!lang || lang === "auto" || lang === "null") return "";
+  // A saved explicit preference wins. Auto obtains only this request's resolved
+  // UI/device language, with the same English fallback outside HTTP requests.
+  lang = resolveRequestLanguagePreference(lang);
 
   // Normalize BCP-47: "zh-CN" → "zh", "es-419" → "es", "fr-FR" → "fr"
   const base = lang.split("-")[0].toLowerCase();

@@ -2,6 +2,7 @@ import type { TFunction } from "i18next";
 import type { ReactNode } from "react";
 import { Children } from "react";
 import en from "./locales/en.json";
+import { consumerEnglish } from "./consumerJourney";
 
 // Deliberately bounded to standard interface actions. Never translate arbitrary
 // prose, clinical messages, numbers, server errors, or machine identifiers here.
@@ -26,5 +27,8 @@ export function translateSharedLabel(value: ReactNode, t: TFunction): ReactNode 
 export function translateBasicValidation(message: string, t: TFunction): string {
   if (message === "Required") return String(t("localeFoundation.required"));
   if (message === "Invalid email") return String(t("localeFoundation.invalidEmail"));
+  if (Object.prototype.hasOwnProperty.call(consumerEnglish, message)) {
+    return String(t(message, { ns: "consumerJourney", keySeparator: false, nsSeparator: false }));
+  }
   return message;
 }

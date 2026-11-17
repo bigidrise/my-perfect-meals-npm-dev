@@ -1,4 +1,5 @@
 import { assertPregnancyRecommendationsAvailable } from "@shared/pregnancyAvailability";
+import { resolveRequestLanguagePreference } from "../utils/languageInstruction";
 /**
  * protocolEnvelope.ts
  *
@@ -2366,8 +2367,9 @@ SELF-CHECK before responding: Verify the meal reflects at least 3 of these authe
   // Phase 1 internationalization: AI generates directly in the user's language.
   // This means meals, coaching, recipes, and explanations arrive in Spanish,
   // French, Chinese, etc. — no Translate button needed for normal use.
-  if (envelope.preferredLanguage && envelope.preferredLanguage !== "auto") {
-    const base = envelope.preferredLanguage.split("-")[0].toLowerCase();
+  const responseLanguage = resolveRequestLanguagePreference(envelope.preferredLanguage);
+  if (responseLanguage !== "en") {
+    const base = responseLanguage;
     const LANGUAGE_NAMES: Record<string, string> = {
       es: "Spanish", fr: "French", de: "German", it: "Italian", pt: "Portuguese",
       zh: "Chinese (Simplified)", ja: "Japanese", ko: "Korean", ar: "Arabic",

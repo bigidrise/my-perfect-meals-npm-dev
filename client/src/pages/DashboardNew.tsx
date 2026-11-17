@@ -70,7 +70,7 @@ import StudioVideoMessageComposer from "@/components/pro/StudioVideoMessageCompo
 import { useProUnreadCount } from "@/hooks/useProUnreadCount";
 import { PatternAlertBanner } from "@/components/PatternAlertBanner";
 import { TipsBanner } from "@/components/TipsBanner";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import InspirationCaptureModal from "@/components/InspirationCaptureModal";
 import MacroScanModal from "@/components/MacroScanModal";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
@@ -939,7 +939,10 @@ export default function DashboardNew() {
   }, [providerMessages, providerOpen]);
 
   useEffect(() => {
-    document.title = "Home | My Perfect Meals";
+    document.title = t("Home | My Perfect Meals");
+  }, [t]);
+
+  useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
 
     const coachMode = localStorage.getItem("coachMode");
@@ -1324,7 +1327,7 @@ export default function DashboardNew() {
                         (tabletSendError.retry === "text" ? !tabletInput.trim() : !tabletAudioBlob)}
                       onClick={() => tabletSendError.retry === "voice" ? sendTabletVoice() : handleTabletSend()}
                     >
-                      Retry {tabletSendError.retry === "voice" ? "voice message" : "message"}
+                      {t("Retry")} {tabletSendError.retry === "voice" ? "voice message" : "message"}
                     </Button>
                   )}
                 </div>
@@ -1356,7 +1359,7 @@ export default function DashboardNew() {
                         }}
                         className="sticky top-1 z-10 mx-auto block rounded-full bg-orange-500 px-2.5 py-1 text-[10px] font-semibold text-white shadow"
                       >
-                        New messages
+                        {t("New messages")}
                       </button>
                     )}
                     {tabletMessages.length === 0 && (
@@ -1461,13 +1464,13 @@ export default function DashboardNew() {
                                 className="flex items-center gap-2 rounded-md bg-violet-600 hover:bg-violet-500 px-3 py-2 text-xs font-medium text-white"
                               >
                                 <Play className="w-3.5 h-3.5" />
-                                Watch video
+                                {t("Watch video")}
                               </button>
                             )}
                             <div className="flex items-center gap-1.5">
                               <Video className="w-3 h-3 text-violet-300" />
                               <span className="text-[11px] text-violet-200 font-medium">
-                                Video message{entry.videoDurationSec ? ` · ${Math.floor(entry.videoDurationSec / 60)}:${String(entry.videoDurationSec % 60).padStart(2, "0")}` : ""}
+                                {t("Video message")}{entry.videoDurationSec ? ` · ${Math.floor(entry.videoDurationSec / 60)}:${String(entry.videoDurationSec % 60).padStart(2, "0")}` : ""}
                               </span>
                             </div>
                             <p className="text-[10px] text-white/45 leading-snug">
@@ -1479,7 +1482,7 @@ export default function DashboardNew() {
                               </p>
                             )}
                             {entry.videoTranscriptStatus === "failed" && (
-                              <p className="text-[10px] text-white/35 italic">Video transcript unavailable.</p>
+                              <p className="text-[10px] text-white/35 italic">{t("Video transcript unavailable.")}</p>
                             )}
                             {entry.videoMediaState === "expiration_pending" && entry.videoExpiresAt && (
                               <p className="text-[10px] text-amber-300">Available until {new Date(entry.videoExpiresAt).toLocaleString()}.</p>
@@ -1612,8 +1615,8 @@ export default function DashboardNew() {
                           disabled={!tabletInput.trim() || tabletSending}
                           onClick={handleTabletSend}
                           className="bg-purple-600 hover:bg-purple-700 px-3"
-                          title="Send message"
-                          aria-label="Send message"
+                          title={t("Send message")}
+                          aria-label={t("Send message")}
                         >
                           {tabletSending ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1632,8 +1635,8 @@ export default function DashboardNew() {
                         <button
                           onClick={() => setTabletVideoMode(true)}
                           className="flex items-center justify-center p-1.5 rounded-md bg-red-600 border border-red-400 text-white hover:bg-red-700 shadow-sm shadow-red-950/40"
-                          title="Video message"
-                          aria-label="Video message"
+                          title={t("Video message")}
+                          aria-label={t("Video message")}
                         >
                           <Video className="w-3.5 h-3.5" />
                         </button>
@@ -1679,7 +1682,7 @@ export default function DashboardNew() {
                         }}
                         className="sticky top-1 z-10 mx-auto block rounded-full bg-orange-500 px-2.5 py-1 text-[10px] font-semibold text-white shadow"
                       >
-                        New messages
+                        {t("New messages")}
                       </button>
                     )}
                     {providerMessages.length === 0 && (
@@ -1782,10 +1785,10 @@ export default function DashboardNew() {
         >
              <Card onClick={() => setLocation("/foods-i-enjoy")} className="group relative cursor-pointer overflow-hidden rounded-xl border border-violet-400/40 bg-gradient-to-r from-black via-violet-800/65 to-black backdrop-blur-lg transition-all hover:border-violet-300/70 hover:shadow-[0_0_28px_rgba(139,92,246,0.22)]" style={{ backgroundColor: "transparent" }} data-testid="card-foods-i-enjoy">
                 <div
-                  aria-label="New"
+                  aria-label={t("New")}
                   className="pointer-events-none absolute right-3 top-3 z-10 -rotate-6 rounded-sm border-2 border-red-600 bg-white px-3 py-1 text-sm font-black uppercase tracking-[0.16em] text-red-600 shadow-[3px_3px_0_rgba(220,38,38,0.9)]"
                 >
-                  New
+                  {t("New")}
                 </div>
                 {effectiveMenuBuilder?.builder.displayName && (
                   <div className="absolute bottom-3 right-3 max-w-[58%] rounded-full border border-emerald-300 bg-emerald-600 px-2.5 py-1 text-right text-[10px] font-extrabold leading-tight tracking-wide text-white shadow-md shadow-emerald-500/25 sm:max-w-none sm:px-3.5 sm:py-1.5 sm:text-xs">
@@ -1797,10 +1800,10 @@ export default function DashboardNew() {
                    <div className="rounded-xl border border-violet-300/40 bg-violet-400/20 p-3"><Heart className="h-6 w-6 text-violet-200" /></div>
                    <div className="min-w-0 flex-1">
                      <h2 className="text-base font-semibold text-white">My Perfect Menu</h2>
-                     <p className="mt-1 text-xs font-semibold text-violet-200">Essential and above</p>
-                     <p className="mt-1 text-sm font-semibold text-violet-100">Need help building your meal plan?</p>
-                     <p className="mt-1 text-xs leading-relaxed text-white/55">Not sure what you want to eat? Get 3 personalized ideas for breakfast, lunch, dinner, or a snack. Choose what sounds good, and we’ll help you turn it into a meal and add it to your plan.</p>
-                     <span className="mt-3 inline-flex text-xs font-bold text-violet-200 transition-transform group-hover:translate-x-0.5">See My Menu <ChevronRight className="ml-1 h-3.5 w-3.5" /></span>
+                     <p className="mt-1 text-xs font-semibold text-violet-200">{t("Essential and above")}</p>
+                     <p className="mt-1 text-sm font-semibold text-violet-100">{t("Need help building your meal plan?")}</p>
+                     <p className="mt-1 text-xs leading-relaxed text-white/55">{t("Not sure what you want to eat? Get 3 personalized ideas for breakfast, lunch, dinner, or a snack. Choose what sounds good, and we’ll help you turn it into a meal and add it to your plan.")}</p>
+                     <span className="mt-3 inline-flex text-xs font-bold text-violet-200 transition-transform group-hover:translate-x-0.5">{t("See My Menu")} <ChevronRight className="ml-1 h-3.5 w-3.5" /></span>
                    </div>
                  </div>
                </CardContent>

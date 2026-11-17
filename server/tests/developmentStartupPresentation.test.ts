@@ -10,12 +10,14 @@ const originalMode = process.env.NODE_ENV;
 beforeEach(() => {
   process.env.NODE_ENV = "development";
   document.documentElement.className = "";
+  localStorage.clear();
 });
 afterEach(() => {
   window.dispatchEvent(new Event("mpm:startup-failed"));
   document.getElementById("mpm-startup-public")?.click();
   jest.useRealTimers();
   process.env.NODE_ENV = originalMode;
+  jest.restoreAllMocks();
 });
 
 function boot(marketing = true, documentReady = true) {
@@ -106,4 +108,27 @@ it("ends stalled loading after the bounded watchdog without adding a minimum dis
   expect(document.documentElement.classList.contains("mpm-startup-error")).toBe(true);
   expect(error).toHaveBeenCalledWith(expect.stringContaining("timed out"));
   error.mockRestore();
+});
+
+it.each(["es-MX", "es-ES"])("shows Spanish before module readiness on a fresh %s device without saving a hint", device => {
+  jest.spyOn(navigator, "language", "get").mockReturnValue(device);
+  boot(false, false);
+  expect(document.getElementById("mpm-startup-message")!.textContent).toBe("Cargando tu experiencia personalizada…");
+  expect(document.documentElement.lang).toBe("es");
+  expect(localStorage.getItem("mpm.ui.languagePreference")).toBeNull();
+  window.dispatchEvent(new Event("mpm:startup-failed"));
+  expect(document.getElementById("mpm-startup-message")!.textContent).toContain("no pudo terminar");
+  expect(document.getElementById("mpm-startup-public")!.textContent).toBe("Ver página pública");
+});
+
+it("keeps explicit English and stored Auto authoritative during first paint", () => {
+  jest.spyOn(navigator, "language", "get").mockReturnValue("es-MX");
+  localStorage.setItem("mpm.ui.languagePreference", "en");
+  boot(false, false);
+  expect(document.getElementById("mpm-startup-message")!.textContent).toBe("Loading your personalized experience…");
+  window.dispatchEvent(new Event("mpm:app-mounted"));
+  localStorage.setItem("mpm.ui.languagePreference", "auto");
+  boot(false, false);
+  expect(document.getElementById("mpm-startup-message")!.textContent).toBe("Cargando tu experiencia personalizada…");
+  expect(localStorage.getItem("mpm.ui.languagePreference")).toBe("auto");
 });

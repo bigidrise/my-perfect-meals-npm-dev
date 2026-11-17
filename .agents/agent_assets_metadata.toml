@@ -1111,3 +1111,17 @@ mtime_ms = 1794953358737
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/f9e9672c-933a-486d-a6bf-f54f8146bbc7/721d2dd4-68ef-4132-99de-5db93a261b84"
 storage_version_token = "1794953360423055"
 content_type = "text/plain"
+
+[[outputs]]
+id = "c01uAIHXY_gVrif4dETik"
+uri = "file://generated-artifacts/spanish-phase2/review.html"
+type = "html"
+title = "Spanish Phase 2 — Development review"
+description = "Implementation summary, screenshot references, changed files, test evidence and explicit release blockers."
+logical_id = "c3f5e204-b80a-4929-80bb-e6360f29a987"
+content_hash = "sha256:19e1cf12ffa33a903248011595b82a2285383a66fb0e87362f2e958559461736"
+size = 17746
+mtime_ms = 1794956884404
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/c3f5e204-b80a-4929-80bb-e6360f29a987/b3b37ec0-2875-42ea-9a57-8bb7d94ea40b"
+storage_version_token = "1794956885406871"
+content_type = "text/html"
