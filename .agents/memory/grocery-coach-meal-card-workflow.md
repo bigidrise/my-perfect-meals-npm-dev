@@ -17,6 +17,14 @@ Build a Meal and Find a Product share sourced catalog discovery, but ordinary in
 
 **How to apply:** Preserve the original ingredient amount, unit, servings, and meal/card workflow. Display evidence and unresolved review needs with each choice, keep lookup errors local, and retain exact product identity and review qualifications when carrying a choice into shopping.
 
+## Layout and food-identification scope
+
+Approval for Grocery Coach mobile layout corrections covers both Build a Meal and Find a Product. The separate conversational food-identification and knowledge improvement remains deferred.
+
+**Why:** The founder explicitly separated the layout repairs in both modes from changes to how the coach identifies or reasons about food.
+
+**How to apply:** Do not use layout approval or Production synchronization as authorization to change classification, knowledge, prompts, evidence policy, or clinical rules.
+
 ## Smart Grocery List foundation approval boundary
 
 The user approved Development-only shopping-list foundation work: preserve original ingredient qualifications and recipe quantities, persist optional structured product choices, and prevent incompatible qualifiers or different selected products from merging. Preserve generic shopping behavior and account isolation.
