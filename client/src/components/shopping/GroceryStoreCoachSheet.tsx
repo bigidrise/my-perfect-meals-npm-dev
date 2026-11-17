@@ -1082,6 +1082,9 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
           transform: "translateX(-50%)",
           width: "100%",
           maxWidth: 896,
+          minWidth: 0,
+          boxSizing: "border-box",
+          overflow: "hidden",
           zIndex: 9999,
           maxHeight: "92dvh",
           display: "flex",
@@ -1121,7 +1124,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         </div>
 
         {/* ── Scrollable body ── */}
-        <div style={{ flex: 1, overflowY: "auto", overscrollBehavior: "contain", minHeight: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, overflowY: "auto", overflowX: "hidden", overflowWrap: "anywhere", overscrollBehavior: "contain", minHeight: 0 }}>
           <div className="flex justify-end px-4 pt-4">
             <HowThisWorksLink featureKey="groceryStoreCoach" labelKey="tutorialControl.howItWorks" />
           </div>
@@ -1140,7 +1143,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   onClick={() => setMode(key)}
                   data-testid={`tab-${key === "meal" ? "build-meal" : "find-product"}`}
                   style={{
-                    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    flex: 1, minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                     padding: "11px 0", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer",
                     background: mode === key ? "rgba(234,88,12,0.2)" : "rgba(255,255,255,0.04)",
                     border: mode === key ? "1px solid rgba(249,115,22,0.5)" : "1px solid rgba(255,255,255,0.1)",
@@ -1168,23 +1171,29 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
               {productPhase !== "loading" && productPhase !== "result" && (
                 <>
                   <div>
-                    <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                    <label htmlFor="grocery-coach-product-query" style={{ display: "block", color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
                       {t("findProduct.inputLabel")}
-                    </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <input
+                    </label>
+                    <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end" data-testid="product-search-composer">
+                      <textarea
+                        id="grocery-coach-product-query"
+                        rows={3}
+                        wrap="soft"
                         value={productQuery}
                         onChange={(e) => setProductQuery(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleProductSearch(); } }}
+                        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); handleProductSearch(); } }}
                         placeholder={t("findProduct.inputPlaceholder")}
                         data-testid="input-find-product"
                         style={{
-                          flex: 1, padding: "12px 14px", borderRadius: 12,
+                          flex: 1, minWidth: 0, width: "100%", maxWidth: "100%", boxSizing: "border-box",
+                          resize: "vertical", whiteSpace: "pre-wrap", overflowWrap: "anywhere", overflowX: "hidden",
+                          padding: "12px 14px", borderRadius: 12,
                           background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
                           color: "white", fontSize: 16, outline: "none",
                         }}
                       />
-                      <VoiceInputButton
+                      <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:shrink-0" data-testid="product-search-actions">
+                        <VoiceInputButton
                         value={productQuery}
                         onChange={setProductQuery}
                         mode="replace"
@@ -1192,19 +1201,22 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                         className="shrink-0"
                       />
                       <button
+                        className="flex-1 sm:flex-none"
                         onClick={() => handleProductSearch()}
                         disabled={!productQuery.trim()}
                         data-testid="button-product-search"
                         style={{
-                          padding: "0 16px", borderRadius: 12, border: "none", flexShrink: 0,
+                          minHeight: 48, padding: "12px 16px", borderRadius: 12, border: "none", flexShrink: 0,
                           background: productQuery.trim() ? "#ea580c" : "rgba(255,255,255,0.1)",
                           color: productQuery.trim() ? "white" : "rgba(255,255,255,0.3)",
                           cursor: productQuery.trim() ? "pointer" : "not-allowed",
-                          display: "flex", alignItems: "center",
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                         }}
                       >
                         <Send style={{ width: 16, height: 16 }} />
+                        <span>{t("findProduct.tabFindProduct")}</span>
                       </button>
+                      </div>
                     </div>
                   </div>
                   {productError && (
