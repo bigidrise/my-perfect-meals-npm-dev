@@ -68,3 +68,9 @@ Finish the read-only application-wide localization inventory before translating 
 **Why:** The founder reviewed the international audit and explicitly selected inventory-first work, with measurement findings reserved for a separate, carefully tested repair.
 
 **How to apply:** Map untranslated pages and shared text owners without application-code changes or paid AI services. Return shared-first priorities for review; do not combine unit or nutrition changes with translation implementation.
+
+After reviewing the completed inventory, the founder selected a Development-only next scope: shared food components, Recipe Maker, Create a Dish, Grocery Coach and shopping, with a permanent new-interface-text localization check established before implementation.
+
+**Why:** The founder wants shared-first reuse and prevention of newly introduced English interface text, not another broad inventory or a separate Spanish application.
+
+**How to apply:** Use the existing EN/ES architecture, preserve English, verify desktop/mobile and report protected content for separate approval. Keep clinical/legal wording, server messages, measurement repairs and broader Business Center/ProCare expansion separate; never weaken existing release checks.
