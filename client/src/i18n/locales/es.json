@@ -1,4 +1,32 @@
 {
+  "measurementPreferences": {
+    "title": "Preferencias de medidas",
+    "country": "País",
+    "system": "Sistema de medidas",
+    "auto": "Automático",
+    "imperial": "Sistema de EE. UU.",
+    "metric": "Métrico",
+    "country_US": "Estados Unidos",
+    "country_CA": "Canadá",
+    "country_AU": "Australia",
+    "country_UK": "Reino Unido",
+    "country_NZ": "Nueva Zelanda",
+    "resolved": "Automático: {{system}} · {{country}}",
+    "hint": "Automático sigue el país guardado, no el idioma ni el dispositivo. Si no hay un país guardado, se usa Estados Unidos. Las opciones manuales no cambian al cambiar de país.",
+    "saveFailed": "No se pudieron guardar las preferencias de medidas. Tus opciones se conservan aquí; vuelve a intentarlo.",
+    "refreshFailed": "Tus opciones se guardaron, pero no se pudieron actualizar. Permanece aquí e inténtalo de nuevo para confirmarlas.",
+    "equivalent": "Equivalente: {{quantity}}",
+    "invalidQuantity": "Introduce un número o una fracción sin ambigüedad. La cantidad guardada no ha cambiado.",
+    "periodQuantity": "{{quantity}} en este período",
+    "weekQuantity": "{{quantity}} esta semana",
+    "currentAverage": "Promedio actual",
+    "weeklyChange": "Cambio semanal",
+    "totalChange": "Cambio total",
+    "weightLabel": "Peso ({{unit}})",
+    "waistLabel": "Cintura ({{unit}})",
+    "quantityPlaceholder": "p. ej., {{quantity}}",
+    "fluidOunces": "fl oz"
+  },
   "localeFoundation": {
     "wakingUp": "Preparando tu motor de comidas…",
     "startupHint": "La primera carga tarda unos segundos más. ¡Un momento!",
@@ -6,7 +34,7 @@
     "sessionRetry": "Volver a verificar la sesión",
     "required": "Obligatorio",
     "invalidEmail": "Correo electrónico no válido",
-    "preferencesNote": "Auto sigue el idioma de este dispositivo. Si eliges un idioma específico, se guarda en tu cuenta. Algunas funciones aún se están traduciendo."
+    "preferencesNote": "Parte de la navegación y del contenido de las funciones puede seguir apareciendo en inglés mientras se verifica la cobertura en español."
   },
   "shoppingTransfer": {
     "addedTitle": "Añadido a la lista de compras",
@@ -133,15 +161,18 @@
   },
   "language": {
     "pageTitle": "Idioma",
-    "intro": "My Perfect Meals genera nombres de comidas, recetas, recomendaciones de restaurantes, orientación de compras y respuestas de coaching de forma nativa en tu idioma.",
-    "auto": "Automático (Dispositivo)",
-    "autoDesc": "My Perfect Meals detecta el idioma de tu dispositivo y genera contenido en él automáticamente — recomendado para la mayoría de los usuarios.",
+    "intro": "Elige el idioma de la interfaz. Esta opción se guarda en tu cuenta y no cambia el país ni las unidades de medida.",
+    "auto": "Automático",
+    "autoDesc": "Usa inglés o español en la interfaz según el idioma de este dispositivo. Para otros idiomas del dispositivo, se usa inglés.",
+    "enDesc": "Usa inglés en la interfaz, sin importar el idioma de este dispositivo.",
+    "esDesc": "Usa español en la interfaz, sin importar el idioma de este dispositivo. Algunas funciones pueden seguir apareciendo en inglés.",
+    "measurementLink": "País y medidas en Editar perfil",
     "saved": "Idioma guardado",
-    "savedAutoDesc": "My Perfect Meals usará el idioma de tu dispositivo automáticamente.",
-    "savedLangDesc": "El contenido ahora se generará en {{language}}.",
+    "savedAutoDesc": "Automático usa inglés o español según el dispositivo, con inglés como alternativa para otros idiomas.",
+    "savedLangDesc": "Idioma de la interfaz: {{language}}.",
     "errorSave": "No se pudo guardar el idioma",
     "errorSaveDesc": "Por favor, inténtalo de nuevo.",
-    "footerNote": "La navegación, los menús y los botones de la app están actualmente en inglés. La localización completa de la interfaz llegará en una próxima actualización."
+    "footerNote": "Parte de la navegación y del contenido de las funciones puede seguir apareciendo en inglés mientras se verifica la cobertura en español."
   },
   "routeTitles": {
     "dashboard": "Inicio",

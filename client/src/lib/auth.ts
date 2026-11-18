@@ -270,7 +270,7 @@ export interface User {
   isAdmin?: boolean;
   // International / Metric Support
 
-  measurementSystem?: "imperial" | "metric";
+  measurementSystem?: "auto" | "imperial" | "metric";
 
   countryCode?: "US" | "CA" | "AU" | "UK" | "NZ";
   // Language Preference

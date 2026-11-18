@@ -1,3 +1,5 @@
+import { convertServingDisplay, parseMeasurementNumber, type MeasurementSystem } from "@shared/units";
+
 const FRACTION_MAP: Record<string, string> = {
   "0.25": "¼",
   "0.33": "⅓",
@@ -20,17 +22,19 @@ function toFraction(decimal: number): string | null {
 export function formatQuantity(
   quantity: number | string | undefined | null,
   unit: string | undefined | null,
+  system?: MeasurementSystem,
 ): string {
   if (quantity == null || quantity === "") return unit ?? "";
 
-  const num = typeof quantity === "number" ? quantity : parseFloat(String(quantity));
-  if (!Number.isFinite(num) || num <= 0) return unit ?? "";
+  const original = `${quantity} ${unit ?? ""}`.trim();
+  const num = parseMeasurementNumber(quantity);
+  if (num === null || num < 0) return original;
+  if (system) {
+    const converted = convertServingDisplay(quantity, unit ?? "", system);
+    if (converted !== original) return converted;
+  }
 
   const lowerUnit = (unit ?? "").toLowerCase().trim();
-
-  if (lowerUnit.includes("spray")) {
-    return "1 can";
-  }
 
   let finalQty = num;
   let finalUnit = unit ?? "";

@@ -1,3 +1,4 @@
+import { isCustomerLanguage } from "@/i18n/languagePreference";
 /**
  * AwayFromHomeMealCard
  *
@@ -489,7 +490,7 @@ export default function AwayFromHomeMealCard({
             <div className="space-y-2">
               <p className="text-[10px] text-white/80 uppercase tracking-wider">Translate to</p>
               <div className="flex flex-wrap gap-2">
-                {TRANSLATE_LANGS.map(({ code, label }) => (
+                {TRANSLATE_LANGS.filter(lang => isCustomerLanguage(lang.code)).map(({ code, label }) => (
                   <button
                     key={code}
                     onClick={() => handleTranslate(code, label)}

@@ -18,7 +18,10 @@ import { useGlycemicSettings } from "@/hooks/useGlycemicSettings";
 import { LOW_RANGE_OPTIONS, MID_RANGE_OPTIONS, HIGH_RANGE_OPTIONS } from "@/types/glycemic";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { apiRequest } from "@/lib/apiRequest";
-import { getAuthHeaders } from "@/lib/auth";
+import { getAuthHeaders, getCurrentUser } from "@/lib/auth";
+import { measurementPreference, type MeasurementPreference } from "@shared/units";
+import { saveMeasurementPreferences } from "@/lib/measurementPreferences";
+import { MeasurementPreferencesControls } from "@/components/profile/MeasurementPreferencesControls";
 import { Input } from "@/components/ui/input";
 import { PillButton } from "@/components/ui/pill-button";
 import { HealthContextControls } from "@/components/profile/HealthContextControls";
@@ -191,6 +194,11 @@ function initCustomDietInput(restrictions: string[]): string {
 }
 
 export default function EditProfilePage() {
+  const { user } = useAuth();
+  return <AccountEditProfilePage key={user?.id ?? "awaiting-account"} />;
+}
+
+function AccountEditProfilePage() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
   const oncologySelection = useConsumerOncologySelection(user?.oncologySupportContext);
@@ -301,8 +309,8 @@ export default function EditProfilePage() {
   const [glp1Active, setGlp1Active] = useState<boolean>(
     !!((user as any)?.medicalConditions as string[] | undefined)?.includes("glp1")
   );
-  const [localMeasurementSystem, setLocalMeasurementSystem] = useState<"imperial" | "metric">(
-    ((user as any)?.measurementSystem as "imperial" | "metric") ?? "imperial"
+  const [localMeasurementSystem, setLocalMeasurementSystem] = useState<MeasurementPreference>(
+    measurementPreference(user?.measurementSystem)
   );
   const [localCountryCode, setLocalCountryCode] = useState<string>(
     (user as any)?.countryCode ?? "US"
@@ -702,16 +710,18 @@ export default function EditProfilePage() {
         body: JSON.stringify({ medication: thyroidMedication.trim() || null }),
       }).catch(() => {});
 
-      // Save measurement preferences (non-blocking)
-      await fetch(apiUrl("/api/user/preferences"), {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...authHeaders,
-        },
-        credentials: "include",
-        body: JSON.stringify({ measurementSystem: localMeasurementSystem, countryCode: localCountryCode }),
-      }).catch(() => {});
+      await saveMeasurementPreferences({
+        measurementSystem: localMeasurementSystem, countryCode: localCountryCode, accountId: user!.id,
+      }, {
+        request: payload => fetch(apiUrl("/api/user/preferences"), {
+          method: "PATCH", credentials: "include",
+          headers: { "Content-Type": "application/json", ...authHeaders },
+          body: JSON.stringify(payload),
+        }),
+        refresh: refreshUser,
+        isCurrentAccount: () => getCurrentUser()?.id === user?.id,
+        message: key => key === "saveFailed" ? t("measurementPreferences:saveFailed") : t("measurementPreferences:refreshFailed"),
+      });
 
       // Only an explicit changed choice creates or discontinues the personal
       // food source in Development. Never promote an old preference merely
@@ -2040,48 +2050,8 @@ export default function EditProfilePage() {
             subtitle="Double-check your info. Save when ready."
           >
             <div className="rounded-xl border border-white/10 bg-black/30 p-3 space-y-3">
-              <p className="text-white font-semibold text-sm">Measurement Preferences</p>
-              <div className="space-y-2">
-                <p className="text-white/60 text-xs">Country</p>
-                <div className="flex flex-wrap gap-2">
-                  {([
-                    { label: "🇺🇸 US", value: "US" },
-                    { label: "🇨🇦 Canada", value: "CA" },
-                    { label: "🇦🇺 Australia", value: "AU" },
-                    { label: "🇬🇧 UK", value: "UK" },
-                    { label: "🇳🇿 NZ", value: "NZ" },
-                  ] as const).map((c) => (
-                    <PillButton
-                      key={c.value}
-                      active={localCountryCode === c.value}
-                      onClick={() => {
-                        setLocalCountryCode(c.value);
-                        if (c.value !== "US") setLocalMeasurementSystem("metric");
-                        else setLocalMeasurementSystem("imperial");
-                      }}
-                    >
-                      {c.label}
-                    </PillButton>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <p className="text-white/60 text-xs">Measurement System</p>
-                <div className="flex gap-2">
-                  <PillButton
-                    active={localMeasurementSystem === "imperial"}
-                    onClick={() => setLocalMeasurementSystem("imperial")}
-                  >
-                    Imperial (oz, lbs)
-                  </PillButton>
-                  <PillButton
-                    active={localMeasurementSystem === "metric"}
-                    onClick={() => setLocalMeasurementSystem("metric")}
-                  >
-                    Metric (g, kg, ml)
-                  </PillButton>
-                </div>
-              </div>
+              <MeasurementPreferencesControls value={localMeasurementSystem} country={localCountryCode}
+                onChange={setLocalMeasurementSystem} onCountryChange={setLocalCountryCode} disabled={saving} />
             </div>
             <div className="space-y-3">
               <div className="rounded-xl border border-white/10 bg-black/30 p-3 space-y-1">

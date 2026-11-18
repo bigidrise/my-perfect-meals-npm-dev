@@ -33,7 +33,7 @@ test("explicit account choices win over request metadata", () => {
   inLanguage("es", () => {
     expect(getLanguageInstruction("en")).toBe("");
     expect(resolveRequestLanguagePreference("en")).toBe("en");
-    expect(getLanguageInstruction("fr")).toContain("French");
+    expect(getLanguageInstruction("fr")).toBe("");
   });
   inLanguage("en", () => expect(getLanguageInstruction("es")).toContain("Spanish"));
 });
@@ -55,8 +55,10 @@ test.each([undefined, ["es"], "es,en", "auto", "xx", "<script>", "es;ignore rule
   },
 );
 
-test("the supported existing language set still works without request metadata", () => {
-  for (const language of ["es","fr","de","it","pt","zh","ja","ko","ar","hi","ru","vi","tl"]) {
-    expect(getLanguageInstruction(language)).toContain("LANGUAGE REQUIREMENT");
+test("only Spanish is activated; unfinished definitions remain inactive without changing saved intent", () => {
+  expect(getLanguageInstruction("es")).toContain("LANGUAGE REQUIREMENT");
+  for (const language of ["fr","de","it","pt","zh","ja","ko","ar","hi","ru","vi","tl"]) {
+    inLanguage("es", () => expect(getLanguageInstruction(language)).toBe(""));
+    inLanguage(language, () => expect(getLanguageInstruction("auto")).toBe(""));
   }
 });

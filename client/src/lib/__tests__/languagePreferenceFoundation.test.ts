@@ -1,12 +1,12 @@
 /** @jest-environment jsdom */
 import {
-  LANGUAGE_PREFERENCE_KEY, SUPPORTED_UI_LANGUAGES, normalizeLanguagePreference,
+  LANGUAGE_PREFERENCE_KEY, SUPPORTED_UI_LANGUAGES, CUSTOMER_UI_LANGUAGES, normalizeLanguagePreference,
   readLanguagePreference, resolveLanguagePreference, storeLanguagePreference,
 } from "@/i18n/languagePreference";
 
 beforeEach(() => localStorage.clear());
 
-test.each(SUPPORTED_UI_LANGUAGES)("explicit %s survives startup and device-language differences", language => {
+test.each(CUSTOMER_UI_LANGUAGES)("explicit %s survives startup and device-language differences", language => {
   storeLanguagePreference(language);
   expect(readLanguagePreference()).toBe(language);
   expect(resolveLanguagePreference(readLanguagePreference(), "es-MX")).toBe(language);
@@ -16,11 +16,11 @@ test("Auto remains Auto across refresh and follows each device without an explic
   storeLanguagePreference("auto");
   expect(localStorage.getItem(LANGUAGE_PREFERENCE_KEY)).toBe("auto");
   expect(resolveLanguagePreference(readLanguagePreference(), "es-MX")).toBe("es");
-  expect(resolveLanguagePreference(readLanguagePreference(), "fr-CA")).toBe("fr");
+  expect(resolveLanguagePreference(readLanguagePreference(), "fr-CA")).toBe("en");
   expect(localStorage.getItem(LANGUAGE_PREFERENCE_KEY)).toBe("auto");
 });
 
-test.each([null, undefined, "null", "", "unsupported", "{invalid}"])("invalid/missing hint %s cannot break startup", value => {
+test.each([null, undefined, "null", ""])("missing hint %s cannot break startup", value => {
   expect(normalizeLanguagePreference(value)).toBe("auto");
   expect(resolveLanguagePreference(value, "xx-XX")).toBe("en");
 });
@@ -28,7 +28,20 @@ test.each([null, undefined, "null", "", "unsupported", "{invalid}"])("invalid/mi
 test("region tags normalize without changing the choice into a device language", () => {
   storeLanguagePreference("es-419");
   expect(readLanguagePreference()).toBe("es");
-  expect(resolveLanguagePreference("auto", "AR-EG")).toBe("ar");
+  expect(resolveLanguagePreference("auto", "AR-EG")).toBe("en");
+});
+
+test.each(SUPPORTED_UI_LANGUAGES.filter(language => !CUSTOMER_UI_LANGUAGES.includes(language as "en" | "es")))(
+  "saved unfinished language %s remains stored but resolves to English even on a Spanish device", language => {
+    storeLanguagePreference(language);
+    expect(readLanguagePreference()).toBe(language);
+    expect(resolveLanguagePreference(language, "es-MX")).toBe("en");
+    expect(localStorage.getItem(LANGUAGE_PREFERENCE_KEY)).toBe(language);
+  },
+);
+
+test.each(["unsupported", "{invalid}", "xx-XX"])("unsupported explicit %s is English, not device Auto", value => {
+  expect(resolveLanguagePreference(value, "es-MX")).toBe("en");
 });
 
 test("disabled storage does not break language resolution", () => {

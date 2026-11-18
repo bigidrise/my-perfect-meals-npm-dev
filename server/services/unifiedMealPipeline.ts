@@ -26,7 +26,7 @@ import {
   type RequestedMealMacroConstraint,
 } from './requestedMealMacros';
 import { parseGeneratedRecipeSteps } from './recipeInstructions';
-import { getMeasurementPromptBlock, MeasurementSystem } from '../../shared/units';
+import { getMeasurementPromptBlock, resolveMeasurementSystem, MeasurementSystem } from '../../shared/units';
 import { loadUserProtocolEnvelope, loadGenerationProtocolEnvelope, ProtocolContextUnavailableError, enforceBeforeGenerate, scanGeneratedOutput, filterMealsByProtocol, buildGuestEnvelope, deriveProcedureRules, type UserProtocolEnvelope } from './protocolEnvelope';
 import { buildVegetableStrategyPrompt, NutritionStrategyContext, buildStrictModeBlock } from './promptBuilder';
 import { getDeterministicFallback, findMatchingTemplates, templateToMeal } from './templateMatcher';
@@ -2250,6 +2250,7 @@ export async function generateCravingMealOptions(
         specialtyConditions: users.specialtyConditions,
         oncologySupportContext: users.oncologySupportContext,
         measurementSystem: users.measurementSystem,
+        countryCode: users.countryCode,
       }).from(users).where(eq(users.id, userId)).limit(1);
 
       dietRestrictions = (u?.dietaryRestrictions as string[]) || [];
@@ -2257,7 +2258,7 @@ export async function generateCravingMealOptions(
         const ignoredDiets = new Set(overriddenDietaryIdentities.map(value => value.trim().toLowerCase()));
         dietRestrictions = dietRestrictions.filter(value => !ignoredDiets.has(value.trim().toLowerCase()));
       }
-      varietyMeasurementSystem = ((u?.measurementSystem as MeasurementSystem) ?? "imperial");
+      varietyMeasurementSystem = resolveMeasurementSystem(u?.measurementSystem, u?.countryCode);
 
       // Store oncology fields for the activation check below
       _varietySpecialtyCondition = u?.specialtyCondition ?? null;

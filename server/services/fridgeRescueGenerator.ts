@@ -1,3 +1,4 @@
+import { resolveMeasurementSystem } from "@shared/units";
 import OpenAI from 'openai';
 import { getLanguageInstruction } from '../utils/languageInstruction';
 import { getMeasurementPromptBlock } from '../../shared/units';
@@ -207,7 +208,9 @@ function getMedicalBadges(meal: any, userConditions: string[] = []): Array<{
 }
 
 export async function generateFridgeRescueMeals(request: FridgeRescueRequest): Promise<FridgeRescueMeal[]> {
-  const { fridgeItems, user, servings = 2, macroTargets, skipPalate, palatePrefs, strictMode = false, protocolEnvelope, builderBlock, measurementSystem = "imperial" } = request;
+  const { fridgeItems, user, servings = 2, macroTargets, skipPalate, palatePrefs, strictMode = false, protocolEnvelope, builderBlock,
+    measurementSystem = protocolEnvelope?.measurementSystem ?? resolveMeasurementSystem(user?.measurementSystem, user?.countryCode),
+  } = request;
   const requestedCount = Math.max(1, Math.min(3, Math.trunc(request.count || 3)));
   const excludedMealBlock = request.excludedMeals?.length
     ? `\nDo not repeat these already accepted meals or rename the same recipe: ${JSON.stringify(request.excludedMeals)}\n`
@@ -366,7 +369,7 @@ Every ingredient MUST use a precise, measurable quantity. No vague units. No gue
 - Liquids (milk, broth, beverages): cup or fl oz — e.g. {"name": "chicken broth", "amount": 8, "unit": "fl oz"}
 - Spices / seasonings: tsp — e.g. {"name": "garlic powder", "amount": 0.5, "unit": "tsp"}
 FORBIDDEN UNITS — NEVER use: "each", "piece", "pieces", "serving", "servings", "handful", "unit", "units", "medium", "large", "small" as a unit
-${getMeasurementPromptBlock(measurementSystem as "imperial" | "metric")}
+${getMeasurementPromptBlock(measurementSystem)}
 
 CARB CLASSIFICATION RULES (CRITICAL):
 - starchyCarbs: Energy-dense carbs from rice, pasta, bread, potatoes, grains, beans, corn, peas

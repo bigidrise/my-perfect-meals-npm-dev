@@ -1,3 +1,7 @@
+import { convertWeightLbsDisplay } from "@shared/units";
+import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
+import { useTranslation } from "react-i18next";
+import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect, useMemo } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -125,6 +129,14 @@ function build90DayData(history: WeightRow[]): { label: string; avg: number }[] 
 }
 
 export default function ProClientWeightSnapshot({ clientId }: ProClientWeightSnapshotProps) {
+  const { user } = useAuth();
+  return <AccountClientWeightSnapshot key={`${user?.id}:${clientId}`} clientId={clientId} />;
+}
+
+function AccountClientWeightSnapshot({ clientId }: ProClientWeightSnapshotProps) {
+  const { t } = useTranslation("measurementPreferences");
+  const system = useMeasurementSystem();
+  const displayWeight = (value: number) => convertWeightLbsDisplay(value, system);
   const [weightHistory, setWeightHistory] = useState<WeightRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -272,7 +284,7 @@ export default function ProClientWeightSnapshot({ clientId }: ProClientWeightSna
           <span className={`text-sm font-bold ${
             weeklyChange < 0 ? "text-emerald-400" : weeklyChange > 0 ? "text-red-400" : "text-white/50"
           }`}>
-            {weeklyChange > 0 ? "+" : ""}{weeklyChange} lb this week
+            {t("weekQuantity", { quantity: `${weeklyChange > 0 ? "+" : ""}${displayWeight(weeklyChange)}` })}
           </span>
           <span className={`text-[10px] ${
             weeklyChange < 0 ? "text-emerald-400/60" : weeklyChange > 0 ? "text-red-400/60" : "text-white/30"
@@ -290,7 +302,7 @@ export default function ProClientWeightSnapshot({ clientId }: ProClientWeightSna
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-center">
         <div>
           <p className="text-sm font-bold text-white">
-            {latestWeight != null ? `${latestWeight} lb` : "—"}
+            {latestWeight != null ? displayWeight(latestWeight) : "—"}
           </p>
           <p className="text-[10px] text-white/40">Current</p>
           {lastWeighIn && (
@@ -309,7 +321,7 @@ export default function ProClientWeightSnapshot({ clientId }: ProClientWeightSna
                   <TrendingUp className="w-3 h-3 text-red-400" />
                 ) : null}
                 <span className={weeklyChange < 0 ? "text-emerald-400" : weeklyChange > 0 ? "text-red-400" : "text-white/50"}>
-                  {weeklyChange > 0 ? "+" : ""}{weeklyChange} lb
+                  {weeklyChange > 0 ? "+" : ""}{displayWeight(weeklyChange)}
                 </span>
               </span>
             ) : (
@@ -328,7 +340,7 @@ export default function ProClientWeightSnapshot({ clientId }: ProClientWeightSna
                   <TrendingUp className="w-3 h-3 text-red-400" />
                 ) : null}
                 <span className={totalChange < 0 ? "text-emerald-400" : totalChange > 0 ? "text-red-400" : "text-white/50"}>
-                  {totalChange > 0 ? "+" : ""}{totalChange} lb
+                  {totalChange > 0 ? "+" : ""}{displayWeight(totalChange)}
                 </span>
               </span>
             ) : (
@@ -363,13 +375,13 @@ export default function ProClientWeightSnapshot({ clientId }: ProClientWeightSna
           {weeklyData.slice().reverse().map((w, i) => (
             <div key={w.label} className="grid grid-cols-3 text-[10px] px-1 py-0.5">
               <span className="text-white/60">{w.weekLabel}</span>
-              <span className="text-right text-white font-medium">{w.avg} lb</span>
+              <span className="text-right text-white font-medium">{displayWeight(w.avg)}</span>
               <span className={`text-right font-medium ${
                 w.change == null ? "text-white/30" :
                 w.change < 0 ? "text-emerald-400" :
                 w.change > 0 ? "text-red-400" : "text-white/50"
               }`}>
-                {w.change == null ? "—" : `${w.change > 0 ? "+" : ""}${w.change}`}
+                {w.change == null ? "—" : `${w.change > 0 ? "+" : ""}${displayWeight(w.change)}`}
               </span>
             </div>
           ))}
@@ -387,6 +399,7 @@ export default function ProClientWeightSnapshot({ clientId }: ProClientWeightSna
                 tickFormatter={formatTickLabel}
               />
               <YAxis
+                tickFormatter={value => displayWeight(Number(value))}
                 tick={{ fontSize: 9, fill: "#fff" }}
                 domain={["dataMin - 2", "dataMax + 2"]}
               />
@@ -399,7 +412,7 @@ export default function ProClientWeightSnapshot({ clientId }: ProClientWeightSna
                   fontSize: 11,
                 }}
                 labelFormatter={formatTooltipLabel}
-                formatter={(value: number) => [`${value} lb`, view === "daily" ? "Weight" : "Avg Weight"]}
+                formatter={(value: number) => [displayWeight(value), view === "daily" ? "Weight" : "Avg Weight"]}
               />
               <Line
                 type="monotone"

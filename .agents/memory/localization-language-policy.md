@@ -15,11 +15,11 @@ The product goal is a consistent Spanish experience across every applicable supp
 
 **How to apply:** Keep interface, generated content, professional workflows, and delivery channels within their approved phase. Never interpret an interface phase as authorization to change clinical or nutrition rules.
 
-Current authorized implementation and translation work concentrates on English and Spanish. Preserve existing translations and support for other languages, but do not undertake French, German, Arabic, Japanese or other-language completion.
+Current release customer-selectable languages are only Automatic, English and Español. Automatic supports only English/Spanish, with English fallback for other device languages. Unsupported saved languages display English without rewriting their account value. Preserve dormant language definitions, resources and code for future activation.
 
-**Why:** The founder explicitly said they are not paying to complete other languages right now.
+**Why:** The founder explicitly limited current release choices to EN/ES and required the smallest change to the existing Language page and system, not another selector, engine or page.
 
-**How to apply:** Limit new translation and broad journey-verification work to English/Spanish. Document other-language limitations without silently expanding the work or weakening release checks.
+**How to apply:** Keep language separate from measurement/country. Filter customer choices through existing preference resolution, retain raw saved unsupported intent until an explicit user selection, and describe interface language rather than AI alone. Keep an accurate incomplete-Spanish footer until coverage is verified. Report overlap with measurement or Spanish tasks before editing overlapping code; never weaken release checks.
 
 For newly scoped consumer copy, an additive English/Spanish namespace with ordinary English fallback is preferable to filling sibling locales with untranslated placeholders.
 

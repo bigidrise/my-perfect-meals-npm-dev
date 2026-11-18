@@ -13,6 +13,7 @@ import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 import { builderMealMacros, formatBuilderMacro, type BuilderMacroKey } from "@/lib/builderMacroCalculation";
 import TrashButton from "@/components/ui/TrashButton";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
+import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
 import MealCardActions, { MealCardAction } from "@/components/MealCardActions";
 import { StarchMealBadge } from "@/components/StarchMealBadge";
 import DietStyleBadge from "@/components/DietStyleBadge";
@@ -166,6 +167,7 @@ export function MealCard({
   onRefined?:   () => void;
 }) {
   const { t } = useTranslation("mealCard");
+  const measurementSystem = useMeasurementSystem();
   const storedDiabeticMemory = meal.diabeticMemory ?? diabeticMemoryContext;
   const { toast } = useToast();
   const { user } = useAuth();
@@ -487,7 +489,7 @@ export function MealCard({
                 
                 // Use formatIngredientWithGrams for proper display
                 const ingDisplayText = (qty && unit)
-                  ? formatIngredientWithGrams(qty, unit, name)
+                  ? formatIngredientWithGrams(qty, unit, name, measurementSystem)
                   : qty
                     ? `${qty} ${name}`.trim()
                     : name;

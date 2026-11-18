@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PillButton } from "@/components/ui/pill-button";
 import { useToast } from "@/hooks/use-toast";
+import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
+import { useTranslation } from "react-i18next";
+import { parseMeasurementNumber } from "@shared/units";
 import {
   createWaterLog,
   getWaterLogs,
@@ -25,9 +28,27 @@ type Unit = "oz" | "ml";
 type BeverageClass = (typeof BEVERAGES)[number][0];
 
 export function BasicHydrationLogger({ userId }: { userId: string }) {
+  return <AccountBasicHydrationLogger key={userId} userId={userId} />;
+}
+
+function AccountBasicHydrationLogger({ userId }: { userId: string }) {
+  const { t } = useTranslation("measurementPreferences");
   const { toast } = useToast();
-  const [amount, setAmount] = useState("8");
-  const [unit, setUnit] = useState<Unit>("oz");
+  const system = useMeasurementSystem();
+  const [amount, setAmount] = useState(system === "metric" ? String(8 * ML_PER_OUNCE) : "8");
+  const [unit, setUnit] = useState<Unit>(system === "metric" ? "ml" : "oz");
+  const changeInputUnit = (nextUnit: Unit) => {
+    if (nextUnit === unit) return;
+    const numeric = parseMeasurementNumber(amount);
+    // Keep invalid/unfinished text bound to its old explicit unit.
+    if (amount.trim() && numeric === null) return;
+    if (numeric !== null) setAmount(String(nextUnit === "ml" ? numeric * ML_PER_OUNCE : numeric / ML_PER_OUNCE));
+    setUnit(nextUnit);
+  };
+  useEffect(() => {
+    changeInputUnit(system === "metric" ? "ml" : "oz");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [system]);
   const [beverageClass, setBeverageClass] = useState<BeverageClass>("water");
   const [items, setItems] = useState<WaterLogRow[]>([]);
   const [localDate, setLocalDate] = useState("");
@@ -62,8 +83,8 @@ export function BasicHydrationLogger({ userId }: { userId: string }) {
   );
 
   const submit = async () => {
-    const numericAmount = Number(amount);
-    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+    const numericAmount = parseMeasurementNumber(amount);
+    if (numericAmount === null || numericAmount <= 0) {
       toast({
         title: "Enter a fluid amount",
         description: "Use a number greater than zero.",
@@ -90,6 +111,8 @@ export function BasicHydrationLogger({ userId }: { userId: string }) {
     }
   };
 
+  const totalDisplay = system === "metric" ? `${Math.round(todayTotalMl)} mL` : `${Math.round(todayTotalMl / ML_PER_OUNCE)} ${t("fluidOunces")}`;
+  const showMilliliters = !loading && system === "imperial";
   return (
     <div className="rounded-2xl border border-sky-300/20 bg-sky-500/10 p-4" data-testid="basic-hydration-logger">
       <div className="flex items-start justify-between gap-4">
@@ -105,9 +128,9 @@ export function BasicHydrationLogger({ userId }: { userId: string }) {
         <div className="shrink-0 text-right">
           <p className="text-xs uppercase tracking-wide text-white/70">Today</p>
           <p className="text-lg font-bold text-white" data-testid="basic-hydration-total">
-            {loading ? "—" : `${Math.round(todayTotalMl / ML_PER_OUNCE)} oz`}
+            {loading ? "—" : totalDisplay}
           </p>
-          {!loading && <p className="text-xs text-white/70">{todayTotalMl.toLocaleString()} mL</p>}
+          {showMilliliters && <p className="text-xs text-white/70">{todayTotalMl.toLocaleString()} mL</p>}
         </div>
       </div>
 
@@ -145,10 +168,10 @@ export function BasicHydrationLogger({ userId }: { userId: string }) {
               type="button"
               active={unit === value}
               variant="sky"
-              onClick={() => setUnit(value)}
+              onClick={() => changeInputUnit(value)}
               data-testid={`basic-hydration-unit-${value}`}
             >
-              {value}
+              {value === "oz" ? t("fluidOunces") : value}
             </PillButton>
           ))}
         </div>

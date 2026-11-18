@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import AppRouter from "@/components/AppRouter";
 import { clearAuthToken } from "@/lib/auth";
@@ -88,6 +88,51 @@ test("cookie restoration applies saved Spanish and stores only a language hint",
   expect(i18n.changeLanguage).toHaveBeenCalledWith("es");
   expect(localStorage.getItem(LANGUAGE_PREFERENCE_KEY)).toBe("es");
   expect(fetch).toHaveBeenCalledTimes(1);
+});
+
+test("restoration keeps saved country/Auto units independent from an unsupported language", async () => {
+  const device = jest.spyOn(navigator, "language", "get").mockReturnValue("es-MX");
+  (fetch as jest.Mock).mockResolvedValue({
+    ok: true, json: async () => ({
+      id: "synthetic-preferences", preferredLanguage: "zh",
+      measurementSystem: "auto", countryCode: "CA",
+    }),
+  });
+  render(<AuthProvider><Identity /></AuthProvider>);
+  await screen.findByText("synthetic-preferences:ordinary");
+  expect(mockCachedUser).toEqual(expect.objectContaining({
+    preferredLanguage: "zh", measurementSystem: "auto", countryCode: "CA",
+  }));
+  expect(i18n.language).toBe("en");
+  expect(i18n.changeLanguage).not.toHaveBeenCalledWith("es");
+  expect(localStorage.getItem(LANGUAGE_PREFERENCE_KEY)).toBe("zh");
+  expect(fetch).toHaveBeenCalledTimes(1);
+  device.mockRestore();
+});
+
+test.each([false, true])("late initialization cannot clear or replace the next account's units (cached=%s)", async cached => {
+  const oldAccount = { id: "synthetic-old", measurementSystem: "imperial", countryCode: "US" };
+  const nextAccount = { id: "synthetic-next", measurementSystem: "metric", countryCode: "NZ" };
+  mockCachedUser = cached ? oldAccount : null;
+  let deliver!: (response: unknown) => void;
+  (fetch as jest.Mock).mockReturnValue(new Promise(resolve => { deliver = resolve; }));
+  let context: any;
+  function PreferenceProbe() {
+    context = useAuth();
+    return <span>{context.user?.id ?? "anonymous"}</span>;
+  }
+  render(<AuthProvider><PreferenceProbe /></AuthProvider>);
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+  await act(async () => {
+    mockCachedUser = nextAccount;
+    context.setUser(nextAccount);
+    deliver({ ok: true, json: async () => oldAccount });
+  });
+  expect(context.user).toEqual(nextAccount);
+  expect(mockCachedUser).toEqual(nextAccount);
+  expect(context.initializationError).toBe(false);
+  expect(context.loading).toBe(false);
+  expect(screen.getByText("synthetic-next")).toBeTruthy();
 });
 
 test("Auto uses the device language without PATCHing an explicit preference", async () => {

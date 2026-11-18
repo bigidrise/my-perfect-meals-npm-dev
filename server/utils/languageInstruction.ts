@@ -8,6 +8,7 @@
  */
 
 import { AsyncLocalStorage } from "node:async_hooks";
+import { isCustomerLanguage, resolveLanguagePreference } from "../../client/src/i18n/languagePreference";
 
 const requestLanguage = new AsyncLocalStorage<string | undefined>();
 
@@ -20,17 +21,14 @@ export function requestLanguageContext(
   const header = req.headers["x-mpm-ui-language"];
   const base = typeof header === "string" && /^[a-z]{2}(?:-[a-z0-9]{2,8})?$/i.test(header)
     ? header.split("-")[0].toLowerCase() : undefined;
-  const language = base && (base === "en" || Object.prototype.hasOwnProperty.call(LANGUAGE_NAMES, base))
+  const language = base && isCustomerLanguage(base)
     ? base : undefined;
   requestLanguage.run(language, next);
 }
 
 /** Resolves presentation only; callers must never save this as the user's choice. */
 export function resolveRequestLanguagePreference(preference: string | null | undefined): string {
-  if (!preference || preference === "auto" || preference === "null") {
-    return requestLanguage.getStore() ?? "en";
-  }
-  return preference.split("-")[0].toLowerCase();
+  return resolveLanguagePreference(preference, requestLanguage.getStore() ?? "en");
 }
 
 const LANGUAGE_NAMES: Record<string, string> = {

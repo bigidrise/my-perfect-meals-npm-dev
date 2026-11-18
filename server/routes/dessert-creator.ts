@@ -1,3 +1,4 @@
+import { resolveMeasurementSystem } from "@shared/units";
 // --- server/routes/dessert-creator.ts ---
 // Dessert Creator Route - RESTRUCTURED (December 9, 2025)
 // New 5-field structure: Category, Flavor Family, Specific Dessert, Serving Size, Dietary
@@ -241,6 +242,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
           medicalConditions: users.medicalConditions,
           dietaryRestrictions: users.dietaryRestrictions,
           measurementSystem: users.measurementSystem,
+          countryCode: users.countryCode,
           preferredSweeteners: users.preferredSweeteners,
           avoidSweeteners: users.avoidSweeteners,
           sweetenerPreferences: users.sweetenerPreferences,
@@ -248,7 +250,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
         
         if (user) {
           userDietaryRestrictions = (user.dietaryRestrictions as string[]) || [];
-          dessertMeasurementSystem = (user.measurementSystem as MeasurementSystem) ?? "imperial";
+          dessertMeasurementSystem = resolveMeasurementSystem(user.measurementSystem, user.countryCode);
           if (!skipPalate && (user.flavorPreference || user.heatPreference || user.palateSpiceTolerance || user.palateSeasoningIntensity || user.palateFlavorStyle)) {
             const palatePrefs: PalatePreferences = {
               palateSpiceTolerance: user.palateSpiceTolerance as PalatePreferences['palateSpiceTolerance'],

@@ -264,7 +264,7 @@ router.post("/api/auth/signup", async (req, res) => {
     // record was claimed by another request, the user insert rolls back rather
     // than issuing an untracked 30-day entitlement.
     const newUser = await createWithUniqueSignupUsername(userValues.username, username => db.transaction(async (tx) => {
-      const [createdUser] = await tx.insert(users).values({ ...userValues, username }).returning();
+      const [createdUser] = await tx.insert(users).values({ ...userValues, username, measurementSystem: "auto" }).returning();
       if (clinicPilotToken) {
         await enrollClinicPatientInTransaction(tx, clinicPilotToken, createdUser.id);
       }

@@ -1,5 +1,6 @@
 // server/services/mealEngineService.ts
 import { buildMealPrompt } from "./promptBuilder";
+import { resolveMeasurementSystem } from "@shared/units";
 import {
   validateMeal,
   ValidationConfig,
@@ -170,7 +171,7 @@ async function fetchOnboardingProfile(
     palateSpiceTolerance: (p?.palateSpiceTolerance as any) || "mild",
     palateSeasoningIntensity: (p?.palateSeasoningIntensity as any) || "balanced",
     palateFlavorStyle: (p?.palateFlavorStyle as any) || "classic",
-    measurementSystem: ((p as any)?.measurementSystem as "imperial" | "metric") ?? "imperial",
+    measurementSystem: resolveMeasurementSystem(p?.measurementSystem, p?.countryCode),
   };
 }
 

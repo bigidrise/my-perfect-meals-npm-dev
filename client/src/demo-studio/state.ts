@@ -1,4 +1,5 @@
 import type { User } from "@/lib/auth";
+import { resolveMeasurementSystem } from "@shared/units";
 import { assertSyntheticIdentity } from "./authority";
 import { macroCalculatorStorageKeys } from "@/lib/macroCalculatorResume";
 import { demoDestination, blockedDestination } from "./navigation";
@@ -84,7 +85,7 @@ function seedCalculatorFromProfile(state: DemoState) {
   const goal = ["lose", "loss", "lose_weight", "weight_loss"].includes(profileGoal) ? "loss"
     : ["gain", "gain_weight", "weight_gain"].includes(profileGoal) ? "gain" : "maint";
   state.local[keys.settings] = JSON.stringify({
-    goal, units: u.measurementSystem ?? "imperial", sex: u.sex ?? "male",
+    goal, units: resolveMeasurementSystem(u.measurementSystem, u.countryCode), sex: u.sex ?? "male",
     age: Number(u.age ?? 42), heightFt: Math.floor(inches / 12), heightIn: inches % 12,
     heightCm: cm, weightKg: kg, weightLbs: Math.round(kg / .45359237),
     activity: u.activityLevel ?? "moderate", bodyType: "meso", userType: "flexible",

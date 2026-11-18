@@ -1,4 +1,5 @@
 import { assertPregnancyRecommendationsAvailable } from "@shared/pregnancyAvailability";
+import { resolveMeasurementSystem } from "@shared/units";
 import { resolveRequestLanguagePreference } from "../utils/languageInstruction";
 /**
  * protocolEnvelope.ts
@@ -947,6 +948,7 @@ export async function loadUserProtocolEnvelope(
         thyroidType: (users as any).thyroidType,
         activeHouseholdProfileId: (users as any).activeHouseholdProfileId,
         measurementSystem: users.measurementSystem,
+        countryCode: users.countryCode,
         fitnessGoal: users.fitnessGoal,
         goalType: (users as any).goalType,
         goalTarget: (users as any).goalTarget,
@@ -1649,7 +1651,7 @@ export async function loadUserProtocolEnvelope(
       thyroidMedication,
       thyroidType,
       hormoneOptimization,
-      measurementSystem: ((user as any).measurementSystem as "imperial" | "metric") ?? "imperial",
+      measurementSystem: resolveMeasurementSystem(user.measurementSystem, user.countryCode),
       fitnessGoal: (user.fitnessGoal as string | null) ?? null,
       goalType: ((user as any).goalType as "lose" | "maintain" | "gain" | null) ?? null,
       goalTarget: ((user as any).goalTarget as string | null) ?? null,
