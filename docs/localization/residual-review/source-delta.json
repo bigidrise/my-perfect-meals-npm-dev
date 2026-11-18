@@ -1,0 +1,119 @@
+{
+  "snapshotOwners": 1300,
+  "changedOwners": [
+    {
+      "owner": "client/src/buildVersion.ts",
+      "previousSha256": "2a71bc8a09b93c44d492bdca08f6487b3fc5cfc860b5a0f3792bb96360a07944",
+      "currentSha256": "2f0bc4e1a375f168584e2d03838f2e829cfef1ebe8a3e7c5d52dc152bf9ca00d"
+    },
+    {
+      "owner": "client/src/components/AddOtherItems.tsx",
+      "previousSha256": "fe18dfa2695ded2a2b061acaa3a48c5f6fcd11b011b7291933ced6b39821913e",
+      "currentSha256": "d2ce848baa7412d91a47f1c34ac3454ffbccd75a32d671d6f336142ee82fadf2"
+    },
+    {
+      "owner": "client/src/components/BuilderShoppingBar.tsx",
+      "previousSha256": "48ba483247ef8c98a203223ff1627e5648ef084516822ab4004cea26e24775c4",
+      "currentSha256": "43c08cc547198a6c0ff2fbcd9b153104463826c650879a0ae988d02c2520540c"
+    },
+    {
+      "owner": "client/src/components/FlavorToggle.tsx",
+      "previousSha256": "b5f8a1d6b48fc55f5a5925e564ca65f2af2c5949af9dd761c9f00aec1463b778",
+      "currentSha256": "317320b94fd0a83b91597ff92dd515b5d1b435cd9ccf98de83a7598db3001321"
+    },
+    {
+      "owner": "client/src/components/InspirationCaptureModal.tsx",
+      "previousSha256": "35812ada3909fb0c23d59d5ae4115bbf80f925c0f88b1b80b5902dcdb938ec2a",
+      "currentSha256": "37d76ee917ca50e99f474038fac5d48cece88d65cc7fd9a6aea591a8bd1cf0b6"
+    },
+    {
+      "owner": "client/src/components/KeepItSimpleToggle.tsx",
+      "previousSha256": "6229ddf27017cfffd7402f560bde9fddfa042727874a0625634a9c82ffe10e16",
+      "currentSha256": "434b6bd8e0d61bb4f66f9d88608c4033a3bce8b99d4cee561b8732a6051ceb73"
+    },
+    {
+      "owner": "client/src/components/MobileBarcodeCamera.tsx",
+      "previousSha256": "326a15b51c4184e08dda238b58fd7e777f09f38d760b98781a1b7056b2cf4020",
+      "currentSha256": "825beb4f8fcb069f1df9e8ede9a6b74d22f81646ea78c817097b0f0766163694"
+    },
+    {
+      "owner": "client/src/components/UniversalMealCardFooter.tsx",
+      "previousSha256": "04a52c245a997f2f8405789484bdc5ecedaac4cf67bad9d3efea52006e733cbe",
+      "currentSha256": "d3b4bfc3bf1318f864f2fbb6dfc90b67c651d9cd2ea0e9279c732c68ed98519f"
+    },
+    {
+      "owner": "client/src/components/shopping/BarcodeScanButton.tsx",
+      "previousSha256": "fb60d07c801d701ee635a459529056912f4a26f17b35230a625adbb763adbe54",
+      "currentSha256": "03076f924685688b53b4d92d48b007d26a2a62ebe18f4cc0d26d683d83c59363"
+    },
+    {
+      "owner": "client/src/components/shopping/GroceryStoreCoachSheet.tsx",
+      "previousSha256": "b2303df9c0b7b5fd7d270d39fc09b8438a7501252c8f14cecdcf706faf9a665d",
+      "currentSha256": "26e78b3fc5222a149a7eec30223bc0a81c46c8be21647687fc4ca1681e4ee0bd"
+    },
+    {
+      "owner": "client/src/components/shopping/VoiceShoppingModal.tsx",
+      "previousSha256": "84a95fd9a9e7a0317c7bdc2e8a6e531857101b8bbe96e74a6a84ecba57f5fc5a",
+      "currentSha256": "2ce8057290c1ce97317e25c4f571bb2888a6df8e16c100eb3cc61b382824ff97"
+    },
+    {
+      "owner": "client/src/components/voice/VoiceInputButton.tsx",
+      "previousSha256": "5098f28b9f5d11edc13e21faa9c1bb70389f054fba6a437a0af35c49ee685c90",
+      "currentSha256": "7fc43993baf0595e4fa434f6f43f938f62a11e9a30656a5fbf93052f236f815d"
+    },
+    {
+      "owner": "client/src/hooks/useMealGenerationProgress.ts",
+      "previousSha256": "3d2fb28491d6d98ad61d6d398a4caf0e8a944f217c615c002c1f2047f03b42cc",
+      "currentSha256": "701475c13ebc50f303f8684ae2444158d8f8ed1cb1c8da9b82a2657192b6f55e"
+    },
+    {
+      "owner": "client/src/i18n/consumerJourney.ts",
+      "previousSha256": "81222741c6c2706cbe6cbecbec4c3c7703a9a5756c259f56011e9dc4baad6ba3",
+      "currentSha256": "25f271e96854cb029a2ad7597004588a258f7bd9f133e1401cc3429e5fab7d4d"
+    },
+    {
+      "owner": "client/src/i18n/useConsumerCopy.ts",
+      "previousSha256": "e04eb42cc9869915114852e956f35626aee5baa7ace444c19547f194768ea37b",
+      "currentSha256": "761525a6d70041a5d313a76988f646e9c6879853468957a9ca75bb66d80e7696"
+    },
+    {
+      "owner": "client/src/pages/Learn.tsx",
+      "previousSha256": "99da52fc4f8ec5e9843c343b209f8717cdcee74038b4cb0c5ea36d888449adc8",
+      "currentSha256": "fe3a30eb09886113fba58e2630f2cfb40270a7a3d7df2bbb1641bea6baeaa26f"
+    },
+    {
+      "owner": "client/src/pages/ShoppingListMasterView.tsx",
+      "previousSha256": "f14a8063359aa9399b1faef5f01de90f1c55f13d0507902e44a6c2c5fc699226",
+      "currentSha256": "cbd02bf0461278aa138ffc16831f04221e1236950a7b3b7fbff829d683a801eb"
+    },
+    {
+      "owner": "client/src/pages/lifestyle/CreateDishPage.tsx",
+      "previousSha256": "8791983df6962649070aefde79f5d64da76bb8de369252093ebe74d6594c710b",
+      "currentSha256": "dcfb9544a0b1b7e33dd3aa1e445c19f82b02aaaffa48f8a6aafcdb7cca93e8e4"
+    }
+  ],
+  "missingOwners": [],
+  "generatedSnapshotChanges": [
+    {
+      "owner": "client/src/buildVersion.ts",
+      "previousSha256": "2a71bc8a09b93c44d492bdca08f6487b3fc5cfc860b5a0f3792bb96360a07944",
+      "currentSha256": "2f0bc4e1a375f168584e2d03838f2e829cfef1ebe8a3e7c5d52dc152bf9ca00d"
+    }
+  ],
+  "changedNonGeneratedSnapshotOwners": 17,
+  "newConnectedFoodResource": {
+    "owner": "client/src/i18n/foodWorkflowCopy.ts",
+    "sha256": "bb4834df3903e3236265e1c13ff8098d60ad048d96e8f7260db790a1adab235b"
+  },
+  "unchangedRouteRegistrationOwners": [
+    {
+      "owner": "client/src/components/Router.tsx",
+      "unchanged": true
+    },
+    {
+      "owner": "client/src/components/AppRouter.tsx",
+      "unchanged": true
+    }
+  ],
+  "caveat": "No rerun of broad discovery, no new active-route denominator or runtime reachability inference."
+}

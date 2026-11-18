@@ -1,0 +1,652 @@
+[
+  {
+    "owner": "client/src/components/shopping/SavedGroceriesSheet.tsx",
+    "sourceSha256": "e0a1541b7f0b3c0dba0bbf1e69cf57ebee070538720c90b29b97350acc4ae3f7",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 25,
+    "exactCandidateSamples": [
+      {
+        "text": "Saved Groceries",
+        "kind": "jsx-text",
+        "line": 382,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "saved",
+        "kind": "jsx-text",
+        "line": 384,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "· remembered across sessions",
+        "kind": "jsx-text",
+        "line": 384,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Search saved groceries",
+        "kind": "placeholder",
+        "line": 413,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Search saved groceries",
+        "kind": "aria-label",
+        "line": 414,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "shown ·",
+        "kind": "jsx-text",
+        "line": 425,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "selected",
+        "kind": "jsx-text",
+        "line": 425,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Choose the products you want to buy. Selections stay selected when you search.",
+        "kind": "jsx-text",
+        "line": 428,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Loading saved groceries…",
+        "kind": "jsx-text",
+        "line": 449,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "No saved groceries yet",
+        "kind": "jsx-text",
+        "line": 468,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "When Grocery Coach recommends a brand you like,",
+        "kind": "jsx-text",
+        "line": 471,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "tap the bookmark icon to save it here.",
+        "kind": "jsx-text",
+        "line": 472,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "No saved groceries match your search.",
+        "kind": "jsx-text",
+        "line": 479,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Analysis",
+        "kind": "jsx-text",
+        "line": 536,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Remove from saved groceries",
+        "kind": "title",
+        "line": 545,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Delete",
+        "kind": "jsx-text",
+        "line": 557,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Package:",
+        "kind": "jsx-text",
+        "line": 603,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Saving analysis does not verify the current label. Historical analysis is not current safety approval.",
+        "kind": "jsx-text",
+        "line": 606,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "An ingredient photo alone cannot establish independent certification.",
+        "kind": "jsx-text",
+        "line": 607,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "Evidence version",
+        "kind": "jsx-text",
+        "line": 608,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Evidence version",
+        "kind": "aria-label",
+        "line": 609,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Current saved analysis",
+        "kind": "jsx-text",
+        "line": 610,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Previous evidence",
+        "kind": "jsx-text",
+        "line": 611,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Scan current ingredient label",
+        "kind": "jsx-text",
+        "line": 616,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Retry current profile check",
+        "kind": "jsx-text",
+        "line": 619,
+        "review": "ordinary-display-candidate"
+      }
+    ],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": [
+      382,
+      384,
+      384,
+      413,
+      414,
+      425,
+      425,
+      428,
+      449,
+      468,
+      471,
+      472,
+      479,
+      536,
+      545,
+      557,
+      603,
+      606,
+      607,
+      608,
+      609,
+      610,
+      611,
+      616,
+      619
+    ]
+  },
+  {
+    "owner": "client/src/components/shopping/SavedGroceryEvidenceUpdate.tsx",
+    "sourceSha256": "e8e5247586a6a36f6313de9801655118b5c0c35b5a0dba2eef8160c6dc4af96e",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 11,
+    "exactCandidateSamples": [
+      {
+        "text": "Update label evidence:",
+        "kind": "jsx-text",
+        "line": 59,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "This does not grant safety approval. Your previous evidence is retained; current profile checks still apply.",
+        "kind": "jsx-text",
+        "line": 60,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "Scanned product:",
+        "kind": "jsx-text",
+        "line": 61,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Optional label fat (g per serving)",
+        "kind": "jsx-text",
+        "line": 62,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Label fat",
+        "kind": "aria-label",
+        "line": 63,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Optional label carbohydrates (g per serving)",
+        "kind": "jsx-text",
+        "line": 65,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Label carbohydrates",
+        "kind": "aria-label",
+        "line": 66,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Serving size exactly as shown on the label",
+        "kind": "jsx-text",
+        "line": 68,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Label serving basis",
+        "kind": "aria-label",
+        "line": 69,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "I confirm this is the current ingredient label for this exact brand and product.",
+        "kind": "jsx-text",
+        "line": 72,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Cancel update",
+        "kind": "jsx-text",
+        "line": 78,
+        "review": "ordinary-display-candidate"
+      }
+    ],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": [
+      59,
+      60,
+      61,
+      62,
+      63,
+      65,
+      66,
+      68,
+      69,
+      72,
+      78
+    ]
+  },
+  {
+    "owner": "client/src/components/biometrics/IngredientIntelligenceSheet.tsx",
+    "sourceSha256": "e225fd04a28f5ff7e4af16d2d9f7d3cbe5c744b3dd4bd51d24138a3643166c66",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 1,
+    "exactCandidateSamples": [
+      {
+        "text": "Temporary history on this device; not Saved Groceries",
+        "kind": "jsx-text",
+        "line": 1014,
+        "review": "ordinary-display-candidate"
+      }
+    ],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": [
+      1014
+    ]
+  },
+  {
+    "owner": "client/src/pages/Learn.tsx",
+    "sourceSha256": "fe3a30eb09886113fba58e2630f2cfb40270a7a3d7df2bbb1641bea6baeaa26f",
+    "snapshotHashUnchanged": false,
+    "candidateCount": 8,
+    "exactCandidateSamples": [
+      {
+        "text": "Read",
+        "kind": "jsx-text",
+        "line": 3230,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Listen",
+        "kind": "jsx-text",
+        "line": 3237,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "10s",
+        "kind": "jsx-text",
+        "line": 3264,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Next",
+        "kind": "jsx-text",
+        "line": 3268,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Sources",
+        "kind": "jsx-text",
+        "line": 3352,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Back",
+        "kind": "jsx-text",
+        "line": 3400,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "App Library",
+        "kind": "jsx-text",
+        "line": 3403,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Learn how My Perfect Meals works",
+        "kind": "jsx-text",
+        "line": 3405,
+        "review": "ordinary-display-candidate"
+      }
+    ],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": [
+      3230,
+      3237,
+      3264,
+      3268,
+      3352,
+      3400,
+      3403,
+      3405
+    ]
+  },
+  {
+    "owner": "client/src/pages/BusinessCenter.tsx",
+    "sourceSha256": "4897b2cb227066913a0f3f492091c7cad45abb0b3640de2074ed1dbeb0436674",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 0,
+    "exactCandidateSamples": [],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": []
+  },
+  {
+    "owner": "client/src/pages/BusinessCenterSection.tsx",
+    "sourceSha256": "93f7b374b87c96b5d9bc3f9e174bcb52d58e53a04d8dd8c161995ee9cbed2e12",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 0,
+    "exactCandidateSamples": [],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": []
+  },
+  {
+    "owner": "client/src/pages/pro/PhysicianPortal.tsx",
+    "sourceSha256": "1d717677c01580002d08bf9b9e760dc43891393c8e686197f09d361c9310de3a",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 1,
+    "exactCandidateSamples": [
+      {
+        "text": "Open Care Team",
+        "kind": "jsx-text",
+        "line": 95,
+        "review": "ordinary-display-candidate"
+      }
+    ],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": [
+      95
+    ]
+  },
+  {
+    "owner": "client/src/pages/pro/ProClientsPhysician.tsx",
+    "sourceSha256": "7726151e475e543bc9f5572236ea226dccc39d0eea737783ab27da22bd9efb27",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 0,
+    "exactCandidateSamples": [],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": []
+  },
+  {
+    "owner": "client/src/pages/procare/ProCareIdentity.tsx",
+    "sourceSha256": "9458033ec584e5713a5369a463b78d82e7896ce98f07f0e2dfbec6c2f31fbcc2",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 25,
+    "exactCandidateSamples": [
+      {
+        "text": "Back",
+        "kind": "jsx-text",
+        "line": 232,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "ProCare Professional",
+        "kind": "jsx-text",
+        "line": 238,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Professional Identity",
+        "kind": "jsx-text",
+        "line": 240,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Tell us about your professional role and credentials.",
+        "kind": "jsx-text",
+        "line": 242,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Your Professional Role",
+        "kind": "jsx-text",
+        "line": 248,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Your Credential Status",
+        "kind": "jsx-text",
+        "line": 274,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "License Information",
+        "kind": "jsx-text",
+        "line": 311,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "License Number",
+        "kind": "jsx-text",
+        "line": 316,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "License State",
+        "kind": "jsx-text",
+        "line": 333,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "e.g. CA, TX, NY",
+        "kind": "placeholder",
+        "line": 338,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Professional Credentials",
+        "kind": "jsx-text",
+        "line": 347,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "(optional — e.g. MD, DO, RD, RDN, NP, PA)",
+        "kind": "jsx-text",
+        "line": 348,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Certification Information",
+        "kind": "jsx-text",
+        "line": 371,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "All fields are optional for trainers and coaches.",
+        "kind": "jsx-text",
+        "line": 372,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Certification Body",
+        "kind": "jsx-text",
+        "line": 378,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "(optional)",
+        "kind": "jsx-text",
+        "line": 378,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "e.g. NASM, ISSA, ACE, ACSM…",
+        "kind": "placeholder",
+        "line": 385,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Certification Number",
+        "kind": "jsx-text",
+        "line": 414,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "(optional)",
+        "kind": "jsx-text",
+        "line": 414,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "e.g. CPT-123456",
+        "kind": "placeholder",
+        "line": 419,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Year Certified",
+        "kind": "jsx-text",
+        "line": 427,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "(optional)",
+        "kind": "jsx-text",
+        "line": 427,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "e.g. 2021",
+        "kind": "placeholder",
+        "line": 432,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Reload draft",
+        "kind": "jsx-text",
+        "line": 442,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Use locally entered information",
+        "kind": "jsx-text",
+        "line": 446,
+        "review": "ordinary-display-candidate"
+      }
+    ],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": [
+      232,
+      238,
+      240,
+      242,
+      248,
+      274,
+      311,
+      316,
+      333,
+      338,
+      347,
+      348,
+      371,
+      372,
+      378,
+      378,
+      385,
+      414,
+      414,
+      419,
+      427,
+      427,
+      432,
+      442,
+      446
+    ]
+  },
+  {
+    "owner": "client/src/pages/procare/ProCareWelcome.tsx",
+    "sourceSha256": "5eda348cf922eba843797ca3a1f518bf694b15a501fc1bd5f15161e1cd722c4b",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 7,
+    "exactCandidateSamples": [
+      {
+        "text": "Personal profile already complete — continuing to certification",
+        "kind": "jsx-text",
+        "line": 98,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "Welcome to My Perfect Meals Professional",
+        "kind": "jsx-text",
+        "line": 134,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Before you begin working with clients, every professional completes a three-step onboarding process.",
+        "kind": "jsx-text",
+        "line": 140,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Hear the full journey explained by Chef Copilot",
+        "kind": "jsx-text",
+        "line": 147,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Your Professional Journey",
+        "kind": "jsx-text",
+        "line": 155,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Why every professional begins with certification",
+        "kind": "jsx-text",
+        "line": 177,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "\"Every My Perfect Meals professional completes this certification before entering the Studio. Professionals who go through it are more confident, provide better client outcomes, and grow their businesses faster.\"",
+        "kind": "jsx-text",
+        "line": 191,
+        "review": "protected-review-candidate"
+      }
+    ],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": [
+      98,
+      134,
+      140,
+      147,
+      155,
+      177,
+      191
+    ]
+  }
+]
