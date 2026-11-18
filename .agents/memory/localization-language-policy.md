@@ -100,3 +100,15 @@ and Auto to remain a stored intent.
 status, without treating the hint as identity or permission. Keep verified
 account switching authoritative, fresh Spanish-device detection intact, and
 Auto distinct from its resolved EN/ES display language.
+
+A missing language on a temporary login/MFA identity is unknown, not an
+authoritative choice of Auto.
+
+**Why:** The real login-to-profile handoff briefly changed explicit Spanish to
+device English (and explicit English to device Spanish) before the canonical
+profile restored it. Anonymous hint retention alone did not prevent this.
+
+**How to apply:** Retain startup intent through incomplete login identities.
+Apply explicit EN/ES/Auto from the hydrated profile before paint; do not add a
+timeout, delay authentication, or promote the routing cache into profile
+authority merely to prevent the language flash.

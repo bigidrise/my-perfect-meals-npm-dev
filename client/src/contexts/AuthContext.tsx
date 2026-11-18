@@ -285,9 +285,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [refreshUser]);
 
   // Resolve before paint; never expose a new account in the prior account's locale.
-  // Anonymous screens retain the non-sensitive startup choice; only a verified user replaces it.
+  // Anonymous/partial login identities retain startup intent until the profile supplies a language.
   useLayoutEffect(() => {
-    if (!user) return;
+    if (!user || user.preferredLanguage == null) return;
     const preference = user?.preferredLanguage || "auto";
     storeLanguagePreference(preference);
     const lang = resolveI18nLang(preference);
