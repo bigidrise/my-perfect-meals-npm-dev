@@ -2754,6 +2754,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         palatePrefs: palatePrefs as any,
         strictMode: strictMode === true,
         protocolEnvelope: fridgeProtocolEnvelope,
+        preferredLanguage: fridgeProtocolEnvelope.preferredLanguage ?? undefined,
         builderBlock: combinedBuilderBlock,
         count, excludedMeals,
       });
@@ -7083,6 +7084,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
             storedAllergies: protocolEnvelope.allergies,
             dishDirective: _fallbackDirective,
+            preferredLanguage: protocolEnvelope.preferredLanguage,
           },
         );
         // HARD INVARIANT: never return a silently substituted dish. Validate

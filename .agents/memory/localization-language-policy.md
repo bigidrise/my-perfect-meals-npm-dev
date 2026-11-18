@@ -80,3 +80,9 @@ Copilot and voice-service removal require a reviewed dependency audit and explic
 **Why:** The founder requested the smallest safe way to remove unnecessary ElevenLabs narration while preserving essential text features and accessibility, and explicitly required review before removal.
 
 **How to apply:** Distinguish narration, microphone input, transcription, browser speech, recorded media and text-based Copilot functionality. Propose a bounded shutdown separately; do not treat deleting a voice secret as an approved implementation.
+
+Once the founder authorizes an existing localization sequence, implement that sequence rather than reopening planning or creating duplicate tasks.
+
+**Why:** The founder explicitly directed, “Proceed with implementation, not another planning cycle.”
+
+**How to apply:** Execute the authorized prerequisites and scope directly. A narrowly required approval or a genuine verification blocker is not permission to redesign the sequence or expand its scope.

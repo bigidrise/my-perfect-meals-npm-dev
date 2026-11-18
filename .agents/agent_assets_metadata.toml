@@ -1265,3 +1265,45 @@ mtime_ms = 1794977017743
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/857df5ee-24c0-4f7e-9351-03d2b77cd294/593e7922-9986-4aa4-b472-9fe7678a9bfd"
 storage_version_token = "1794977030367229"
 content_type = "text/html"
+
+[[outputs]]
+id = "qRKWUOI4Ww-ICAGvwea4B"
+uri = "file://.local/reports/release-fingerprint-approval.html"
+type = "html"
+title = "Exact release fingerprint comparison"
+description = "All 109 reviewed/current diagnostics, six mapped positions, and fresh historical reproduction."
+logical_id = "e1fc3e65-d137-4629-b4cd-d4685149cd64"
+content_hash = "sha256:11c98f7812478a98f20d1a598f66b3b88b11a7c530c962ffc7c1580d855c1531"
+size = 81795
+mtime_ms = 1794978326700
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/e1fc3e65-d137-4629-b4cd-d4685149cd64/81906a11-c38a-417b-8b7f-02a31b8f6b8e"
+storage_version_token = "1794978327503174"
+content_type = "text/html"
+
+[[outputs]]
+id = "J02F4xDndoakxH7A5eJLG"
+uri = "file://.local/reports/final-spanish-fingerprint-review.html"
+type = "html"
+title = "Final four-position fingerprint review"
+description = "All 109 messages match the approved set; four Gatherings positions moved two lines and 105 blocks are unchanged."
+logical_id = "7bde4071-5ed0-4be5-a198-1be66598b8b5"
+content_hash = "sha256:d760454fcb9d76206e309366680679efbd7b3582ade3d53955d06715b5e1b5a3"
+size = 32827
+mtime_ms = 1794980336183
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7bde4071-5ed0-4be5-a198-1be66598b8b5/f2ea56d4-cb14-404a-b7ac-9b7c8d54b38d"
+storage_version_token = "1794980337025175"
+content_type = "text/html"
+
+[[outputs]]
+id = "P4V7Wo0uBtEr9dXDwwQwT"
+uri = "file://.local/reports/four-screen-spanish-execution.html"
+type = "html"
+title = "Spanish implementation, owners and verification limits"
+description = "Four Development surfaces; 103 passing focused tests, 27 guard self-tests, protected English, exact type-gate approval and unverified signed-in layouts."
+logical_id = "d71c7b7d-ab17-409e-af6a-06be5d048c90"
+content_hash = "sha256:a47f8eee2872de3a3f66271660fa760d99f1ed6bd43499a3fb824d01d9e82b44"
+size = 11322
+mtime_ms = 1794981097276
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d71c7b7d-ab17-409e-af6a-06be5d048c90/9dfd1bb1-3c9e-45d6-ad95-d3e74972819a"
+storage_version_token = "1794981098086839"
+content_type = "text/html"

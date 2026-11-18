@@ -1,6 +1,7 @@
 import { resolveMeasurementSystem } from "@shared/units";
 import OpenAI from 'openai';
 import { getLanguageInstruction } from '../utils/languageInstruction';
+import { fridgeRescueDisplayCopy } from "../utils/fridgeRescueDisplayCopy";
 import { getMeasurementPromptBlock } from '../../shared/units';
 import { deriveCarbSplit } from './generators/macros/carbSplit';
 import { convertStructuredIngredients } from '../utils/unitConverter';
@@ -327,6 +328,7 @@ This is for athlete meal planning - precision is critical for contest preparatio
   }
 
   const fridgeLangInstruction = getLanguageInstruction(request.preferredLanguage);
+  const displayCopy = fridgeRescueDisplayCopy(request.preferredLanguage, fridgeItems);
   const ingredientControlRules = strictMode
     ? `- Use ONLY the ingredients provided - do not add any others
 - If those ingredients cannot honestly support the requested cuisine, do not substitute an unrelated cuisine`
@@ -520,17 +522,17 @@ ${strictMode ? "Do not add any ingredient not listed." : "Complementary pantry a
       
       const processedMeal: FridgeRescueMeal = {
         id: `fridge-rescue-${index}-${Date.now()}`,
-        name: meal.name || `Fridge Rescue Meal ${index + 1}`,
-        description: meal.description || "A creative meal using your available ingredients",
+        name: meal.name || displayCopy.missingName(index + 1),
+        description: meal.description || displayCopy.missingDescription,
         ingredients: mealIngredients,
-        instructions: meal.instructions || "Combine ingredients and cook until done.",
+        instructions: meal.instructions || displayCopy.missingInstructions,
         calories: meal.calories || 300,
         protein: meal.protein || 20,
         carbs: totalCarbs,
         fat: meal.fat || 12,
         starchyCarbs: starchyCarbs,
         fibrousCarbs: fibrousCarbs,
-        cookingTime: meal.cookingTime || "20 minutes",
+        cookingTime: meal.cookingTime || displayCopy.minutes(20),
         difficulty: meal.difficulty || "Easy",
         medicalBadges: getMedicalBadges(meal, userConditions)
       };
@@ -547,27 +549,27 @@ ${strictMode ? "Do not add any ingredient not listed." : "Complementary pantry a
     console.error('OpenAI API error for fridge rescue meals:', error);
     
     // Fallback meals using only provided ingredients
-    const fallbackIngredients1 = fridgeItems.map(item => ({ name: item, quantity: "as needed", unit: "" }));
+    const fallbackIngredients1 = fridgeItems.map(item => ({ name: item, quantity: displayCopy.quantities[0], unit: "" }));
     const fallback1Split = deriveCarbSplit(fallbackIngredients1, 22);
-    const fallbackIngredients2 = fridgeItems.map(item => ({ name: item, quantity: "1 portion", unit: "" }));
+    const fallbackIngredients2 = fridgeItems.map(item => ({ name: item, quantity: displayCopy.quantities[1], unit: "" }));
     const fallback2Split = deriveCarbSplit(fallbackIngredients2, 28);
-    const fallbackIngredients3 = fridgeItems.map(item => ({ name: item, quantity: "to taste", unit: "" }));
+    const fallbackIngredients3 = fridgeItems.map(item => ({ name: item, quantity: displayCopy.quantities[2], unit: "" }));
     const fallback3Split = deriveCarbSplit(fallbackIngredients3, 24);
     
     const fallbackMeals: FridgeRescueMeal[] = [
       {
         id: `fallback-fridge-1-${Date.now()}`,
-        name: `Simple ${fridgeItems[0]} Skillet`,
-        description: `A quick and easy one-pan meal using your available ingredients`,
+        name: displayCopy.fallbacks[0].name,
+        description: displayCopy.fallbacks[0].description,
         ingredients: fallbackIngredients1,
-        instructions: `1. Heat a large skillet over medium heat. 2. Add ${fridgeItems.join(', ')} to the pan. 3. Cook until everything is heated through and well combined. 4. Season to taste and serve.`,
+        instructions: displayCopy.fallbacks[0].instructions,
         calories: 285,
         protein: 18,
         carbs: 22,
         fat: 12,
         starchyCarbs: fallback1Split.starchyGrams,
         fibrousCarbs: fallback1Split.fibrousGrams,
-        cookingTime: "15 minutes",
+        cookingTime: displayCopy.minutes(15),
         difficulty: "Easy" as const,
         medicalBadges: getMedicalBadges({
           name: `Simple ${fridgeItems[0]} Skillet`,
@@ -579,17 +581,17 @@ ${strictMode ? "Do not add any ingredient not listed." : "Complementary pantry a
       },
       {
         id: `fallback-fridge-2-${Date.now()}`,
-        name: `Mixed ${fridgeItems.length > 1 ? fridgeItems[1] : fridgeItems[0]} Bowl`,
-        description: `A nutritious bowl combining your fridge ingredients`,
+        name: displayCopy.fallbacks[1].name,
+        description: displayCopy.fallbacks[1].description,
         ingredients: fallbackIngredients2,
-        instructions: `1. Prepare each ingredient separately. 2. Combine ${fridgeItems.join(', ')} in a large bowl. 3. Mix well and serve immediately.`,
+        instructions: displayCopy.fallbacks[1].instructions,
         calories: 320,
         protein: 22,
         carbs: 28,
         fat: 10,
         starchyCarbs: fallback2Split.starchyGrams,
         fibrousCarbs: fallback2Split.fibrousGrams,
-        cookingTime: "10 minutes", 
+        cookingTime: displayCopy.minutes(10),
         difficulty: "Easy" as const,
         medicalBadges: getMedicalBadges({
           name: `Mixed ${fridgeItems.length > 1 ? fridgeItems[1] : fridgeItems[0]} Bowl`,
@@ -601,17 +603,17 @@ ${strictMode ? "Do not add any ingredient not listed." : "Complementary pantry a
       },
       {
         id: `fallback-fridge-3-${Date.now()}`,
-        name: `Creative ${fridgeItems[0]} Combo`,
-        description: `An inventive dish making the most of what you have`,
+        name: displayCopy.fallbacks[2].name,
+        description: displayCopy.fallbacks[2].description,
         ingredients: fallbackIngredients3,
-        instructions: `1. Arrange ${fridgeItems.join(', ')} creatively. 2. Cook or combine as desired. 3. Adjust seasoning and serve.`,
+        instructions: displayCopy.fallbacks[2].instructions,
         calories: 265,
         protein: 16,
         carbs: 24,
         fat: 14,
         starchyCarbs: fallback3Split.starchyGrams,
         fibrousCarbs: fallback3Split.fibrousGrams,
-        cookingTime: "20 minutes",
+        cookingTime: displayCopy.minutes(20),
         difficulty: "Easy" as const,
         medicalBadges: getMedicalBadges({
           name: `Creative ${fridgeItems[0]} Combo`,

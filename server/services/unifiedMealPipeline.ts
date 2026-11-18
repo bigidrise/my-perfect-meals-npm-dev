@@ -2229,6 +2229,10 @@ export async function generateCravingMealOptions(
   // Medical/specialty protocol block — BGL guidance, cardiac, thyroid, anti-inflammatory,
   // and all other conditionGuidanceBlocks. Populated from the protocol envelope below.
   let specialtyMedicalBlock = '';
+  // Capture presentation once for this variety operation, including retries.
+  // The full protocol block contains language, but this path deliberately
+  // extracts only selected safety layers from it.
+  let varietyLanguageInstruction = getLanguageInstruction(undefined);
   // Oncology fields fetched from DB — declared outside try so they're in scope for the overlay check below
   let _varietySpecialtyCondition: string | null = null;
   let _varietySpecialtyConditions: string[] = [];
@@ -2317,6 +2321,7 @@ export async function generateCravingMealOptions(
     // Both are injected into every generation attempt so Recipe Maker is
     // governed by the same complete Nutrition Life Plan as all other builders.
     const envelope = await loadGenerationProtocolEnvelope(userId, diabetesAttempt);
+    varietyLanguageInstruction = getLanguageInstruction(envelope.preferredLanguage);
     try {
         const effectiveEnvelope = overriddenDietaryIdentities?.length
           ? (() => {
@@ -2550,7 +2555,7 @@ export async function generateCravingMealOptions(
       // image-scan already anchored the dish concept, so full gpt-4o quality
       // isn't needed for subsequent swipes.
       model: fastMode ? "gpt-4o-mini" : "gpt-4o",
-      messages: [{ role: "user", content: contractBlock + dalBlock + selectionBlock + (specialtyMedicalBlock ? specialtyMedicalBlock + '\n\n' : '') + (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
+      messages: [{ role: "user", content: (varietyLanguageInstruction ? varietyLanguageInstruction + '\n\n' : '') + contractBlock + dalBlock + selectionBlock + (specialtyMedicalBlock ? specialtyMedicalBlock + '\n\n' : '') + (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
       temperature: stricterMode ? 0.6 : 0.85,
       max_tokens: fastMode ? 1500 : 2500,
       response_format: { type: "json_object" },
@@ -2867,6 +2872,8 @@ export async function generateSingleCompliantFallback(
      *  the "do not return a different dish" line. The fallback must be more
      *  specific about the requested dish, never less. */
     dishDirective?: import("./dishAdaptation/types").DishAdaptationDirective | null;
+    /** Presentation only; never replaces the dietary identity or safety inputs. */
+    preferredLanguage?: string | null;
   },
 ): Promise<UnifiedMeal | null> {
   const validMealType = normalizeMealType(mealType);
@@ -2895,6 +2902,7 @@ export async function generateSingleCompliantFallback(
     : '';
 
   const prompt = [
+    getLanguageInstruction(options?.preferredLanguage),
     `You are a precision dietary chef. Generate exactly ONE meal that strictly complies with all dietary rules below.`,
     options?.dishDirective?.adaptationBlock ?? '',
     dietBlock,

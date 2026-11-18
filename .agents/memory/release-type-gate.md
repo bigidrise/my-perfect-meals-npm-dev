@@ -26,6 +26,16 @@ The current approved candidate is frozen for controlled release preparation, not
 
 **Safety slice:** Add any new safety-sensitive surface to `tsconfig.safety-check.json` before relying on the release check for that surface.
 
+Approval of one exact fingerprint does not cover a later fingerprint, even when
+subsequent authorized UI imports only move existing diagnostic locations.
+
+**Why:** The founder explicitly bounded approval to an exact hash change; source
+positions remain part of the unchanged release-check contract.
+
+**How to apply:** Finish the authorized batch, compare complete diagnostic
+messages and source positions, and obtain any additional exact refresh approval.
+Do not normalize the checker or treat the earlier approval as open-ended.
+
 ## Interrupted checks
 
 A tool timeout does not guarantee validator cleanup. Confirm the compiler and

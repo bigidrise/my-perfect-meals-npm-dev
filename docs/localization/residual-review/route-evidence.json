@@ -1,0 +1,3192 @@
+[
+  {
+    "registration": "client/src/components/Router.tsx:1211",
+    "route": "/",
+    "owners": [],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1214",
+    "route": "/test-modal-bounds",
+    "owners": [
+      {
+        "owner": "client/src/pages/ModalBoundsTestPage.tsx",
+        "currentSourceSha256": "eb95d77d7bf54f5d5eabb48382fc1d1e916ac6ccf09ee10747333a9e62f6f09a",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1217",
+    "route": "/m/:shareToken",
+    "owners": [
+      {
+        "owner": "client/src/pages/SharedMealPage.tsx",
+        "currentSourceSha256": "f966a42e3d184a693b53b82daf1dbb1569c5e2a4b7527bf7f2fda61e59abb8d1",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1219",
+    "route": "/welcome",
+    "owners": [
+      {
+        "owner": "client/src/pages/Welcome.tsx",
+        "currentSourceSha256": "c320e1f6bc286315442cc2e71b371a2d33e59854a53f80a8cd963e65d56c10a9",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1220",
+    "route": "/guest-builder",
+    "owners": [
+      {
+        "owner": "client/src/pages/GuestBuilder.tsx",
+        "currentSourceSha256": "ae299f9ff14cb6fcd18112a6de55166770ab10d0e0e3d151a1cc9ecb0339fde1",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1221",
+    "route": "/guest-suite",
+    "owners": [
+      {
+        "owner": "client/src/pages/GuestBuilder.tsx",
+        "currentSourceSha256": "ae299f9ff14cb6fcd18112a6de55166770ab10d0e0e3d151a1cc9ecb0339fde1",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1222",
+    "route": "/home",
+    "owners": [
+      {
+        "owner": "client/src/pages/home.tsx",
+        "currentSourceSha256": "231ce2e01c7f5d119937a8db0d6e970eb75824e3872e3264ae93bd18d632357a",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1223",
+    "route": "/auth",
+    "owners": [
+      {
+        "owner": "client/src/pages/Auth.tsx",
+        "currentSourceSha256": "b5fe9f96eddeb9962734782b1cd497b23b9b8c4e9ac3062ac6ec2eb56b3397e9",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1224",
+    "route": "/login",
+    "owners": [
+      {
+        "owner": "client/src/pages/Auth.tsx",
+        "currentSourceSha256": "b5fe9f96eddeb9962734782b1cd497b23b9b8c4e9ac3062ac6ec2eb56b3397e9",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1225",
+    "route": "/join/clinic",
+    "owners": [
+      {
+        "owner": "client/src/pages/ClinicPilotJoinPage.tsx",
+        "currentSourceSha256": "d74554751f8ce7a7b99ca431221d9f550f701cdbf08760c948517c879ea6c1ae",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1226",
+    "route": "/join/business-offer",
+    "owners": [
+      {
+        "owner": "client/src/pages/BusinessOfferJoinPage.tsx",
+        "currentSourceSha256": "4dd4e44a157c4f0677b582218e7c3b9da27a4b5faf5d98794468b1439f90d41b",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1227",
+    "route": "/forgot-password",
+    "owners": [
+      {
+        "owner": "client/src/pages/ForgotPassword.tsx",
+        "currentSourceSha256": "c165d6a60cdc667cafe94e3dc5bd0a6921a044a8f112bd4eb266fd5eb1e5f215",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1228",
+    "route": "/reset-password",
+    "owners": [
+      {
+        "owner": "client/src/pages/ResetPassword.tsx",
+        "currentSourceSha256": "6a51ef7d386e2c48d04f4e31e438c7f47849188948a2e0518befcc5c0e0225fd",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1229",
+    "route": "/pilot/activate",
+    "owners": [
+      {
+        "owner": "client/src/pages/PilotActivation.tsx",
+        "currentSourceSha256": "7efd3c37acbd3ba9ae47a92bd6ac485bd9cd950aa989e8c937c157566e77be0e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1230",
+    "route": "/pricing",
+    "owners": [
+      {
+        "owner": "client/src/pages/PricingPage.tsx",
+        "currentSourceSha256": "d0a22b18636a4cb82c78576fa4362976c3949dba9ad2fec5b1299fae3ac264bc",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1231",
+    "route": "/apply-guidance",
+    "owners": [
+      {
+        "owner": "client/src/pages/ApplyGuidance.tsx",
+        "currentSourceSha256": "bc14046dd48cfb1272c6958bf050eb48ac79bd765e929560bc4a6cf962ef0754",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1232",
+    "route": "/paywall",
+    "owners": [
+      {
+        "owner": "client/src/pages/PricingPage.tsx",
+        "currentSourceSha256": "d0a22b18636a4cb82c78576fa4362976c3949dba9ad2fec5b1299fae3ac264bc",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1233",
+    "route": "/select-builder",
+    "owners": [
+      {
+        "owner": "client/src/pages/MealBuilderSelection.tsx",
+        "currentSourceSha256": "f4c43d759a416b639ff9fb139d39fd416219ae84a367262edf3c5d1a5c9b2b7f",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1234",
+    "route": "/onboarding/extended",
+    "owners": [
+      {
+        "owner": "client/src/pages/onboarding/ExtendedOnboarding.tsx",
+        "currentSourceSha256": "671086e481c85ccbabc5a5736d888ebe1679e5960b2e895f01aec640d61bf05a",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1235",
+    "route": "/checkout/success",
+    "owners": [
+      {
+        "owner": "client/src/pages/CheckoutSuccess.tsx",
+        "currentSourceSha256": "27e647451b1bd35a03161bef2a7a30dce07dbcd98350ac505f6ed968f27d11fc",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1236",
+    "route": "/billing/success",
+    "owners": [
+      {
+        "owner": "client/src/pages/CheckoutSuccess.tsx",
+        "currentSourceSha256": "27e647451b1bd35a03161bef2a7a30dce07dbcd98350ac505f6ed968f27d11fc",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1237",
+    "route": "/activate/business-pilot",
+    "owners": [
+      {
+        "owner": "client/src/pages/BusinessPilotActivation.tsx",
+        "currentSourceSha256": "9fe43c6b9659dca95b95eea52aed311da71997364af9ecb2b18d47b369ba6ffb",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1238",
+    "route": "/business/start",
+    "owners": [
+      {
+        "owner": "client/src/pages/BusinessStart.tsx",
+        "currentSourceSha256": "0f146e3550a33cad441c6f3c1e019f9adb05c59ac4e70a0cb4e4ce7485c3a789",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1239",
+    "route": "/business/setup",
+    "owners": [
+      {
+        "owner": "client/src/pages/BusinessSetup.tsx",
+        "currentSourceSha256": "2311e88a20a9bc17941c96f4119026677ee8e5262d738ecd7f40acc54a9e5697",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1240",
+    "route": "/business/dashboard",
+    "owners": [
+      {
+        "owner": "client/src/pages/BusinessDashboard.tsx",
+        "currentSourceSha256": "1a8dd0ae7a832228bdf5fa986d528af0486180b377d0eae2180f402dad6a472d",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1241",
+    "route": "/business-dashboard",
+    "owners": [
+      {
+        "owner": "client/src/pages/BusinessDashboard.tsx",
+        "currentSourceSha256": "1a8dd0ae7a832228bdf5fa986d528af0486180b377d0eae2180f402dad6a472d",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1242",
+    "route": "/business-organizations",
+    "owners": [
+      {
+        "owner": "client/src/pages/OrganizationHub.tsx",
+        "currentSourceSha256": "a8b564f25b7920cbdddec0f32fb45869bf74f06aa93a084b3ef22b5a2fe34e62",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1243",
+    "route": "/business/join",
+    "owners": [
+      {
+        "owner": "client/src/pages/BusinessInviteAccept.tsx",
+        "currentSourceSha256": "f181003f5c75873d00dfd76679ec016f9909d1cdb4353b9266184a056bf7f769",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1244",
+    "route": "/org-success-center",
+    "owners": [
+      {
+        "owner": "client/src/pages/OrganizationSuccessCenter.tsx",
+        "currentSourceSha256": "63b8fb7bfe4c947ae5bd71aa4e00e1b1ccb0cc0036d2f33328e773503bc6a01b",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1245",
+    "route": "/family-info",
+    "owners": [
+      {
+        "owner": "client/src/pages/FamilyInfoPage.tsx",
+        "currentSourceSha256": "ca450cd86a6fa9e5dae4ab89cb51aad96bd39f1f5009dbd05ee691b4a943f5cb",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1246",
+    "route": "/household-profiles",
+    "owners": [
+      {
+        "owner": "client/src/pages/HouseholdProfilesPage.tsx",
+        "currentSourceSha256": "4e609c7a52fa62a2d60472295ae2ea85e2af5f94a841065c3be55d40f3cb89a0",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1247",
+    "route": "/procare-info",
+    "owners": [
+      {
+        "owner": "client/src/pages/ProCareInfoPage.tsx",
+        "currentSourceSha256": "e73c1e3df12403ff25259d55a261775ddc71eae8427725e36accf8e8c099e15c",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1248",
+    "route": "/personal-guidance-info",
+    "owners": [
+      {
+        "owner": "client/src/pages/PersonalGuidanceInfoPage.tsx",
+        "currentSourceSha256": "f4609854902bc1edfe40249e223a3af29c0009c8add66af1c281e94775dd1b5d",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1249",
+    "route": "/admin-moderation",
+    "owners": [
+      {
+        "owner": "client/src/pages/admin-moderation.tsx",
+        "currentSourceSha256": "fedeeee87450ce371cc87b084695bfb2187031f721f7d258dc722bcfab2359d1",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1250",
+    "route": "/admin/professional-requests",
+    "owners": [
+      {
+        "owner": "client/src/pages/admin/ProfessionalIdentityRequests.tsx",
+        "currentSourceSha256": "fc78f888d60d370400731e2e1e32ab53318f4cb499c0e27f0876480f4f40cf9c",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1251",
+    "route": "/demo-physician",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/pro/DemoPhysicianWorkspace.tsx",
+        "currentSourceSha256": "a7bb0ff01ee0f54eedb1db2d605de32bdb4596c443529652600ad039f95df157",
+        "unchangedSinceInventory": false
+      },
+      {
+        "owner": "client/src/pages/pro/ProClientsPhysician.tsx",
+        "currentSourceSha256": "7726151e475e543bc9f5572236ea226dccc39d0eea737783ab27da22bd9efb27",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1252",
+    "route": "/admin/chef-kitchens",
+    "owners": [
+      {
+        "owner": "client/src/pages/admin/ChefKitchensAdmin.tsx",
+        "currentSourceSha256": "96ee926cca66a1fcf548cfb6350e296a9ff3da748833dd78f2a9a75111a10a56",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1253",
+    "route": "/admin/pilots",
+    "owners": [
+      {
+        "owner": "client/src/pages/PilotProgramAdmin.tsx",
+        "currentSourceSha256": "fc2fe9de7342edbcbafde1d4bec6d84d86334884a8c91559955ac3e7965c5faa",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1256",
+    "route": "/kitchens",
+    "owners": [
+      {
+        "owner": "client/src/pages/kitchen/SignatureKitchenHubPage.tsx",
+        "currentSourceSha256": "ca032862a79ea61bc3de9d1403058f6f4551a176919b81af44fb1c985b1a846d",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1257",
+    "route": "/kitchen/:slug",
+    "owners": [
+      {
+        "owner": "client/src/pages/kitchen/SignatureKitchenPage.tsx",
+        "currentSourceSha256": "32d91ebe93b1399f0c57bac6846136a8f0e03d942c45ff9cd381bc349c22faf4",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1258",
+    "route": "/consumer-welcome",
+    "owners": [
+      {
+        "owner": "client/src/pages/ConsumerWelcome.tsx",
+        "currentSourceSha256": "00e8e2d215e1192f74aa68ec9e382dffbffe05ff05d5f620b24776267337c9ab",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1259",
+    "route": "/procare-welcome",
+    "owners": [
+      {
+        "owner": "client/src/pages/procare/ProCareWelcome.tsx",
+        "currentSourceSha256": "5eda348cf922eba843797ca3a1f518bf694b15a501fc1bd5f15161e1cd722c4b",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1260",
+    "route": "/trainer-welcome",
+    "owners": [
+      {
+        "owner": "client/src/pages/procare/ProCareWelcome.tsx",
+        "currentSourceSha256": "5eda348cf922eba843797ca3a1f518bf694b15a501fc1bd5f15161e1cd722c4b",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1261",
+    "route": "/physician-welcome",
+    "owners": [
+      {
+        "owner": "client/src/pages/procare/ProCareWelcome.tsx",
+        "currentSourceSha256": "5eda348cf922eba843797ca3a1f518bf694b15a501fc1bd5f15161e1cd722c4b",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1262",
+    "route": "/procare-identity",
+    "owners": [
+      {
+        "owner": "client/src/pages/procare/ProCareIdentity.tsx",
+        "currentSourceSha256": "9458033ec584e5713a5369a463b78d82e7896ce98f07f0e2dfbec6c2f31fbcc2",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1263",
+    "route": "/procare-rewards",
+    "owners": [
+      {
+        "owner": "client/src/pages/procare/ProCareRewards.tsx",
+        "currentSourceSha256": "ee3d569d9b8f18e2159f527f736f2e3eb111627c0eed483068b28a26049553a9",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1264",
+    "route": "/procare-attestation",
+    "owners": [
+      {
+        "owner": "client/src/pages/procare/ProCareAttestation.tsx",
+        "currentSourceSha256": "c2e1c09edbb6706ae861cb7cb2758d0535c89a9cbb191dd522e4b8c3d0684251",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1265",
+    "route": "/pro-launchpad",
+    "owners": [
+      {
+        "owner": "client/src/pages/procare/ProLaunchpad.tsx",
+        "currentSourceSha256": "82ab527aa532dac68fc8b5f398199a42ec0dd69e2e916208aa149b5cbec4c97f",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1266",
+    "route": "/professional-dashboard",
+    "owners": [
+      {
+        "owner": "client/src/pages/procare/ProLaunchpad.tsx",
+        "currentSourceSha256": "82ab527aa532dac68fc8b5f398199a42ec0dd69e2e916208aa149b5cbec4c97f",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1267",
+    "route": "/professional-onboarding-bridge",
+    "owners": [
+      {
+        "owner": "client/src/pages/procare/ProfessionalOnboardingBridge.tsx",
+        "currentSourceSha256": "8a12d86ef647ed9ec91b5c8fef419e4dd37770c41a9f59767a3be7617715eb89",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1268",
+    "route": "/procare-certified",
+    "owners": [
+      {
+        "owner": "client/src/pages/procare/CertifiedProfessionalUnlock.tsx",
+        "currentSourceSha256": "3c043f0c6fa8008adbb9255422ee263f74c5fcc1e680b285a05012977981cf8a",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1269",
+    "route": "/procare-training",
+    "owners": [],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1270",
+    "route": "/ace-profile",
+    "owners": [
+      {
+        "owner": "client/src/pages/AceProfilePage.tsx",
+        "currentSourceSha256": "37f6aaed5d140227d7312785ff75a13074f805d2daf7590881bc8c8ca72e1920",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1271",
+    "route": "/coach-corner/welcome",
+    "owners": [
+      {
+        "owner": "client/src/components/coaching/ChefConversationEntry.tsx",
+        "currentSourceSha256": "cd5c4ebc2d5301f0fac52055a71edf2e6f9e675b454c349b484ae8178ef100cd",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/CoachCornerWelcome.tsx",
+        "currentSourceSha256": "b6a2e605f50ca9f5ebb8a7d81e3a5bf975a0cb5308c60e5f8101973de9441071",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1272",
+    "route": "/coach-corner/intake",
+    "owners": [
+      {
+        "owner": "client/src/components/coaching/ChefConversationEntry.tsx",
+        "currentSourceSha256": "cd5c4ebc2d5301f0fac52055a71edf2e6f9e675b454c349b484ae8178ef100cd",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/CoachCornerIntake.tsx",
+        "currentSourceSha256": "99b5f3c302d1942cb1f2ed8829de045a629def6598f22a66208aca636df0e02b",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1273",
+    "route": "/coach-corner/complete",
+    "owners": [
+      {
+        "owner": "client/src/components/coaching/ChefConversationEntry.tsx",
+        "currentSourceSha256": "cd5c4ebc2d5301f0fac52055a71edf2e6f9e675b454c349b484ae8178ef100cd",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/CoachCornerComplete.tsx",
+        "currentSourceSha256": "3cae3bd72eb5f13468dedbb1237e4e5c9236586c8d79179c9e198a557440210c",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1274",
+    "route": "/coach-corner/home",
+    "owners": [
+      {
+        "owner": "client/src/pages/CoachsCorner.tsx",
+        "currentSourceSha256": "b5a5c57cbd0a8fce43673e0aba8cf833a6357c5dd7ad3e68d066160a94ebd3dc",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1275",
+    "route": "/coach-corner/progress-slowed",
+    "owners": [
+      {
+        "owner": "client/src/pages/CoachCornerProgressSlowed.tsx",
+        "currentSourceSha256": "eef0d01e525752eaea29e2653d7ee467d0c6c07cc3258161229ce668bb707dbc",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1276",
+    "route": "/coach-corner/tired",
+    "owners": [
+      {
+        "owner": "client/src/pages/CoachCornerTired.tsx",
+        "currentSourceSha256": "002bbb3517d4c6febf610ef885218c87dfaaac4c7e6f9b3e4ed58e9e60c4a57c",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1278",
+    "route": "/onboarding",
+    "owners": [
+      {
+        "owner": "client/src/pages/OnboardingV3.tsx",
+        "currentSourceSha256": "f9aeddb459c2df2758f130522f585bd9d51f3bc541c0bbb9ac1c81b634b131c0",
+        "unchangedSinceInventory": false
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1279",
+    "route": "/onboarding-v2",
+    "owners": [
+      {
+        "owner": "client/src/pages/OnboardingV3.tsx",
+        "currentSourceSha256": "f9aeddb459c2df2758f130522f585bd9d51f3bc541c0bbb9ac1c81b634b131c0",
+        "unchangedSinceInventory": false
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1280",
+    "route": "/dashboard",
+    "owners": [
+      {
+        "owner": "client/src/pages/DashboardNew.tsx",
+        "currentSourceSha256": "e4b9946ba387c82398566288c032ac4165c9cdbbce5a812408f15d64f69f2308",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1281",
+    "route": "/foods-i-enjoy",
+    "owners": [
+      {
+        "owner": "client/src/pages/MyPerfectMenu.tsx",
+        "currentSourceSha256": "26fe8568c4ef7253a5ab90e24044bdaab6e9fd934cb5f2f7d4ce35d8aee24abe",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1282",
+    "route": "/foods-i-enjoy/preferences",
+    "owners": [
+      {
+        "owner": "client/src/pages/FoodsIEnjoy.tsx",
+        "currentSourceSha256": "89ab018f0d7d47eb95f985bd49b354122a2c44a8c96f8e69fe0fbf9b51e93c6b",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1283",
+    "route": "/tutorials",
+    "owners": [
+      {
+        "owner": "client/src/pages/TutorialHub.tsx",
+        "currentSourceSha256": "a8b5f5b6dd99e32653344df99eee99fc41e16d56e7bf7a52f215ccf6d713aa00",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1284",
+    "route": "/learn",
+    "owners": [
+      {
+        "owner": "client/src/pages/Learn.tsx",
+        "currentSourceSha256": "fe3a30eb09886113fba58e2630f2cfb40270a7a3d7df2bbb1641bea6baeaa26f",
+        "unchangedSinceInventory": false
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1285",
+    "route": "/get-inspiration",
+    "owners": [
+      {
+        "owner": "client/src/pages/GetInspiration.tsx",
+        "currentSourceSha256": "6344181ab0488ba50a479a80c259d64f39e8119a0fee1f32d865e24f437517e4",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1286",
+    "route": "/privacy",
+    "owners": [
+      {
+        "owner": "client/src/pages/privacy.tsx",
+        "currentSourceSha256": "9ddc867b41488c4732acdc622f5f006626c52c511e2186c9ca9cac9791b03175",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1287",
+    "route": "/privacy-policy",
+    "owners": [
+      {
+        "owner": "client/src/pages/PrivacyPolicy.tsx",
+        "currentSourceSha256": "587f199e90191c1b969a9a5d0c3c7b879b7f347500aaeabaf78699604204feb8",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1288",
+    "route": "/terms",
+    "owners": [
+      {
+        "owner": "client/src/pages/TermsOfService.tsx",
+        "currentSourceSha256": "eed7c090285498c762922c34a506c5baf4b582b8562c5732a0d9f6d27ee769ca",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1289",
+    "route": "/delete-account",
+    "owners": [
+      {
+        "owner": "client/src/pages/DeleteAccount.tsx",
+        "currentSourceSha256": "dfca374648f19c2fb29fae3817dc0f262173b6709edb305578443e6e534d7161",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1291",
+    "route": "/profile",
+    "owners": [
+      {
+        "owner": "client/src/pages/profile/EditProfilePage.tsx",
+        "currentSourceSha256": "9338d02a3d965e2c287759410d4c3c26148aec5841a2b8e052e50b0b718c8abc",
+        "unchangedSinceInventory": false
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1292",
+    "route": "/coaching-preferences",
+    "owners": [
+      {
+        "owner": "client/src/pages/profile/CoachingPreferencesPage.tsx",
+        "currentSourceSha256": "1283ef079b9003f99198aedee6c8b263183317e36b91ea2fc5e5feca1f45c42e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1293",
+    "route": "/language-preferences",
+    "owners": [
+      {
+        "owner": "client/src/pages/profile/LanguagePreferencesPage.tsx",
+        "currentSourceSha256": "937098b55826b2ccdb5f663eb8167c306eabb928d89558b81d48ab875bf202a7",
+        "unchangedSinceInventory": false
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1294",
+    "route": "/saved-meals",
+    "owners": [
+      {
+        "owner": "client/src/pages/SavedMeals.tsx",
+        "currentSourceSha256": "0bd3b9d2318a14448e0ad7f61c05306ab766bdbdd4eb0d16f18732e1c92b72be",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1297",
+    "route": "/lifestyle",
+    "owners": [
+      {
+        "owner": "client/src/pages/LifestyleLandingPage.tsx",
+        "currentSourceSha256": "415134302243deb43adaecc1cc7ab4094261ab60459b45048b1518f7f89b8656",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1299",
+    "route": "/creator-studio",
+    "owners": [
+      {
+        "owner": "client/src/pages/creator/CreatorStudioLanding.tsx",
+        "currentSourceSha256": "b2f82b85f96ea36cafd7a99b7a2ff3b77cdc68e6f3026cee298e4353bf4b1d09",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1300",
+    "route": "/creator/start",
+    "owners": [
+      {
+        "owner": "client/src/pages/creator/CreatorStartPage.tsx",
+        "currentSourceSha256": "9a7c7f3a7b9238b144cba9aa04f1ec4b74c591b9729faf31ba79dd227e7baa90",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1301",
+    "route": "/creator/setup",
+    "owners": [
+      {
+        "owner": "client/src/pages/creator/CreatorSetupPage.tsx",
+        "currentSourceSha256": "e96147484f941b50cbb8576bc366df6a911811e22023febae8a6e96251105c61",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1302",
+    "route": "/creator/studio",
+    "owners": [
+      {
+        "owner": "client/src/pages/creator/CreatorStudioPage.tsx",
+        "currentSourceSha256": "711b39c0a49e7d797e668fdb6896ea81dd849597d8522c58e16cd412ddfffd18",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1304",
+    "route": "/glp1-meals-tracking",
+    "owners": [
+      {
+        "owner": "client/src/pages/GLP1MealsTracking.tsx",
+        "currentSourceSha256": "b990dfc048f856374b31e0fc8a7f716a8b60e568984cab371f87f1c98e683e47",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1305",
+    "route": "/lifestyle/my-perfect-pregnancy",
+    "owners": [
+      {
+        "owner": "client/src/pages/MyPerfectPregnancyPage.tsx",
+        "currentSourceSha256": "3c787d52cb6bc4e7f1a089e7d1605e8a799b6d205653683facb644c422d44f0c",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1306",
+    "route": "/lifestyle/my-perfect-beginning",
+    "owners": [
+      {
+        "owner": "client/src/pages/lifestyle/MyPerfectBeginningPage.tsx",
+        "currentSourceSha256": "17d2ffca9c38a77752d61905e5264e62733af6827277d97d6e50ec60ab8c265e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1307",
+    "route": "/lifestyle/my-perfect-beginning/create-meal",
+    "owners": [
+      {
+        "owner": "client/src/pages/lifestyle/MyPerfectBeginningCreateMealPage.tsx",
+        "currentSourceSha256": "74e77fc21b18288bb154f4394bd4b653f27eeaf36730bc538fb52783e50a2c5e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1308",
+    "route": "/lifestyle/my-perfect-beginning/parents-corner",
+    "owners": [
+      {
+        "owner": "client/src/pages/MyPerfectBeginningParentsCorner.tsx",
+        "currentSourceSha256": "16027977e17937903f4d68f50dcfb237b202685c786b073300d2eff80fb4f91b",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1309",
+    "route": "/my-perfect-beginning/parents-corner",
+    "owners": [
+      {
+        "owner": "client/src/pages/MyPerfectBeginningParentsCorner.tsx",
+        "currentSourceSha256": "16027977e17937903f4d68f50dcfb237b202685c786b073300d2eff80fb4f91b",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1310",
+    "route": "/lifestyle/my-perfect-beginning/profile",
+    "owners": [
+      {
+        "owner": "client/src/pages/lifestyle/MyPerfectBeginningProfilePage.tsx",
+        "currentSourceSha256": "9b36cd95c2a6a24dbd76e03e6df5897ae9023d19c86dfc772f731fbc9be5f6d8",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1311",
+    "route": "/lifestyle/my-perfect-beginning/journey",
+    "owners": [
+      {
+        "owner": "client/src/pages/lifestyle/MyPerfectBeginningStub.tsx",
+        "currentSourceSha256": "b57422413e2970859f13f5b5f3f49f1c08a4d12e3a10f2f5237b265ae3c2b923",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1312",
+    "route": "/lifestyle/my-perfect-beginning/better-favorites",
+    "owners": [
+      {
+        "owner": "client/src/pages/lifestyle/MyPerfectBeginningStub.tsx",
+        "currentSourceSha256": "b57422413e2970859f13f5b5f3f49f1c08a4d12e3a10f2f5237b265ae3c2b923",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1313",
+    "route": "/lifestyle/my-perfect-beginning/lunchbox",
+    "owners": [
+      {
+        "owner": "client/src/pages/lifestyle/MyPerfectBeginningStub.tsx",
+        "currentSourceSha256": "b57422413e2970859f13f5b5f3f49f1c08a4d12e3a10f2f5237b265ae3c2b923",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1314",
+    "route": "/lifestyle/my-perfect-beginning/nutrition-support",
+    "owners": [
+      {
+        "owner": "client/src/pages/lifestyle/MyPerfectBeginningStub.tsx",
+        "currentSourceSha256": "b57422413e2970859f13f5b5f3f49f1c08a4d12e3a10f2f5237b265ae3c2b923",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1315",
+    "route": "/lifestyle/my-perfect-beginning/growth",
+    "owners": [
+      {
+        "owner": "client/src/pages/lifestyle/MyPerfectBeginningStub.tsx",
+        "currentSourceSha256": "b57422413e2970859f13f5b5f3f49f1c08a4d12e3a10f2f5237b265ae3c2b923",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1316",
+    "route": "/performance",
+    "owners": [
+      {
+        "owner": "client/src/pages/TrainingNutritionHub.tsx",
+        "currentSourceSha256": "260ceaafd7a103298ff5775b1f7e74aa081c900785c19291a5f14136b490521e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1317",
+    "route": "/performance/setup",
+    "owners": [
+      {
+        "owner": "client/src/pages/PerformanceNutritionSetupPage.tsx",
+        "currentSourceSha256": "f23f6966505d84c6ba3f6a66572e22cae84b4d33a8d53ffe5be973d2ad4f5c09",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1318",
+    "route": "/general-nutrition/training",
+    "owners": [
+      {
+        "owner": "client/src/pages/GeneralNutritionTrainingPage.tsx",
+        "currentSourceSha256": "7c02a910506b626b71ed6426413943097e1d9ed02e7ba41b72552210d1743cfb",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1319",
+    "route": "/diabetic-builder",
+    "owners": [
+      {
+        "owner": "client/src/pages/physician/DiabeticBuilderEntry.tsx",
+        "currentSourceSha256": "87f52ec91ca1fc46dae90cbdba1076b4947e179be827f583fa1fbaeb8331c0aa",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1320",
+    "route": "/glp1-builder",
+    "owners": [
+      {
+        "owner": "client/src/pages/physician/GLP1BuilderEntry.tsx",
+        "currentSourceSha256": "860a15e93b7e21408850a2cab2948f41eb92e840f776d80b2ee98569300eac3e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1321",
+    "route": "/anti-inflammatory-builder",
+    "owners": [
+      {
+        "owner": "client/src/pages/physician/AntiInflammatoryBuilderEntry.tsx",
+        "currentSourceSha256": "08fc58d863ad59a1a9a291eec1b9287c2917f889742c394483a2de8bcdf04fb5",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1322",
+    "route": "/diabetic/training",
+    "owners": [
+      {
+        "owner": "client/src/pages/DiabeticTrainingPage.tsx",
+        "currentSourceSha256": "dd46a9ec8efc21e5728aae99f15cbe8369e23cbb207ff1839e4e7a079b035cb9",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1323",
+    "route": "/glp1/training",
+    "owners": [
+      {
+        "owner": "client/src/pages/GLP1TrainingPage.tsx",
+        "currentSourceSha256": "6f1bbbd945f9616b39dd9c08c410bef54b13a146876a09413d7de115a8eddd2f",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1324",
+    "route": "/anti-inflammatory/training",
+    "owners": [
+      {
+        "owner": "client/src/pages/AntiInflammatoryTrainingPage.tsx",
+        "currentSourceSha256": "9340e025a528e25c782426dad29a17228ccda1b3932843f359dcbafb84d2fe14",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1325",
+    "route": "/lifestyle/my-perfect-getaway",
+    "owners": [
+      {
+        "owner": "client/src/pages/lifestyle/MyPerfectGetaway.tsx",
+        "currentSourceSha256": "20741b58c6c682272d055edda4f83ed083aa578b9c12fa86ffd290d854ef7544",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1326",
+    "route": "/lifestyle/my-perfect-gatherings",
+    "owners": [
+      {
+        "owner": "client/src/pages/lifestyle/GatheringsPage.tsx",
+        "currentSourceSha256": "62045eaf7521082e0456a06b3b89008828911635c774c87653c057ded8372a5b",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1327",
+    "route": "/lifestyle/ultimate-experiences",
+    "owners": [
+      {
+        "owner": "client/src/pages/lifestyle/GatheringsPage.tsx",
+        "currentSourceSha256": "62045eaf7521082e0456a06b3b89008828911635c774c87653c057ded8372a5b",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1328",
+    "route": "/lifestyle/chefs-kitchen",
+    "owners": [
+      {
+        "owner": "client/src/pages/lifestyle/ChefsKitchenPage.tsx",
+        "currentSourceSha256": "412dce7a30e8ca086e51fdb5a5c133712ba05495fdd42a0889d2aab8187cf3db",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1329",
+    "route": "/lifestyle/create-a-dish",
+    "owners": [
+      {
+        "owner": "client/src/pages/lifestyle/CreateDishPage.tsx",
+        "currentSourceSha256": "dcfb9544a0b1b7e33dd3aa1e445c19f82b02aaaffa48f8a6aafcdb7cca93e8e4",
+        "unchangedSinceInventory": false
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1330",
+    "route": "/lifestyle/beverage-creator",
+    "owners": [
+      {
+        "owner": "client/src/pages/BeverageCreator.tsx",
+        "currentSourceSha256": "4072221bd0fac4a599a3ea17a52cc233b43bdccd62b65208992581c79e749f7c",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1331",
+    "route": "/lifestyle/beverage-hub",
+    "owners": [
+      {
+        "owner": "client/src/pages/BeverageCreatorHub.tsx",
+        "currentSourceSha256": "f9cfbfb678258ee0c8eb8f9c74de5f3d43544820b5ea52d6f3788e19b0429e69",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1332",
+    "route": "/lifestyle/athlete-beverage-creator",
+    "owners": [
+      {
+        "owner": "client/src/pages/AthleteBeverageCreator.tsx",
+        "currentSourceSha256": "99ac83743709a39c4c6ed562c0de9e1688df3241eb3e26b98cae7b5042ede0ba",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1333",
+    "route": "/lifestyle/sushi-creator",
+    "owners": [
+      {
+        "owner": "client/src/pages/SushiCreator.tsx",
+        "currentSourceSha256": "9364ba4089b482d14ab8a092e9feac75a6118eef889b00bf108278067ea2ab1e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1334",
+    "route": "/sushi-creator",
+    "owners": [
+      {
+        "owner": "client/src/pages/SushiCreator.tsx",
+        "currentSourceSha256": "9364ba4089b482d14ab8a092e9feac75a6118eef889b00bf108278067ea2ab1e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1335",
+    "route": "/lifestyle/chef-pairings",
+    "owners": [
+      {
+        "owner": "client/src/pages/ChefPairings.tsx",
+        "currentSourceSha256": "77c8511af2cfcdc89ab071de6b915858b593de659e6c628335447bf8edbc4816",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1336",
+    "route": "/lifestyle/pairings-hub",
+    "owners": [
+      {
+        "owner": "client/src/pages/lifestyle/PairingsHub.tsx",
+        "currentSourceSha256": "b7a9189f572cb1fc4f54c4b80b04d5e59871c5675bcf9a262651f9b61e520d37",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1337",
+    "route": "/lifestyle/ai-pairing-advisor",
+    "owners": [
+      {
+        "owner": "client/src/pages/lifestyle/DrinkAdvisorComingSoon.tsx",
+        "currentSourceSha256": "02731e33484ef55616d3396fbc198284ad0351d2b528c14d61078bd8108ac8ae",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1338",
+    "route": "/lifestyle/pairings-ai",
+    "owners": [
+      {
+        "owner": "client/src/pages/lifestyle/PairingsAI.tsx",
+        "currentSourceSha256": "470df1af953cedea2d27431ff54192275726a158733ee2615e8ea682d64b5165",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1339",
+    "route": "/lifestyle/wine-list-helper",
+    "owners": [
+      {
+        "owner": "client/src/pages/lifestyle/WineListHelper.tsx",
+        "currentSourceSha256": "206c6a8840ec9158e7e86e5256fd68a83ebcf07515010d901ff33afb211e655e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1340",
+    "route": "/lifestyle/reduce-drinking-plan",
+    "owners": [
+      {
+        "owner": "client/src/pages/lifestyle/ReduceDrinkingPlan.tsx",
+        "currentSourceSha256": "f2f0b5ac524e639652de2f69f4dad3299e90feddbe02d1409a66a34fe296ba46",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1341",
+    "route": "/craving-creator",
+    "owners": [
+      {
+        "owner": "client/src/pages/craving-creator.tsx",
+        "currentSourceSha256": "7b299efbabf88bdb2428c2ab74179876d2516d21b615c1c79ff0c2acf77051f4",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1342",
+    "route": "/fridge-rescue",
+    "owners": [
+      {
+        "owner": "client/src/pages/fridge-rescue.tsx",
+        "currentSourceSha256": "2ca4a424c7113ea03b5786cecc719acd38e54ce07ef3f76b0667552a669de5ad",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1344",
+    "route": "/companion",
+    "owners": [
+      {
+        "owner": "client/src/pages/PetsHub.tsx",
+        "currentSourceSha256": "bfe73ee16bc85f54e6e836c2e93b2a94e9ef7d88788127f0f36f07524e5b9d55",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1345",
+    "route": "/companion/dogs",
+    "owners": [
+      {
+        "owner": "client/src/pages/CompanionNutritionHub.tsx",
+        "currentSourceSha256": "319f20f0134d04e22f100ae20c50375257d47322ad927af06adbf5e536fe8584",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1346",
+    "route": "/companion/setup",
+    "owners": [
+      {
+        "owner": "client/src/pages/companion/DogProfileSetup.tsx",
+        "currentSourceSha256": "c2078d197c72d34f3ad6e06c22a8495e2d3ce4efe92c505e13d9862c72728850",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1347",
+    "route": "/companion/setup/:id",
+    "owners": [
+      {
+        "owner": "client/src/pages/companion/DogProfileSetup.tsx",
+        "currentSourceSha256": "c2078d197c72d34f3ad6e06c22a8495e2d3ce4efe92c505e13d9862c72728850",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1348",
+    "route": "/companion/generator",
+    "owners": [
+      {
+        "owner": "client/src/pages/companion/CompanionMealGenerator.tsx",
+        "currentSourceSha256": "0061dd7bdc1258e9f8d36b8e6ceb1fde4d14431852dafba916ae8f08376340b8",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1349",
+    "route": "/companion/scanner",
+    "owners": [
+      {
+        "owner": "client/src/pages/companion/DogIngredientScanner.tsx",
+        "currentSourceSha256": "6e6d07603bbdd9786c1f3275ec949b6794c5d1a7c95b275dbaf4864c1ec24bf4",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1350",
+    "route": "/companion/cats",
+    "owners": [
+      {
+        "owner": "client/src/pages/companion/CatNutritionHub.tsx",
+        "currentSourceSha256": "2d176282b1da2ac344edf0f5d92a5d1aef99f1b1ef5e8f7e833289974b263098",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1351",
+    "route": "/companion/cat-setup",
+    "owners": [
+      {
+        "owner": "client/src/pages/companion/CatProfileSetup.tsx",
+        "currentSourceSha256": "8d046c9fb3e298397a32e13a2177181664742c131a927a683a87eeecc5886e8c",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1352",
+    "route": "/companion/cat-setup/:id",
+    "owners": [
+      {
+        "owner": "client/src/pages/companion/CatProfileSetup.tsx",
+        "currentSourceSha256": "8d046c9fb3e298397a32e13a2177181664742c131a927a683a87eeecc5886e8c",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1353",
+    "route": "/companion/cat-generator",
+    "owners": [
+      {
+        "owner": "client/src/pages/companion/CompanionMealGenerator.tsx",
+        "currentSourceSha256": "0061dd7bdc1258e9f8d36b8e6ceb1fde4d14431852dafba916ae8f08376340b8",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1354",
+    "route": "/companion/cat-scanner",
+    "owners": [
+      {
+        "owner": "client/src/pages/companion/CatIngredientScanner.tsx",
+        "currentSourceSha256": "2c375e648d0fe081bb1e2dbc40b85e92e45504dd89560fe3ac4560bae8e1537e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1355",
+    "route": "/ab-testing-demo",
+    "owners": [
+      {
+        "owner": "client/src/pages/ABTestingDemo.tsx",
+        "currentSourceSha256": "7e6e1ee9734757be2ed3d2e45be359eee1875967d82de594c246f74343eeb193",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1358",
+    "route": "/social-hub",
+    "owners": [
+      {
+        "owner": "client/src/pages/SocializingHub.tsx",
+        "currentSourceSha256": "aff4ecade9a51dd18c910b9a7ba5a6a0d9951263431b2b02d3171d48291d1743",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1359",
+    "route": "/social-hub/find",
+    "owners": [
+      {
+        "owner": "client/src/pages/SocialFindMeals.tsx",
+        "currentSourceSha256": "b5d772c1e754dc2b6d0333905b516deb7cc675267099c439244383d0789ec3f8",
+        "unchangedSinceInventory": false
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1360",
+    "route": "/social-hub/restaurant-guide",
+    "owners": [
+      {
+        "owner": "client/src/pages/SocialRestaurantGuide.tsx",
+        "currentSourceSha256": "da21cb225e68b7f2a794d8c7dcc7bd757ff0060d56ffeaa243b7e945a2479df8",
+        "unchangedSinceInventory": false
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1361",
+    "route": "/social-hub/fast-food",
+    "owners": [
+      {
+        "owner": "client/src/pages/FastFoodGuidePage.tsx",
+        "currentSourceSha256": "0d13599dfbd099153c26f4b13ef2b872b6e53979b516497818bd73aaf9899584",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1362",
+    "route": "/social-hub/restaurant-finder",
+    "owners": [
+      {
+        "owner": "client/src/pages/RestaurantFinderPage.tsx",
+        "currentSourceSha256": "037c58d400391fe268574e420d3f4a5ccbd3b2473fa8fb5e94a8b53621e3b30e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1363",
+    "route": "/my-perfect-buffet",
+    "owners": [
+      {
+        "owner": "client/src/pages/MyPerfectBuffetPage.tsx",
+        "currentSourceSha256": "ab3af9e5ceb80ec7949619c1b6abbf41519c163f209f67818f311db99db16e12",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1365",
+    "route": "/macro-counter",
+    "owners": [
+      {
+        "owner": "client/src/pages/MacroCalculator.tsx",
+        "currentSourceSha256": "82c477f88a17a8b57895b4337ae3c6f338ad862aa2e8dcf5432f377371ba3504",
+        "unchangedSinceInventory": false
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1367",
+    "route": "/my-biometrics",
+    "owners": [
+      {
+        "owner": "client/src/pages/my-biometrics.tsx",
+        "currentSourceSha256": "2277879f0cc4c7452782665cf79686b06a12a2d40651832f73ec6c2bed479921",
+        "unchangedSinceInventory": false
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1368",
+    "route": "/hydration",
+    "owners": [
+      {
+        "owner": "client/src/pages/HydrationCenter.tsx",
+        "currentSourceSha256": "ce7b5287a7825a448afdf982cd6a901e18ba0e2abc29d73b1c6ac2d1287e151d",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1370",
+    "route": "/biometrics",
+    "owners": [
+      {
+        "owner": "client/src/pages/my-biometrics.tsx",
+        "currentSourceSha256": "2277879f0cc4c7452782665cf79686b06a12a2d40651832f73ec6c2bed479921",
+        "unchangedSinceInventory": false
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1371",
+    "route": "/biometrics/body-composition",
+    "owners": [
+      {
+        "owner": "client/src/pages/biometrics/body-composition.tsx",
+        "currentSourceSha256": "ad9988a15a85b531d2fff9daa04321a585b6b0afb435ff46f1bc91d99539cef3",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1372",
+    "route": "/biometrics/sleep",
+    "owners": [
+      {
+        "owner": "client/src/pages/biometrics/sleep.tsx",
+        "currentSourceSha256": "4b53d7ffea90e80b5a52468d42aa6860dcf7e18c07776d2486c286602a2227da",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1379",
+    "route": "/meal-log/history",
+    "owners": [],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1385",
+    "route": "/meal-log",
+    "owners": [],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1396",
+    "route": "/cafeteria-setup",
+    "owners": [
+      {
+        "owner": "client/src/pages/ComingSoon.tsx",
+        "currentSourceSha256": "44d1e17cdeb5df744e5b0b9d04879cd264c279cd863077210aa9c6deb6cb8249",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1406",
+    "route": "/weekly",
+    "owners": [
+      {
+        "owner": "client/src/pages/WeeklyMealBoard.tsx",
+        "currentSourceSha256": "78154cdbaaca104da0d90aa8b05db3780bdf1c4911aaf36d412421e3b53953d2",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1408",
+    "route": "/builders",
+    "owners": [
+      {
+        "owner": "client/src/pages/Builders.tsx",
+        "currentSourceSha256": "09a7e0802057dbda55d4219f0fc1365ef4144f3fc26c60f8855f45da328ca616",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1409",
+    "route": "/planner",
+    "owners": [],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1410",
+    "route": "/weekly-meal-board",
+    "owners": [
+      {
+        "owner": "client/src/pages/WeeklyMealBoard.tsx",
+        "currentSourceSha256": "78154cdbaaca104da0d90aa8b05db3780bdf1c4911aaf36d412421e3b53953d2",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1411",
+    "route": "/beach-body-meal-board",
+    "owners": [
+      {
+        "owner": "client/src/pages/BeachBodyMealBoard.tsx",
+        "currentSourceSha256": "696d7d75880fd571c3a1ce4233d9bce922bf2293619e70063cc257731d304f82",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1413",
+    "route": "/plan-builder/classic",
+    "owners": [
+      {
+        "owner": "client/src/pages/WeeklyMealBoard.tsx",
+        "currentSourceSha256": "78154cdbaaca104da0d90aa8b05db3780bdf1c4911aaf36d412421e3b53953d2",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1414",
+    "route": "/builder/classic",
+    "owners": [
+      {
+        "owner": "client/src/pages/WeeklyMealBoard.tsx",
+        "currentSourceSha256": "78154cdbaaca104da0d90aa8b05db3780bdf1c4911aaf36d412421e3b53953d2",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1423",
+    "route": "/shopping-list-v2",
+    "owners": [
+      {
+        "owner": "client/src/pages/ShoppingListMasterView.tsx",
+        "currentSourceSha256": "3f06361b2180ef653f5456dbe7d4075f99eb74295a7929e9b36bf294372ceab7",
+        "unchangedSinceInventory": false
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1424",
+    "route": "/shopping-list",
+    "owners": [
+      {
+        "owner": "client/src/pages/ShoppingListMasterView.tsx",
+        "currentSourceSha256": "3f06361b2180ef653f5456dbe7d4075f99eb74295a7929e9b36bf294372ceab7",
+        "unchangedSinceInventory": false
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1426",
+    "route": "/more",
+    "owners": [
+      {
+        "owner": "client/src/pages/More.tsx",
+        "currentSourceSha256": "0bad94c101f16c5382c1c7055974320d55924106ab014443c581aea1ce0f7462",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1427",
+    "route": "/tips",
+    "owners": [
+      {
+        "owner": "client/src/pages/TipsStrategiesPage.tsx",
+        "currentSourceSha256": "ca2bc87c06621fbefab2d0d9a3218a0330ba3ce157eecc499e7b0b364e624778",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1428",
+    "route": "/pro/physician",
+    "owners": [
+      {
+        "owner": "client/src/pages/pro/PhysicianPortal.tsx",
+        "currentSourceSha256": "1d717677c01580002d08bf9b9e760dc43891393c8e686197f09d361c9310de3a",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1429",
+    "route": "/care-team",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/CareTeam.tsx",
+        "currentSourceSha256": "d777db8d2c0ebbf5e5fdb325644d5dad35cc5728bdd6c7001e2766295ad15640",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1430",
+    "route": "/care-team/physician",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/care-team/PhysicianCareTeam.tsx",
+        "currentSourceSha256": "85219bf9badb6dab1623ce89f16e265547c0197385e7874e73648da522b2197e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1431",
+    "route": "/care-team/trainer",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/care-team/TrainerCareTeam.tsx",
+        "currentSourceSha256": "9a77db6f2bf89a2a3d9b74c5e9e434386256ba56f81ff20f83b9c38651234a52",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1432",
+    "route": "/pro-portal",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/ProPortal.tsx",
+        "currentSourceSha256": "03459d6324838224a4e6f7375c26e94f9e501cd5c93d812560faf0cf59f6a138",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1433",
+    "route": "/pro",
+    "owners": [],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1434",
+    "route": "/pro/clients",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/pro/ProClients.tsx",
+        "currentSourceSha256": "5d03a1c73765f05bb67a37c2df5e1c359bed5f6435c4e48514916f03b42ec30c",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1435",
+    "route": "/pro/physician-clients",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/pro/ProClientsPhysician.tsx",
+        "currentSourceSha256": "7726151e475e543bc9f5572236ea226dccc39d0eea737783ab27da22bd9efb27",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1436",
+    "route": "/pro/workspace/:clientId",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/pro/WorkspaceShell.tsx",
+        "currentSourceSha256": "afc0abcb707dbf3c54f34a7751fcaf0ea17eea9147e6dfd6c6009526193778d4",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1437",
+    "route": "/pro/clients/:id",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/pro/ProClientDashboard.tsx",
+        "currentSourceSha256": "bec31fc3c5a96319aa1f4b389a91c7f98dc1125ecb56ae86580dd83233a8e845",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1438",
+    "route": "/pro/clients/:id/nutrition-life-plan",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/ProClientNutritionPlan.tsx",
+        "currentSourceSha256": "7200447c0170689940ab47b0ece3a1f667b0521b486610ac986fb6a3add0344d",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1439",
+    "route": "/pro/clients/:id/trainer",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/pro/TrainerClientDashboard.tsx",
+        "currentSourceSha256": "de945d93bb566e2aa7b4d97cdfc28eb51b24c9d4740cad636c49407d897ee8ec",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1440",
+    "route": "/pro/clients/:id/clinician",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/pro/ClinicianClientDashboard.tsx",
+        "currentSourceSha256": "51870fed6130cc20979d2cc0060ca0c5e163b819103fb99f5311d21529ff6b8f",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1441",
+    "route": "/pro/clients/:clientId/board/:program",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/pro/ProBoardViewer.tsx",
+        "currentSourceSha256": "e2cbea155c25c7e27e1d058eafb577d9c4c1fb297b8f626d008b08b3a60c0309",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1442",
+    "route": "/pro-client-dashboard",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/pro/ProClientDashboard.tsx",
+        "currentSourceSha256": "bec31fc3c5a96319aa1f4b389a91c7f98dc1125ecb56ae86580dd83233a8e845",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1443",
+    "route": "/performance-competition-builder",
+    "owners": [
+      {
+        "owner": "client/src/pages/pro/PerformanceCompetitionBuilder.tsx",
+        "currentSourceSha256": "bd44f3a244c160210ac0ffbb59f9323a96c255acff541fe95050b7afbed54059",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1447",
+    "route": "/general-nutrition-builder",
+    "owners": [
+      {
+        "owner": "client/src/pages/pro/GeneralNutritionBuilderEntry.tsx",
+        "currentSourceSha256": "e741d5b7852d256fad7718dcc820607f4713de6815c25c65fb53d0325d944d6e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1451",
+    "route": "/general-nutrition-builder/build",
+    "owners": [
+      {
+        "owner": "client/src/pages/pro/GeneralNutritionBuilder.tsx",
+        "currentSourceSha256": "c9613814717c3d569eda4731f2eac78acdc74ea7b57d46e7dfdd03a926c7b4dc",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1455",
+    "route": "/pro/performance-competition-builder",
+    "owners": [
+      {
+        "owner": "client/src/pages/pro/PerformanceCompetitionBuilder.tsx",
+        "currentSourceSha256": "bd44f3a244c160210ac0ffbb59f9323a96c255acff541fe95050b7afbed54059",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1459",
+    "route": "/pro/clients/:id/general-nutrition-builder",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/pro/GeneralNutritionBuilder.tsx",
+        "currentSourceSha256": "c9613814717c3d569eda4731f2eac78acdc74ea7b57d46e7dfdd03a926c7b4dc",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1460",
+    "route": "/pro/clients/:id/performance-competition-builder",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/pro/PerformanceCompetitionBuilder.tsx",
+        "currentSourceSha256": "bd44f3a244c160210ac0ffbb59f9323a96c255acff541fe95050b7afbed54059",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1461",
+    "route": "/pro/clients/:id/diabetic-builder",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/physician/DiabeticMenuBuilder.tsx",
+        "currentSourceSha256": "a36b1dc986f307755f6c533b1a03236e1a27be0cab3945d8f397dbdf223cf59a",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1462",
+    "route": "/pro/clients/:id/glp1-builder",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/physician/GLP1MealBuilder.tsx",
+        "currentSourceSha256": "074eed9a996b6fde3da773030ec18a703bb88e85052b94f50218ca5c0d7034c6",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1463",
+    "route": "/pro/clients/:id/anti-inflammatory-builder",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx",
+        "currentSourceSha256": "db57d36cf4fcbaeca80ed4f7f112e70dface15574bd51ecfae9ac5d5d66c937b",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1464",
+    "route": "/pro/clients/:id/kidney-disease-builder",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx",
+        "currentSourceSha256": "db57d36cf4fcbaeca80ed4f7f112e70dface15574bd51ecfae9ac5d5d66c937b",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1465",
+    "route": "/pro/clients/:id/heart-failure-builder",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx",
+        "currentSourceSha256": "db57d36cf4fcbaeca80ed4f7f112e70dface15574bd51ecfae9ac5d5d66c937b",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1466",
+    "route": "/pro/clients/:id/liver-disease-builder",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx",
+        "currentSourceSha256": "db57d36cf4fcbaeca80ed4f7f112e70dface15574bd51ecfae9ac5d5d66c937b",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1467",
+    "route": "/pro/clients/:id/weekly-builder",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/WeeklyMealBoard.tsx",
+        "currentSourceSha256": "78154cdbaaca104da0d90aa8b05db3780bdf1c4911aaf36d412421e3b53953d2",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1468",
+    "route": "/pro/clients/:id/beach-body-builder",
+    "owners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/BeachBodyMealBoard.tsx",
+        "currentSourceSha256": "696d7d75880fd571c3a1ce4233d9bce922bf2293619e70063cc257731d304f82",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1470",
+    "route": "/diabetic-hub",
+    "owners": [
+      {
+        "owner": "client/src/pages/physician/DiabeticHub.tsx",
+        "currentSourceSha256": "21b58392e2fc76ffa9449892b2e977bb50297bf50e07643800b6243ad953d8a8",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1471",
+    "route": "/diabetes-support",
+    "owners": [
+      {
+        "owner": "client/src/pages/physician/DiabetesSupportPage.tsx",
+        "currentSourceSha256": "77ce7b0611fe959754c27a0c13b83dc489c177a397c475170b781742083e2c5e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1472",
+    "route": "/diabetic-menu-builder",
+    "owners": [
+      {
+        "owner": "client/src/pages/physician/DiabeticMenuBuilder.tsx",
+        "currentSourceSha256": "a36b1dc986f307755f6c533b1a03236e1a27be0cab3945d8f397dbdf223cf59a",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1473",
+    "route": "/glp1-hub",
+    "owners": [
+      {
+        "owner": "client/src/pages/physician/GLP1Hub.tsx",
+        "currentSourceSha256": "813c9e9c281c7b02e335a575c1bee1d0c02197625191e754ce09b84daf197218",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1474",
+    "route": "/glp1-meal-builder",
+    "owners": [
+      {
+        "owner": "client/src/pages/physician/GLP1MealBuilder.tsx",
+        "currentSourceSha256": "074eed9a996b6fde3da773030ec18a703bb88e85052b94f50218ca5c0d7034c6",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1475",
+    "route": "/anti-inflammatory-menu-builder",
+    "owners": [
+      {
+        "owner": "client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx",
+        "currentSourceSha256": "db57d36cf4fcbaeca80ed4f7f112e70dface15574bd51ecfae9ac5d5d66c937b",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1477",
+    "route": "/craving-creator-landing",
+    "owners": [
+      {
+        "owner": "client/src/pages/CravingCreatorLanding.tsx",
+        "currentSourceSha256": "9bb4178a4d7937a41052985fb0f788ff36a5ec2ad4ea13f4540ff9e20a1e8cc0",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1481",
+    "route": "/craving-desserts",
+    "owners": [
+      {
+        "owner": "client/src/pages/CravingDessertCreator.tsx",
+        "currentSourceSha256": "6d43257e3dc909ac9876e335ebef136066969f57aa684a5a261435f5fb033722",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1485",
+    "route": "/weaning-off-tool",
+    "owners": [
+      {
+        "owner": "client/src/pages/weaning-off-tool.tsx",
+        "currentSourceSha256": "f7805bc6478c6d17dbcb74b39786a69833d7b831929a7864440e47dcbe33f7ab",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1486",
+    "route": "/emotion-ai",
+    "owners": [
+      {
+        "owner": "client/src/pages/LifestyleLandingPage.tsx",
+        "currentSourceSha256": "415134302243deb43adaecc1cc7ab4094261ab60459b45048b1518f7f89b8656",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1488",
+    "route": "/founders",
+    "owners": [
+      {
+        "owner": "client/src/pages/Founders.tsx",
+        "currentSourceSha256": "d5cf9200f85ba4ddee53b98371a0f6c00f71e6bdd147a98f281f8f4bf3214c2a",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1489",
+    "route": "/coaches",
+    "owners": [
+      {
+        "owner": "client/src/pages/CoachesComingSoon.tsx",
+        "currentSourceSha256": "7168bf437b95c963246dc35f578fb8b8a8f5c6d120d8c239dcab96f3eea69f8d",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1491",
+    "route": "/business-center",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/BusinessCenter.tsx",
+        "currentSourceSha256": "4897b2cb227066913a0f3f492091c7cad45abb0b3640de2074ed1dbeb0436674",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1493",
+    "route": "/learning",
+    "owners": [
+      {
+        "owner": "client/src/pages/learning/LearningHub.tsx",
+        "currentSourceSha256": "d178450ad4e6f5f3bd0ff35226119d39ec459731fa183dfa7f07c4ef7e7ef699",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1494",
+    "route": "/certifications/updates",
+    "owners": [
+      {
+        "owner": "client/src/pages/learning/UpdatesInbox.tsx",
+        "currentSourceSha256": "7d83a15454db3e999458867ba3c98e03f66096951bf345bbf7c4d30d914fddb2",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1495",
+    "route": "/certifications/:certType/complete",
+    "owners": [
+      {
+        "owner": "client/src/pages/learning/PlatformCertComplete.tsx",
+        "currentSourceSha256": "13897fd98181402f71ad41d22d840e27cc3598719f51b668d98a98550141ae0c",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1496",
+    "route": "/certifications/:certType/video/:slug",
+    "owners": [
+      {
+        "owner": "client/src/pages/learning/PlatformCertVideo.tsx",
+        "currentSourceSha256": "034c9cbf7275496b55024f8e664b762f3c58163099172ce9dda4586f3e90c015",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1497",
+    "route": "/certifications/:certType/quiz/:slug",
+    "owners": [
+      {
+        "owner": "client/src/pages/learning/PlatformCertQuiz.tsx",
+        "currentSourceSha256": "d94e38f824967f1c5601ac1cbdf35b1336a8a2eeb15337303e37beca6d1fa40d",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1498",
+    "route": "/certifications/:certType",
+    "owners": [
+      {
+        "owner": "client/src/pages/learning/PlatformCertDashboard.tsx",
+        "currentSourceSha256": "4dc6a38ee817f994b8b1ce9011d7fbf331889b51ecc2f2b305ac2b576123b75a",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1500",
+    "route": "/admin/certifications",
+    "owners": [
+      {
+        "owner": "client/src/pages/admin/AdminCertifications.tsx",
+        "currentSourceSha256": "0c9cfcc8704911dddadd78af4a4ddb03eb71466b16bdaa3cbccdee4cc8651f22",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1502",
+    "route": "/rewardful/connect/confirm",
+    "owners": [
+      {
+        "owner": "client/src/pages/RewardfulConnectionConfirm.tsx",
+        "currentSourceSha256": "61a5d2d15969d1295140c1cedcc4ab37b01fab2249bdf6dbaf2bc7a7fe36fc23",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1503",
+    "route": "/business-center/affiliate/dashboard",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/AffiliateDashboard.tsx",
+        "currentSourceSha256": "b5ed7eb0ecfa0c72e2b2621dbb3239708028de59b3ecad0f47ef026ce84a8f1a",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1504",
+    "route": "/business-center/affiliate",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/AffiliateProgramOverview.tsx",
+        "currentSourceSha256": "00a318b602529abc42bf30a60bd270f08eeb4d6775986d786c276d78309cc560",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1505",
+    "route": "/business-center/affiliate/choose",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/AffiliateOpportunities.tsx",
+        "currentSourceSha256": "2ff5ea4be448d6b8919aedf36bf80c7d3889a041408e2a21cece402a7d35891b",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1506",
+    "route": "/business-center/affiliate/social",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/AffiliatePathPage.tsx",
+        "currentSourceSha256": "dc7511a0e06fcfc6730ccf6a6f85573cc17313276c7dde3045745e7e5a6a0392",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1507",
+    "route": "/business-center/affiliate/coaching",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/AffiliatePathPage.tsx",
+        "currentSourceSha256": "dc7511a0e06fcfc6730ccf6a6f85573cc17313276c7dde3045745e7e5a6a0392",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1508",
+    "route": "/business-center/affiliate/:pathId/certification/complete",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/certification/CertificationComplete.tsx",
+        "currentSourceSha256": "edfe7647fd66f90e784b0d1a70d2af2f9e012a7271d7d5643c532165f8a15ea4",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1509",
+    "route": "/business-center/affiliate/:pathId/certification/view",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/certification/CertificationCertificateView.tsx",
+        "currentSourceSha256": "dc516e7eb8cfccf566ff6b035b43fda157903b29e81691b75313442504f25ee4",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1510",
+    "route": "/business-center/affiliate/:pathId/certification/:moduleId/quiz",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/certification/CertificationQuiz.tsx",
+        "currentSourceSha256": "ed723e730b5eb7d73c5acb3d71a0dbf8ab4aec9455c3aa6b23be95b46160bad0",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1511",
+    "route": "/business-center/affiliate/:pathId/certification/:moduleId",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/certification/CertificationLesson.tsx",
+        "currentSourceSha256": "7e2530dfe946c44bf857e45d0c7a85426d0d7cbdaf2504d5a9133d9302ab820c",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1512",
+    "route": "/business-center/affiliate/:pathId/certification",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/certification/CertificationDashboard.tsx",
+        "currentSourceSha256": "dbffbd82647adb0b31865ba1a496f293e9d38493e28c54340b067b0283415578",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1513",
+    "route": "/business-center/partners",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/PartnerProgramsHub.tsx",
+        "currentSourceSha256": "9b7583989f4b44350549cdaff8e0fadaf1b101e338ec5413464712c28da81fc4",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1514",
+    "route": "/business-center/partners/manage",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/PartnerManagement.tsx",
+        "currentSourceSha256": "fbdea1b13e1f85b35a1f743f8d1342ff1a579ed556790010d658025eecc99183",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1515",
+    "route": "/business-center/how-partnerships-work",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/HowPartnershipsWork.tsx",
+        "currentSourceSha256": "2879c612ef8feb9ee8d80cfdb457d10b031207c7748dab7e29bd2755f5185df1",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1516",
+    "route": "/business-center/founding-affiliate",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/FoundingAffiliatePage.tsx",
+        "currentSourceSha256": "b37d2a066c63b4d9320b6c6ae3da17ef886dbcb32140b2a4f2d25efeb31cbcca",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1517",
+    "route": "/business-center/founding-partner",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/FoundingPartnerProgram.tsx",
+        "currentSourceSha256": "3ec4875433bc4629935aef0c3a32f0752f923935d9dc92d0fd9a8b603aeeb26e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1518",
+    "route": "/business-center/academy",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/AcademyLandingPage.tsx",
+        "currentSourceSha256": "9f8efb97144168360374bb3496de0e9ed0168b0d41143b8b25c4862858b86e96",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1519",
+    "route": "/academy",
+    "owners": [
+      {
+        "owner": "client/src/pages/academy/AcademyHome.tsx",
+        "currentSourceSha256": "78d51b92575422d6affc8d6c7127cdd017f2c142e5f45b83678ada0ade5e4582",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1520",
+    "route": "/academy/platform-mastery/complete",
+    "owners": [
+      {
+        "owner": "client/src/pages/academy/PlatformMasteryComplete.tsx",
+        "currentSourceSha256": "8f8abf3d0201555f18c533c70ef1b1916a6501cebbcd6bc1c56a9e8ad04f9134",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1521",
+    "route": "/academy/platform-mastery/lesson/:lessonId",
+    "owners": [
+      {
+        "owner": "client/src/pages/academy/LessonReader.tsx",
+        "currentSourceSha256": "762ce0135e7cca6958ad6bb1f45affdbf966a7b7f21c3e7e714d5b7cda0c9709",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1522",
+    "route": "/academy/platform-mastery",
+    "owners": [
+      {
+        "owner": "client/src/pages/academy/PlatformMasteryDashboard.tsx",
+        "currentSourceSha256": "b76e684bf2cf5cad23cd2dcaf288f276431fbb9350c766081f3f2d4f4b1252ac",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1523",
+    "route": "/business-center/industry",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/IndustryPartnerships.tsx",
+        "currentSourceSha256": "984a35ac8fcb152d0904b6cb50e7647f9cabe72a24b71f0bb0ea4138effb2d57",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1524",
+    "route": "/business-center/healthcare",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/PublicHealthcarePartnerships.tsx",
+        "currentSourceSha256": "3aefbffccb25d8e054f9adf03d23ca4c8f1f73887c56566bd37c618f4e5c3ace",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1525",
+    "route": "/business-center/white-label",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/WhiteLabelSolutions.tsx",
+        "currentSourceSha256": "d712f55138bf47cfc28b122751b9d1d9d9a30d43a4749db9e4ddfd18223a347c",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1526",
+    "route": "/business-center/partnerships",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/BusinessCenterSection.tsx",
+        "currentSourceSha256": "93f7b374b87c96b5d9bc3f9e174bcb52d58e53a04d8dd8c161995ee9cbed2e12",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1527",
+    "route": "/partner-center",
+    "owners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/PartnerCenter.tsx",
+        "currentSourceSha256": "bf6dfa1428ce60e099b3a849c2a1fbc3b59f63739f65a19f7a1dd04270d9070d",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1529",
+    "route": "/business-center/promotions",
+    "owners": [
+      {
+        "owner": "client/src/pages/business/PromotionsHub.tsx",
+        "currentSourceSha256": "6c9c75072cb59a7041184ffb43c98c66e83204ed18e2479dd99f083943943887",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1530",
+    "route": "/join/promo/:token",
+    "owners": [
+      {
+        "owner": "client/src/pages/PromoRedemption.tsx",
+        "currentSourceSha256": "7e56589564b2af6e123e92b7243218606f48af6d6e46f6ab879ce0c2f7420611",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1531",
+    "route": "/join/studio",
+    "owners": [
+      {
+        "owner": "client/src/pages/JoinStudio.tsx",
+        "currentSourceSha256": "9b411323d42e9f5c3d456f160e4871f850d05bb8cf8c8d6d93daf3e94e83a731",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1532",
+    "route": "/admin/campaigns",
+    "owners": [
+      {
+        "owner": "client/src/pages/admin/AdminCampaignManager.tsx",
+        "currentSourceSha256": "a379f8bdb6201dbc1534e275fc8475b56038d3121d9e7948ef2b97eb63dcaa4e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1533",
+    "route": "/admin/bug-reports",
+    "owners": [
+      {
+        "owner": "client/src/pages/admin/BugReportsDashboard.tsx",
+        "currentSourceSha256": "f2c8117c1a6f2406152a0454bd0e5f548b35cf25f446a4a7cade0489e9de3b98",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1535",
+    "route": "/partners",
+    "owners": [
+      {
+        "owner": "client/src/pages/PublicPartnersHub.tsx",
+        "currentSourceSha256": "9bfe2987d6b84fa24e1c5f3349a2d56decc968ebdc4ce009556e8843e3eea24e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1536",
+    "route": "/partners/founding",
+    "owners": [
+      {
+        "owner": "client/src/pages/FoundingPartnerProgram.tsx",
+        "currentSourceSha256": "3ec4875433bc4629935aef0c3a32f0752f923935d9dc92d0fd9a8b603aeeb26e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1537",
+    "route": "/partners/industry",
+    "owners": [
+      {
+        "owner": "client/src/pages/IndustryPartnerships.tsx",
+        "currentSourceSha256": "984a35ac8fcb152d0904b6cb50e7647f9cabe72a24b71f0bb0ea4138effb2d57",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1538",
+    "route": "/partners/healthcare",
+    "owners": [
+      {
+        "owner": "client/src/pages/PublicHealthcarePartnerships.tsx",
+        "currentSourceSha256": "3aefbffccb25d8e054f9adf03d23ca4c8f1f73887c56566bd37c618f4e5c3ace",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1539",
+    "route": "/partners/white-label",
+    "owners": [
+      {
+        "owner": "client/src/pages/WhiteLabelSolutions.tsx",
+        "currentSourceSha256": "d712f55138bf47cfc28b122751b9d1d9d9a30d43a4749db9e4ddfd18223a347c",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1542",
+    "route": "/supplement-hub",
+    "owners": [
+      {
+        "owner": "client/src/pages/supplement-hub.tsx",
+        "currentSourceSha256": "40b471f3b91b3c131cc3ec467b1658721569fd0f2ac1af587f0c0a7501195fa1",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1543",
+    "route": "/supplement-education",
+    "owners": [
+      {
+        "owner": "client/src/pages/supplement-education.tsx",
+        "currentSourceSha256": "9237c79ebc5a51956dde256353a737384f29c718155d186da9e3495ab40eba2e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1548",
+    "route": "/admin",
+    "owners": [
+      {
+        "owner": "client/src/pages/AdminDashboard.tsx",
+        "currentSourceSha256": "1074cc2073cc3c5b1c4dd93ed30b98bd12a1c05080a622186de085ba1bc0530d",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1552",
+    "route": "/__modal-test__",
+    "owners": [
+      {
+        "owner": "client/src/pages/ModalTestHarness.tsx",
+        "currentSourceSha256": "def269f3ac9aa5711a307b33a3b7e11a247aa2445a5a8ec361cb4701fda96f74",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1554",
+    "route": "/__sheet-test__",
+    "owners": [
+      {
+        "owner": "client/src/pages/SheetTestHarness.tsx",
+        "currentSourceSha256": "7922fa23a7e9ca0eff477d62b13114d13640ffbd2c7f405f84427733411f8dd2",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  },
+  {
+    "registration": "client/src/components/Router.tsx:1558",
+    "route": "(pathless/dynamic)",
+    "owners": [
+      {
+        "owner": "client/src/pages/not-found.tsx",
+        "currentSourceSha256": "718a41bd05a163d1db32480aba013f5fe754894e656b6542a8e4b302275b172e",
+        "unchangedSinceInventory": true
+      }
+    ],
+    "evidence": "Reused existing registration/owner join; registration owners are hash-unchanged. Access, role, activation and runtime states not inferred."
+  }
+]

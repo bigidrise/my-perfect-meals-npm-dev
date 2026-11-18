@@ -85,7 +85,7 @@
       "text": "Protocol Controlled by Your Physician",
       "category": "general_clinical",
       "proposedKey": "editprofilepage.protocol_controlled_by_your_2",
-      "currentOwnerSha256": "e1ddf2525e7eebfffdd3266e03e0e9f00dbffce9f8b3393c0b61d934da700e09",
+      "currentOwnerSha256": "9338d02a3d965e2c287759410d4c3c26148aec5841a2b8e052e50b0b718c8abc",
       "status": "existing-source-integrity-blocker-not-approved"
     },
     {
@@ -94,7 +94,7 @@
       "text": "Metabolic Medication Support — Nutritional Guidance Only",
       "category": "medication",
       "proposedKey": "editprofilepage.metabolic_medication_support_nutritional",
-      "currentOwnerSha256": "e1ddf2525e7eebfffdd3266e03e0e9f00dbffce9f8b3393c0b61d934da700e09",
+      "currentOwnerSha256": "9338d02a3d965e2c287759410d4c3c26148aec5841a2b8e052e50b0b718c8abc",
       "status": "existing-source-integrity-blocker-not-approved"
     },
     {
@@ -103,7 +103,7 @@
       "text": "not a substitute for your prescribing doctor's guidance",
       "category": "general_clinical",
       "proposedKey": "editprofilepage.not_a_substitute_for_4",
-      "currentOwnerSha256": "e1ddf2525e7eebfffdd3266e03e0e9f00dbffce9f8b3393c0b61d934da700e09",
+      "currentOwnerSha256": "9338d02a3d965e2c287759410d4c3c26148aec5841a2b8e052e50b0b718c8abc",
       "status": "existing-source-integrity-blocker-not-approved"
     }
   ],
@@ -138,8 +138,8 @@
       "classification": "protected-held",
       "namespace": "none / not applicable",
       "key": null,
-      "currentSourceSha256": "aec7eed78f665bf6dd896ba78b53e46855ec784b1307ccd160ecc08a087499b3",
-      "sourceUnchangedSinceInventory": true,
+      "currentSourceSha256": "f9aeddb459c2df2758f130522f585bd9d51f3bc541c0bbb9ac1c81b634b131c0",
+      "sourceUnchangedSinceInventory": false,
       "exactHistoricalSourceExcerpt": "780:             <div className=\"text-center space-y-2\">\n781:               <h1 className=\"text-2xl font-bold text-white\">Any relevant medical conditions?</h1>\n782:             </div>\n783:             <div className=\"flex flex-wrap gap-2 max-w-sm mx-auto\">",
       "remainingWork": "Source hash and reviewed ownership reconciled; original evidence limits remain. This is not a fresh browser claim.",
       "nextTask": "#1889",
@@ -212,8 +212,8 @@
       "classification": "protected-held",
       "namespace": "none / not applicable",
       "key": null,
-      "currentSourceSha256": "c84c6b529c2fd6d314e5a656b9030d15f25e69d6b74a65b82369db2ac5085cdb",
-      "sourceUnchangedSinceInventory": true,
+      "currentSourceSha256": "82c477f88a17a8b57895b4337ae3c6f338ad862aa2e8dcf5432f377371ba3504",
+      "sourceUnchangedSinceInventory": false,
       "exactHistoricalSourceExcerpt": "189:       <p className=\"text-xs text-white/50\">\n190:         Healthy guideline: your waist should be less than half your height.\n191:       </p>\n192: ",
       "remainingWork": "Source hash and reviewed ownership reconciled; original evidence limits remain. This is not a fresh browser claim.",
       "nextTask": "#1889",

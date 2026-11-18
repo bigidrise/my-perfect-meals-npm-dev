@@ -37,7 +37,7 @@
 - [iOS capture diagnosis](ios-capture-diagnosis.md) — diagnose Grocery Voice Add separately from Studio capture, and sync the native bundle before device evidence.
 - [Shared Neon and workspace release boundary](runtime-database-identity.md) — both workspaces share Neon, but Development Publish does not update Production.
 - [Studio browser verification access](studio-browser-verification-access.md) — DEV browser recording checks can be blocked by workspace entitlements or browser media permissions.
-- [Development browser session boundary](development-browser-session-boundary.md) — app-preview screenshots do not inherit the user's signed-in Development preview session.
+- [Development browser session boundary](development-browser-session-boundary.md) — app-preview is unauthenticated; fixture-only checks require verified network isolation.
 - [Private Studio moderation policy](private-studio-moderation-policy.md) — ordinary profanity is flagged but deliverable in private Studio; serious categories and public policy stay unchanged.
 - [Beverage safeguard alternative parity](beverage-safeguard-alternative-parity.md) — alternative offers must use every original validation surface and stay DEV-gated until intentionally released.
 - [Pairing release boundary](pairing-foundation-release-boundary.md) — Phase 1 frozen; advisor verification and approved opt-in corrections are offline-only; no runtime activation.
