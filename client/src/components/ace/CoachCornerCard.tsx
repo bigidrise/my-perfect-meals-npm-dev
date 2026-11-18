@@ -54,7 +54,7 @@ export default function CoachCornerCard() {
             <div className="min-w-0 flex-1">
               <span className="mb-1 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-orange-300/80">
                 <ChefHat aria-hidden="true" className="h-3.5 w-3.5" />
-                Your food &amp; platform guide
+                {t("Your food & platform guide")}
               </span>
               <h3 className="font-bold leading-none tracking-tight text-white">
                 <img
@@ -66,10 +66,10 @@ export default function CoachCornerCard() {
                 />
               </h3>
               <p className="mt-1 text-xs font-medium text-orange-200/80 sm:text-sm">
-                Platform Concierge
+                {t("Platform Concierge")}
               </p>
               <p className="mt-2 text-xs leading-relaxed text-orange-50/65 sm:text-sm">
-                Ask about food, explore meal ideas, or find your way around My Perfect Meals.
+                {t("Ask about food, explore meal ideas, or find your way around My Perfect Meals.")}
               </p>
             </div>
           </div>

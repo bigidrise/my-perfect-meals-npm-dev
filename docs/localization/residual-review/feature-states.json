@@ -24,6 +24,33 @@
         "sourceHash": "b5fe9f96eddeb9962734782b1cd497b23b9b8c4e9ac3062ac6ec2eb56b3397e9",
         "disposition": "connected"
       }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/Welcome.tsx",
+        "currentSourceSha256": "c320e1f6bc286315442cc2e71b371a2d33e59854a53f80a8cd963e65d56c10a9",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/home.tsx",
+        "currentSourceSha256": "231ce2e01c7f5d119937a8db0d6e970eb75824e3872e3264ae93bd18d632357a",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/Learn.tsx",
+        "currentSourceSha256": "fe3a30eb09886113fba58e2630f2cfb40270a7a3d7df2bbb1641bea6baeaa26f",
+        "unchangedSinceInventory": false
+      },
+      {
+        "owner": "client/src/pages/LifestyleLandingPage.tsx",
+        "currentSourceSha256": "415134302243deb43adaecc1cc7ab4094261ab60459b45048b1518f7f89b8656",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/creator/CreatorStudioLanding.tsx",
+        "currentSourceSha256": "b2f82b85f96ea36cafd7a99b7a2ff3b77cdc68e6f3026cee298e4353bf4b1d09",
+        "unchangedSinceInventory": true
+      }
     ]
   },
   {
@@ -45,6 +72,28 @@
         "owner": "client/src/pages/Auth.tsx",
         "sourceHash": "b5fe9f96eddeb9962734782b1cd497b23b9b8c4e9ac3062ac6ec2eb56b3397e9",
         "disposition": "connected"
+      }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/Auth.tsx",
+        "currentSourceSha256": "b5fe9f96eddeb9962734782b1cd497b23b9b8c4e9ac3062ac6ec2eb56b3397e9",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/Auth.tsx",
+        "currentSourceSha256": "b5fe9f96eddeb9962734782b1cd497b23b9b8c4e9ac3062ac6ec2eb56b3397e9",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/ForgotPassword.tsx",
+        "currentSourceSha256": "c165d6a60cdc667cafe94e3dc5bd0a6921a044a8f112bd4eb266fd5eb1e5f215",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/ResetPassword.tsx",
+        "currentSourceSha256": "6a51ef7d386e2c48d04f4e31e438c7f47849188948a2e0518befcc5c0e0225fd",
+        "unchangedSinceInventory": true
       }
     ]
   },
@@ -68,6 +117,18 @@
         "sourceHash": "00e8e2d215e1192f74aa68ec9e382dffbffe05ff05d5f620b24776267337c9ab",
         "disposition": "protected-held"
       }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/ConsumerWelcome.tsx",
+        "currentSourceSha256": "00e8e2d215e1192f74aa68ec9e382dffbffe05ff05d5f620b24776267337c9ab",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/OnboardingV3.tsx",
+        "currentSourceSha256": "f9aeddb459c2df2758f130522f585bd9d51f3bc541c0bbb9ac1c81b634b131c0",
+        "unchangedSinceInventory": false
+      }
     ]
   },
   {
@@ -82,7 +143,7 @@
     "sourceOwners": [
       {
         "owner": "client/src/pages/OnboardingV3.tsx",
-        "sourceHash": "aec7eed78f665bf6dd896ba78b53e46855ec784b1307ccd160ecc08a087499b3",
+        "sourceHash": "f9aeddb459c2df2758f130522f585bd9d51f3bc541c0bbb9ac1c81b634b131c0",
         "disposition": "protected-held"
       },
       {
@@ -95,6 +156,23 @@
         "sourceHash": "e8c530f6f64fbd209d506170390ee15ae9d7699bd2f2a72f08ab48fd99770a16",
         "disposition": "protected-held"
       }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/onboarding/ExtendedOnboarding.tsx",
+        "currentSourceSha256": "671086e481c85ccbabc5a5736d888ebe1679e5960b2e895f01aec640d61bf05a",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/OnboardingV3.tsx",
+        "currentSourceSha256": "f9aeddb459c2df2758f130522f585bd9d51f3bc541c0bbb9ac1c81b634b131c0",
+        "unchangedSinceInventory": false
+      },
+      {
+        "owner": "client/src/pages/OnboardingV3.tsx",
+        "currentSourceSha256": "f9aeddb459c2df2758f130522f585bd9d51f3bc541c0bbb9ac1c81b634b131c0",
+        "unchangedSinceInventory": false
+      }
     ]
   },
   {
@@ -103,13 +181,38 @@
     "statesVariants": "Welcome gate; workspace discovery/retry; getting-started; quick start; hydration entry; plan loading/empty/error/retry; nav/dropdowns; release banner",
     "evidenceLimits": "Prior dashboard fixture screenshots predate final card corrections; later copy checks were static/unit only. Global shell must be joined separately from page import closure. Full real dashboard and organization selection unverified.",
     "findings": "L02-L08, L13, L17, L42, L53-L54",
-    "currentResidual": "Preserve translated dashboard/cards/navigation. Router-owned Almost there!/finish setup toast and unverified workspace/error branches remain.",
+    "currentResidual": "Preserve completed navigation/Recipe Maker. Founder confirmed English Ask Chef descriptions and macro/section labels; CoachCornerCard contains exact English prose. Router-owned setup and workspace/error states remain separate.",
     "nextPreparedTask": "#1890 / #1892",
     "evidence": "Current source hash/resource reconciliation over the existing route/state matrix; no fresh authenticated browser or provider claim",
     "sourceOwners": [
       {
         "owner": "client/src/components/ui/button.tsx",
         "sourceHash": "3d3e9ee007fdf22537ee2de86c95b84512ba0dec1e6d0c47d81020ea828c731d",
+        "disposition": "connected"
+      },
+      {
+        "owner": "client/src/components/ui/pill-button.tsx",
+        "sourceHash": "d58b5d47127184cff5a0911c55bbd9cf593084ac2c074650c877ee512f6b1950",
+        "disposition": "caller-content"
+      },
+      {
+        "owner": "client/src/components/ui/dialog.tsx",
+        "sourceHash": "2ac90c6d1b87c62f977d0d6027ffe1255dccc157bde5aacaa5ab3d8062b7f932",
+        "disposition": "connected"
+      },
+      {
+        "owner": "client/src/components/ui/sheet.tsx",
+        "sourceHash": "0a6e1a7bad520c0ce89aa1c089c356a4c7bd8c40bc01013708dea7ff3d3bd2fe",
+        "disposition": "connected"
+      },
+      {
+        "owner": "client/src/components/ui/toast.tsx",
+        "sourceHash": "07839aa13172e91518a55cce8cb51e7df038223aec124d242d88d87f0632636f",
+        "disposition": "connected"
+      },
+      {
+        "owner": "client/src/components/ui/form.tsx",
+        "sourceHash": "612163f5ecae26656da5fb716454075d1d715ac65c64483499d24ca175fee05a",
         "disposition": "connected"
       },
       {
@@ -142,6 +245,13 @@
         "sourceHash": "aca10633792d03bb541e09ea106b5e1f3de429b69b3cade5ccfb7dca20289424",
         "disposition": "caller-content"
       }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/DashboardNew.tsx",
+        "currentSourceSha256": "e4b9946ba387c82398566288c032ac4165c9cdbbce5a812408f15d64f69f2308",
+        "unchangedSinceInventory": true
+      }
     ]
   },
   {
@@ -164,7 +274,8 @@
         "sourceHash": "37d76ee917ca50e99f474038fac5d48cece88d65cc7fd9a6aea591a8bd1cf0b6",
         "disposition": "completed-ordinary"
       }
-    ]
+    ],
+    "registeredPageOwners": []
   },
   {
     "featureRole": "My Perfect Menu and preferences · consumer",
@@ -182,9 +293,26 @@
         "disposition": "completed-ordinary/protected-held"
       },
       {
+        "owner": "client/src/components/UniversalMealCardFooter.tsx",
+        "sourceHash": "d3b4bfc3bf1318f864f2fbb6dfc90b67c651d9cd2ea0e9279c732c68ed98519f",
+        "disposition": "completed-ordinary"
+      },
+      {
         "owner": "client/src/components/BuilderShoppingBar.tsx",
         "sourceHash": "43c08cc547198a6c0ff2fbcd9b153104463826c650879a0ae988d02c2520540c",
         "disposition": "completed-ordinary"
+      }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/MyPerfectMenu.tsx",
+        "currentSourceSha256": "26fe8568c4ef7253a5ab90e24044bdaab6e9fd934cb5f2f7d4ce35d8aee24abe",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/FoodsIEnjoy.tsx",
+        "currentSourceSha256": "89ab018f0d7d47eb95f985bd49b354122a2c44a8c96f8e69fe0fbf9b51e93c6b",
+        "unchangedSinceInventory": true
       }
     ]
   },
@@ -194,8 +322,8 @@
     "statesVariants": "Cooking method; servings; preferences; loading/failure; full recipe and alternatives; restored result; create-new; meal-card menus",
     "evidenceLimits": "Direct English recipe labels and Chef's Kitchen namespace mismatches found in source. Feature/paid gates and paid generation were not exercised; generated descriptions are not UI dictionary targets.",
     "findings": "L10, L19, L49",
-    "currentResidual": "Create a Dish ordinary UI completed; Chef's Kitchen still has missing chefsKitchen:servingsLabel/create-new resources. Shared safety/PIN controls held.",
-    "nextPreparedTask": "#1890 / #1889",
+    "currentResidual": "Create a Dish controls are mostly translated, not a complete-screen claim. Founder-confirmed ShoppingAggregateBar labels remain English. Recipe prose needs restored-versus-new provenance. Chef's Kitchen resource gaps and protected controls remain separate.",
+    "nextPreparedTask": "#1890 / #1891 / #1889",
     "evidence": "Current source hash/resource reconciliation over the existing route/state matrix; no fresh authenticated browser or provider claim",
     "sourceOwners": [
       {
@@ -206,12 +334,24 @@
       {
         "owner": "client/src/pages/lifestyle/CreateDishPage.tsx",
         "sourceHash": "dcfb9544a0b1b7e33dd3aa1e445c19f82b02aaaffa48f8a6aafcdb7cca93e8e4",
-        "disposition": "completed-ordinary/protected-held"
+        "disposition": "completed-controls/shared-aggregate-residual/protected-held"
       },
       {
         "owner": "client/src/pages/lifestyle/ChefsKitchenPage.tsx",
         "sourceHash": "412dce7a30e8ca086e51fdb5a5c133712ba05495fdd42a0889d2aab8187cf3db",
         "disposition": "missing-fallback"
+      }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/lifestyle/ChefsKitchenPage.tsx",
+        "currentSourceSha256": "412dce7a30e8ca086e51fdb5a5c133712ba05495fdd42a0889d2aab8187cf3db",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/lifestyle/CreateDishPage.tsx",
+        "currentSourceSha256": "dcfb9544a0b1b7e33dd3aa1e445c19f82b02aaaffa48f8a6aafcdb7cca93e8e4",
+        "unchangedSinceInventory": false
       }
     ]
   },
@@ -234,6 +374,23 @@
         "owner": "client/src/pages/CravingDessertCreator.tsx",
         "sourceHash": "6d43257e3dc909ac9876e335ebef136066969f57aa684a5a261435f5fb033722",
         "disposition": "candidate"
+      }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/craving-creator.tsx",
+        "currentSourceSha256": "7b299efbabf88bdb2428c2ab74179876d2516d21b615c1c79ff0c2acf77051f4",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/CravingCreatorLanding.tsx",
+        "currentSourceSha256": "9bb4178a4d7937a41052985fb0f788ff36a5ec2ad4ea13f4540ff9e20a1e8cc0",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/CravingDessertCreator.tsx",
+        "currentSourceSha256": "6d43257e3dc909ac9876e335ebef136066969f57aa684a5a261435f5fb033722",
+        "unchangedSinceInventory": true
       }
     ]
   },
@@ -258,9 +415,46 @@
         "disposition": "completed-ordinary/protected-held"
       },
       {
+        "owner": "client/src/components/UniversalMealCardFooter.tsx",
+        "sourceHash": "d3b4bfc3bf1318f864f2fbb6dfc90b67c651d9cd2ea0e9279c732c68ed98519f",
+        "disposition": "completed-ordinary"
+      },
+      {
         "owner": "client/src/components/BuilderShoppingBar.tsx",
         "sourceHash": "43c08cc547198a6c0ff2fbcd9b153104463826c650879a0ae988d02c2520540c",
         "disposition": "completed-ordinary"
+      }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/BeverageCreator.tsx",
+        "currentSourceSha256": "4072221bd0fac4a599a3ea17a52cc233b43bdccd62b65208992581c79e749f7c",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/BeverageCreatorHub.tsx",
+        "currentSourceSha256": "f9cfbfb678258ee0c8eb8f9c74de5f3d43544820b5ea52d6f3788e19b0429e69",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/AthleteBeverageCreator.tsx",
+        "currentSourceSha256": "99ac83743709a39c4c6ed562c0de9e1688df3241eb3e26b98cae7b5042ede0ba",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/SushiCreator.tsx",
+        "currentSourceSha256": "9364ba4089b482d14ab8a092e9feac75a6118eef889b00bf108278067ea2ab1e",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/SushiCreator.tsx",
+        "currentSourceSha256": "9364ba4089b482d14ab8a092e9feac75a6118eef889b00bf108278067ea2ab1e",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/fridge-rescue.tsx",
+        "currentSourceSha256": "2ca4a424c7113ea03b5786cecc719acd38e54ce07ef3f76b0667552a669de5ad",
+        "unchangedSinceInventory": true
       }
     ]
   },
@@ -280,6 +474,11 @@
         "disposition": "completed-ordinary/protected-held"
       },
       {
+        "owner": "client/src/components/UniversalMealCardFooter.tsx",
+        "sourceHash": "d3b4bfc3bf1318f864f2fbb6dfc90b67c651d9cd2ea0e9279c732c68ed98519f",
+        "disposition": "completed-ordinary"
+      },
+      {
         "owner": "client/src/components/BuilderShoppingBar.tsx",
         "sourceHash": "43c08cc547198a6c0ff2fbcd9b153104463826c650879a0ae988d02c2520540c",
         "disposition": "completed-ordinary"
@@ -288,6 +487,38 @@
         "owner": "client/src/pages/pro/GeneralNutritionBuilder.tsx",
         "sourceHash": "c9613814717c3d569eda4731f2eac78acdc74ea7b57d46e7dfdd03a926c7b4dc",
         "disposition": "hardcoded-path"
+      }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/MealBuilderSelection.tsx",
+        "currentSourceSha256": "f4c43d759a416b639ff9fb139d39fd416219ae84a367262edf3c5d1a5c9b2b7f",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/WeeklyMealBoard.tsx",
+        "currentSourceSha256": "78154cdbaaca104da0d90aa8b05db3780bdf1c4911aaf36d412421e3b53953d2",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/Builders.tsx",
+        "currentSourceSha256": "09a7e0802057dbda55d4219f0fc1365ef4144f3fc26c60f8855f45da328ca616",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/WeeklyMealBoard.tsx",
+        "currentSourceSha256": "78154cdbaaca104da0d90aa8b05db3780bdf1c4911aaf36d412421e3b53953d2",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/BeachBodyMealBoard.tsx",
+        "currentSourceSha256": "696d7d75880fd571c3a1ce4233d9bce922bf2293619e70063cc257731d304f82",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/pro/GeneralNutritionBuilderEntry.tsx",
+        "currentSourceSha256": "e741d5b7852d256fad7718dcc820607f4713de6815c25c65fb53d0325d944d6e",
+        "unchangedSinceInventory": true
       }
     ]
   },
@@ -306,6 +537,33 @@
         "sourceHash": "c9613814717c3d569eda4731f2eac78acdc74ea7b57d46e7dfdd03a926c7b4dc",
         "disposition": "hardcoded-path"
       }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/TrainingNutritionHub.tsx",
+        "currentSourceSha256": "260ceaafd7a103298ff5775b1f7e74aa081c900785c19291a5f14136b490521e",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/PerformanceNutritionSetupPage.tsx",
+        "currentSourceSha256": "f23f6966505d84c6ba3f6a66572e22cae84b4d33a8d53ffe5be973d2ad4f5c09",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/pro/PerformanceCompetitionBuilder.tsx",
+        "currentSourceSha256": "bd44f3a244c160210ac0ffbb59f9323a96c255acff541fe95050b7afbed54059",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/pro/PerformanceCompetitionBuilder.tsx",
+        "currentSourceSha256": "bd44f3a244c160210ac0ffbb59f9323a96c255acff541fe95050b7afbed54059",
+        "unchangedSinceInventory": true
+      }
     ]
   },
   {
@@ -320,7 +578,7 @@
     "sourceOwners": [
       {
         "owner": "client/src/pages/OnboardingV3.tsx",
-        "sourceHash": "aec7eed78f665bf6dd896ba78b53e46855ec784b1307ccd160ecc08a087499b3",
+        "sourceHash": "f9aeddb459c2df2758f130522f585bd9d51f3bc541c0bbb9ac1c81b634b131c0",
         "disposition": "protected-held"
       },
       {
@@ -329,9 +587,51 @@
         "disposition": "protected-held"
       },
       {
-        "owner": "client/src/pages/MacroCalculator.tsx",
-        "sourceHash": "c84c6b529c2fd6d314e5a656b9030d15f25e69d6b74a65b82369db2ac5085cdb",
+        "owner": "client/src/components/OncologySymptomSelector.tsx",
+        "sourceHash": "e8c530f6f64fbd209d506170390ee15ae9d7699bd2f2a72f08ab48fd99770a16",
         "disposition": "protected-held"
+      },
+      {
+        "owner": "client/src/components/pro/ClinicalAdvisoryDrawer.tsx",
+        "sourceHash": "a013e999b03579326bb68f26269e5de5cf9b0fb5bb72df9f87cb2be7a169d130",
+        "disposition": "protected-held"
+      },
+      {
+        "owner": "client/src/pages/MacroCalculator.tsx",
+        "sourceHash": "82c477f88a17a8b57895b4337ae3c6f338ad862aa2e8dcf5432f377371ba3504",
+        "disposition": "protected-held"
+      }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/physician/DiabeticHub.tsx",
+        "currentSourceSha256": "21b58392e2fc76ffa9449892b2e977bb50297bf50e07643800b6243ad953d8a8",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/physician/DiabetesSupportPage.tsx",
+        "currentSourceSha256": "77ce7b0611fe959754c27a0c13b83dc489c177a397c475170b781742083e2c5e",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/physician/DiabeticMenuBuilder.tsx",
+        "currentSourceSha256": "a36b1dc986f307755f6c533b1a03236e1a27be0cab3945d8f397dbdf223cf59a",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/physician/GLP1Hub.tsx",
+        "currentSourceSha256": "813c9e9c281c7b02e335a575c1bee1d0c02197625191e754ce09b84daf197218",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/physician/GLP1MealBuilder.tsx",
+        "currentSourceSha256": "074eed9a996b6fde3da773030ec18a703bb88e85052b94f50218ca5c0d7034c6",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx",
+        "currentSourceSha256": "db57d36cf4fcbaeca80ed4f7f112e70dface15574bd51ecfae9ac5d5d66c937b",
+        "unchangedSinceInventory": true
       }
     ]
   },
@@ -351,8 +651,18 @@
         "disposition": "protected-held"
       },
       {
+        "owner": "client/src/components/OncologySymptomSelector.tsx",
+        "sourceHash": "e8c530f6f64fbd209d506170390ee15ae9d7699bd2f2a72f08ab48fd99770a16",
+        "disposition": "protected-held"
+      },
+      {
+        "owner": "client/src/components/pro/ClinicalAdvisoryDrawer.tsx",
+        "sourceHash": "a013e999b03579326bb68f26269e5de5cf9b0fb5bb72df9f87cb2be7a169d130",
+        "disposition": "protected-held"
+      },
+      {
         "owner": "client/src/pages/MacroCalculator.tsx",
-        "sourceHash": "c84c6b529c2fd6d314e5a656b9030d15f25e69d6b74a65b82369db2ac5085cdb",
+        "sourceHash": "82c477f88a17a8b57895b4337ae3c6f338ad862aa2e8dcf5432f377371ba3504",
         "disposition": "protected-held"
       },
       {
@@ -365,7 +675,8 @@
         "sourceHash": "5a0d1990984bf69e65ae1a79a0bd015aa014fe7313220558e3065a7a3a1bec94",
         "disposition": "protected-held"
       }
-    ]
+    ],
+    "registeredPageOwners": []
   },
   {
     "featureRole": "Grocery Coach · paid/eligible consumer",
@@ -379,12 +690,12 @@
     "sourceOwners": [
       {
         "owner": "client/src/components/shopping/GroceryStoreCoachSheet.tsx",
-        "sourceHash": "26e78b3fc5222a149a7eec30223bc0a81c46c8be21647687fc4ca1681e4ee0bd",
+        "sourceHash": "1cc91750e6732da73e991dcbfec7dc8e844bcd14b531d4fa247a34be7c57b9ff",
         "disposition": "completed-ordinary/protected-held"
       },
       {
         "owner": "client/src/components/shopping/GroceryStoreCoachSheet.tsx",
-        "sourceHash": "26e78b3fc5222a149a7eec30223bc0a81c46c8be21647687fc4ca1681e4ee0bd",
+        "sourceHash": "1cc91750e6732da73e991dcbfec7dc8e844bcd14b531d4fa247a34be7c57b9ff",
         "disposition": "connected-plural"
       },
       {
@@ -392,7 +703,8 @@
         "sourceHash": "cdfaa32b891198697bbbbf1cc5abcfa223f2ef22a9a46358a242bd8ea4fe2239",
         "disposition": "protected-held"
       }
-    ]
+    ],
+    "registeredPageOwners": []
   },
   {
     "featureRole": "Shopping and scanning · paid/eligible consumer",
@@ -411,7 +723,7 @@
       },
       {
         "owner": "client/src/pages/ShoppingListMasterView.tsx",
-        "sourceHash": "cbd02bf0461278aa138ffc16831f04221e1236950a7b3b7fbff829d683a801eb",
+        "sourceHash": "3f06361b2180ef653f5456dbe7d4075f99eb74295a7929e9b36bf294372ceab7",
         "disposition": "completed-selected/protected-and-child-residual"
       },
       {
@@ -424,6 +736,18 @@
         "sourceHash": "dbb1071d6c77aa2cc26e154c30d9a2696a01a2709ffb3b08f6879d3a63ab6240",
         "disposition": "protected-held"
       }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/ShoppingListMasterView.tsx",
+        "currentSourceSha256": "3f06361b2180ef653f5456dbe7d4075f99eb74295a7929e9b36bf294372ceab7",
+        "unchangedSinceInventory": false
+      },
+      {
+        "owner": "client/src/pages/ShoppingListMasterView.tsx",
+        "currentSourceSha256": "3f06361b2180ef653f5456dbe7d4075f99eb74295a7929e9b36bf294372ceab7",
+        "unchangedSinceInventory": false
+      }
     ]
   },
   {
@@ -432,7 +756,7 @@
     "statesVariants": "Saved cuisine guidance; input/help; search/no results/error; historical/restored cards; menu/serving controls; regenerate prompts",
     "evidenceLimits": "Restaurant missing/default-only UI keys inspected; pairings and experimental alternatives remain gated. No provider, location lookup or food generation. Cuisine and language remain distinct inputs.",
     "findings": "L31; SocialRestaurantGuide missing-key rows; route-register",
-    "currentResidual": "Restaurant restoration/cuisine keys are missing; travel/gathering/pairing own text remains. Old pairing/pregnancy activation holds stay intact.",
+    "currentResidual": "Founder confirmed Gatherings has a Spanish route title but English planner/occasion/holiday labels. Preserve its already-localized tutorial control. Other restaurant/travel/pairing residuals and activation holds remain separate.",
     "nextPreparedTask": "#1890 / #1891 / #1889",
     "evidence": "Current source hash/resource reconciliation over the existing route/state matrix; no fresh authenticated browser or provider claim",
     "sourceOwners": [
@@ -440,6 +764,18 @@
         "owner": "client/src/components/away-from-home/RestaurantCuisineFeedback.tsx",
         "sourceHash": "7f5737d7ed43e25813379bb0c28291e1e1f95ec6612252727298bdec56b76b84",
         "disposition": "missing-fallback"
+      }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/SocialRestaurantGuide.tsx",
+        "currentSourceSha256": "da21cb225e68b7f2a794d8c7dcc7bd757ff0060d56ffeaa243b7e945a2479df8",
+        "unchangedSinceInventory": false
+      },
+      {
+        "owner": "client/src/pages/RestaurantFinderPage.tsx",
+        "currentSourceSha256": "037c58d400391fe268574e420d3f4a5ccbd3b2473fa8fb5e94a8b53621e3b30e",
+        "unchangedSinceInventory": true
       }
     ]
   },
@@ -463,6 +799,13 @@
         "sourceHash": "0721ad91b75d3154735bbcf5c29f254fd8846d3bdb8ce5953cee94eff4d6273d",
         "disposition": "authored-data"
       }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/SavedMeals.tsx",
+        "currentSourceSha256": "0bd3b9d2318a14448e0ad7f61c05306ab766bdbdd4eb0d16f18732e1c92b72be",
+        "unchangedSinceInventory": true
+      }
     ]
   },
   {
@@ -477,13 +820,35 @@
     "sourceOwners": [
       {
         "owner": "client/src/pages/MacroCalculator.tsx",
-        "sourceHash": "c84c6b529c2fd6d314e5a656b9030d15f25e69d6b74a65b82369db2ac5085cdb",
+        "sourceHash": "82c477f88a17a8b57895b4337ae3c6f338ad862aa2e8dcf5432f377371ba3504",
         "disposition": "protected-held"
       },
       {
         "owner": "client/src/pages/HydrationCenter.tsx",
         "sourceHash": "ce7b5287a7825a448afdf982cd6a901e18ba0e2abc29d73b1c6ac2d1287e151d",
         "disposition": "hardcoded-path"
+      }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/MacroCalculator.tsx",
+        "currentSourceSha256": "82c477f88a17a8b57895b4337ae3c6f338ad862aa2e8dcf5432f377371ba3504",
+        "unchangedSinceInventory": false
+      },
+      {
+        "owner": "client/src/pages/HydrationCenter.tsx",
+        "currentSourceSha256": "ce7b5287a7825a448afdf982cd6a901e18ba0e2abc29d73b1c6ac2d1287e151d",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/biometrics/body-composition.tsx",
+        "currentSourceSha256": "ad9988a15a85b531d2fff9daa04321a585b6b0afb435ff46f1bc91d99539cef3",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/biometrics/sleep.tsx",
+        "currentSourceSha256": "4b53d7ffea90e80b5a52468d42aa6860dcf7e18c07776d2486c286602a2227da",
+        "unchangedSinceInventory": true
       }
     ]
   },
@@ -502,6 +867,58 @@
         "sourceHash": "0721ad91b75d3154735bbcf5c29f254fd8846d3bdb8ce5953cee94eff4d6273d",
         "disposition": "authored-data"
       }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/components/coaching/ChefConversationEntry.tsx",
+        "currentSourceSha256": "cd5c4ebc2d5301f0fac52055a71edf2e6f9e675b454c349b484ae8178ef100cd",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/CoachCornerWelcome.tsx",
+        "currentSourceSha256": "b6a2e605f50ca9f5ebb8a7d81e3a5bf975a0cb5308c60e5f8101973de9441071",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/coaching/ChefConversationEntry.tsx",
+        "currentSourceSha256": "cd5c4ebc2d5301f0fac52055a71edf2e6f9e675b454c349b484ae8178ef100cd",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/CoachCornerIntake.tsx",
+        "currentSourceSha256": "99b5f3c302d1942cb1f2ed8829de045a629def6598f22a66208aca636df0e02b",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/coaching/ChefConversationEntry.tsx",
+        "currentSourceSha256": "cd5c4ebc2d5301f0fac52055a71edf2e6f9e675b454c349b484ae8178ef100cd",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/CoachCornerComplete.tsx",
+        "currentSourceSha256": "3cae3bd72eb5f13468dedbb1237e4e5c9236586c8d79179c9e198a557440210c",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/CoachsCorner.tsx",
+        "currentSourceSha256": "b5a5c57cbd0a8fce43673e0aba8cf833a6357c5dd7ad3e68d066160a94ebd3dc",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/CoachCornerProgressSlowed.tsx",
+        "currentSourceSha256": "eef0d01e525752eaea29e2653d7ee467d0c6c07cc3258161229ce668bb707dbc",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/CoachCornerTired.tsx",
+        "currentSourceSha256": "002bbb3517d4c6febf610ef885218c87dfaaac4c7e6f9b3e4ed58e9e60c4a57c",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/DashboardNew.tsx",
+        "currentSourceSha256": "e4b9946ba387c82398566288c032ac4165c9cdbbce5a812408f15d64f69f2308",
+        "unchangedSinceInventory": true
+      }
     ]
   },
   {
@@ -510,8 +927,8 @@
     "statesVariants": "Auto/explicit language; optimistic selection and rollback; errors/success; native reminder confirmation; safety PIN/MFA; menus",
     "evidenceLimits": "Language display configuration identified. Native reminder success has EN/ES plural resources, not a missing base-key defect. Intent/save/security behavior is unchanged; real preference persistence and installed-device schedules unverified.",
     "findings": "L07, L16, L32, L50",
-    "currentResidual": "Language Auto and save feedback already work; non-Auto descriptions remain English. Reminder plural copy is connected, not another missing-key fix.",
-    "nextPreparedTask": "#1890 / #1875",
+    "currentResidual": "Preserve the delivered three language choices, interface descriptions, unsupported saved intent and reminder plural resources. Real-account language proof remains separately owned.",
+    "nextPreparedTask": "preserve / #1875",
     "evidence": "Current source hash/resource reconciliation over the existing route/state matrix; no fresh authenticated browser or provider claim",
     "sourceOwners": [
       {
@@ -521,18 +938,35 @@
       },
       {
         "owner": "client/src/pages/OnboardingV3.tsx",
-        "sourceHash": "aec7eed78f665bf6dd896ba78b53e46855ec784b1307ccd160ecc08a087499b3",
+        "sourceHash": "f9aeddb459c2df2758f130522f585bd9d51f3bc541c0bbb9ac1c81b634b131c0",
         "disposition": "protected-held"
       },
       {
         "owner": "client/src/pages/profile/LanguagePreferencesPage.tsx",
-        "sourceHash": "a0041bed8fd886262ca934cf5682c1a9034f4085640243558f22389bbf9ab751",
-        "disposition": "ordinary-residual/not-Auto-defect"
+        "sourceHash": "937098b55826b2ccdb5f663eb8167c306eabb928d89558b81d48ab875bf202a7",
+        "disposition": "completed-current-release-language-choices"
       },
       {
         "owner": "client/src/components/MealReminders.tsx",
         "sourceHash": "e2b14bd32c19e84e15001cdb8884539b61af0d3d1ca969c2c8531f6242ee1c8b",
         "disposition": "connected-plural"
+      }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/profile/EditProfilePage.tsx",
+        "currentSourceSha256": "9338d02a3d965e2c287759410d4c3c26148aec5841a2b8e052e50b0b718c8abc",
+        "unchangedSinceInventory": false
+      },
+      {
+        "owner": "client/src/pages/profile/CoachingPreferencesPage.tsx",
+        "currentSourceSha256": "1283ef079b9003f99198aedee6c8b263183317e36b91ea2fc5e5feca1f45c42e",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/profile/LanguagePreferencesPage.tsx",
+        "currentSourceSha256": "937098b55826b2ccdb5f663eb8167c306eabb928d89558b81d48ab875bf202a7",
+        "unchangedSinceInventory": false
       }
     ]
   },
@@ -560,6 +994,58 @@
         "owner": "client/src/components/pro/ProfessionalLegalModal.tsx",
         "sourceHash": "5a0d1990984bf69e65ae1a79a0bd015aa014fe7313220558e3065a7a3a1bec94",
         "disposition": "protected-held"
+      }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/procare/ProCareWelcome.tsx",
+        "currentSourceSha256": "5eda348cf922eba843797ca3a1f518bf694b15a501fc1bd5f15161e1cd722c4b",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/procare/ProCareWelcome.tsx",
+        "currentSourceSha256": "5eda348cf922eba843797ca3a1f518bf694b15a501fc1bd5f15161e1cd722c4b",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/procare/ProCareWelcome.tsx",
+        "currentSourceSha256": "5eda348cf922eba843797ca3a1f518bf694b15a501fc1bd5f15161e1cd722c4b",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/procare/ProCareIdentity.tsx",
+        "currentSourceSha256": "9458033ec584e5713a5369a463b78d82e7896ce98f07f0e2dfbec6c2f31fbcc2",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/procare/ProCareRewards.tsx",
+        "currentSourceSha256": "ee3d569d9b8f18e2159f527f736f2e3eb111627c0eed483068b28a26049553a9",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/procare/ProCareAttestation.tsx",
+        "currentSourceSha256": "c2e1c09edbb6706ae861cb7cb2758d0535c89a9cbb191dd522e4b8c3d0684251",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/procare/ProLaunchpad.tsx",
+        "currentSourceSha256": "82ab527aa532dac68fc8b5f398199a42ec0dd69e2e916208aa149b5cbec4c97f",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/procare/ProLaunchpad.tsx",
+        "currentSourceSha256": "82ab527aa532dac68fc8b5f398199a42ec0dd69e2e916208aa149b5cbec4c97f",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/procare/ProfessionalOnboardingBridge.tsx",
+        "currentSourceSha256": "8a12d86ef647ed9ec91b5c8fef419e4dd37770c41a9f59767a3be7617715eb89",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/procare/CertifiedProfessionalUnlock.tsx",
+        "currentSourceSha256": "3c043f0c6fa8008adbb9255422ee263f74c5fcc1e680b285a05012977981cf8a",
+        "unchangedSinceInventory": true
       }
     ]
   },
@@ -598,6 +1084,88 @@
         "sourceHash": "5a0d1990984bf69e65ae1a79a0bd015aa014fe7313220558e3065a7a3a1bec94",
         "disposition": "protected-held"
       }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/CareTeam.tsx",
+        "currentSourceSha256": "d777db8d2c0ebbf5e5fdb325644d5dad35cc5728bdd6c7001e2766295ad15640",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/care-team/PhysicianCareTeam.tsx",
+        "currentSourceSha256": "85219bf9badb6dab1623ce89f16e265547c0197385e7874e73648da522b2197e",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/care-team/TrainerCareTeam.tsx",
+        "currentSourceSha256": "9a77db6f2bf89a2a3d9b74c5e9e434386256ba56f81ff20f83b9c38651234a52",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/ProPortal.tsx",
+        "currentSourceSha256": "03459d6324838224a4e6f7375c26e94f9e501cd5c93d812560faf0cf59f6a138",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/pro/ProClients.tsx",
+        "currentSourceSha256": "5d03a1c73765f05bb67a37c2df5e1c359bed5f6435c4e48514916f03b42ec30c",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/pro/ProClientsPhysician.tsx",
+        "currentSourceSha256": "7726151e475e543bc9f5572236ea226dccc39d0eea737783ab27da22bd9efb27",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/pro/WorkspaceShell.tsx",
+        "currentSourceSha256": "afc0abcb707dbf3c54f34a7751fcaf0ea17eea9147e6dfd6c6009526193778d4",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/pro/ProClientDashboard.tsx",
+        "currentSourceSha256": "bec31fc3c5a96319aa1f4b389a91c7f98dc1125ecb56ae86580dd83233a8e845",
+        "unchangedSinceInventory": true
+      }
     ]
   },
   {
@@ -616,6 +1184,11 @@
         "disposition": "completed-ordinary/protected-held"
       },
       {
+        "owner": "client/src/components/UniversalMealCardFooter.tsx",
+        "sourceHash": "d3b4bfc3bf1318f864f2fbb6dfc90b67c651d9cd2ea0e9279c732c68ed98519f",
+        "disposition": "completed-ordinary"
+      },
+      {
         "owner": "client/src/components/BuilderShoppingBar.tsx",
         "sourceHash": "43c08cc547198a6c0ff2fbcd9b153104463826c650879a0ae988d02c2520540c",
         "disposition": "completed-ordinary"
@@ -626,11 +1199,27 @@
         "disposition": "hardcoded-path"
       },
       {
+        "owner": "client/src/components/OncologySymptomDialog.tsx",
+        "sourceHash": "97a4572bce250d29ad8d48abfa9ec0b26dc402027247250a40fc118bce0dd81d",
+        "disposition": "protected-held"
+      },
+      {
+        "owner": "client/src/components/OncologySymptomSelector.tsx",
+        "sourceHash": "e8c530f6f64fbd209d506170390ee15ae9d7699bd2f2a72f08ab48fd99770a16",
+        "disposition": "protected-held"
+      },
+      {
+        "owner": "client/src/components/pro/ClinicalAdvisoryDrawer.tsx",
+        "sourceHash": "a013e999b03579326bb68f26269e5de5cf9b0fb5bb72df9f87cb2be7a169d130",
+        "disposition": "protected-held"
+      },
+      {
         "owner": "client/src/pages/MacroCalculator.tsx",
-        "sourceHash": "c84c6b529c2fd6d314e5a656b9030d15f25e69d6b74a65b82369db2ac5085cdb",
+        "sourceHash": "82c477f88a17a8b57895b4337ae3c6f338ad862aa2e8dcf5432f377371ba3504",
         "disposition": "protected-held"
       }
-    ]
+    ],
+    "registeredPageOwners": []
   },
   {
     "featureRole": "Studio media and messages · authorized participants",
@@ -647,7 +1236,8 @@
         "sourceHash": "7ab9ae3fdcf0ea89c65a8dfe7e8432a76b49eb8d44153781168c9fbe6126af25",
         "disposition": "hardcoded-path"
       }
-    ]
+    ],
+    "registeredPageOwners": []
   },
   {
     "featureRole": "Business administration · organization owner/member",
@@ -665,9 +1255,51 @@
         "disposition": "hardcoded-path"
       },
       {
+        "owner": "client/src/layout/BusinessDesktopLayout.tsx",
+        "sourceHash": "eff17aa56f80a0c1c36dd66d7e21e5f3a91e29a3826d18f041ed4f4f44507043",
+        "disposition": "hardcoded-path"
+      },
+      {
         "owner": "client/src/layout/BusinessMobileLayout.tsx",
         "sourceHash": "54a8a8d42d4a6789c6b786b22b4691442079e8af157b3f8e6347d58c30e424ba",
         "disposition": "hardcoded-path"
+      }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/BusinessStart.tsx",
+        "currentSourceSha256": "0f146e3550a33cad441c6f3c1e019f9adb05c59ac4e70a0cb4e4ce7485c3a789",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/BusinessSetup.tsx",
+        "currentSourceSha256": "2311e88a20a9bc17941c96f4119026677ee8e5262d738ecd7f40acc54a9e5697",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/BusinessDashboard.tsx",
+        "currentSourceSha256": "1a8dd0ae7a832228bdf5fa986d528af0486180b377d0eae2180f402dad6a472d",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/BusinessDashboard.tsx",
+        "currentSourceSha256": "1a8dd0ae7a832228bdf5fa986d528af0486180b377d0eae2180f402dad6a472d",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/OrganizationHub.tsx",
+        "currentSourceSha256": "a8b564f25b7920cbdddec0f32fb45869bf74f06aa93a084b3ef22b5a2fe34e62",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/BusinessInviteAccept.tsx",
+        "currentSourceSha256": "f181003f5c75873d00dfd76679ec016f9909d1cdb4353b9266184a056bf7f769",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/OrganizationSuccessCenter.tsx",
+        "currentSourceSha256": "63b8fb7bfe4c947ae5bd71aa4e00e1b1ccb0cc0036d2f33328e773503bc6a01b",
+        "unchangedSinceInventory": true
       }
     ]
   },
@@ -696,6 +1328,313 @@
         "sourceHash": "fe3a30eb09886113fba58e2630f2cfb40270a7a3d7df2bbb1641bea6baeaa26f",
         "disposition": "mixed-education/protected-held"
       }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/BusinessCenter.tsx",
+        "currentSourceSha256": "4897b2cb227066913a0f3f492091c7cad45abb0b3640de2074ed1dbeb0436674",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/learning/LearningHub.tsx",
+        "currentSourceSha256": "d178450ad4e6f5f3bd0ff35226119d39ec459731fa183dfa7f07c4ef7e7ef699",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/learning/UpdatesInbox.tsx",
+        "currentSourceSha256": "7d83a15454db3e999458867ba3c98e03f66096951bf345bbf7c4d30d914fddb2",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/learning/PlatformCertComplete.tsx",
+        "currentSourceSha256": "13897fd98181402f71ad41d22d840e27cc3598719f51b668d98a98550141ae0c",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/learning/PlatformCertVideo.tsx",
+        "currentSourceSha256": "034c9cbf7275496b55024f8e664b762f3c58163099172ce9dda4586f3e90c015",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/learning/PlatformCertQuiz.tsx",
+        "currentSourceSha256": "d94e38f824967f1c5601ac1cbdf35b1336a8a2eeb15337303e37beca6d1fa40d",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/learning/PlatformCertDashboard.tsx",
+        "currentSourceSha256": "4dc6a38ee817f994b8b1ce9011d7fbf331889b51ecc2f2b305ac2b576123b75a",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/RewardfulConnectionConfirm.tsx",
+        "currentSourceSha256": "61a5d2d15969d1295140c1cedcc4ab37b01fab2249bdf6dbaf2bc7a7fe36fc23",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/AffiliateDashboard.tsx",
+        "currentSourceSha256": "b5ed7eb0ecfa0c72e2b2621dbb3239708028de59b3ecad0f47ef026ce84a8f1a",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/AffiliateProgramOverview.tsx",
+        "currentSourceSha256": "00a318b602529abc42bf30a60bd270f08eeb4d6775986d786c276d78309cc560",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/AffiliateOpportunities.tsx",
+        "currentSourceSha256": "2ff5ea4be448d6b8919aedf36bf80c7d3889a041408e2a21cece402a7d35891b",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/AffiliatePathPage.tsx",
+        "currentSourceSha256": "dc7511a0e06fcfc6730ccf6a6f85573cc17313276c7dde3045745e7e5a6a0392",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/AffiliatePathPage.tsx",
+        "currentSourceSha256": "dc7511a0e06fcfc6730ccf6a6f85573cc17313276c7dde3045745e7e5a6a0392",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/certification/CertificationComplete.tsx",
+        "currentSourceSha256": "edfe7647fd66f90e784b0d1a70d2af2f9e012a7271d7d5643c532165f8a15ea4",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/certification/CertificationCertificateView.tsx",
+        "currentSourceSha256": "dc516e7eb8cfccf566ff6b035b43fda157903b29e81691b75313442504f25ee4",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/certification/CertificationQuiz.tsx",
+        "currentSourceSha256": "ed723e730b5eb7d73c5acb3d71a0dbf8ab4aec9455c3aa6b23be95b46160bad0",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/certification/CertificationLesson.tsx",
+        "currentSourceSha256": "7e2530dfe946c44bf857e45d0c7a85426d0d7cbdaf2504d5a9133d9302ab820c",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/certification/CertificationDashboard.tsx",
+        "currentSourceSha256": "dbffbd82647adb0b31865ba1a496f293e9d38493e28c54340b067b0283415578",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/PartnerProgramsHub.tsx",
+        "currentSourceSha256": "9b7583989f4b44350549cdaff8e0fadaf1b101e338ec5413464712c28da81fc4",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/PartnerManagement.tsx",
+        "currentSourceSha256": "fbdea1b13e1f85b35a1f743f8d1342ff1a579ed556790010d658025eecc99183",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/HowPartnershipsWork.tsx",
+        "currentSourceSha256": "2879c612ef8feb9ee8d80cfdb457d10b031207c7748dab7e29bd2755f5185df1",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/FoundingAffiliatePage.tsx",
+        "currentSourceSha256": "b37d2a066c63b4d9320b6c6ae3da17ef886dbcb32140b2a4f2d25efeb31cbcca",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/FoundingPartnerProgram.tsx",
+        "currentSourceSha256": "3ec4875433bc4629935aef0c3a32f0752f923935d9dc92d0fd9a8b603aeeb26e",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/AcademyLandingPage.tsx",
+        "currentSourceSha256": "9f8efb97144168360374bb3496de0e9ed0168b0d41143b8b25c4862858b86e96",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/academy/AcademyHome.tsx",
+        "currentSourceSha256": "78d51b92575422d6affc8d6c7127cdd017f2c142e5f45b83678ada0ade5e4582",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/academy/PlatformMasteryComplete.tsx",
+        "currentSourceSha256": "8f8abf3d0201555f18c533c70ef1b1916a6501cebbcd6bc1c56a9e8ad04f9134",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/academy/LessonReader.tsx",
+        "currentSourceSha256": "762ce0135e7cca6958ad6bb1f45affdbf966a7b7f21c3e7e714d5b7cda0c9709",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/academy/PlatformMasteryDashboard.tsx",
+        "currentSourceSha256": "b76e684bf2cf5cad23cd2dcaf288f276431fbb9350c766081f3f2d4f4b1252ac",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/IndustryPartnerships.tsx",
+        "currentSourceSha256": "984a35ac8fcb152d0904b6cb50e7647f9cabe72a24b71f0bb0ea4138effb2d57",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/PublicHealthcarePartnerships.tsx",
+        "currentSourceSha256": "3aefbffccb25d8e054f9adf03d23ca4c8f1f73887c56566bd37c618f4e5c3ace",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/WhiteLabelSolutions.tsx",
+        "currentSourceSha256": "d712f55138bf47cfc28b122751b9d1d9d9a30d43a4749db9e4ddfd18223a347c",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/BusinessCenterSection.tsx",
+        "currentSourceSha256": "93f7b374b87c96b5d9bc3f9e174bcb52d58e53a04d8dd8c161995ee9cbed2e12",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/BusinessSuiteGate.tsx",
+        "currentSourceSha256": "46dc9f65f69ee125e5f32b8bd0ab9729db71460671aea0ee33035d6e4e53c480",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/PartnerCenter.tsx",
+        "currentSourceSha256": "bf6dfa1428ce60e099b3a849c2a1fbc3b59f63739f65a19f7a1dd04270d9070d",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/business/PromotionsHub.tsx",
+        "currentSourceSha256": "6c9c75072cb59a7041184ffb43c98c66e83204ed18e2479dd99f083943943887",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/PublicPartnersHub.tsx",
+        "currentSourceSha256": "9bfe2987d6b84fa24e1c5f3349a2d56decc968ebdc4ce009556e8843e3eea24e",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/FoundingPartnerProgram.tsx",
+        "currentSourceSha256": "3ec4875433bc4629935aef0c3a32f0752f923935d9dc92d0fd9a8b603aeeb26e",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/IndustryPartnerships.tsx",
+        "currentSourceSha256": "984a35ac8fcb152d0904b6cb50e7647f9cabe72a24b71f0bb0ea4138effb2d57",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/PublicHealthcarePartnerships.tsx",
+        "currentSourceSha256": "3aefbffccb25d8e054f9adf03d23ca4c8f1f73887c56566bd37c618f4e5c3ace",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/WhiteLabelSolutions.tsx",
+        "currentSourceSha256": "d712f55138bf47cfc28b122751b9d1d9d9a30d43a4749db9e4ddfd18223a347c",
+        "unchangedSinceInventory": true
+      }
     ]
   },
   {
@@ -718,6 +1657,43 @@
         "sourceHash": "5a0d1990984bf69e65ae1a79a0bd015aa014fe7313220558e3065a7a3a1bec94",
         "disposition": "protected-held"
       }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/ClinicPilotJoinPage.tsx",
+        "currentSourceSha256": "d74554751f8ce7a7b99ca431221d9f550f701cdbf08760c948517c879ea6c1ae",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/BusinessOfferJoinPage.tsx",
+        "currentSourceSha256": "4dd4e44a157c4f0677b582218e7c3b9da27a4b5faf5d98794468b1439f90d41b",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/PilotActivation.tsx",
+        "currentSourceSha256": "7efd3c37acbd3ba9ae47a92bd6ac485bd9cd950aa989e8c937c157566e77be0e",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/BusinessPilotActivation.tsx",
+        "currentSourceSha256": "9fe43c6b9659dca95b95eea52aed311da71997364af9ecb2b18d47b369ba6ffb",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/BusinessInviteAccept.tsx",
+        "currentSourceSha256": "f181003f5c75873d00dfd76679ec016f9909d1cdb4353b9266184a056bf7f769",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/PromoRedemption.tsx",
+        "currentSourceSha256": "7e56589564b2af6e123e92b7243218606f48af6d6e46f6ab879ce0c2f7420611",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/JoinStudio.tsx",
+        "currentSourceSha256": "9b411323d42e9f5c3d456f160e4871f850d05bb8cf8c8d6d93daf3e94e83a731",
+        "unchangedSinceInventory": true
+      }
     ]
   },
   {
@@ -736,6 +1712,31 @@
         "disposition": "connected"
       },
       {
+        "owner": "client/src/components/ui/pill-button.tsx",
+        "sourceHash": "d58b5d47127184cff5a0911c55bbd9cf593084ac2c074650c877ee512f6b1950",
+        "disposition": "caller-content"
+      },
+      {
+        "owner": "client/src/components/ui/dialog.tsx",
+        "sourceHash": "2ac90c6d1b87c62f977d0d6027ffe1255dccc157bde5aacaa5ab3d8062b7f932",
+        "disposition": "connected"
+      },
+      {
+        "owner": "client/src/components/ui/sheet.tsx",
+        "sourceHash": "0a6e1a7bad520c0ce89aa1c089c356a4c7bd8c40bc01013708dea7ff3d3bd2fe",
+        "disposition": "connected"
+      },
+      {
+        "owner": "client/src/components/ui/toast.tsx",
+        "sourceHash": "07839aa13172e91518a55cce8cb51e7df038223aec124d242d88d87f0632636f",
+        "disposition": "connected"
+      },
+      {
+        "owner": "client/src/components/ui/form.tsx",
+        "sourceHash": "612163f5ecae26656da5fb716454075d1d715ac65c64483499d24ca175fee05a",
+        "disposition": "connected"
+      },
+      {
         "owner": "client/src/components/ui/tooltip.tsx",
         "sourceHash": "2f26d20816448c630faccbda5ae9b4fe47c36f1fb14dbbd85b6652b7c24c1d51",
         "disposition": "caller-content"
@@ -744,6 +1745,28 @@
         "owner": "client/src/components/ui/universal-modal.tsx",
         "sourceHash": "3a0e63332872b75df903020199241d4267761c894ae199733c25e64d3cbb6d86",
         "disposition": "caller-content"
+      }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/PricingPage.tsx",
+        "currentSourceSha256": "d0a22b18636a4cb82c78576fa4362976c3949dba9ad2fec5b1299fae3ac264bc",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/PricingPage.tsx",
+        "currentSourceSha256": "d0a22b18636a4cb82c78576fa4362976c3949dba9ad2fec5b1299fae3ac264bc",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/CheckoutSuccess.tsx",
+        "currentSourceSha256": "27e647451b1bd35a03161bef2a7a30dce07dbcd98350ac505f6ed968f27d11fc",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/CheckoutSuccess.tsx",
+        "currentSourceSha256": "27e647451b1bd35a03161bef2a7a30dce07dbcd98350ac505f6ed968f27d11fc",
+        "unchangedSinceInventory": true
       }
     ]
   },
@@ -767,6 +1790,28 @@
         "sourceHash": "5a0d1990984bf69e65ae1a79a0bd015aa014fe7313220558e3065a7a3a1bec94",
         "disposition": "protected-held"
       }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/privacy.tsx",
+        "currentSourceSha256": "9ddc867b41488c4732acdc622f5f006626c52c511e2186c9ca9cac9791b03175",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/PrivacyPolicy.tsx",
+        "currentSourceSha256": "587f199e90191c1b969a9a5d0c3c7b879b7f347500aaeabaf78699604204feb8",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/TermsOfService.tsx",
+        "currentSourceSha256": "eed7c090285498c762922c34a506c5baf4b582b8562c5732a0d9f6d27ee769ca",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/DeleteAccount.tsx",
+        "currentSourceSha256": "dfca374648f19c2fb29fae3817dc0f262173b6709edb305578443e6e534d7161",
+        "unchangedSinceInventory": true
+      }
     ]
   },
   {
@@ -789,6 +1834,48 @@
         "sourceHash": "fe3a30eb09886113fba58e2630f2cfb40270a7a3d7df2bbb1641bea6baeaa26f",
         "disposition": "mixed-education/protected-held"
       }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/kitchen/SignatureKitchenHubPage.tsx",
+        "currentSourceSha256": "ca032862a79ea61bc3de9d1403058f6f4551a176919b81af44fb1c985b1a846d",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/kitchen/SignatureKitchenPage.tsx",
+        "currentSourceSha256": "32d91ebe93b1399f0c57bac6846136a8f0e03d942c45ff9cd381bc349c22faf4",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/TutorialHub.tsx",
+        "currentSourceSha256": "a8b5f5b6dd99e32653344df99eee99fc41e16d56e7bf7a52f215ccf6d713aa00",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/Learn.tsx",
+        "currentSourceSha256": "fe3a30eb09886113fba58e2630f2cfb40270a7a3d7df2bbb1641bea6baeaa26f",
+        "unchangedSinceInventory": false
+      },
+      {
+        "owner": "client/src/pages/GetInspiration.tsx",
+        "currentSourceSha256": "6344181ab0488ba50a479a80c259d64f39e8119a0fee1f32d865e24f437517e4",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/creator/CreatorStartPage.tsx",
+        "currentSourceSha256": "9a7c7f3a7b9238b144cba9aa04f1ec4b74c591b9729faf31ba79dd227e7baa90",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/creator/CreatorSetupPage.tsx",
+        "currentSourceSha256": "e96147484f941b50cbb8576bc366df6a911811e22023febae8a6e96251105c61",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/creator/CreatorStudioPage.tsx",
+        "currentSourceSha256": "711b39c0a49e7d797e668fdb6896ea81dd849597d8522c58e16cd412ddfffd18",
+        "unchangedSinceInventory": true
+      }
     ]
   },
   {
@@ -800,7 +1887,114 @@
     "currentResidual": "Pregnancy/pediatric/companion/alcohol own copy is mixed protected/data. Preserve paused features; shared progress exceptions do not activate anything.",
     "nextPreparedTask": "#1889 / #1890",
     "evidence": "Current source hash/resource reconciliation over the existing route/state matrix; no fresh authenticated browser or provider claim",
-    "sourceOwners": []
+    "sourceOwners": [],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/MyPerfectPregnancyPage.tsx",
+        "currentSourceSha256": "3c787d52cb6bc4e7f1a089e7d1605e8a799b6d205653683facb644c422d44f0c",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/lifestyle/MyPerfectBeginningPage.tsx",
+        "currentSourceSha256": "17d2ffca9c38a77752d61905e5264e62733af6827277d97d6e50ec60ab8c265e",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/lifestyle/MyPerfectBeginningCreateMealPage.tsx",
+        "currentSourceSha256": "74e77fc21b18288bb154f4394bd4b653f27eeaf36730bc538fb52783e50a2c5e",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/MyPerfectBeginningParentsCorner.tsx",
+        "currentSourceSha256": "16027977e17937903f4d68f50dcfb237b202685c786b073300d2eff80fb4f91b",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/lifestyle/MyPerfectBeginningProfilePage.tsx",
+        "currentSourceSha256": "9b36cd95c2a6a24dbd76e03e6df5897ae9023d19c86dfc772f731fbc9be5f6d8",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/lifestyle/MyPerfectBeginningStub.tsx",
+        "currentSourceSha256": "b57422413e2970859f13f5b5f3f49f1c08a4d12e3a10f2f5237b265ae3c2b923",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/lifestyle/MyPerfectBeginningStub.tsx",
+        "currentSourceSha256": "b57422413e2970859f13f5b5f3f49f1c08a4d12e3a10f2f5237b265ae3c2b923",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/lifestyle/MyPerfectBeginningStub.tsx",
+        "currentSourceSha256": "b57422413e2970859f13f5b5f3f49f1c08a4d12e3a10f2f5237b265ae3c2b923",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/lifestyle/MyPerfectBeginningStub.tsx",
+        "currentSourceSha256": "b57422413e2970859f13f5b5f3f49f1c08a4d12e3a10f2f5237b265ae3c2b923",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/lifestyle/MyPerfectBeginningStub.tsx",
+        "currentSourceSha256": "b57422413e2970859f13f5b5f3f49f1c08a4d12e3a10f2f5237b265ae3c2b923",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/PetsHub.tsx",
+        "currentSourceSha256": "bfe73ee16bc85f54e6e836c2e93b2a94e9ef7d88788127f0f36f07524e5b9d55",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/CompanionNutritionHub.tsx",
+        "currentSourceSha256": "319f20f0134d04e22f100ae20c50375257d47322ad927af06adbf5e536fe8584",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/companion/DogProfileSetup.tsx",
+        "currentSourceSha256": "c2078d197c72d34f3ad6e06c22a8495e2d3ce4efe92c505e13d9862c72728850",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/companion/DogProfileSetup.tsx",
+        "currentSourceSha256": "c2078d197c72d34f3ad6e06c22a8495e2d3ce4efe92c505e13d9862c72728850",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/companion/CompanionMealGenerator.tsx",
+        "currentSourceSha256": "0061dd7bdc1258e9f8d36b8e6ceb1fde4d14431852dafba916ae8f08376340b8",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/companion/DogIngredientScanner.tsx",
+        "currentSourceSha256": "6e6d07603bbdd9786c1f3275ec949b6794c5d1a7c95b275dbaf4864c1ec24bf4",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/companion/CatNutritionHub.tsx",
+        "currentSourceSha256": "2d176282b1da2ac344edf0f5d92a5d1aef99f1b1ef5e8f7e833289974b263098",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/companion/CatProfileSetup.tsx",
+        "currentSourceSha256": "8d046c9fb3e298397a32e13a2177181664742c131a927a683a87eeecc5886e8c",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/companion/CatProfileSetup.tsx",
+        "currentSourceSha256": "8d046c9fb3e298397a32e13a2177181664742c131a927a683a87eeecc5886e8c",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/companion/CompanionMealGenerator.tsx",
+        "currentSourceSha256": "0061dd7bdc1258e9f8d36b8e6ceb1fde4d14431852dafba916ae8f08376340b8",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/companion/CatIngredientScanner.tsx",
+        "currentSourceSha256": "2c375e648d0fe081bb1e2dbc40b85e92e45504dd89560fe3ac4560bae8e1537e",
+        "unchangedSinceInventory": true
+      }
+    ]
   },
   {
     "featureRole": "Server messages and delivery · all recipient roles",
@@ -818,11 +2012,22 @@
         "disposition": "protected-held"
       },
       {
+        "owner": "server/services/ingredientScanService.ts",
+        "sourceHash": "dbb1071d6c77aa2cc26e154c30d9a2696a01a2709ffb3b08f6879d3a63ab6240",
+        "disposition": "protected-held"
+      },
+      {
+        "owner": "server/services/bugReportAcknowledgement.ts",
+        "sourceHash": "c4175e6110eddca38b1ee1d93f716aaf89742687bb453bd04c1f90a42e46cdd9",
+        "disposition": "delivery-template"
+      },
+      {
         "owner": "server/services/pushNotificationService.ts",
         "sourceHash": "87b27081bfa7255e9208a9f160638de2b9f14671f08a6ef1622fc5ed904b7d18",
         "disposition": "delivery-template"
       }
-    ]
+    ],
+    "registeredPageOwners": []
   },
   {
     "featureRole": "Administration / demos / diagnostic harnesses · restricted/internal",
@@ -849,6 +2054,78 @@
         "sourceHash": "907f2ef5b65a3156e62145d9d925804feb5e5d76537cb3256bea026ae8526500",
         "disposition": "gated-unverified"
       }
+    ],
+    "registeredPageOwners": [
+      {
+        "owner": "client/src/pages/ModalBoundsTestPage.tsx",
+        "currentSourceSha256": "eb95d77d7bf54f5d5eabb48382fc1d1e916ac6ccf09ee10747333a9e62f6f09a",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/admin-moderation.tsx",
+        "currentSourceSha256": "fedeeee87450ce371cc87b084695bfb2187031f721f7d258dc722bcfab2359d1",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/admin/ProfessionalIdentityRequests.tsx",
+        "currentSourceSha256": "fc78f888d60d370400731e2e1e32ab53318f4cb499c0e27f0876480f4f40cf9c",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/components/pro/DevelopmentStudioGuard.tsx",
+        "currentSourceSha256": "474bf82873517a5da76a0f11ccd75b18d2b11449ea6bb9d821bccf9675a1c416",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/pro/DemoPhysicianWorkspace.tsx",
+        "currentSourceSha256": "a7bb0ff01ee0f54eedb1db2d605de32bdb4596c443529652600ad039f95df157",
+        "unchangedSinceInventory": false
+      },
+      {
+        "owner": "client/src/pages/pro/ProClientsPhysician.tsx",
+        "currentSourceSha256": "7726151e475e543bc9f5572236ea226dccc39d0eea737783ab27da22bd9efb27",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/admin/ChefKitchensAdmin.tsx",
+        "currentSourceSha256": "96ee926cca66a1fcf548cfb6350e296a9ff3da748833dd78f2a9a75111a10a56",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/PilotProgramAdmin.tsx",
+        "currentSourceSha256": "fc2fe9de7342edbcbafde1d4bec6d84d86334884a8c91559955ac3e7965c5faa",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/admin/AdminCertifications.tsx",
+        "currentSourceSha256": "0c9cfcc8704911dddadd78af4a4ddb03eb71466b16bdaa3cbccdee4cc8651f22",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/admin/AdminCampaignManager.tsx",
+        "currentSourceSha256": "a379f8bdb6201dbc1534e275fc8475b56038d3121d9e7948ef2b97eb63dcaa4e",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/admin/BugReportsDashboard.tsx",
+        "currentSourceSha256": "f2c8117c1a6f2406152a0454bd0e5f548b35cf25f446a4a7cade0489e9de3b98",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/AdminDashboard.tsx",
+        "currentSourceSha256": "1074cc2073cc3c5b1c4dd93ed30b98bd12a1c05080a622186de085ba1bc0530d",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/ModalTestHarness.tsx",
+        "currentSourceSha256": "def269f3ac9aa5711a307b33a3b7e11a247aa2445a5a8ec361cb4701fda96f74",
+        "unchangedSinceInventory": true
+      },
+      {
+        "owner": "client/src/pages/SheetTestHarness.tsx",
+        "currentSourceSha256": "7922fa23a7e9ca0eff477d62b13114d13640ffbd2c7f405f84427733411f8dd2",
+        "unchangedSinceInventory": true
+      }
     ]
   },
   {
@@ -871,7 +2148,8 @@
         "sourceHash": "907f2ef5b65a3156e62145d9d925804feb5e5d76537cb3256bea026ae8526500",
         "disposition": "gated-unverified"
       }
-    ]
+    ],
+    "registeredPageOwners": []
   },
   {
     "featureRole": "Shared transient and accessibility surfaces · all roles",
@@ -887,6 +2165,56 @@
         "owner": "client/src/components/ui/button.tsx",
         "sourceHash": "3d3e9ee007fdf22537ee2de86c95b84512ba0dec1e6d0c47d81020ea828c731d",
         "disposition": "connected"
+      },
+      {
+        "owner": "client/src/components/ui/pill-button.tsx",
+        "sourceHash": "d58b5d47127184cff5a0911c55bbd9cf593084ac2c074650c877ee512f6b1950",
+        "disposition": "caller-content"
+      },
+      {
+        "owner": "client/src/components/ui/dialog.tsx",
+        "sourceHash": "2ac90c6d1b87c62f977d0d6027ffe1255dccc157bde5aacaa5ab3d8062b7f932",
+        "disposition": "connected"
+      },
+      {
+        "owner": "client/src/components/ui/sheet.tsx",
+        "sourceHash": "0a6e1a7bad520c0ce89aa1c089c356a4c7bd8c40bc01013708dea7ff3d3bd2fe",
+        "disposition": "connected"
+      },
+      {
+        "owner": "client/src/components/ui/toast.tsx",
+        "sourceHash": "07839aa13172e91518a55cce8cb51e7df038223aec124d242d88d87f0632636f",
+        "disposition": "connected"
+      },
+      {
+        "owner": "client/src/components/ui/form.tsx",
+        "sourceHash": "612163f5ecae26656da5fb716454075d1d715ac65c64483499d24ca175fee05a",
+        "disposition": "connected"
+      },
+      {
+        "owner": "client/src/components/ui/tooltip.tsx",
+        "sourceHash": "2f26d20816448c630faccbda5ae9b4fe47c36f1fb14dbbd85b6652b7c24c1d51",
+        "disposition": "caller-content"
+      },
+      {
+        "owner": "client/src/components/NarrationBar.tsx",
+        "sourceHash": "dbf7d6a10c6087c8a38ca5c2d4609e550cab46a66d7e622498c94d98460dac26",
+        "disposition": "hardcoded-path"
+      },
+      {
+        "owner": "client/src/lib/mealGenerationProgress.ts",
+        "sourceHash": "29befa65e0fe2403dc351c2ad5b56cc9bf7277e1eb8d99d46fdf547103fa7a6d",
+        "disposition": "completed-ordinary/protected-held"
+      },
+      {
+        "owner": "client/src/components/UniversalMealCardFooter.tsx",
+        "sourceHash": "d3b4bfc3bf1318f864f2fbb6dfc90b67c651d9cd2ea0e9279c732c68ed98519f",
+        "disposition": "completed-ordinary"
+      },
+      {
+        "owner": "client/src/components/BuilderShoppingBar.tsx",
+        "sourceHash": "43c08cc547198a6c0ff2fbcd9b153104463826c650879a0ae988d02c2520540c",
+        "disposition": "completed-ordinary"
       },
       {
         "owner": "client/src/components/Router.tsx",
@@ -908,6 +2236,7 @@
         "sourceHash": "aca10633792d03bb541e09ea106b5e1f3de429b69b3cade5ccfb7dca20289424",
         "disposition": "caller-content"
       }
-    ]
+    ],
+    "registeredPageOwners": []
   }
 ]

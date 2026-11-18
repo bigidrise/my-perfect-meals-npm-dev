@@ -8,8 +8,10 @@
 import { startupPhraseTranslations } from "@shared/consumerStartupCopy";
 import { approvedConsumerOnboardingSpanish } from "./approvedConsumerOnboarding";
 import { foodWorkflowSpanish } from "./foodWorkflowCopy";
+import { consumerFeatureSpanish } from "./consumerFeatureCopy";
 
 export const consumerSpanish: Record<string, string> = {
+  ...consumerFeatureSpanish,
   ...startupPhraseTranslations,
   ...approvedConsumerOnboardingSpanish,
   ...foodWorkflowSpanish,

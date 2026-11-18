@@ -1,3 +1,5 @@
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { useCreatorOptionLabels } from "@/i18n/useCreatorOptionLabels";
 import { CREATOR_CUISINE_OPTIONS } from "@/utils/getEffectiveDietPreference";
 import { PillButton } from "@/components/ui/pill-button";
 import {
@@ -33,6 +35,8 @@ export function CuisineOverrideControl({
   onCuisineChange,
   className = "",
 }: CuisineOverrideControlProps) {
+  const { t } = useConsumerCopy();
+  const optionLabels = useCreatorOptionLabels();
   return (
     <div className={`space-y-2 ${className}`}>
       <div className="flex items-center gap-2">
@@ -41,27 +45,27 @@ export function CuisineOverrideControl({
           variant="emerald"
           onClick={() => onToggle(false)}
         >
-          My Cuisine
+          {t("My Cuisine")}
         </PillButton>
         <PillButton
           active={overrideEnabled}
           variant="amber"
           onClick={() => onToggle(true)}
         >
-          Different Cuisine
+          {t("Different Cuisine")}
         </PillButton>
       </div>
 
       {overrideEnabled && (
         <Select value={overrideCuisine || "__none__"} onValueChange={(v) => onCuisineChange(v === "__none__" ? "" : v)}>
           <SelectTrigger className="bg-white/5 border-white/10 text-white rounded-xl">
-            <SelectValue placeholder="Select cuisine style" />
+            <SelectValue placeholder={t("Select cuisine style")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__none__">No specific preference</SelectItem>
+            <SelectItem value="__none__">{t("No specific preference")}</SelectItem>
             {CREATOR_CUISINE_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
+                {optionLabels[opt.label] ?? opt.label}
               </SelectItem>
             ))}
           </SelectContent>

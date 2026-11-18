@@ -227,17 +227,17 @@ export function NutritionPersonalizationSummaryCard({
         const hasCarbSplit = !!(m.starchyCarbsG || m.fibrousCarbsG);
         const pills = hasCarbSplit
           ? [
-              { label: "Cal",     value: m.calories ? m.calories.toLocaleString() : "—" },
-              { label: "Protein", value: m.proteinG ? `${m.proteinG}g`            : "—" },
-              { label: "Starchy", value: m.starchyCarbsG ? `${m.starchyCarbsG}g` : "—" },
-              { label: "Fibrous", value: m.fibrousCarbsG ? `${m.fibrousCarbsG}g` : "—" },
-              { label: "Fat",     value: m.fatG ? `${m.fatG}g`                   : "—" },
+              { label: t("Cal"),     value: m.calories ? m.calories.toLocaleString() : "—" },
+              { label: t("Protein"), value: m.proteinG ? `${m.proteinG}g`            : "—" },
+              { label: t("Starchy"), value: m.starchyCarbsG ? `${m.starchyCarbsG}g` : "—" },
+              { label: t("Fibrous"), value: m.fibrousCarbsG ? `${m.fibrousCarbsG}g` : "—" },
+              { label: t("Fat"),     value: m.fatG ? `${m.fatG}g`                   : "—" },
             ]
           : [
-              { label: "Cal",     value: m.calories ? m.calories.toLocaleString() : "—" },
-              { label: "Protein", value: m.proteinG ? `${m.proteinG}g`            : "—" },
-              { label: "Carbs",   value: m.carbsG   ? `${m.carbsG}g`             : "—" },
-              { label: "Fat",     value: m.fatG     ? `${m.fatG}g`               : "—" },
+              { label: t("Cal"),     value: m.calories ? m.calories.toLocaleString() : "—" },
+              { label: t("Protein"), value: m.proteinG ? `${m.proteinG}g`            : "—" },
+              { label: t("Carbs"),   value: m.carbsG   ? `${m.carbsG}g`             : "—" },
+              { label: t("Fat"),     value: m.fatG     ? `${m.fatG}g`               : "—" },
             ];
         return (
           <div className="px-4 pb-3">

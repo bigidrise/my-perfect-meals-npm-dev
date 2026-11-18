@@ -32,14 +32,59 @@
       "currentSha256": "434b6bd8e0d61bb4f66f9d88608c4033a3bce8b99d4cee561b8732a6051ceb73"
     },
     {
+      "owner": "client/src/components/MealCard.tsx",
+      "previousSha256": "a51c3823cfe49a84a5d66f05ec49e36d5b5e9d69fcf02a2bafcf4e68bd5e8226",
+      "currentSha256": "afc396340774da1d138e4d93c22a879b850c3023c65698dd621a2846233711c0"
+    },
+    {
+      "owner": "client/src/components/MealCardDynamic.tsx",
+      "previousSha256": "834519b88730bc587d532fa2786cf1feae4e1995442285d324e02c863294b6a9",
+      "currentSha256": "d3d3f19a061615b64728d581f2802df6c2f3b49e74ecdef0fd1c2f3a118138ed"
+    },
+    {
+      "owner": "client/src/components/MealCardFull.tsx",
+      "previousSha256": "23a270987554bcef8eba3e2ff8e6f61d7e2665b6afbb20354a2efeee977a3a25",
+      "currentSha256": "69a17b7875695d44cbf9e5acce7416316d443e80c8a22c1e597d1a063565c19f"
+    },
+    {
       "owner": "client/src/components/MobileBarcodeCamera.tsx",
       "previousSha256": "326a15b51c4184e08dda238b58fd7e777f09f38d760b98781a1b7056b2cf4020",
       "currentSha256": "825beb4f8fcb069f1df9e8ede9a6b74d22f81646ea78c817097b0f0766163694"
     },
     {
+      "owner": "client/src/components/TranslateToggle.tsx",
+      "previousSha256": "1cab691953a8bb8071d2f29557692fc0d6f304e1c6f8c7f9c72e4ad28e2ee2cd",
+      "currentSha256": "4f134c95a581f2f30069c1f10cd7e4477913179849e5eba3ff268a536771eb08"
+    },
+    {
       "owner": "client/src/components/UniversalMealCardFooter.tsx",
       "previousSha256": "04a52c245a997f2f8405789484bdc5ecedaac4cf67bad9d3efea52006e733cbe",
       "currentSha256": "d3b4bfc3bf1318f864f2fbb6dfc90b67c651d9cd2ea0e9279c732c68ed98519f"
+    },
+    {
+      "owner": "client/src/components/away-from-home/AwayFromHomeMealCard.tsx",
+      "previousSha256": "c5f3be2ae82e55d13036292a56eae8e646132b7c05b8f0d3069cd1ae0b297bac",
+      "currentSha256": "162b7f397f0ebb324d17141c4d271a3b4c7793970ea984d96a2ce91641db0fa1"
+    },
+    {
+      "owner": "client/src/components/biometrics/BasicHydrationLogger.tsx",
+      "previousSha256": "f0fce8aa5c2d08a7acb229c0cd291a0d47c8e86899461a238e35dcc5eb905a61",
+      "currentSha256": "ee4d549f7d897f338fd9da1f1456d0dbb1e1c249c23ad28adb9bcf4a0b8aabc3"
+    },
+    {
+      "owner": "client/src/components/meal/GeneratedMealCard.tsx",
+      "previousSha256": "bd0eaf1471149120d7ec6dc469eca0d284bb4bf1142d0104e0822a45edcc9279",
+      "currentSha256": "d09d97f1987fdeb90afc8ea0b7784b29e89d9f1e074cd3accc1dfac36697f318"
+    },
+    {
+      "owner": "client/src/components/pro/ProClientWeightSnapshot.tsx",
+      "previousSha256": "a20b09ea3a3e25b26fdd126cc22fa80231d76a1f47aac315e720237c80389886",
+      "currentSha256": "a10615aadbedbae17c01717acac0a8c187498a30a22fc752f6baf0f8d0202ca0"
+    },
+    {
+      "owner": "client/src/components/pro/WeeklyWeightTrendCard.tsx",
+      "previousSha256": "fd975bb65cb6e8de85d6794cabb8c98ebe66fbdaa6babe37f5c0e706f6123717",
+      "currentSha256": "9a821e08051dd56030608122846db85f8dee2e1ebfb923e19ee05b23e0887d43"
     },
     {
       "owner": "client/src/components/shopping/BarcodeScanButton.tsx",
@@ -49,7 +94,17 @@
     {
       "owner": "client/src/components/shopping/GroceryStoreCoachSheet.tsx",
       "previousSha256": "b2303df9c0b7b5fd7d270d39fc09b8438a7501252c8f14cecdcf706faf9a665d",
-      "currentSha256": "26e78b3fc5222a149a7eec30223bc0a81c46c8be21647687fc4ca1681e4ee0bd"
+      "currentSha256": "1cc91750e6732da73e991dcbfec7dc8e844bcd14b531d4fa247a34be7c57b9ff"
+    },
+    {
+      "owner": "client/src/components/shopping/SavedGroceriesSheet.tsx",
+      "previousSha256": "e0a1541b7f0b3c0dba0bbf1e69cf57ebee070538720c90b29b97350acc4ae3f7",
+      "currentSha256": "bd6b63d55b984c81c30f57e284fd945cf6de294fc5f233d22c32d387ce018bbf"
+    },
+    {
+      "owner": "client/src/components/shopping/ShoppingQuantity.tsx",
+      "previousSha256": "de6389992217378938be44ea265d30d1ebe8ec0ca76bf4b66b8a4dd4fae68ad6",
+      "currentSha256": "db437f9124b6144c9225709faf3b40e871392b793464769373853ff1d34bdbff"
     },
     {
       "owner": "client/src/components/shopping/VoiceShoppingModal.tsx",
@@ -57,9 +112,24 @@
       "currentSha256": "2ce8057290c1ce97317e25c4f571bb2888a6df8e16c100eb3cc61b382824ff97"
     },
     {
+      "owner": "client/src/components/ui/meal-card.tsx",
+      "previousSha256": "a946cd8f0c835cae2173db064b0394ba265dd1f3e8f882f27ac04028a6d19213",
+      "currentSha256": "428d967ecff67a6ae3c73f42e3cfe1ce88e721f340331279fb2094c1164ab143"
+    },
+    {
       "owner": "client/src/components/voice/VoiceInputButton.tsx",
       "previousSha256": "5098f28b9f5d11edc13e21faa9c1bb70389f054fba6a437a0af35c49ee685c90",
       "currentSha256": "7fc43993baf0595e4fa434f6f43f938f62a11e9a30656a5fbf93052f236f815d"
+    },
+    {
+      "owner": "client/src/contexts/AuthContext.tsx",
+      "previousSha256": "dceb8e9347106d4cd820a12881a4b9b73475da7bcd21d784a07c598d481215bf",
+      "currentSha256": "808251fb6d5b30db3bdfd4cfc6034ebe703c0451741e6ab90b2e4977c10ff585"
+    },
+    {
+      "owner": "client/src/demo-studio/state.ts",
+      "previousSha256": "79ca2f5edfa984d76dcbc433b74819c0e7061979a8c80e04c12e98aa99c3c5ed",
+      "currentSha256": "d4bd44e212c024afe3c11d2855854373d635f67d7acd1afb8f7ab1f4a0975d75"
     },
     {
       "owner": "client/src/hooks/useMealGenerationProgress.ts",
@@ -72,9 +142,29 @@
       "currentSha256": "25f271e96854cb029a2ad7597004588a258f7bd9f133e1401cc3429e5fab7d4d"
     },
     {
+      "owner": "client/src/i18n/languagePreference.ts",
+      "previousSha256": "224f0dac78c04bcde889c69b2b4f2a6e3c540c6fd6eea4d24611ec3a9be6dbb7",
+      "currentSha256": "e0ad18514f01a06608469c6e57ebf714120ba336fdea2271986a7ac318f5c036"
+    },
+    {
       "owner": "client/src/i18n/useConsumerCopy.ts",
       "previousSha256": "e04eb42cc9869915114852e956f35626aee5baa7ace444c19547f194768ea37b",
       "currentSha256": "761525a6d70041a5d313a76988f646e9c6879853468957a9ca75bb66d80e7696"
+    },
+    {
+      "owner": "client/src/lib/auth.ts",
+      "previousSha256": "3c883eb404271de9d9ce1d41e256c6a53de1ae1df243ec215164bf677f95845a",
+      "currentSha256": "41914ae5e1d11ad7d0d03cd59fb2f0de749249b56bee65bc4a698f6351769c82"
+    },
+    {
+      "owner": "client/src/lib/formatQuantity.ts",
+      "previousSha256": "4da48950812de4ea00963256dda009ea196b42a195bc312ff771c8df70bfca4f",
+      "currentSha256": "3f49dc1249d1bd0f7a0c9c727d567d1069d55d8f007551a5762daa4ecb42577e"
+    },
+    {
+      "owner": "client/src/lib/units.ts",
+      "previousSha256": "583c5461f5f14470af6e11051f77f1317cd989d02d3631e35a8151675995d330",
+      "currentSha256": "776ae843f4918c466d7c4d446e992a1b70b9a4b9badcf14b7ce497360259ab1f"
     },
     {
       "owner": "client/src/pages/Learn.tsx",
@@ -82,14 +172,59 @@
       "currentSha256": "fe3a30eb09886113fba58e2630f2cfb40270a7a3d7df2bbb1641bea6baeaa26f"
     },
     {
+      "owner": "client/src/pages/MacroCalculator.tsx",
+      "previousSha256": "c84c6b529c2fd6d314e5a656b9030d15f25e69d6b74a65b82369db2ac5085cdb",
+      "currentSha256": "82c477f88a17a8b57895b4337ae3c6f338ad862aa2e8dcf5432f377371ba3504"
+    },
+    {
+      "owner": "client/src/pages/OnboardingV3.tsx",
+      "previousSha256": "aec7eed78f665bf6dd896ba78b53e46855ec784b1307ccd160ecc08a087499b3",
+      "currentSha256": "f9aeddb459c2df2758f130522f585bd9d51f3bc541c0bbb9ac1c81b634b131c0"
+    },
+    {
       "owner": "client/src/pages/ShoppingListMasterView.tsx",
       "previousSha256": "f14a8063359aa9399b1faef5f01de90f1c55f13d0507902e44a6c2c5fc699226",
-      "currentSha256": "cbd02bf0461278aa138ffc16831f04221e1236950a7b3b7fbff829d683a801eb"
+      "currentSha256": "3f06361b2180ef653f5456dbe7d4075f99eb74295a7929e9b36bf294372ceab7"
+    },
+    {
+      "owner": "client/src/pages/SocialFindMeals.tsx",
+      "previousSha256": "7c378b43395e740858cebbe0e1374dd44aed738c8f82f291349ba0f333fb3729",
+      "currentSha256": "b5d772c1e754dc2b6d0333905b516deb7cc675267099c439244383d0789ec3f8"
+    },
+    {
+      "owner": "client/src/pages/SocialRestaurantGuide.tsx",
+      "previousSha256": "c8eb79655be9a737c1a4626eb4cdc278fbe696ec55950e20b96d2fd053bd2a9c",
+      "currentSha256": "da21cb225e68b7f2a794d8c7dcc7bd757ff0060d56ffeaa243b7e945a2479df8"
     },
     {
       "owner": "client/src/pages/lifestyle/CreateDishPage.tsx",
       "previousSha256": "8791983df6962649070aefde79f5d64da76bb8de369252093ebe74d6594c710b",
       "currentSha256": "dcfb9544a0b1b7e33dd3aa1e445c19f82b02aaaffa48f8a6aafcdb7cca93e8e4"
+    },
+    {
+      "owner": "client/src/pages/my-biometrics.tsx",
+      "previousSha256": "eced63be22c053184e79235eedf747316553b0e9a01936f6cea957feb102fea7",
+      "currentSha256": "2277879f0cc4c7452782665cf79686b06a12a2d40651832f73ec6c2bed479921"
+    },
+    {
+      "owner": "client/src/pages/pro/DemoPhysicianWorkspace.tsx",
+      "previousSha256": "f51e83a7cb8e06867ca6ceba2a44fb17421162ef93cb620be8de0878ab8d24fe",
+      "currentSha256": "a7bb0ff01ee0f54eedb1db2d605de32bdb4596c443529652600ad039f95df157"
+    },
+    {
+      "owner": "client/src/pages/profile/EditProfilePage.tsx",
+      "previousSha256": "e1ddf2525e7eebfffdd3266e03e0e9f00dbffce9f8b3393c0b61d934da700e09",
+      "currentSha256": "9338d02a3d965e2c287759410d4c3c26148aec5841a2b8e052e50b0b718c8abc"
+    },
+    {
+      "owner": "client/src/pages/profile/LanguagePreferencesPage.tsx",
+      "previousSha256": "a0041bed8fd886262ca934cf5682c1a9034f4085640243558f22389bbf9ab751",
+      "currentSha256": "937098b55826b2ccdb5f663eb8167c306eabb928d89558b81d48ab875bf202a7"
+    },
+    {
+      "owner": "client/src/utils/unitConversions.ts",
+      "previousSha256": "f4a6bed52ac285129ba89412255df1acb364b72a61528a57bffa954121c8907f",
+      "currentSha256": "28df21c8751636f36f58b1652037a6ed00580afb9407dd36a27383d987197520"
     }
   ],
   "missingOwners": [],
@@ -100,7 +235,7 @@
       "currentSha256": "2f0bc4e1a375f168584e2d03838f2e829cfef1ebe8a3e7c5d52dc152bf9ca00d"
     }
   ],
-  "changedNonGeneratedSnapshotOwners": 17,
+  "changedNonGeneratedSnapshotOwners": 44,
   "newConnectedFoodResource": {
     "owner": "client/src/i18n/foodWorkflowCopy.ts",
     "sha256": "bb4834df3903e3236265e1c13ff8098d60ad048d96e8f7260db790a1adab235b"
