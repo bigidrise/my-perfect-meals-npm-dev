@@ -23,7 +23,29 @@ export function useHydrationChoiceLabels() {
       everyday: t("Everyday Hydration"), athletic: t("Athletic Hydration"),
       sick_day: t("Sick-Day Hydration"), liquid_nutrition: t("Liquid Nutrition Support"),
     } as Record<string, string>,
-    doorDescriptions: { everyday: t("Track fluids and solve everyday barriers.") } as Record<string, string>,
+    doorDescriptions: {
+      everyday: t("Track fluids and solve everyday barriers."),
+      athletic: t("Organize support around activity—without a formula."),
+      sick_day: t("Find tolerable, low-effort support and escalation guidance."),
+      liquid_nutrition: t("Organize explicit temporary instructions without filling blanks."),
+    } as Record<string, string>,
+    symptoms: {
+      nausea: t("Nausea"), vomiting: t("Vomiting"), diarrhea: t("Diarrhea"), low_appetite: t("Low appetite"),
+      sore_throat: t("Sore throat"), feeling_unwell: t("Feeling unwell"),
+      unable_to_keep_fluids: t("Unable to keep fluids down"), fainting_or_confusion: t("Fainting or confusion"),
+      trouble_breathing_or_chest_pain: t("Trouble breathing or chest pain"), blood: t("Blood in vomit or stool"),
+    } as Record<string, string>,
+    protocolTypes: {
+      clear_liquid: t("Clear liquid"), full_liquid: t("Full liquid"), modified_liquid: t("Modified liquid"), other: t("Other instruction"),
+    } as Record<string, string>,
+    protocolStates: {
+      active: t("Active"), expired: t("Expired"), needs_review: t("Needs clarification"), draft: t("Draft review"),
+    } as Record<string, string>,
+    unresolved: {
+      TIMING_NOT_STATED: t("Timing or frequency was not stated."),
+      CONFLICTING_ITEM_CATEGORIES: t("A category is both allowed and restricted."),
+      missing: t("Allowed or restricted categories were not provided."),
+    } as Record<string, string>,
   };
 }
 

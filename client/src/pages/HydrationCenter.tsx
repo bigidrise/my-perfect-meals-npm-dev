@@ -19,6 +19,7 @@ import HydrationInterventionCards from "@/components/HydrationInterventionCards"
 import HydrationEverydayCreatorButton from "@/components/HydrationEverydayCreatorButton";
 import { useToast } from "@/hooks/use-toast";
 import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { useConsumerNotice, FluidLogNotice } from "@/i18n/ConsumerNotice";
 import { useHydrationChoiceLabels } from "@/i18n/useConsumerChoiceLabels";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { isDevelopmentRuntime } from "@/lib/developmentRuntimeFlag";
@@ -81,33 +82,35 @@ function mlToOz(value: number) { return Math.round(value / ML_PER_OUNCE); }
 function displayVolume(value: number | null) {
   return value === null ? "—" : `${value.toLocaleString()} mL`;
 }
-function policyCopy(policy: HydrationNumericPolicyState) {
+function usePolicyCopy(policy: HydrationNumericPolicyState | undefined) {
+  const { t } = useConsumerCopy();
+  if (!policy) return null;
   if (policy.status === "TRACK_ONLY") return {
-    title: "Track without a formula",
+    title: t("Track without a formula"),
     body: "No personal numeric target has been set by an authorized clinician. You can still track fluids and get practical help.",
   };
   if (policy.status === "PLAN_WITHHELD") return {
-    title: "Numeric plan withheld",
+    title: t("Numeric plan withheld"),
     body: "A safety or access requirement is not satisfied. Practical, nonnumeric help is still available.",
   };
   if (policy.status === "NEEDS_REVIEW") return {
-    title: "Clinician review needed",
+    title: t("Clinician review needed"),
     body: "The saved directive needs review. Your fluid history and practical support remain available.",
   };
   if (policy.targetKind === "ceiling") return {
-    title: "Clinician-set ceiling",
+    title: t("Clinician-set ceiling"),
     body: `${displayVolume(policy.headroomToMaximumMl)} remains before the clinician-set maximum. This is a limit, not a goal.`,
   };
   if (policy.targetKind === "range") return {
-    title: "Clinician-set range",
+    title: t("Clinician-set range"),
     body: `${displayVolume(policy.remainingToMinimumMl)} to the lower bound; ${displayVolume(policy.headroomToMaximumMl)} before the upper bound.`,
   };
   if (policy.targetKind === "floor") return {
-    title: "Clinician-set minimum",
+    title: t("Clinician-set minimum"),
     body: policy.remainingToMinimumMl === 0 ? "The clinician-set minimum has been reached." : `${displayVolume(policy.remainingToMinimumMl)} remains.`,
   };
   return {
-    title: "Clinician-set target",
+    title: t("Clinician-set target"),
     body: policy.remainingMl === 0 ? "The clinician-set target has been reached." : `${displayVolume(policy.remainingMl)} remains today.`,
   };
 }
@@ -116,6 +119,7 @@ type Intervention = NonNullable<HydrationCenterState["interventions"]>[number];
 
 export default function HydrationCenter() {
   const { t, i18n } = useConsumerCopy();
+  const notice = useConsumerNotice();
   const labels = useHydrationChoiceLabels();
   usePageTitle(t("My Perfect Hydration Center"));
   const { user } = useAuth();
@@ -189,9 +193,9 @@ export default function HydrationCenter() {
       await addHydrationWater({ amount, unit, beverageClass });
       setCustomAmount("");
       await load();
-      toast({ title: t("Fluid logged"), description: t("{{amount}} {{unit}} of {{beverage}} was added.", { amount, unit, beverage: labels.beverages[beverageClass] ?? beverageClass }) });
+      toast({ title: notice("Fluid logged"), description: <FluidLogNotice amount={amount} unit={unit} beverageClass={beverageClass} /> });
     } catch (saveError) {
-      toast({ title: t("Could not log fluid"), description: saveError instanceof Error ? saveError.message.replace(/^\d+:\s*/, "") : t("Please try again."), variant: "destructive" });
+      toast({ title: notice("Could not log fluid"), description: saveError instanceof Error ? saveError.message.replace(/^\d+:\s*/, "") : notice("Please try again."), variant: "destructive" });
     } finally { setPendingAction(null); }
   };
 
@@ -201,7 +205,7 @@ export default function HydrationCenter() {
 
   const saveSetup = async () => {
     if (!consented) {
-      toast({ title: "Consent is required", description: "Choose consent to save optional preferences and barriers.", variant: "destructive" });
+      toast({ title: notice("Consent is required"), description: notice("Choose consent to save optional preferences and barriers."), variant: "destructive" });
       return;
     }
     setPendingAction("setup");
@@ -214,9 +218,9 @@ export default function HydrationCenter() {
         })),
       });
       await load();
-      toast({ title: t("Hydration setup saved"), description: t("You can reset or opt out at any time.") });
+      toast({ title: notice("Hydration setup saved"), description: notice("You can reset or opt out at any time.") });
     } catch (saveError) {
-      toast({ title: t("Could not save setup"), description: saveError instanceof Error ? saveError.message : t("Please try again."), variant: "destructive" });
+      toast({ title: notice("Could not save setup"), description: saveError instanceof Error ? saveError.message : notice("Please try again."), variant: "destructive" });
     } finally { setPendingAction(null); }
   };
 
@@ -230,13 +234,13 @@ export default function HydrationCenter() {
       setHelpOptions([]);
       initializedSetup.current = false;
       await load();
-      toast({ title: t("Hydration setup cleared"), description: t("Fluid history was not deleted.") });
+      toast({ title: notice("Hydration setup cleared"), description: notice("Fluid history was not deleted.") });
     } finally { setPendingAction(null); }
   };
 
   const getHelp = async () => {
     if (!consented || !selectedBarriers.length) {
-      toast({ title: t("Choose and save a barrier first"), description: "Practical options use only the preferences you consent to share." });
+      toast({ title: notice("Choose and save a barrier first"), description: "Practical options use only the preferences you consent to share." });
       return;
     }
     setPendingAction("options");
@@ -245,14 +249,14 @@ export default function HydrationCenter() {
       setHelpOptions(result.options);
       await load();
     } catch (helpError) {
-      toast({ title: t("Could not create options"), description: helpError instanceof Error ? helpError.message : t("Please try again."), variant: "destructive" });
+      toast({ title: notice("Could not create options"), description: helpError instanceof Error ? helpError.message : notice("Please try again."), variant: "destructive" });
     } finally { setPendingAction(null); }
   };
 
   const projections = state?.projections;
   const today = projections?.today || { totalFluidsMl: state?.totalLoggedMl || 0, plainWaterMl: state?.totalLoggedMl || 0, beverageMix: [] };
   const policy = state?.numericPolicy;
-  const copy = policy ? policyCopy(policy) : null;
+  const copy = usePolicyCopy(policy);
   const options = helpOptions.length ? helpOptions : (state?.interventions || []).slice(0, 4);
   const dailyRows = (projections?.dailyTotals || []).filter((row) => {
     if (historyWindow === "30") return true;
@@ -329,7 +333,7 @@ export default function HydrationCenter() {
                       <p className="text-xs uppercase tracking-[.2em] text-white">{t("Today")}</p>
                       <h2 className="mt-1 text-xl font-semibold text-white">{t("Your totals will appear here")}</h2>
                       <p className="mt-2 text-sm leading-relaxed text-white/75">
-                        You can use the Hydration doors or log a fluid now. Saved totals and any authorized guidance will appear when verified.
+                        {t("You can use the Hydration doors or log a fluid now. Saved totals and any authorized guidance will appear when verified.")}
                       </p>
                     </div>
                   </div>
@@ -344,7 +348,7 @@ export default function HydrationCenter() {
               <div className="mt-3 grid grid-cols-2 gap-2">{[8, 12, 16, 24].map((ounces) => <Button key={ounces} disabled={saving} onClick={() => void addFluid(ounces, "oz")} className="border border-sky-300/20 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25" data-testid={`hydration-add-${ounces}oz`}>+{ounces} oz</Button>)}</div>
               <div className="mt-3 flex gap-2"><Input inputMode="decimal" value={customAmount} onChange={(event) => setCustomAmount(event.target.value)} placeholder={t("Custom amount")} className="border-white/10 bg-white/5 text-white" data-testid="hydration-custom-amount" /><select value={customUnit} onChange={(event) => setCustomUnit(event.target.value as "oz" | "ml")} className="rounded-md border border-white/10 bg-slate-900 px-3 text-sm text-white"><option value="oz">oz</option><option value="ml">mL</option></select></div>
               <Button disabled={saving || Number(customAmount) <= 0} onClick={() => void addFluid(Number(customAmount), customUnit)} className="mt-2 w-full bg-sky-500 text-white hover:bg-sky-400 hover:text-white" data-testid="hydration-add-custom">{pendingAction === "fluid" ? t("Saving…") : t("Add to today")}</Button>
-              <p className="mt-3 text-xs leading-relaxed text-white">Fluid contribution is tracked separately from calories, sugar, sodium, and other nutrition.</p>
+              <p className="mt-3 text-xs leading-relaxed text-white">{t("Fluid contribution is tracked separately from calories, sugar, sodium, and other nutrition.")}</p>
             </CardContent></Card>
           </section>
 
@@ -363,7 +367,7 @@ export default function HydrationCenter() {
 
             <Card className="border-white/10 bg-slate-950/45 text-white backdrop-blur-xl"><CardContent className="p-5">
               <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><Lightbulb className="h-5 w-5 text-amber-300" /><h2 className="font-semibold text-white">{t("Help Me Get It In")}</h2></div><Button size="sm" disabled={saving} aria-busy={pendingAction === "options"} onClick={() => void getHelp()} className="bg-amber-400 text-slate-950 hover:bg-amber-300 hover:text-slate-950"><Sparkles className="mr-1.5 h-4 w-4" />{pendingAction === "options" ? t("Getting options…") : t("Get options")}</Button></div>
-              <p className="mt-2 text-sm text-white">Small, nonnumeric strategies based on the barrier you chose.</p>
+              <p className="mt-2 text-sm text-white">{t("Small, nonnumeric strategies based on the barrier you chose.")}</p>
               {pendingAction === "setup" && <p role="status" className="mt-2 text-xs text-white/80">{t("Saving setup. Get options will be available when saving finishes.")}</p>}
               <HydrationEverydayCreatorButton navigate={navigate} testId="hydration-options-creator" className="mt-3 h-auto min-h-10 w-full whitespace-normal bg-sky-400 text-slate-950 hover:bg-sky-300 sm:w-auto" />
               <p className="mt-2 text-xs text-white/80">{t("You can create a drink with any barrier—or without choosing one.")}</p>

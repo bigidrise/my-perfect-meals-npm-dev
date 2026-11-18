@@ -2066,7 +2066,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                 {t("Refine this recommendation")}
               </div>
             )}
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end" data-testid="meal-request-composer">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -2077,43 +2077,58 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                     ? t("e.g. I have no idea what I want for dinner…")
                     : t("Make it cheaper… faster… vegetarian…")
                 }
-                rows={2}
+                rows={3}
+                data-testid="input-meal-request"
                 style={{
                   flex: 1,
+                  minWidth: 0,
+                  width: "100%",
+                  maxWidth: "100%",
+                  boxSizing: "border-box",
                   background: "rgba(255,255,255,0.05)",
                   border: "1px solid rgba(255,255,255,0.1)",
                   borderRadius: 12,
-                  padding: "10px 12px",
+                  padding: "12px 14px",
                   color: "white",
                   fontSize: 16,
-                  resize: "none",
+                  resize: "vertical",
+                  whiteSpace: "pre-wrap",
+                  overflowWrap: "anywhere",
+                  overflowX: "hidden",
                   outline: "none",
                   fontFamily: "inherit",
                 }}
               />
-              <VoiceInputButton
-                value={input}
-                onChange={setInput}
-                label={t("Describe your meal needs by voice")}
-                className="shrink-0"
-              />
-              <button
-                onClick={handleSubmit}
-                disabled={!input.trim()}
-                style={{
-                  padding: "0 16px",
-                  borderRadius: 12,
-                  background: input.trim() ? "#ea580c" : "rgba(255,255,255,0.1)",
-                  border: "none",
-                  color: input.trim() ? "white" : "rgba(255,255,255,0.3)",
-                  cursor: input.trim() ? "pointer" : "not-allowed",
-                  display: "flex",
-                  alignItems: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Send style={{ width: 16, height: 16 }} />
-              </button>
+              <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:shrink-0" data-testid="meal-request-actions">
+                <VoiceInputButton
+                  value={input}
+                  onChange={setInput}
+                  label={t("Describe your meal needs by voice")}
+                  className="shrink-0"
+                />
+                <button
+                  className="flex-1 sm:flex-none"
+                  onClick={handleSubmit}
+                  disabled={!input.trim()}
+                  data-testid="button-meal-request-send"
+                  style={{
+                    minHeight: 48, padding: "12px 16px",
+                    borderRadius: 12,
+                    background: input.trim() ? "#ea580c" : "rgba(255,255,255,0.1)",
+                    border: "none",
+                    color: input.trim() ? "white" : "rgba(255,255,255,0.3)",
+                    cursor: input.trim() ? "pointer" : "not-allowed",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    flexShrink: 0,
+                  }}
+                >
+                  <Send style={{ width: 16, height: 16 }} />
+                  <span>{t("Send message")}</span>
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -15,6 +15,12 @@ import DiabeticHub from "@/pages/physician/DiabeticHub";
 import MyPerfectMenu from "@/pages/MyPerfectMenu";
 import { BasicHydrationLogger } from "@/components/biometrics/BasicHydrationLogger";
 import { MealPlanDestinationPicker } from "@/components/MealPlanDestinationPicker";
+import HydrationFourDoorPanels from "@/components/HydrationFourDoorPanels";
+import { useBatchOneErrorCopy } from "@/i18n/useBatchOneDisplayCopy";
+import { useHydrationInterventionDisplay } from "@/i18n/useHydrationInterventionDisplay";
+import { FluidLogNotice } from "@/i18n/ConsumerNotice";
+import { createHydrationHandoff, createHydrationLiquidProtocol } from "@/lib/hydrationApi";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 const mockNavigate = jest.fn(), mockToast = jest.fn(), mockSavePreferences = jest.fn();
 const mockCreate = jest.fn(), mockUpdate = jest.fn(), mockDelete = jest.fn(), mockWater = jest.fn();
@@ -29,6 +35,9 @@ const mockConcepts = Array.from({ length: 3 }, (_, index) => ({
   id: `idea-${index}`, ideaType: "breakfast", title: `ORIGINAL_IDEA_${index}`, description: "ORIGINAL_GENERATED_DESCRIPTION",
 }));
 let mockSearch = "";
+const mockSubmitPreflight = jest.fn(), mockReloadPreflight = jest.fn();
+let mockPreflight: any;
+jest.mock("@/hooks/useGlp1HubCheckin", () => ({ useGlp1HubCheckin: () => mockPreflight }));
 
 jest.mock("@/lib/developmentRuntimeFlag", () => ({ isDevelopmentRuntime: false }));
 jest.mock("wouter", () => ({ useLocation: () => ["/fixture", mockNavigate], useSearch: () => mockSearch }));
@@ -93,6 +102,11 @@ jest.mock("@/components/ui/drawer", () => ({
 beforeEach(async () => {
   cleanup(); localStorage.clear(); jest.clearAllMocks(); mockSearch = "";
   await i18n.changeLanguage("en");
+  mockPreflight = {
+    checkin: { id: "offline-checkin", appetiteLevel: "reduced", fatigue: "mild", notifyCareTeam: "physician", medicationName: "ORIGINAL_MEDICATION" },
+    tolerance: null, isLoading: false, isSubmitting: false, hasLoaded: true,
+    submit: mockSubmitPreflight.mockResolvedValue(true), reload: mockReloadPreflight, error: null,
+  };
   for (const fn of [mockCreate, mockUpdate, mockDelete, mockSavePreferences, mockWater]) fn.mockResolvedValue({});
   mockHydration.mockImplementation(() => new Promise(() => {})); // Safe shell, no authority or customer reads.
   global.fetch = jest.fn(async (url: any, init: any = {}) => {
@@ -118,21 +132,26 @@ test.each([
   let view = render(<ShotTrackerPanel userId="offline-subject" onClose={jest.fn()} />);
   expect(screen.getByRole("heading", { name: i18n.t("Shot Tracker", { ns: "consumerJourney" }) })).toBeVisible();
   expect(screen.getByText("ORIGINAL_SAVED_NOTES")).toBeVisible();
+  captureReview(`shot-${language}`);
   view.unmount();
   view = render(<GlycemicSettingsModal open onClose={jest.fn()} />);
   expect(screen.getAllByRole("button", { name: language === "es" ? "Frutos rojos" : "Berries" })).toHaveLength(3);
-  expect(screen.getByText("Glucose-Based Carb Choices")).toBeVisible(); // Registry-protected.
+  expect(screen.getByText(language === "es" ? "Opciones de carbohidratos según la glucosa" : "Glucose-Based Carb Choices")).toBeVisible();
+  captureReview(`carb-choices-${language}`);
   view.unmount();
   view = render(<HydrationCenter />);
   expect(screen.getByTestId("hydration-door-everyday")).toHaveTextContent(language === "es" ? "Hidratación cotidiana" : "Everyday Hydration");
   expect(screen.getByTestId("basic-hydration-submit")).toHaveTextContent(language === "es" ? "Registrar líquido" : "Log fluid");
+  captureReview(`hydration-loading-${language}`);
   view.unmount();
   view = render(<DiabeticHub />);
   expect(screen.getByText(language === "es" ? "Lecturas recientes" : "Recent Readings")).toBeVisible();
   expect(screen.getByText(language === "es" ? "(En ayunas)" : "(Fasted)")).toBeVisible();
+  captureReview(`diabetic-${language}`);
   view.unmount();
   render(<MyPerfectMenu />);
   expect(await screen.findByText(language === "es" ? "¿Qué te apetece?" : "What sounds good?")).toBeVisible();
+  captureReview(`menu-empty-${language}`);
   expect(localStorage.getItem(LANGUAGE_PREFERENCE_KEY)).toBe(preference);
   expect(mockCreate).not.toHaveBeenCalled(); expect(mockSavePreferences).not.toHaveBeenCalled(); expect(mockGenerate).not.toHaveBeenCalled();
 });
@@ -188,6 +207,7 @@ test("Menu keeps original generated ideas while localizing category and replacem
   expect(screen.getByRole("button", { name: "Probar 3 más" })).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Probar 3 más" }));
   expect(screen.getByText("¿Probar 3 ideas nuevas?")).toBeVisible();
+  captureReview("menu-replacement-dialog-es");
   fireEvent.click(screen.getByRole("button", { name: "Conservar estas ideas" }));
   expect(screen.getByText("ORIGINAL_IDEA_0")).toBeVisible();
   const posted = (global.fetch as jest.Mock).mock.calls.find(([url, init]) => String(url).endsWith("/concepts") && init?.method === "POST");
@@ -213,4 +233,199 @@ test("closed food and slot display maps cover the canonical catalogs without rep
   expect(result.current.menu.guidance).toEqual(getMyPerfectMenuSlotGuidance("breakfast", "snacks"));
   expect(result.current.contexts.FASTED).toBe("Fasted");
   expect(result.current.foods["ORIGINAL_UNKNOWN_FOOD"]).toBeUndefined();
+});
+
+const ActualPreflight = jest.requireActual("@/components/glp1/GLP1MealPreflight").default;
+const ActualDailyCheckin = jest.requireActual("@/components/glp1/GLP1DailyCheckin").default;
+
+// Optional passive browser evidence, produced only from these mocked, actual
+// components. No application bootstrap, scripts, media or external requests.
+function captureReview(name: string) {
+  if (!process.env.BATCH_ONE_REVIEW_HTML) return;
+  const css = readFileSync(process.env.BATCH_ONE_REVIEW_CSS!, "utf8")
+    .replace(/@import[^;]+;/g, "").replace(/url\([^)]*\)/g, "none");
+  const body = document.body.cloneNode(true) as HTMLElement;
+  body.querySelectorAll("script,iframe,video,audio,source,link").forEach(node => node.remove());
+  body.querySelectorAll("*").forEach(node => {
+    for (const attr of Array.from(node.attributes)) {
+      if (/^(src|srcset|poster|action|formaction)$/i.test(attr.name) || /^on/i.test(attr.name)) node.removeAttribute(attr.name);
+      if (attr.name === "style") node.setAttribute("style", attr.value.replace(/url\([^)]*\)/g, "none"));
+    }
+  });
+  const html = `<!doctype html><html lang="${i18n.resolvedLanguage}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name} — actual component, synthetic state</title><style>${css}\nbody{background:#020617;color:white;font-family:system-ui,sans-serif;margin:0}</style></head><body>${body.innerHTML}</body></html>`;
+  expect(html).not.toMatch(/<script|<iframe|<video|<audio|<source|\ssrc=|@import|url\(/i);
+  mkdirSync("generated-artifacts/batch-one-review", { recursive: true });
+  writeFileSync(`generated-artifacts/batch-one-review/${name}.html`, html);
+}
+
+test("GLP-1 preflight localizes every ordinary question and preserves unsaved answers and canonical submission", async () => {
+  const saved = jest.fn().mockResolvedValue(undefined);
+  const view = render(<ActualPreflight open onOpenChange={jest.fn()} onSaved={saved} onOpenSettings={jest.fn()} />);
+  fireEvent.change(screen.getByLabelText("Appetite today"), { target: { value: "suppressed" } });
+  fireEvent.change(screen.getByLabelText("Nausea"), { target: { value: "moderate" } });
+  captureReview("glp1-preflight-en");
+  const reads = (global.fetch as jest.Mock).mock.calls.length;
+  await act(async () => { await i18n.changeLanguage("es"); });
+  expect(screen.getByLabelText("Apetito de hoy")).toHaveValue("suppressed");
+  expect(screen.getByLabelText("Náuseas")).toHaveValue("moderate");
+  for (const label of ["Reflujo", "Estreñimiento", "Diarrea", "Hinchazón", "Saciedad temprana", "Aversión a los alimentos", "Vómitos"]) expect(screen.getByLabelText(label)).toBeVisible();
+  expect(screen.getByRole("button", { name: "Cancelar" })).toBeVisible();
+  expect(screen.getAllByRole("option", { name: "Varias veces" })).toHaveLength(1);
+  expect((global.fetch as jest.Mock).mock.calls.length).toBe(reads);
+  captureReview("glp1-preflight-es");
+  fireEvent.click(screen.getByRole("button", { name: "Guardar y continuar" }));
+  await waitFor(() => expect(mockSubmitPreflight).toHaveBeenCalledWith(expect.objectContaining({
+    appetiteLevel: "suppressed", nausea: "moderate", fatigue: "mild",
+    notifyCareTeam: "physician", medicationName: "ORIGINAL_MEDICATION",
+  })));
+  expect(saved).toHaveBeenCalledTimes(1);
+  view.unmount();
+});
+
+test("GLP-1 load failures, retry, loading and pending save use the real component without a service request", async () => {
+  await i18n.changeLanguage("es");
+  mockPreflight = { ...mockPreflight, hasLoaded: false, checkin: null };
+  const props = { open: true, onOpenChange: jest.fn(), onSaved: jest.fn(), onOpenSettings: jest.fn() };
+  const view = render(<ActualPreflight {...props} />);
+  expect(screen.getByText("No pudimos cargar el registro de GLP-1 de hoy.")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Guardar y continuar" })).not.toBeInTheDocument();
+  captureReview("glp1-load-error-es");
+  fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+  expect(mockReloadPreflight).toHaveBeenCalledTimes(1);
+  mockPreflight = { ...mockPreflight, isLoading: true };
+  view.rerender(<ActualPreflight {...props} />);
+  expect(screen.queryByRole("button", { name: "Reintentar" })).not.toBeInTheDocument();
+  mockPreflight = { ...mockPreflight, isLoading: false, hasLoaded: true, isSubmitting: true };
+  view.rerender(<ActualPreflight {...props} />);
+  expect(screen.getByRole("button", { name: "Guardando…" })).toBeDisabled();
+  expect(mockSubmitPreflight).not.toHaveBeenCalled();
+});
+
+test("the actual daily check-in physician option inherits the ordinary consumer translation", async () => {
+  await i18n.changeLanguage("es");
+  render(<ActualDailyCheckin />);
+  fireEvent.click(screen.getByRole("button", { name: "Actualizar" }));
+  fireEvent.click(screen.getByRole("button", { name: "Avisar a mi médico" }));
+  captureReview("glp1-daily-expanded-es");
+  fireEvent.click(screen.getByRole("button", { name: "Guardar registro" }));
+  await waitFor(() => expect(mockSubmitPreflight).toHaveBeenCalledWith(expect.objectContaining({ notifyCareTeam: "physician" })));
+});
+
+test("all four hydration doors use translated descriptions, symptoms and liquid types without changing user fields", async () => {
+  const state: any = { localDate: "2026-11-18", liquidProtocol: null };
+  render(<HydrationFourDoorPanels state={state} navigate={mockNavigate} onReload={jest.fn()} />);
+  await act(async () => { await i18n.changeLanguage("es"); });
+  expect(screen.getByText("Organiza el apoyo en torno a tu actividad, sin una fórmula.")).toBeVisible();
+  fireEvent.click(screen.getByTestId("hydration-door-athletic"));
+  captureReview("hydration-athletic-es");
+  fireEvent.click(screen.getByTestId("hydration-door-sick_day"));
+  expect(screen.getByText("Náuseas")).toBeVisible();
+  fireEvent.click(screen.getByTestId("sick-day-unable_to_keep_fluids"));
+  expect(screen.getByTestId("sick-day-escalation")).toBeVisible(); // Original warning retained.
+  captureReview("hydration-sick-es");
+  await act(async () => { await i18n.changeLanguage("en"); });
+  expect(screen.getByTestId("sick-day-unable_to_keep_fluids")).toBeChecked();
+  fireEvent.click(screen.getByTestId("hydration-door-liquid_nutrition"));
+  fireEvent.change(screen.getByTestId("liquid-protocol-original-text"), { target: { value: "ORIGINAL_CLINICIAN_WORDING" } });
+  fireEvent.change(screen.getByTestId("liquid-protocol-type"), { target: { value: "full_liquid" } });
+  await act(async () => { await i18n.changeLanguage("es"); });
+  expect(screen.getByTestId("liquid-protocol-type")).toHaveValue("full_liquid");
+  expect(screen.getByRole("option", { name: "Líquidos completos" })).toHaveValue("full_liquid");
+  expect(screen.getByTestId("liquid-protocol-original-text")).toHaveValue("ORIGINAL_CLINICIAN_WORDING");
+  captureReview("hydration-liquid-es");
+  expect(createHydrationLiquidProtocol).not.toHaveBeenCalled();
+});
+
+test("loaded Hydration shows its ordinary policy heading and empty history with the original clinical boundary", async () => {
+  await i18n.changeLanguage("es");
+  mockHydration.mockResolvedValue({
+    localDate: "2026-11-18", totalLoggedMl: 0, todayHistory: [], interventions: [],
+    numericPolicy: { status: "TRACK_ONLY" },
+  });
+  render(<HydrationCenter />);
+  expect(await screen.findByText("Registra sin una fórmula")).toBeVisible();
+  expect(screen.getByText("No personal numeric target has been set by an authorized clinician. You can still track fluids and get practical help.")).toBeVisible();
+  captureReview("hydration-loaded-es");
+  expect(screen.getByRole("heading", { name: /Empieza aquí/i })).toBeVisible();
+  captureReview("hydration-guide-es");
+  expect(mockCreate).not.toHaveBeenCalled();
+});
+
+test("Athletic Hydration still hands off canonical English context, never its Spanish display copy", async () => {
+  await i18n.changeLanguage("es");
+  (createHydrationHandoff as jest.Mock).mockResolvedValue({ token: "offline-handoff" });
+  render(<HydrationFourDoorPanels state={{ localDate: "2026-11-18" } as any} navigate={mockNavigate} onReload={jest.fn()} />);
+  fireEvent.click(screen.getByTestId("hydration-door-athletic"));
+  fireEvent.change(screen.getByTestId("athletic-hydration-phase"), { target: { value: "during" } });
+  fireEvent.click(screen.getByTestId("athletic-hydration-creator"));
+  await waitFor(() => expect(createHydrationHandoff).toHaveBeenCalledWith({
+    door: "athletic",
+    description: "Hydration context: during activity. Activity: training. Environment context: unknown. Do not invent hydration targets, electrolyte dosing, or medical treatment. Preserve all saved dietary and safety constraints.",
+  }));
+});
+
+test("known Menu error text follows live language; unknown service detail and clinical messages remain original", async () => {
+  const { result } = renderHook(() => useBatchOneErrorCopy());
+  const base = "We couldn't complete three compatible ideas this time. Your settings were not changed.";
+  const notice = "Your existing compatible choices are still available.";
+  await act(async () => { await i18n.changeLanguage("es"); });
+  const es = result.current(`${base} ${notice}`);
+  expect(es).toBe("Esta vez no pudimos completar tres ideas compatibles. No se modificaron tus ajustes. Tus opciones compatibles existentes siguen disponibles.");
+  expect(result.current("ORIGINAL_PROVIDER_DETAIL")).toBe("ORIGINAL_PROVIDER_DETAIL");
+  expect(result.current("Your current GLP-1 guidance needs attention before creating meal ideas. Review it in the GLP-1 Hub.")).toContain("Your current");
+  await act(async () => { await i18n.changeLanguage("en"); });
+  expect(result.current(es)).toBe(`${base} ${notice}`);
+});
+
+test("actual Menu failed-generation alert translates the known service message and retention notice", async () => {
+  await i18n.changeLanguage("es");
+  const previousFetch = global.fetch;
+  const error = "We couldn't complete three compatible ideas this time. Your settings were not changed.";
+  global.fetch = jest.fn(async (url: any, init: any = {}) => {
+    if (String(url).startsWith("/api/my-perfect-menu/concepts") && init.method === "POST") return {
+      ok: false, status: 422, json: async () => ({ error, message: error, previousChoicesAvailability: "withheld" }),
+    };
+    return previousFetch(url, init);
+  }) as any;
+  render(<MyPerfectMenu />);
+  await waitFor(() => expect(screen.queryByText("Restaurando tus ideas de menú guardadas…")).not.toBeInTheDocument());
+  fireEvent.click(screen.getByRole("button", { name: /Ideas de desayuno/ }));
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("Esta vez no pudimos completar tres ideas compatibles.");
+  expect(alert).not.toHaveTextContent("We couldn't");
+  captureReview("menu-error-es");
+  await act(async () => { await i18n.changeLanguage("en"); });
+  expect(alert).toHaveTextContent(error);
+  expect(mockGenerate).not.toHaveBeenCalled();
+});
+
+test("mounted success notifications and interpolated hydration labels switch without stale English", async () => {
+  render(<GlycemicSettingsModal open onClose={jest.fn()} />);
+  fireEvent.click(screen.getByRole("button", { name: "Save Glucose Carb Preferences" }));
+  await waitFor(() => expect(mockToast).toHaveBeenCalled());
+  const notification = mockToast.mock.calls.at(-1)![0];
+  cleanup();
+  render(<div role="status">{notification.title}<FluidLogNotice amount={12} unit="oz" beverageClass="tea" /></div>);
+  expect(screen.getByRole("status")).toHaveTextContent("Glucose carb preferences saved");
+  await act(async () => { await i18n.changeLanguage("es"); });
+  expect(screen.getByRole("status")).toHaveTextContent("Preferencias de carbohidratos según la glucosa guardadas");
+  expect(screen.getByRole("status")).toHaveTextContent("12 oz");
+  expect(screen.getByRole("status")).not.toHaveTextContent("Tea");
+  await act(async () => { await i18n.changeLanguage("en"); });
+  expect(screen.getByRole("status")).toHaveTextContent("Glucose carb preferences saved");
+});
+
+test("exact built-in hydration suggestions localize for display without touching record or clinical suffix", async () => {
+  const original = { optionKey: "visible-cue", title: "Use a visible cue", description: "Keep your usual cup or bottle where your next routine starts. ORIGINAL_CLINICAL_SUFFIX" };
+  const { result } = renderHook(() => useHydrationInterventionDisplay());
+  await act(async () => { await i18n.changeLanguage("es"); });
+  expect(result.current(original)).toEqual({
+    ...original, title: "Usa un recordatorio visible",
+    description: "Deja tu vaso o botella habitual donde comienza tu próxima rutina. ORIGINAL_CLINICAL_SUFFIX",
+  });
+  expect(original.title).toBe("Use a visible cue");
+  const modified = { ...original, description: "ORIGINAL_MODIFIED_DESCRIPTION" };
+  expect(result.current(modified).description).toBe(modified.description);
+  const unknown = { ...original, optionKey: "ORIGINAL_UNKNOWN_OPTION" };
+  expect(result.current(unknown)).toBe(unknown);
 });

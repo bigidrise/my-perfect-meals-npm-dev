@@ -31,15 +31,15 @@ function useGuideSteps() {
   },
   {
     title: t("Answer the questions for that door"),
-    text: "Depending on the door, you may enter preferences and barriers, training context, symptoms and tolerability, or temporary instructions already provided by your care team.",
+    text: t("Depending on the door, you may enter preferences and barriers, training context, symptoms and tolerability, or temporary instructions already provided by your care team."),
   },
   {
     title: t("Follow the Hydration support shown"),
-    text: "My Perfect Hydration Center may show practical strategies, organize instructions, offer beverage support, show Considered for you, or send you to a Beverage Creator when appropriate.",
+    text: t("My Perfect Hydration Center may show practical strategies, organize instructions, offer beverage support, show Considered for you, or send you to a Beverage Creator when appropriate."),
   },
   {
     title: t("Log what you drink"),
-    text: "Use Log a fluid to choose a beverage and tap a quick-add amount, or enter a custom amount in ounces or milliliters. Logging is useful even when you do not have a numeric Hydration target.",
+    text: t("Use Log a fluid to choose a beverage and tap a quick-add amount, or enter a custom amount in ounces or milliliters. Logging is useful even when you do not have a numeric Hydration target."),
   },
   {
     title: t("Review Today and History"),
@@ -47,7 +47,7 @@ function useGuideSteps() {
   },
   {
     title: t("Adjust or revisit the plan"),
-    text: "Return to My Perfect Hydration Center whenever your situation changes. Current authorized professional guidance may appear here and, when applicable, in your Nutrition Life Plan.",
+    text: t("Return to My Perfect Hydration Center whenever your situation changes. Current authorized professional guidance may appear here and, when applicable, in your Nutrition Life Plan."),
   },
   ] as const;
 }
@@ -61,7 +61,7 @@ function useDoorGuides() {
     icon: Droplets,
     forText: t("Choose this for everyday fluid tracking and practical help making hydration easier."),
     enterText:
-      "Save any barriers or preferences that apply, such as forgetting, taste, temperature, bubbles, access, timing, bathroom concerns, nutrition conflicts, or low appetite. These are optional.",
+      t("Save any barriers or preferences that apply, such as forgetting, taste, temperature, bubbles, access, timing, bathroom concerns, nutrition conflicts, or low appetite. These are optional."),
     nextText:
       t("After saving a barrier, select Get options in Help Me Get It In. You can try a practical strategy, or choose Create when a beverage suggestion connects to Beverage Creator."),
     expectText:
@@ -75,7 +75,7 @@ function useDoorGuides() {
     enterText:
       t("Select before, during, or recovery, then enter the activity, approximate duration if you know it, and environmental context. You can continue to Athletic Beverage Creator when that support is useful."),
     nextText:
-      "Your activity context is passed into the Creator so it can keep the request focused and preserve your existing nutrition and safety constraints.",
+      t("Your activity context is passed into the Creator so it can keep the request focused and preserve your existing nutrition and safety constraints."),
     expectText:
       "Athletic Hydration provides bounded, practical guidance. It does not automatically prescribe fluid or electrolyte amounts unless a legitimate authorized numeric plan exists.",
   },
@@ -83,9 +83,9 @@ function useDoorGuides() {
     id: "sick-day",
     title: t("How to use Sick-Day Hydration"),
     icon: HeartPulse,
-    forText: "Choose this when you are unwell and need practical support with fluids and tolerability.",
+    forText: t("Choose this when you are unwell and need practical support with fluids and tolerability."),
     enterText:
-      "Select the symptoms or tolerability concerns that apply. Be as accurate as you can, especially if you are having trouble keeping fluids down.",
+      t("Select the symptoms or tolerability concerns that apply. Be as accurate as you can, especially if you are having trouble keeping fluids down."),
     nextText:
       "My Perfect Hydration Center uses what you selected to show practical, low-effort support and safety or escalation guidance when symptoms may need professional attention.",
     expectText:
@@ -172,7 +172,7 @@ export default function HydrationHubGuide() {
             <div className="text-xs leading-relaxed text-white/75">
               <p>
                 <span className="font-semibold text-white">
-                  “Considered for you”
+                  “{t("Considered for you")}”
                 </span>{" "}
                 means MPM checked applicable saved nutrition information,
                 preferences, allergies, active programs, restrictions, or

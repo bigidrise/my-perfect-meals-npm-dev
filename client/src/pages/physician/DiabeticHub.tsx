@@ -29,6 +29,7 @@ import {
   useDiabetesProfile,
 } from "@/hooks/useDiabetes";
 import { useToast } from "@/hooks/use-toast";
+import { useConsumerNotice } from "@/i18n/ConsumerNotice";
 import { GLUCOSE_THRESHOLDS } from "@/content/diabetesEducation";
 import { DIABETIC_PRESETS } from "@/data/diabeticPresets";
 import type { GlucoseContext } from "@/hooks/useDiabetes";
@@ -63,6 +64,7 @@ export default function DiabeticHub() {
   const { user } = useAuth();
   const canAccessTrainingNutrition = isClinicalOrAbove(user);
   const { toast } = useToast();
+  const notice = useConsumerNotice();
   const userId = user?.id?.toString() || getDeviceId();
   const quickTour = useQuickTour("diabetic-hub");
   const glp1CurrentUse = useGLP1CurrentUse();
@@ -177,19 +179,19 @@ export default function DiabeticHub() {
     const postMaxNum = parseInt(postMealMax);
 
     if (!carbNum || carbNum < 30 || carbNum > 400) {
-      toast({ title: t("diabeticHub.validCarbLimit"), variant: "destructive" });
+      toast({ title: notice("diabeticHub.validCarbLimit"), variant: "destructive" });
       return;
     }
     if (!freqNum || freqNum < 2 || freqNum > 8) {
-      toast({ title: t("diabeticHub.validMealFreq"), variant: "destructive" });
+      toast({ title: notice("diabeticHub.validMealFreq"), variant: "destructive" });
       return;
     }
     if (!fastMinNum || !fastMaxNum || fastMinNum >= fastMaxNum) {
-      toast({ title: t("diabeticHub.validFastingRange"), variant: "destructive" });
+      toast({ title: notice("diabeticHub.validFastingRange"), variant: "destructive" });
       return;
     }
     if (!postMaxNum || postMaxNum < fastMaxNum) {
-      toast({ title: t("diabeticHub.validPostMeal"), variant: "destructive" });
+      toast({ title: notice("diabeticHub.validPostMeal"), variant: "destructive" });
       return;
     }
 
@@ -211,15 +213,15 @@ export default function DiabeticHub() {
       });
       setSelectedPreset("");
       setHasCustomizedGuardrails(true);
-      toast({ title: t("diabeticHub.guardrailsSaved") });
+      toast({ title: notice("diabeticHub.guardrailsSaved") });
     } catch (error) {
-      toast({ title: t("diabeticHub.guardrailsFailed"), variant: "destructive" });
+      toast({ title: notice("diabeticHub.guardrailsFailed"), variant: "destructive" });
     }
   };
 
   const handleLogGlucose = async () => {
     if (!glucoseReading) {
-      toast({ title: t("diabeticHub.pleaseEnterReading"), variant: "destructive" });
+      toast({ title: notice("diabeticHub.pleaseEnterReading"), variant: "destructive" });
       return;
     }
 
@@ -237,12 +239,12 @@ export default function DiabeticHub() {
         recordedAt: new Date().toISOString(),
       });
       setGlucoseReading("");
-      toast({ title: t("diabeticHub.readingLogged") });
+      toast({ title: notice("diabeticHub.readingLogged") });
     } catch (error: any) {
       console.error("[GlucoseLog] Failed to log reading:", error);
       const errorMsg = error?.message || error?.body || "Unknown error";
       toast({ 
-        title: t("diabeticHub.readingLogFailed"), 
+        title: notice("diabeticHub.readingLogFailed"), 
         description: errorMsg.slice(0, 100),
         variant: "destructive" 
       });
@@ -327,7 +329,7 @@ export default function DiabeticHub() {
               <ChefHat className="w-5 h-5 text-lime-400" />
               <div>
                 <p className="font-bold text-sm">{t("My Perfect Menu")}</p>
-                <p className="text-white/60 text-xs mt-0.5">Create ideas for your Diabetes Builder</p>
+                <p className="text-white/60 text-xs mt-0.5">{t("Create ideas for your Diabetes Builder")}</p>
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-white/40 flex-shrink-0" />
@@ -346,7 +348,7 @@ export default function DiabeticHub() {
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="font-semibold text-sm text-white leading-tight">{t("diabeticHub.trainingTitle")}</p>
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-300 bg-orange-600/20 border border-orange-500/30 px-2 py-0.5 rounded-full flex-shrink-0">
-                  Clinical
+            {t("Clinical")}
                 </span>
               </div>
               <p className="text-white/40 text-xs mt-0.5">{t("diabeticHub.trainingSub")}</p>
@@ -419,13 +421,13 @@ export default function DiabeticHub() {
           )}
           {isDevelopmentRuntime && glp1CurrentUse.isError && (
             <p role="alert" className="text-sm text-orange-200">
-              GLP-1 medication status could not be loaded.{" "}
+              {t("GLP-1 medication status could not be loaded.")}{" "}
               <button type="button" className="underline" onClick={() => glp1CurrentUse.refetch()}>{t("Retry")}</button>
             </p>
           )}
           {isDevelopmentRuntime && isGlp1Active && (
             <section className="rounded-xl border border-orange-500/20 p-4 space-y-3">
-              <p className="text-sm text-white/80">Using GLP-1 medication support? Keep today’s symptoms up to date.</p>
+              <p className="text-sm text-white/80">{t("Using GLP-1 medication support? Keep today’s symptoms up to date.")}</p>
               <Button type="button" className="h-auto whitespace-normal bg-orange-600 text-white hover:bg-orange-500" aria-expanded={showDailySymptoms}
                 aria-controls="diabetic-glp1-daily-symptoms"
                 onClick={() => setShowDailySymptoms((open) => !open)}>
@@ -925,7 +927,7 @@ export default function DiabeticHub() {
                   <TrendingUp className="h-16 w-16 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-medium">{t("No readings yet")}</p>
                   <p className="text-md">
-                    Log your first glucose reading above to start tracking
+                    {t("Log your first glucose reading above to start tracking")}
                   </p>
                 </div>
               </div>
@@ -952,7 +954,7 @@ export default function DiabeticHub() {
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/3 pointer-events-none" />
             <div className="mb-6 relative z-10">
               <h2 className="text-lg font-bold text-white">
-                AI Diabetic Meal Generator
+                {t("AI Diabetic Meal Generator")}
               </h2>
               <p className="text-white/80 text-md">
                 Low-GI meals based on your guardrails
@@ -964,7 +966,7 @@ export default function DiabeticHub() {
               className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-lime-600/20 border border-lime-500/30 text-white"
             >
               <div className="text-left">
-                <p className="font-bold text-sm">Launch Diabetic Builder</p>
+                <p className="font-bold text-sm">{t("Launch Diabetic Builder")}</p>
                 <p className="text-white/80 text-xs mt-0.5">Low-GI meals built for your glucose guardrails</p>
               </div>
               <ChevronRight className="w-5 h-5 text-lime-400 flex-shrink-0" />

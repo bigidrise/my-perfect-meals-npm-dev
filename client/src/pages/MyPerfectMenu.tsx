@@ -54,6 +54,7 @@ import type { MyPerfectMenuSnackType } from "@shared/myPerfectMenu";
 import { getMyPerfectMenuSlotGuidance } from "@/lib/myPerfectMenuSlotGuidance";
 import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { useMenuDisplayCopy } from "@/i18n/useMenuDisplayCopy";
+import { useBatchOneErrorCopy } from "@/i18n/useBatchOneDisplayCopy";
 import { isDevelopmentRuntime } from "@/lib/developmentRuntimeFlag";
 
 type IdeaType = "breakfast" | "lunch" | "dinner" | "snack";
@@ -138,6 +139,7 @@ function completedMealPayload(meal: any) {
 
 export default function MyPerfectMenu() {
   const { t } = useConsumerCopy();
+  const errorCopy = useBatchOneErrorCopy();
   const IDEA_TYPES = useIdeaTypes();
   const menuCopy = useMenuDisplayCopy();
   usePageTitle(t("My Perfect Menu"));
@@ -420,7 +422,7 @@ export default function MyPerfectMenu() {
       headers: getAuthHeaders(),
     });
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw responseError(response, payload, "We couldn't check today's GLP-1 status.");
+    if (!response.ok) throw responseError(response, payload, t("We couldn't check today's GLP-1 status."));
     return Boolean(payload.checkin);
   };
 
@@ -572,7 +574,7 @@ export default function MyPerfectMenu() {
     if (!pendingIdeaType || subjectUserId) return;
     const valueMgdl = Number(glucoseValue);
     if (!Number.isFinite(valueMgdl)) {
-      setError("Enter your current blood glucose reading.");
+      setError(t("Enter your current blood glucose reading."));
       return;
     }
     setError(null);
@@ -588,7 +590,7 @@ export default function MyPerfectMenu() {
       await loadContextStatus();
       await requestIdeas(nextType);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "We couldn't save your blood glucose reading.");
+      setError(cause instanceof Error ? cause.message : t("We couldn't save your blood glucose reading."));
     }
   };
 
@@ -674,7 +676,7 @@ export default function MyPerfectMenu() {
       }),
     });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw responseError(response, result, "The meal couldn't be added to your plan.");
+    if (!response.ok) throw responseError(response, result, t("The meal couldn't be added to your plan."));
     window.dispatchEvent(new CustomEvent("mpm:board-slot-added", {
       detail: {
         weekStartISO: result.weekStartISO,
@@ -1104,7 +1106,7 @@ export default function MyPerfectMenu() {
                     </div>
                   )}
                   <button type="button" disabled={!performanceDate || !performanceSlot} onClick={() => void startPerformanceIdeas()} className="mt-4 min-h-11 rounded-xl bg-orange-600 px-4 text-sm font-black text-white disabled:opacity-40">
-                   Use this Performance prescription
+                   {t("Use this Performance prescription")}
                  </button>
                </div>
              )}
@@ -1128,16 +1130,15 @@ export default function MyPerfectMenu() {
                 <div className="flex items-start gap-3">
                   <Activity className="mt-0.5 h-5 w-5 shrink-0 text-sky-300" />
                   <div>
-                    <h3 className="font-black text-white">Update Blood Glucose</h3>
+                    <h3 className="font-black text-white">{t("Update Blood Glucose")}</h3>
                     <p className="mt-1 text-sm leading-relaxed text-white/65">
-                      Your latest reading is {contextStatus.diabetes.state === "STALE" ? "older than the current freshness window" : "not available"}.
-                      You can update it here using the same history as the Diabetes Hub, or continue with the information currently available.
+                      {t("Your latest reading is {{status}}. You can update it here using the same history as the Diabetes Hub, or continue with the information currently available.", { status: contextStatus.diabetes.state === "STALE" ? t("older than the current freshness window") : t("not available") })}
                     </p>
                   </div>
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
                   <label className="text-xs font-bold text-white/70">
-                    Blood glucose (mg/dL)
+                    {t("Blood glucose (mg/dL)")}
                     <input
                       type="number"
                       inputMode="numeric"
@@ -1181,14 +1182,14 @@ export default function MyPerfectMenu() {
                     }}
                     className="min-h-10 rounded-xl border border-white/15 bg-white/5 px-4 text-sm font-semibold text-white/75"
                   >
-                    Continue with available information
+                    {t("Continue with available information")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setLocation("/diabetic-hub?returnTo=%2Ffoods-i-enjoy%3Fbuilder%3Ddiabetic")}
                     className="min-h-10 rounded-xl px-3 text-sm font-semibold text-sky-200"
                   >
-                    Open Diabetes Hub
+                    {t("Open Diabetes Hub")}
                   </button>
                 </div>
               </div>
@@ -1196,7 +1197,7 @@ export default function MyPerfectMenu() {
 
             {!loadingContext && contextStatus?.diabetes.applicable && !contextStatus.diabetes.needsRefresh && (
               <div className="mt-4 rounded-2xl border border-emerald-300/20 bg-emerald-950/20 px-4 py-3 text-sm font-semibold text-emerald-100">
-                Using your current diabetes settings
+                {t("Using your current diabetes settings")}
               </div>
             )}
 
@@ -1260,7 +1261,7 @@ export default function MyPerfectMenu() {
           </section>
         )}
 
-        {error && <div role="alert" className="mt-5 rounded-2xl border border-red-300/25 bg-red-950/45 p-4 text-sm font-semibold text-red-100">{error}</div>}
+        {error && <div role="alert" className="mt-5 rounded-2xl border border-red-300/25 bg-red-950/45 p-4 text-sm font-semibold text-red-100">{errorCopy(error)}</div>}
         <div className="mt-8 flex items-start gap-3 rounded-2xl border border-white/10 bg-black/40 p-4 text-sm text-white/50">
           <Cookie className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" />
           <p>{t("These are simple ideas, not full recipes yet. Your complete meal is created only after you choose where it belongs in your plan.")}</p>

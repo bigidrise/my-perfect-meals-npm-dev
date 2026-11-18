@@ -80,7 +80,8 @@ test("Try it records only acceptance, confirms visibly, and reloads the counters
   expect(record.mock.calls).toEqual([["try-option", "accepted"]]);
   expect(handoff).not.toHaveBeenCalled();
   expect(navigate).not.toHaveBeenCalled();
-  expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Saved as something to try" }));
+  render(<>{mockToast.mock.calls.at(-1)![0].title}</>);
+  expect(screen.getByText("Saved as something to try")).toBeVisible();
 });
 
 test("Try it failure is visible and never records completion or claims success", async () => {

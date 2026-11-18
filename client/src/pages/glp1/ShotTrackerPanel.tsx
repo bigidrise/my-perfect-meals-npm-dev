@@ -153,11 +153,11 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
   const remove = async (id: string) => { await deleteM.mutateAsync(id); };
 
   const nextHint = useMemo(() => {
-    if (shots.length === 0) return "Not scheduled — log your first shot.";
+    if (shots.length === 0) return t("Not scheduled — log your first shot.");
     const last = new Date(shots[0].dateUtc);
     const next = new Date(last); next.setDate(last.getDate() + 7);
-    return `Estimated next: ${next.toLocaleDateString(locale)} (${next.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })})`;
-  }, [shots, locale]);
+    return t("Estimated next: {{date}} ({{time}})", { date: next.toLocaleDateString(locale), time: next.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) });
+  }, [shots, locale, t]);
 
   return (
     <div className="space-y-4">
@@ -174,20 +174,20 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
       {/* Quick Add */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="text-white/80 text-sm">Medication</label>
+          <label className="text-white/80 text-sm">{t("Medication")}</label>
           <select
             value={medicationName}
             onChange={(e) => setMedicationName(e.target.value)}
             className="w-full mt-1 rounded-md border border-white/20 bg-black/40 text-white p-2"
           >
-            <option value="">Select medication…</option>
+            <option value="">{t("Select medication…")}</option>
             {MEDICATION_OPTIONS.map((m) => (
               <option key={m} value={m}>{m}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className="text-white/80 text-sm">Dose (mg)</label>
+          <label className="text-white/80 text-sm">{t("Dose (mg)")}</label>
           <input
             type="number" inputMode="decimal" step="0.1" min="0" max="20"
             value={doseMg || ""} onChange={(e) => setDoseMg(Number(e.target.value))}
@@ -293,7 +293,7 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
                         onChange={(e) => setEditMedicationName(e.target.value)}
                         className="rounded-md border border-white/20 bg-black/40 text-white p-2"
                       >
-                        <option value="">Select medication…</option>
+                        <option value="">{t("Select medication…")}</option>
                         {MEDICATION_OPTIONS.map((m) => (
                           <option key={m} value={m}>{m}</option>
                         ))}
@@ -303,7 +303,7 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
                         value={editDose}
                         onChange={(e) => setEditDose(Number(e.target.value))}
                         className="rounded-md border border-white/20 bg-black/40 text-white p-2"
-                        placeholder="Dose (mg)"
+                        placeholder={t("Dose (mg)")}
                       />
                       <input
                         type="datetime-local"
