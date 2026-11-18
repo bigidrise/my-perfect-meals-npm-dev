@@ -1370,26 +1370,27 @@ export default function CreateDishPage() {
                         className="w-full px-3 py-2 pr-10 bg-black text-white placeholder:text-white/40 border border-orange-400/20 rounded-lg h-20 resize-none text-sm"
                         maxLength={300}
                       />
-                      {dishInput && !classificationComplete && (
-                        <TrashButton
-                          onClick={() => updateDishInput("")}
-                          size="sm"
-                          ariaLabel={t("Clear dish input")}
-                          title={t("Clear dish input")}
-                          className="absolute top-2 right-2"
-                        />
-                      )}
                     </div>
                     {!classificationComplete && (
-                      <VoiceInputButton
-                        value={dishInput}
-                        onChange={updateDishInput}
-                        mode="append"
-                        separator=" "
-                        maxLength={300}
-                        label={t("Add dish description by voice")}
-                        className="mt-2"
-                      />
+                      <div className="mt-2 flex items-center justify-between gap-3" data-testid="dish-input-actions">
+                        <VoiceInputButton
+                          value={dishInput}
+                          onChange={updateDishInput}
+                          mode="append"
+                          separator=" "
+                          maxLength={300}
+                          label={t("Add dish description by voice")}
+                        />
+                        {dishInput && (
+                          <TrashButton
+                            onClick={() => updateDishInput("")}
+                            size="sm"
+                            ariaLabel={t("Clear dish input")}
+                            title={t("Clear dish input")}
+                            className="ml-auto shrink-0"
+                          />
+                        )}
+                      </div>
                     )}
                     <p className="text-xs text-white/50 mt-1 text-right">
                       {dishInput.length}/300

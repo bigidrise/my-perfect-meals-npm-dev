@@ -1160,7 +1160,7 @@ export default function DiabeticMenuBuilder() {
             className="flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="text-sm font-medium">Diabetes Hub</span>
+            <span className="text-sm font-medium">{t("diabeticBuilder.backLabel")}</span>
           </button>
         )}
         {/* NutritionBudgetBanner hidden — low value vs Remaining Today footer; restore when reactivity is fixed */}
