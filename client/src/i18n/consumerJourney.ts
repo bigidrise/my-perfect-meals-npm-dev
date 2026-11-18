@@ -7,10 +7,12 @@
  */
 import { startupPhraseTranslations } from "@shared/consumerStartupCopy";
 import { approvedConsumerOnboardingSpanish } from "./approvedConsumerOnboarding";
+import { foodWorkflowSpanish } from "./foodWorkflowCopy";
 
 export const consumerSpanish: Record<string, string> = {
   ...startupPhraseTranslations,
   ...approvedConsumerOnboardingSpanish,
+  ...foodWorkflowSpanish,
   // Ordinary narration controls, connected only by the consumer first-run page.
   "Listen": "Escuchar",
   "Pause": "Pausar",

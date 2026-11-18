@@ -15,6 +15,7 @@ const fixture = (run) => {
   write("client/src/i18n/locales/es.json", '{"common":{"save":"Guardar"}}');
   write("shared/consumerStartupCopy.ts", 'export const startupEnglish={loading:"Loading"};export const startupSpanish={loading:"Cargando"};export const startupPhraseTranslations=Object.fromEntries(Object.entries(startupEnglish).map(([key,phrase])=>[phrase,startupSpanish[key as keyof typeof startupEnglish]]));');
   write("client/src/i18n/approvedConsumerOnboarding.ts", 'export const approvedConsumerOnboardingSpanish={"Approved":"Aprobado"};');
+  write("client/src/i18n/foodWorkflowCopy.ts", 'export const foodWorkflowSpanish={"Recipe Ready":"Receta lista"};');
   write("client/src/i18n/consumerJourney.ts", 'export const consumerSpanish={...startupPhraseTranslations,...approvedConsumerOnboardingSpanish,"Listen":"Escuchar"};export const consumerEnglish=Object.fromEntries(Object.keys(consumerSpanish).map(key=>[key,key]));');
   write("docs/localization/clinical-registry.json", '{"allStrings":[]}');
   write("client/src/Existing.tsx", 'export const X=()=> <p>Existing English debt</p>');
@@ -62,6 +63,18 @@ test("pure resource reading supports current additive spreads and refuses execut
   assert.equal(loadResources(read).es.consumerJourney.Loading, "Cargando");
   write("client/src/i18n/consumerJourney.ts", 'export const consumerSpanish=fetch("https://example.invalid");');
   assert.throws(() => loadResources(read), /Unsupported static dictionary/);
+}));
+test("food dictionary is optional before adoption but required when connected, and checked statically", () => fixture(({ root, write }) => {
+  const read = file => fs.readFileSync(path.join(root, file), "utf8");
+  fs.unlinkSync(path.join(root, "client/src/i18n/foodWorkflowCopy.ts"));
+  assert.equal(loadResources(read).es.consumerJourney.Loading, "Cargando");
+  write("client/src/i18n/consumerJourney.ts", 'export const consumerSpanish={...startupPhraseTranslations,...approvedConsumerOnboardingSpanish,...foodWorkflowSpanish};export const consumerEnglish=Object.fromEntries(Object.keys(consumerSpanish).map(key=>[key,key]));');
+  assert.throws(() => loadResources(read), /ENOENT/);
+  write("client/src/i18n/foodWorkflowCopy.ts", 'export const foodWorkflowSpanish={"Recipe Ready":"Receta lista"};');
+  assert.equal(loadResources(read).es.consumerJourney["Recipe Ready"], "Receta lista");
+  assert.equal(check(root).findings.length, 0);
+  write("client/src/i18n/foodWorkflowCopy.ts", 'export const foodWorkflowSpanish={"Recipe Ready":fetch("https://example.invalid")};');
+  assert.throws(() => loadResources(read), /Unsupported resource expression/);
 }));
 test("exact non-target review exceptions require source hash and evidence; cannot suppress confirmed interface or protected copy", () => fixture(({ root, write, config, saveConfig }) => {
   const owner = "client/src/Data.ts", text = 'const recipe={title:"Historical recipe name"};';

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Mic, MicOff, X, Check, Trash2, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/apiRequest";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 interface ParsedItem {
   name: string;
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export default function VoiceShoppingModal({ open, onClose, onConfirm }: Props) {
+  const { t } = useConsumerCopy();
   const [phase, setPhase] = useState<"record" | "parsing" | "review">("record");
   const [isListening, setIsListening] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState("");
@@ -112,10 +114,10 @@ export default function VoiceShoppingModal({ open, onClose, onConfirm }: Props) 
       setParsedItems(data.items || []);
       setPhase("review");
     } catch {
-      setParseError("Couldn't parse — you can edit the text and try again.");
+      setParseError(t("Couldn't parse — you can edit the text and try again."));
       setPhase("record");
     }
-  }, [stopRecognition]);
+  }, [stopRecognition, t]);
 
   const removeItem = (idx: number) => {
     setParsedItems((prev) => prev.filter((_, i) => i !== idx));
@@ -142,13 +144,14 @@ export default function VoiceShoppingModal({ open, onClose, onConfirm }: Props) 
           <div className="flex items-center gap-2">
             <Mic className="h-5 w-5 text-orange-400" />
             <span className="text-white font-semibold text-base">
-              {phase === "record" && "Voice Add"}
-              {phase === "parsing" && "Understanding…"}
-              {phase === "review" && `${parsedItems.length} item${parsedItems.length !== 1 ? "s" : ""} found`}
+              {phase === "record" && t("Voice Add")}
+              {phase === "parsing" && t("Understanding…")}
+              {phase === "review" && (parsedItems.length === 1 ? t("{{count}} item found", { count: parsedItems.length }) : t("{{count}} items found", { count: parsedItems.length }))}
             </span>
           </div>
           <button
             onClick={() => { stopRecognition(); onClose(); }}
+            aria-label={t("Close")}
             className="text-white/50 active:text-white p-1"
           >
             <X className="h-5 w-5" />
@@ -160,13 +163,13 @@ export default function VoiceShoppingModal({ open, onClose, onConfirm }: Props) 
           <div className="px-5 pb-6 space-y-4">
             {!supported ? (
               <p className="text-amber-300 text-sm bg-amber-900/20 border border-amber-500/20 rounded-xl p-3">
-                Voice input isn't supported in this browser. Type your items below instead.
+                {t("Voice input isn't supported in this browser. Type your items below instead.")}
               </p>
             ) : (
               <p className="text-white/60 text-sm leading-relaxed">
                 {isListening
-                  ? "Speak freely — list everything you need. Tap Stop when you're done."
-                  : "Tap Start, then say everything you need like you're talking to someone."}
+                  ? t("Speak freely — list everything you need. Tap Stop when you're done.")
+                  : t("Tap Start, then say everything you need like you're talking to someone.")}
               </p>
             )}
 
@@ -196,26 +199,28 @@ export default function VoiceShoppingModal({ open, onClose, onConfirm }: Props) 
                     <div className="absolute inset-0 rounded-full bg-red-500/30 animate-ping" />
                     <button
                       onClick={handleStop}
+                      aria-label={t("Stop listening")}
                       className="relative h-20 w-20 rounded-full bg-red-600 flex items-center justify-center active:scale-95 transition-transform shadow-lg shadow-red-900/40"
                     >
                       <MicOff className="h-8 w-8 text-white" />
                     </button>
                   </div>
                   <span className="text-red-400 text-xs font-medium tracking-wide animate-pulse">
-                    LISTENING — TAP TO STOP
+                    {t("LISTENING — TAP TO STOP")}
                   </span>
                 </>
               ) : (
                 <>
                   <button
                     onClick={startListening}
+                    aria-label={t("Start listening")}
                     disabled={!supported}
                     className="h-20 w-20 rounded-full bg-orange-600 flex items-center justify-center active:scale-95 transition-transform shadow-lg shadow-orange-900/40 disabled:opacity-40"
                   >
                     <Mic className="h-8 w-8 text-white" />
                   </button>
                   <span className="text-white/50 text-xs">
-                    {finalTranscript ? "Tap to continue speaking" : "Tap to start"}
+                    {finalTranscript ? t("Tap to continue speaking") : t("Tap to start")}
                   </span>
                 </>
               )}
@@ -223,7 +228,7 @@ export default function VoiceShoppingModal({ open, onClose, onConfirm }: Props) 
 
             {/* Manual fallback textarea */}
             <div>
-              <p className="text-white/40 text-xs mb-1">Or type your items:</p>
+              <p className="text-white/40 text-xs mb-1">{t("Or type your items:")}</p>
               <textarea
                 value={finalTranscript}
                 onChange={(e) => {
@@ -231,7 +236,7 @@ export default function VoiceShoppingModal({ open, onClose, onConfirm }: Props) 
                   setFinalTranscript(e.target.value);
                 }}
                 rows={3}
-                placeholder="milk, eggs, Planters peanuts, 2 boxes Kleenex..."
+                placeholder={t("milk, eggs, Planters peanuts, 2 boxes Kleenex...")}
                 className="w-full rounded-xl bg-black/40 border border-white/15 text-white text-sm p-3 focus:outline-none focus:ring-1 focus:ring-orange-500/50 placeholder:text-white/30 resize-none"
               />
             </div>
@@ -241,7 +246,7 @@ export default function VoiceShoppingModal({ open, onClose, onConfirm }: Props) 
                 onClick={handleStop}
                 className="w-full py-3.5 rounded-2xl bg-orange-600 text-white font-semibold text-sm active:scale-[.98] transition-transform"
               >
-                Parse Items with AI
+                {t("Parse Items with AI")}
               </button>
             )}
           </div>
@@ -252,7 +257,7 @@ export default function VoiceShoppingModal({ open, onClose, onConfirm }: Props) 
           <div className="px-5 pb-8 flex flex-col items-center gap-4 pt-2">
             <Loader2 className="h-10 w-10 text-orange-400 animate-spin" />
             <p className="text-white/70 text-sm text-center">
-              Figuring out what you said…
+              {t("Figuring out what you said…")}
             </p>
             <p className="text-white/40 text-xs text-center max-w-xs leading-relaxed">
               "{finalTranscript.slice(0, 120)}{finalTranscript.length > 120 ? "…" : ""}"
@@ -264,7 +269,7 @@ export default function VoiceShoppingModal({ open, onClose, onConfirm }: Props) 
         {phase === "review" && (
           <div className="px-5 pb-5 space-y-3">
             <p className="text-white/50 text-xs">
-              Review before adding. Tap × to remove any item.
+              {t("Review before adding. Tap × to remove any item.")}
             </p>
 
             <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -285,6 +290,7 @@ export default function VoiceShoppingModal({ open, onClose, onConfirm }: Props) 
                   </div>
                   <button
                     onClick={() => removeItem(idx)}
+                    aria-label={t("Remove {{name}}", { name: item.name })}
                     className="text-white/30 active:text-red-400 p-1 shrink-0"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -295,7 +301,7 @@ export default function VoiceShoppingModal({ open, onClose, onConfirm }: Props) 
 
             {parsedItems.length === 0 && (
               <p className="text-white/40 text-sm text-center py-3">
-                All items removed. Go back to try again.
+                {t("All items removed. Go back to try again.")}
               </p>
             )}
 
@@ -307,7 +313,7 @@ export default function VoiceShoppingModal({ open, onClose, onConfirm }: Props) 
                 }}
                 className="flex-1 py-3 rounded-2xl bg-white/8 border border-white/15 text-white/70 text-sm font-medium active:scale-[.98] transition-transform"
               >
-                Back
+                {t("Back")}
               </button>
               <button
                 onClick={handleConfirm}
@@ -315,7 +321,7 @@ export default function VoiceShoppingModal({ open, onClose, onConfirm }: Props) 
                 className="flex-[2] py-3 rounded-2xl bg-orange-600 text-white font-semibold text-sm active:scale-[.98] transition-transform disabled:opacity-40 flex items-center justify-center gap-2"
               >
                 <Check className="h-4 w-4" />
-                Add {parsedItems.length} Item{parsedItems.length !== 1 ? "s" : ""}
+                {parsedItems.length === 1 ? t("Add {{count}} Item", { count: parsedItems.length }) : t("Add {{count}} Items", { count: parsedItems.length })}
               </button>
             </div>
           </div>

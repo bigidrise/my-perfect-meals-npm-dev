@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { useLocation } from "wouter";
 import { UniversalDialog } from "@/components/ui/universal-modal";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -190,6 +191,7 @@ export default function InspirationCaptureModal({
   onScanResult,
 }: InspirationCaptureModalProps) {
   const { t } = useTranslation();
+  const { t: foodCopy } = useConsumerCopy();
   const isSmartScan = destination === "smart-scan";
   const isCompanionScan = isSmartScan && profileType === "companion" && !!profileName;
   const [, setLocation] = useLocation();
@@ -795,7 +797,7 @@ export default function InspirationCaptureModal({
               <DialogTitle className="text-xl font-bold text-white">
                 {isSmartScan
                   ? (isCompanionScan ? t("inspiration.scanFoodFor", { name: profileName }) : t("inspiration.productScan"))
-                  : (phase === "options" ? t("inspiration.customizeMeal") : t("inspiration.recipeMaker"))}
+                  : (phase === "options" ? t("inspiration.customizeMeal") : foodCopy("Recipe Maker"))}
               </DialogTitle>
             </div>
             <p className="text-white/60 text-sm text-center mt-1">

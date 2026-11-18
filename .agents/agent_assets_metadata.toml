@@ -1223,3 +1223,17 @@ mtime_ms = 1794967338020
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7cd5554d-4549-430b-884c-6d0bbb72205b/efe2f037-06a5-408d-ae99-9961164a1905"
 storage_version_token = "1794967647119894"
 content_type = "text/csv"
+
+[[outputs]]
+id = "5mSy3zCSPCXRORz-1h5Wq"
+uri = "file://docs/localization/FOOD_WORKFLOWS_REVIEW.md"
+type = "text"
+title = "Spanish food-tool implementation review"
+description = "Coverage, tests, browser evidence, exact protected English, language-persistence assessment, and release limits."
+logical_id = "09b37630-0fbf-4c34-810a-433b7a385121"
+content_hash = "sha256:7e0fdcfed5325f0294295945c94918bbc68ef4d40ca60f6010a7bde9223f1b1f"
+size = 15945
+mtime_ms = 1794971679157
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/09b37630-0fbf-4c34-810a-433b7a385121/fe7ff349-cd72-438c-8e72-7bab0bf8cd3c"
+storage_version_token = "1794971712303050"
+content_type = "text/markdown"

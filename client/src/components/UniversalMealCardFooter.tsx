@@ -8,6 +8,7 @@ import { Check } from "lucide-react";
 import type { MealTemplateBase, NutritionInfo } from "@/data/models";
 import { useAuth } from "@/contexts/AuthContext";
 import { canLogMealToMacros, markMealLogged, fingerprintMeal } from "@/lib/macroLogGuard";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 interface UniversalMealCardFooterProps {
   meal: MealTemplateBase;
@@ -24,6 +25,7 @@ export default function UniversalMealCardFooter({
   onReplace,
   isLoading = false,
 }: UniversalMealCardFooterProps) {
+  const { t } = useConsumerCopy();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
@@ -49,8 +51,8 @@ export default function UniversalMealCardFooter({
   const handleLogMacros = async () => {
     if (!meal.nutritionPerServing) {
       toast({
-        title: "Missing Nutrition Data",
-        description: "This meal doesn't have nutrition information available.",
+        title: t("Missing Nutrition Data"),
+        description: t("This meal doesn't have nutrition information available."),
         variant: "destructive",
       });
       return;
@@ -106,14 +108,16 @@ export default function UniversalMealCardFooter({
       markMealLogged(userId, mealGuardId);
       setMacrosLogged(true);
       toast({
-        title: "Logged Successfully",
-        description: `${meal.name} has been logged to your macros for ${currentServings} serving${currentServings !== 1 ? "s" : ""}.`,
+        title: t("Logged Successfully"),
+        description: currentServings === 1
+          ? t("{{name}} has been logged to your macros for {{count}} serving.", { name: meal.name, count: currentServings })
+          : t("{{name}} has been logged to your macros for {{count}} servings.", { name: meal.name, count: currentServings }),
       });
     } catch (error) {
       console.error("Error logging meal:", error);
       toast({
-        title: "Logging Failed",
-        description: "There was an error logging this meal. Please try again.",
+        title: t("Logging Failed"),
+        description: t("There was an error logging this meal. Please try again."),
         variant: "destructive",
       });
     } finally {
@@ -127,8 +131,8 @@ export default function UniversalMealCardFooter({
       onReplace(meal);
     } else {
       toast({
-        title: "Replace Coming Soon",
-        description: "Meal replacement functionality will be available soon.",
+        title: t("Replace Coming Soon"),
+        description: t("Meal replacement functionality will be available soon."),
       });
     }
   };
@@ -167,8 +171,8 @@ export default function UniversalMealCardFooter({
         
         setPlanAdded(true);
         toast({
-          title: "Meal Added!",
-          description: `${meal.name} will be added to your weekly plan.`,
+          title: t("Meal Added!"),
+          description: t("{{name}} will be added to your weekly plan.", { name: meal.name }),
         });
         
         // Reset success state after 2 seconds
@@ -211,8 +215,8 @@ export default function UniversalMealCardFooter({
     
     setPlanAdded(true);
     toast({
-      title: "Redirecting to Weekly Plan",
-      description: `${meal.name} ready to add - choose your day and time slot.`,
+      title: t("Redirecting to Weekly Plan"),
+      description: t("{{name}} ready to add - choose your day and time slot.", { name: meal.name }),
     });
     
     // Reset success state after 2 seconds
@@ -240,18 +244,18 @@ export default function UniversalMealCardFooter({
           data-testid={`log-macros-${meal.id}`}
         >
           {macrosLogged ? (
-            <><Check className="h-4 w-4 mr-1" /> Logged ✓</>
+            <><Check className="h-4 w-4 mr-1" /> {t("Logged ✓")}</>
           ) : isLoggingMacros ? (
-            "Logging..."
+            t("Logging...")
           ) : (
-            "Log to Macros"
+            t("Log to Macros")
           )}
         </Button>
         
         {/* Tooltip for disabled Log button */}
         {!canLogMacros && !isLoading && (
           <p className="text-xs text-white/60 text-center">
-            Nutrition data not available
+            {t("Nutrition data not available")}
           </p>
         )}
 
@@ -262,7 +266,7 @@ export default function UniversalMealCardFooter({
           disabled={isLoading}
           data-testid={`replace-${meal.id}`}
         >
-          Replace
+          {t("Replace")}
         </GlassButton>
 
         {/* Add to Weekly Plan */}
@@ -278,9 +282,9 @@ export default function UniversalMealCardFooter({
           data-testid={`add-to-weekly-plan-${meal.id}`}
         >
           {planAdded ? (
-            <><Check className="h-4 w-4 mr-1" /> Added ✓</>
+            <><Check className="h-4 w-4 mr-1" /> {t("Added ✓")}</>
           ) : (
-            "Add to Plan"
+            t("Add to Plan")
           )}
         </GlassButton>
       </div>
