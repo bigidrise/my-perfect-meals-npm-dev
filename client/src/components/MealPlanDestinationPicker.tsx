@@ -8,6 +8,8 @@ import { getActiveBuilderNs } from "@/lib/activeBuilderNs";
 import { formatDateDisplay, getTodayISOSafe, getWeekStartFromDate } from "@/utils/midnight";
 import { getRolling14Days, getRolling7Days } from "@/utils/dateRange";
 import { getMyPerfectMenuSlotGuidance, getMyPerfectMenuSlotInstruction, isMyPerfectMenuSuggestedSlot } from "@/lib/myPerfectMenuSlotGuidance";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { useMenuDisplayCopy } from "@/i18n/useMenuDisplayCopy";
 import {
   MY_PERFECT_MENU_BUILDERS,
   type MyPerfectMenuBuilderKey,
@@ -59,13 +61,17 @@ export function MealPlanDestinationPicker({
   onOpenChange,
   title,
   busy = false,
-  busyLabel = "Creating your meal…",
+  busyLabel,
   busyContent,
   builderKey,
   householdProfileId,
   menuIdeaType,
   onSelect,
 }: MealPlanDestinationPickerProps) {
+  const { t, i18n } = useConsumerCopy();
+  const menuCopy = useMenuDisplayCopy();
+  const busyCopy = busyLabel ?? t("Creating your meal…");
+  const instructionCopy = menuCopy.instructions[menuIdeaType ?? ""];
   const todayISO = getTodayISOSafe(TZ);
   const dates = getRolling14Days(todayISO);
   const mobileDates = getRolling7Days(todayISO);
@@ -139,6 +145,8 @@ export function MealPlanDestinationPicker({
   }, [slotGuidance]);
 
   const existingMeal = selectedSlot ? boardDays?.[selectedDate]?.[selectedSlot]?.[0] : null;
+  const boardErrorText = boardError === "We couldn't check your current meal plan."
+    ? t("We couldn't check your current meal plan.") : boardError;
 
   const selectSlot = (slot: MealPlanSlot) => {
     if (busy || boardLoading || boardError) return;
@@ -167,7 +175,7 @@ export function MealPlanDestinationPicker({
         {busy && busyContent ? (
           <div className="px-5 pb-10 pt-6">
             <DrawerHeader className="pb-2 text-center">
-              <DrawerTitle className="text-lg text-white">Preparing Your Meal</DrawerTitle>
+              <DrawerTitle className="text-lg text-white">{t("Preparing Your Meal")}</DrawerTitle>
               <p className="mt-1 truncate px-4 text-sm text-white/60">{title}</p>
             </DrawerHeader>
             {busyContent}
@@ -175,11 +183,11 @@ export function MealPlanDestinationPicker({
         ) : confirming ? (
           <div className="p-6 pb-10">
             <button type="button" onClick={() => setConfirming(false)} className="mb-5 flex items-center gap-1 text-sm text-white/50">
-              <ChevronLeft className="h-4 w-4" /> Back
+              <ChevronLeft className="h-4 w-4" /> {t("Back")}
             </button>
-            <p className="text-center text-base font-semibold text-white">Replace existing meal?</p>
+            <p className="text-center text-base font-semibold text-white">{t("Replace existing meal?")}</p>
             <p className="mb-6 mt-1 px-4 text-center text-sm text-white/50">
-              “{existingMeal?.title || existingMeal?.name || "This meal"}” is already in this slot.
+              {t("“{{name}}” is already in this slot.", { name: existingMeal?.title || existingMeal?.name || t("This meal") })}
             </p>
             <Button
               className="mb-3 h-14 w-full rounded-full bg-violet-600 text-base font-semibold text-white hover:bg-violet-500"
@@ -190,25 +198,25 @@ export function MealPlanDestinationPicker({
                 builderType: authoritativeNamespace || getActiveBuilderNs() || "",
               })}
             >
-              {busy ? busyLabel : "Replace and Create"}
+              {busy ? busyCopy : t("Replace and Create")}
             </Button>
             <Button variant="ghost" className="h-12 w-full text-base text-white/60" disabled={busy} onClick={() => setConfirming(false)}>
-              Cancel
+              {t("Cancel")}
             </Button>
           </div>
         ) : (
           <>
             <DrawerHeader className="pb-0 text-center">
-              <DrawerTitle className="text-lg text-white">Add to Plan</DrawerTitle>
+              <DrawerTitle className="text-lg text-white">{t("Add to Plan")}</DrawerTitle>
               <p className="mt-1 truncate px-4 text-sm text-white/60">{title}</p>
               {getMyPerfectMenuSlotInstruction(menuIdeaType) && (
                 <p className="mt-2 px-4 text-sm text-violet-100">
-                  {getMyPerfectMenuSlotInstruction(menuIdeaType)?.pickerMessage}
+                  {instructionCopy?.pickerMessage}
                 </p>
               )}
             </DrawerHeader>
             <div className="px-4 pb-2 pt-4">
-              <p className="mb-2 text-xs uppercase tracking-widest text-white/40">Day</p>
+              <p className="mb-2 text-xs uppercase tracking-widest text-white/40">{t("Day")}</p>
               <div className="grid grid-cols-4 gap-2 sm:hidden">
                 {mobileDates.map((dateISO) => {
                   const active = selectedDate === dateISO;
@@ -224,9 +232,9 @@ export function MealPlanDestinationPicker({
                       }`}
                     >
                       <span className={`whitespace-nowrap text-[11px] font-semibold uppercase leading-none ${active ? "text-white" : "text-white/60"}`}>
-                        {isToday ? "Today" : formatDateDisplay(dateISO, { weekday: "short" }, TZ)}
+                        {isToday ? t("Today") : formatDateDisplay(dateISO, { weekday: "short" }, TZ, i18n.resolvedLanguage)}
                       </span>
-                      <span className="mt-1 text-lg font-bold leading-none">{formatDateDisplay(dateISO, { day: "numeric" }, TZ)}</span>
+                      <span className="mt-1 text-lg font-bold leading-none">{formatDateDisplay(dateISO, { day: "numeric" }, TZ, i18n.resolvedLanguage)}</span>
                     </button>
                   );
                 })}
@@ -246,27 +254,27 @@ export function MealPlanDestinationPicker({
                       }`}
                     >
                       <span className={`text-[10px] font-medium ${active ? "text-white/80" : "text-white/40"}`}>
-                        {isToday ? "Today" : formatDateDisplay(dateISO, { weekday: "short" }, TZ)}
+                        {isToday ? t("Today") : formatDateDisplay(dateISO, { weekday: "short" }, TZ, i18n.resolvedLanguage)}
                       </span>
-                      <span className="text-base font-bold leading-tight">{formatDateDisplay(dateISO, { day: "numeric" }, TZ)}</span>
+                      <span className="text-base font-bold leading-tight">{formatDateDisplay(dateISO, { day: "numeric" }, TZ, i18n.resolvedLanguage)}</span>
                     </button>
                   );
                 })}
               </div>
             </div>
             <div className="px-4 pb-8 pt-3">
-              <p className="mb-2 text-xs uppercase tracking-widest text-white/40">Meal</p>
+              <p className="mb-2 text-xs uppercase tracking-widest text-white/40">{t("Meal")}</p>
               {slotGuidance && (
                 <div ref={slotGuidanceRef} role="status" aria-live="polite" className="mb-3 rounded-xl border border-violet-300/30 bg-violet-950/40 p-3 text-sm text-violet-100">
-                  <p className="font-semibold">{slotGuidance.title}</p>
-                  <p className="mt-1">{slotGuidance.message}</p>
+                  <p className="font-semibold">{menuCopy.guidance.title}</p>
+                  <p className="mt-1">{menuCopy.guidance.message}</p>
                 </div>
               )}
               {boardError && (
                 <div className="mb-3 rounded-xl border border-red-300/25 bg-red-950/40 p-3 text-sm text-red-100">
-                  <p>{boardError}</p>
+                  <p>{boardErrorText}</p>
                   <button type="button" onClick={() => fetchWeek(selectedDate)} className="mt-2 font-semibold text-violet-200 underline">
-                    Try again
+                    {t("Try again")}
                   </button>
                 </div>
               )}
@@ -290,13 +298,13 @@ export function MealPlanDestinationPicker({
                       <span className="text-2xl">{option.emoji}</span>
                       <div className="min-w-0 flex-1 text-left">
                          <p className="flex flex-wrap items-center gap-x-2 text-sm font-medium text-white">
-                           <span>{option.label}</span>
-                           {suggested && <span className="text-xs font-semibold text-violet-200">Suggested slot</span>}
+                           <span>{menuCopy.slots[option.value] ?? option.label}</span>
+                           {suggested && <span className="text-xs font-semibold text-violet-200">{t("Suggested slot")}</span>}
                          </p>
                         {occupied && <p className="truncate text-xs text-white/40">{existing?.title || existing?.name}</p>}
                       </div>
                       <span className={`text-xs font-medium ${occupied ? "text-amber-400/80" : "text-violet-300"}`}>
-                        {busy && selectedSlot === option.value ? busyLabel : occupied ? "Replace" : "Open"}
+                        {busy && selectedSlot === option.value ? busyCopy : occupied ? t("Replace") : t("Available")}
                       </span>
                     </button>
                   );

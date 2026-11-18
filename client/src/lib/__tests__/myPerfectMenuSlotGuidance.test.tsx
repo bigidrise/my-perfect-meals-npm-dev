@@ -194,15 +194,15 @@ describe("Add to Plan snack guidance", () => {
 
 it("wires Menu-only guidance above ideas and in both destination selectors without rewriting generation failures", () => {
   const source = fs.readFileSync(path.join(process.cwd(), "client/src/pages/MyPerfectMenu.tsx"), "utf8");
-  expect(source).toContain("getMyPerfectMenuSlotInstruction(ideaType)?.message");
+  expect(source).toContain("menuCopy.instructions[ideaType]?.message");
   expect(source).toContain("menuIdeaType={selectedConcept.ideaType}");
   expect(source).toContain("if (getMyPerfectMenuSlotGuidance(ideaType, performanceSlot)) return;");
   expect(source).toContain("if (getMyPerfectMenuSlotGuidance(concept.ideaType, performanceDestination.slot))");
   const performanceGuard = source.indexOf("if (getMyPerfectMenuSlotGuidance(concept.ideaType, performanceDestination.slot))");
   expect(source.slice(performanceGuard, source.indexOf("void generateForDestination(performanceDestination, concept)", performanceGuard)))
     .toContain("setPendingIdeaType(concept.ideaType)");
-  expect(source).toContain('if (!meal) throw new Error("We couldn\'t finish this meal. Please choose it again.");');
-  expect(source).toContain('setError(cause instanceof Error ? cause.message : "We couldn\'t finish this meal.");');
+  expect(source).toContain('if (!meal) throw new Error(t("We couldn\'t finish this meal. Please choose it again."));');
+  expect(source).toContain('setError(cause instanceof Error ? cause.message : t("We couldn\'t finish this meal."));');
 });
 
 describe("Meal slot highlighting and unknown-category fallback", () => {

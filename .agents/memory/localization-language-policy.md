@@ -142,6 +142,15 @@ coverage includes selection/entry screens and open shared modals, not only
 meal boards; report those states explicitly rather than treating shared-card
 translation as full-builder completion.
 
+For later feature groups, finish the founder-selected batch and stop for their
+visual review before starting the next group.
+
+**Why:** The founder explicitly requested completing one batch, checking how it
+looks, and only then moving to the next.
+
+**How to apply:** Implement and verify the approved group directly. Do not turn
+the review pause into another planning round or start a broader batch.
+
 The long-term requirement is a plug-and-play multilingual architecture across
 consumer features, builders, creators, meal cards, modals, Academy, ProCare,
 professional studios, Business Center and shared navigation. Future languages

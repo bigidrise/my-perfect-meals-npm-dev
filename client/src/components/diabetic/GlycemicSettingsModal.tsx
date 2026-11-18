@@ -5,6 +5,8 @@ import { PillButton } from "@/components/ui/pill-button";
 import { useGlycemicSettings } from "@/hooks/useGlycemicSettings";
 import { LOW_RANGE_OPTIONS, MID_RANGE_OPTIONS, HIGH_RANGE_OPTIONS } from "@/types/glycemic";
 import { useToast } from "@/hooks/use-toast";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { useGlycemicFoodLabels } from "@/i18n/useConsumerChoiceLabels";
 
 interface GlycemicSettingsModalProps {
   open: boolean;
@@ -12,6 +14,8 @@ interface GlycemicSettingsModalProps {
 }
 
 export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalProps) {
+  const { t } = useConsumerCopy();
+  const foodLabels = useGlycemicFoodLabels();
   const { data: glycemicData, save, isSaving } = useGlycemicSettings();
   const { toast } = useToast();
 
@@ -45,7 +49,7 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
       toast({ title: "Glucose carb preferences saved" });
       onClose();
     } catch {
-      toast({ title: "Failed to save preferences", variant: "destructive" });
+      toast({ title: t("Failed to save preferences"), variant: "destructive" });
     }
   };
 
@@ -121,7 +125,7 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
                 active={LOW_RANGE_OPTIONS.every(f => lowRangeCarbs.includes(f))}
                 onClick={() => selectAll(LOW_RANGE_OPTIONS, lowRangeCarbs, setLowRangeCarbs)}
               >
-                {LOW_RANGE_OPTIONS.every(f => lowRangeCarbs.includes(f)) ? "Clear All" : "Select All"}
+                {LOW_RANGE_OPTIONS.every(f => lowRangeCarbs.includes(f)) ? t("Clear All") : t("Select All")}
               </PillButton>
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
@@ -131,7 +135,7 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
                   active={lowRangeCarbs.includes(food)}
                   onClick={() => toggle(food, lowRangeCarbs, setLowRangeCarbs)}
                 >
-                  {food}
+                  {foodLabels[food] ?? food}
                 </PillButton>
               ))}
             </div>
@@ -150,7 +154,7 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
                 active={MID_RANGE_OPTIONS.every(f => midRangeCarbs.includes(f))}
                 onClick={() => selectAll(MID_RANGE_OPTIONS, midRangeCarbs, setMidRangeCarbs)}
               >
-                {MID_RANGE_OPTIONS.every(f => midRangeCarbs.includes(f)) ? "Clear All" : "Select All"}
+                {MID_RANGE_OPTIONS.every(f => midRangeCarbs.includes(f)) ? t("Clear All") : t("Select All")}
               </PillButton>
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
@@ -160,7 +164,7 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
                   active={midRangeCarbs.includes(food)}
                   onClick={() => toggle(food, midRangeCarbs, setMidRangeCarbs)}
                 >
-                  {food}
+                  {foodLabels[food] ?? food}
                 </PillButton>
               ))}
             </div>
@@ -179,7 +183,7 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
                 active={HIGH_RANGE_OPTIONS.every(f => highRangeCarbs.includes(f))}
                 onClick={() => selectAll(HIGH_RANGE_OPTIONS, highRangeCarbs, setHighRangeCarbs)}
               >
-                {HIGH_RANGE_OPTIONS.every(f => highRangeCarbs.includes(f)) ? "Clear All" : "Select All"}
+                {HIGH_RANGE_OPTIONS.every(f => highRangeCarbs.includes(f)) ? t("Clear All") : t("Select All")}
               </PillButton>
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
@@ -189,7 +193,7 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
                   active={highRangeCarbs.includes(food)}
                   onClick={() => toggle(food, highRangeCarbs, setHighRangeCarbs)}
                 >
-                  {food}
+                  {foodLabels[food] ?? food}
                 </PillButton>
               ))}
             </div>
@@ -204,7 +208,7 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
             disabled={isSaving}
             className="w-full bg-orange-600 hover:bg-orange-500 text-white font-semibold py-3 rounded-xl"
           >
-            {isSaving ? "Saving..." : "Save Glucose Carb Preferences"}
+            {isSaving ? t("Saving...") : "Save Glucose Carb Preferences"}
           </Button>
         </div>
       </div>
