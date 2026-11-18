@@ -1,5 +1,8 @@
 /** Ordinary display copy only. Never translate saved records, unknown API errors or safety evidence here. */
 export const consumerFeatureSpanish: Record<string, string> = {
+  "My Perfect Beginning": "Mis Comienzos Perfectos",
+  "Stage-by-stage child nutrition — from first foods to growing years": "Nutrición infantil por etapas: desde los primeros alimentos hasta los años de crecimiento",
+  "NEW": "NUEVO",
   "Clinical": "Clínico",
   "The Hydration handoff was unavailable.": "No estuvo disponible el envío desde hidratación.",
   "Considered for you": "Considerado para ti",

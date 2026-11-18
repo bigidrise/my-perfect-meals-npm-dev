@@ -11,6 +11,9 @@ import { DietOverrideControl } from "@/components/ui/DietOverrideControl";
 import { CuisineOverrideControl } from "@/components/ui/CuisineOverrideControl";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 let mockDesktop = false;
 let mockShopping: any;
@@ -34,6 +37,36 @@ test("new ordinary copy has exact English source keys and matching Spanish varia
     expect(consumerSpanish[key]?.trim()).toBeTruthy();
     expect(variables(consumerSpanish[key])).toEqual(variables(key));
   }
+});
+
+test.each(["en", "es"])("%s screenshot labels resolve through the real namespaces", async language => {
+  await i18n.changeLanguage(language);
+  const { result } = renderHook(() => useConsumerCopy("lifestyle"));
+  expect(result.current.t("My Perfect Beginning")).toBe(
+    language === "es" ? "Mis Comienzos Perfectos" : "My Perfect Beginning",
+  );
+  expect(result.current.t("NEW")).toBe(language === "es" ? "NUEVO" : "NEW");
+  expect(result.current.t("Stage-by-stage child nutrition — from first foods to growing years")).toBe(
+    language === "es"
+      ? "Nutrición infantil por etapas: desde los primeros alimentos hasta los años de crecimiento"
+      : "Stage-by-stage child nutrition — from first foods to growing years",
+  );
+  const backLabel = i18n.t("diabeticBuilder.backLabel");
+  expect(backLabel).toBe(language === "es" ? "Centro para diabéticos" : "Diabetes Hub");
+});
+
+test("Create a Dish source keeps voice and clear controls in the same action row", () => {
+  const source = readFileSync(resolve("client/src/pages/lifestyle/CreateDishPage.tsx"), "utf8");
+  const actions = source.slice(source.indexOf('data-testid="dish-input-actions"'), source.indexOf("{dishInput.length}/300"));
+  expect(actions).toContain("<VoiceInputButton");
+  expect(actions).toContain("<TrashButton");
+  expect(actions.indexOf("<VoiceInputButton")).toBeLessThan(actions.indexOf("<TrashButton"));
+  expect(actions).toContain('className="ml-auto shrink-0"');
+  expect(actions).not.toContain('className="absolute');
+  expect(actions).toContain('onClick={() => updateDishInput("")}');
+  const builder = readFileSync(resolve("client/src/pages/physician/DiabeticMenuBuilder.tsx"), "utf8");
+  expect(builder).not.toContain(">Diabetes Hub</span>");
+  expect(builder).toContain('{t("diabeticBuilder.backLabel")}');
 });
 
 test.each(["en", "es"])("%s closed option labels never change canonical selections", async language => {
