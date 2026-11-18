@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spanish shared builders and General Nutrition — Development verification</title>
+<style>
+body{margin:0;background:#edf1f7;color:#182439;font:16px/1.6 system-ui,sans-serif}
+main{max-width:1000px;margin:28px auto;background:white;border:1px solid #d6dfea;border-radius:14px;padding:clamp(20px,4vw,44px)}
+h1{font-size:clamp(26px,4vw,36px);line-height:1.2}h2{font-size:23px;margin-top:32px}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:10px;border:1px solid #d6dfea;text-align:left;vertical-align:top}
+th{background:#edf3ff}code{font-size:.85em;overflow-wrap:anywhere}.notice{border-left:4px solid #365bd6;padding:14px 18px;background:#eef3ff}
+.muted{color:#58677c}li{margin:7px 0}.scroll{overflow:auto}
+</style>
+</head>
+<body><main>
+<p class="muted">Development only · November 18, 2026 · Approved shared-builder / General Nutrition group</p>
+<h1>Spanish builder localization verification</h1>
+<p class="notice">Resumed the existing paused batch. Resolved all five localization-guard findings without exemptions,
+baseline refreshes, changed compiler settings or diagnostic suppression. The final canonical release check exactly matched
+the approved 109-diagnostic fingerprint. No additional builder page-specific batch or Medical Resources implementation was started.</p>
+
+<h2>1. Exact guard corrections</h2>
+<div class="scroll"><table>
+<tr><th>Original finding</th><th>Correction</th></tr>
+<tr><td>DailyMacroTotalsRow: dynamic t(label)</td><td>Translated all six source-owned indicator labels explicitly while creating their display descriptors; the renderer displays the translated label.</td></tr>
+<tr><td>DailyMacroTotalsRow: fragmented over-target JSX</td><td>One EN/ES interpolation phrase owns the full overage suffix. Preserved the ≥ marker, plus sign, formatted amount, units and parentheses. Arithmetic and color thresholds are unchanged.</td></tr>
+<tr><td>JustDescribeItModal: dynamic t(size)</td><td>Closed display-label map with explicit smaller / typical / larger keys. Stored portion identifiers and 0.75 / 1 / 1.25 multipliers remain unchanged.</td></tr>
+<tr><td>DailyTargetsCard: dynamic training-session key</td><td>Closed session-code map with explicit source-phrase calls. Retained the original short English labels, including Strength Day, instead of substituting the longer entry-screen labels.</td></tr>
+<tr><td>DailyTargetsCard: dynamic t(label) in skeletons</td><td>Translated the fixed loading-label array explicitly before rendering. Loading labels and populated labels now share the same EN/ES copy.</td></tr>
+</table></div>
+<p>The guard's allowance files, review exemptions, baseline and implementation were not modified.
+An intermediate conditional portion-label expression exposed two scanner findings; the final closed label map removed the ambiguity rather than suppressing them.</p>
+
+<h2>2. Completed display scope</h2>
+<ul>
+<li><strong>Shared cards and actions:</strong> Favorites, description entry, Snack Creator, AI action, Guided Cooking,
+and generic incomplete-nutrition review controls. Saved names, descriptions, ingredients, instructions and authored evidence are not automatically translated or rewritten.</li>
+<li><strong>Calendar and duplication:</strong> locale-aware weekday/date labels and week ranges using the existing canonical
+date utilities; duplicate dialog headings, selection controls, empty state and one/many-day confirmation. Canonical ISO dates and Chicago timezone logic are unchanged.</li>
+<li><strong>Daily macros:</strong> target and summary labels, loading labels, overages and uncertainty indicators.
+Total, starchy and fibrous carbohydrates remain distinct; grams, calories, values, serving normalization and target resolution are unchanged.</li>
+<li><strong>Description workflow:</strong> input heading, placeholder, voice-button label, estimation controls, portion labels,
+result labels and ordinary failure copy. Existing local restoration and timestamp refresh behavior are preserved.</li>
+<li><strong>Shared navigation:</strong> return-to-menu label, fallback hub label, client-context label and Exit Client.
+Client names and exit destinations remain unchanged. Supplied page-owned back labels are not silently translated.</li>
+<li><strong>General Nutrition:</strong> visible builder title, initial loading state, week labels, training-schedule entry label,
+ordinary macro-log notices and day-lock confirmation. Existing translated meal/snack labels, save controls and empty states remain connected.</li>
+<li><strong>Guides and progress:</strong> ordinary shared guide titles and controls now use EN/ES.
+General/snack and other previously connected ordinary progress copy remains localized.
+Condition-specific pediatric, pregnancy, diabetes and GLP-1 progress copy stays unchanged in English.</li>
+<li><strong>Shopping handoff:</strong> existing shared shopping translations and day labels were retained and regression-tested;
+no new shopping write behavior, endpoint or request payload was introduced.</li>
+</ul>
+
+<h2>3. Shared inheritance, not additional page-specific expansion</h2>
+<p>Source JSX confirms these builders consume the corrected shared components:</p>
+<div class="scroll"><table>
+<tr><th>Builder</th><th>Shared inheritance</th></tr>
+<tr><td>General Nutrition</td><td>All principal shared card, day, target, remaining, duplicate, action, header and overview controls; its page-specific ordinary copy is this group's scope.</td></tr>
+<tr><td>Anti-Inflammatory</td><td>Same principal shared controls; no page-specific translation changes.</td></tr>
+<tr><td>Diabetic</td><td>Same principal shared controls; diabetes-specific progress and clinical content unchanged.</td></tr>
+<tr><td>GLP-1 / Metabolic Medication</td><td>Same principal shared controls; medication-specific progress and clinical content unchanged.</td></tr>
+<tr><td>Performance / Competition</td><td>Same principal shared controls; no page-specific translation changes.</td></tr>
+<tr><td>Beach Body</td><td>Same principal shared controls; no page-specific translation changes.</td></tr>
+<tr><td>Weekly Meal Board</td><td>Shared cards, days, remaining macros, actions, duplication, overview, header and guide. Its JSX does not mount the same daily-target and top-summary components.</td></tr>
+</table></div>
+<p>Clinical route aliases can resolve to these same owners. This inheritance map does not multiply aliases into separately completed builders or prove runtime eligibility for every caller.</p>
+
+<h2>4. Verification</h2>
+<ul>
+<li><strong>194 unique tests across 11 suites passed across focused runs.</strong> The final changed-component run passed 78 tests across four suites; unaffected passing suites contribute the remaining 116 tests.</li>
+<li><strong>New sharedBuilderSpanish suite:</strong> 34 tests covering actual shared renderers in EN/ES,
+explicit English/Spanish and Auto on opposite-language devices, macro values/splits/overages/uncertainty,
+calendar ISO identity, duplication counts, Favorites, description restoration, progress and client exit behavior.</li>
+<li><strong>General Nutrition display wiring:</strong> actual source-owned title/loading/list expressions evaluated with
+the real translator and synthetic data. This is deliberately not represented as a mounted authenticated full-page test.</li>
+<li><strong>Existing regression coverage:</strong> builder calculations/displays, prescription wiring, meal-card actions,
+shopping handoff, General Nutrition request serialization, optional-support indicators and language preferences.</li>
+<li><strong>Localization guard:</strong> passed, no new unresolved findings.</li>
+<li><strong>Client compilation:</strong> passed after all application edits. Existing large-bundle warnings remain visible.</li>
+<li><strong>Server compilation:</strong> passed. Output-only compilation; no server bundle execution.</li>
+<li><strong>Safety typecheck:</strong> passed after the final application edits.</li>
+<li><strong>Canonical release types:</strong> exact 109 diagnostics, SHA-256
+<code>e8dadf605ccc7c3c6dec1285551bfa2a37871bee3a9fa1993444c871565813a7</code>.
+Generated build-version state restored. Approved baseline unchanged.</li>
+<li><strong>Protected integrity:</strong> clinical registry, both Spanish clinical-review manifests, MedicalSourcesInfo,
+DailyStarchIndicator and guide explanatory prose unchanged against the paused checkpoint.</li>
+<li><strong>Whitespace:</strong> passed.</li>
+</ul>
+<p>Two existing presentation-test fixtures needed translation-aware setup: namespaced confirmation-button labels and
+the translator used by the extracted Create a Dish header. Assertions, confirmation behavior and deletion callbacks were retained.
+The new restoration test was corrected to allow the component's existing generatedAt refresh while asserting unchanged description,
+portion and nutrition. No application persistence behavior was changed to satisfy those tests.</p>
+<p>All test/build/type commands ran in sanitized child environments without inherited database or paid-provider credentials.
+Requests in the changed UI tests are mocked or rejected locally.</p>
+
+<h2>5. Rendering evidence and limits</h2>
+<p>The Development application was restarted once using its existing safe-start command.
+Startup explicitly reported automatic database maintenance suppressed. A mobile 390×844 public login screenshot rendered successfully,
+with the expected anonymous profile 401. A desktop 1280×800 capture of the protected builder route showed the startup shell.</p>
+<p><strong>The authenticated builder layout was not browser-verified on desktop or mobile.</strong>
+The capture browser has no authenticated session; no customer account was used and no account or meal write was performed.
+Component tests verify text and behavior, not real-browser wrapping or a fully mounted builder journey.</p>
+
+<h2>6. What remains English or needs separate review</h2>
+<ul>
+<li>Active clinical-support condition names, hormonal/metabolic condition labels, optional-support diagnostic caveats,
+starch-meal status guidance and zero-starch/rest-day explanations were deliberately preserved.</li>
+<li>The guide's explanatory body, including client targets and protocol-authority language, remains unchanged.
+Only ordinary guide chrome was connected in this batch.</li>
+<li>Condition-specific generation progress, medical/safety explanations, safety overrides and physician-protocol notes
+remain outside this ordinary-interface translation approval. Qualified review is required before activating protected translations.</li>
+<li>Authored server evidence, prescription-change reasons and persisted/generated recipe content retain their existing
+language and explicit translation behavior; this batch does not translate arbitrary runtime strings.</li>
+<li>Other builders' page-owned headings, descriptions, dialogs, training workflows and supplied back-navigation labels
+remain for a separately approved builder batch. Inherited shared fixes do not establish complete Spanish coverage.</li>
+<li>The old ShoppingListPreviewModal still has English copy. General Nutrition initializes it closed and has no current
+opening action in this page. It was not activated or represented as a translated accessible handoff;
+the active BuilderShoppingBar path retains its existing translations.</li>
+<li>Medical Resources implementation remains unstarted. Its separate recommendation and review boundary are unchanged.</li>
+</ul>
+<p>Existing protected Spanish review decisions remain pending where they were pending. No clinical approval was granted or changed.
+This is a completed bounded ordinary-interface batch, not a claim that every explanatory or historical string is Spanish.</p>
+
+<h2>7. Evidence pointers</h2>
+<p>Logs under <code>.local/reports/spanish-builders-*</code>: final-component-tests, presentation-tests,
+focused-initial (retained historical failures), copy-guard, client-build, server-build, safety-types and final-release-types.
+The exact diagnostic capture is <code>.local/reports/spanish-next-types-current.json</code>.
+New EN/ES tests: <code>client/src/lib/__tests__/sharedBuilderSpanish.test.tsx</code>.</p>
+<p class="notice"><strong>Stopped at this boundary.</strong> No new task, production publication, paid AI request,
+customer-data change, medical approval change, fingerprint refresh or error suppression. Additional builder page-specific
+localization requires explicit approval.</p>
+</main></body></html>

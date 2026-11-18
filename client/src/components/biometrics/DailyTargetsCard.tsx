@@ -47,12 +47,12 @@ export function DailyTargetsCard({
   const schedule = user?.weeklyTrainingSchedule as Record<string, string> | null | undefined;
   const todaySession = schedule?.[todayKey];
   const SESSION_LABELS: Record<string, string> = {
-    strength: "Strength", power: "Power", endurance: "Endurance",
-    sport_practice: "Sport Practice", competition: "Competition",
-    recovery: "Recovery", off: "Rest",
+    strength: t("Strength"), power: t("Power"), endurance: t("Endurance"),
+    sport_practice: t("Sport Practice"), competition: t("Competition"),
+    recovery: t("Recovery"), off: t("Rest"),
   };
   const isPerformanceActive = !!(user?.performanceModeEnabled && user?.weeklyTrainingSchedule);
-  const todayLabel = isPerformanceActive && todaySession ? (SESSION_LABELS[todaySession] ? t(`pro.gnbEntry.sessions.${todaySession}`) : todaySession) : null;
+  const todayLabel = isPerformanceActive && todaySession ? (SESSION_LABELS[todaySession] ?? todaySession) : null;
 
   return (
     <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-lg p-4 mb-4">
@@ -81,10 +81,10 @@ export function DailyTargetsCard({
         </div>
         {isLoading ? (
           <div className="grid grid-cols-5 gap-2">
-            {["Protein", "Total Carbs", "Starchy", "Fibrous", "Fat"].map((label) => (
+            {[t("Protein"), t("Total Carbs"), t("Starchy"), t("Fibrous"), t("Fat")].map((label) => (
               <div key={label} className="text-center">
                 <div className="animate-pulse h-6 w-10 mx-auto rounded bg-white/10 mb-1" />
-                <div className="text-xs text-white/60">{t(label)}</div>
+                <div className="text-xs text-white/60">{label}</div>
               </div>
             ))}
           </div>

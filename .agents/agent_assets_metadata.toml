@@ -1363,3 +1363,17 @@ mtime_ms = 1795025414954
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/8e623b91-3a54-47e6-8091-46749c5bb0d3/d374fe17-5d1d-44c9-9b6c-95a604352299"
 storage_version_token = "1795025431739982"
 content_type = "text/html"
+
+[[outputs]]
+id = "IQ8XkoQnEMxvCZbgJWgIK"
+uri = "file://docs/localization/SPANISH_SHARED_BUILDERS_GENERAL_NUTRITION.html"
+type = "html"
+title = "Spanish shared builders — verification report"
+description = "Exact guard corrections, 194 passing focused tests, unchanged release fingerprint, shared inheritance, remaining English areas and browser-verification limits."
+logical_id = "eff63223-a930-4830-87ef-e215364fa6b3"
+content_hash = "sha256:023f749b49fcf3575fa7e2f06285dde3a704e5a79ec9cd460ee50ae81eee2c20"
+size = 12596
+mtime_ms = 1795026371019
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/eff63223-a930-4830-87ef-e215364fa6b3/0c951a39-7e90-4baf-906c-90521c754dd9"
+storage_version_token = "1795026395053832"
+content_type = "text/html"

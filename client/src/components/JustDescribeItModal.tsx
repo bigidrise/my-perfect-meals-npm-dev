@@ -66,6 +66,7 @@ function clearResult() {
 
 export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
   const { t } = useConsumerCopy();
+  const portionLabels = { smaller: t("smaller"), typical: t("typical"), larger: t("larger") };
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [estimate, setEstimate] = useState<MacroEstimate | null>(null);
@@ -276,7 +277,7 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
                         }`}
                       >
                         {size === "smaller" && <Minus className="h-3 w-3 inline mr-1" />}
-                        {t(size)}
+                        {portionLabels[size]}
                         {size === "larger" && <Plus className="h-3 w-3 inline ml-1" />}
                       </button>
                     ))}
