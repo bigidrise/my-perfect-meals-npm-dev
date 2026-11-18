@@ -16,3 +16,13 @@ export function useConsumerCopy(namespace?: string) {
   , [journey.t, legacy.t]) as typeof legacy.t;
   return { ...legacy, t };
 }
+
+/** Translate only the closed set of aisle labels, never item or product data. */
+export function useFoodCategoryLabels(): Record<string, string> {
+  const { t } = useConsumerCopy();
+  return {
+    Produce: t("Produce"), Meat: t("Meat"), "Plant Proteins": t("Plant Proteins"),
+    "Dairy & Eggs": t("Dairy & Eggs"), "Grains & Packaged": t("Grains & Packaged"),
+    Pantry: t("Pantry"), Frozen: t("Frozen"), Bakery: t("Bakery"), Other: t("Other"),
+  };
+}

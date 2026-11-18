@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Mic, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 export interface VoiceInputButtonProps {
   value: string;
@@ -21,10 +22,11 @@ export function VoiceInputButton({
   mode = "append",
   separator = " ",
   disabled = false,
-  label = "Use voice input",
+  label,
   className,
   maxLength,
 }: VoiceInputButtonProps) {
+  const { t } = useConsumerCopy();
   const [state, setState] = useState<VoiceState>("idle");
   const [error, setError] = useState<string | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -59,7 +61,7 @@ export function VoiceInputButton({
   const startRecording = async () => {
     setError(null);
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      setError("Voice input is not supported in this browser. You can keep typing.");
+      setError(t("Voice input is not supported in this browser. You can keep typing."));
       setState("error");
       return;
     }
@@ -79,7 +81,7 @@ export function VoiceInputButton({
       };
       recorder.onerror = () => {
         cleanUpStream();
-        setError("Recording failed. You can retry or keep typing.");
+        setError(t("Recording failed. You can retry or keep typing."));
         setState("error");
       };
       recorder.onstop = async () => {
@@ -87,7 +89,7 @@ export function VoiceInputButton({
         const blob = new Blob(chunksRef.current, { type: mimeType });
         cleanUpStream();
         if (!blob.size) {
-          setError("No speech was recorded. Please try again.");
+          setError(t("No speech was recorded. Please try again."));
           setState("error");
           return;
         }
@@ -108,7 +110,7 @@ export function VoiceInputButton({
           applyTranscript(data.transcript);
           setState("idle");
         } catch {
-          setError("Could not transcribe that recording. Your typed text was not changed.");
+          setError(t("Could not transcribe that recording. Your typed text was not changed."));
           setState("error");
         }
       };
@@ -119,7 +121,7 @@ export function VoiceInputButton({
       }, 60_000);
     } catch {
       cleanUpStream();
-      setError("Microphone access was denied. You can keep typing.");
+      setError(t("Microphone access was denied. You can keep typing."));
       setState("error");
     }
   };
@@ -139,7 +141,7 @@ export function VoiceInputButton({
         type="button"
         onClick={toggleRecording}
         disabled={disabled || isBusy}
-        aria-label={state === "recording" ? "Stop voice recording" : label}
+        aria-label={state === "recording" ? t("Stop voice recording") : (label ?? t("Use voice input"))}
         aria-pressed={state === "recording"}
         data-testid="voice-input-button"
         className={cn(
@@ -151,11 +153,11 @@ export function VoiceInputButton({
         )}
       >
         {state === "recording" ? (
-          <><Square className="h-4 w-4 fill-current" /> Stop</>
+          <><Square className="h-4 w-4 fill-current" /> {t("Stop")}</>
         ) : state === "transcribing" ? (
-          <><Loader2 className="h-4 w-4 animate-spin" /> Transcribing</>
+          <><Loader2 className="h-4 w-4 animate-spin" /> {t("Transcribing")}</>
         ) : (
-          <><Mic className="h-4 w-4" /> Voice Input</>
+          <><Mic className="h-4 w-4" /> {t("Voice Input")}</>
         )}
       </button>
       {error && (
