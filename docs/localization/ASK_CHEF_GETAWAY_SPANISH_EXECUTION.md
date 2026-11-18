@@ -140,6 +140,21 @@ clinical-language review roles and candidate/approval separation:
 No candidate is connected to runtime resources or represented as approved.
 Existing protected-registry integrity blockers remain unresolved.
 
+### Founder wording decision
+
+The founder accepted the proposed wording for passages 1–7 without revisions.
+This acceptance is recorded separately in the supplemental review manifest as
+founder wording acceptance only. All seven clinical review statuses remain
+`pending`, with qualified `reviewer` and `reviewedAt` unset. The exact English
+and Spanish candidate text is unchanged.
+
+Remaining approval requirements: a qualified medical translator or clinician
+must review and approve each exact candidate through the existing controlled
+process, with reviewer identity and review timestamp recorded. Founder
+acceptance is not clinical certification and does not authorize engineering
+integration or activation. Obtain explicit integration authorization after
+qualified review; Production publication remains separately unauthorized.
+
 Remaining English/unverified coverage includes:
 
 - Those protected passages and returned safety/protocol/allergy explanations,

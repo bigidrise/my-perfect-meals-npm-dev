@@ -1307,3 +1307,17 @@ mtime_ms = 1794981097276
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d71c7b7d-ab17-409e-af6a-06be5d048c90/9dfd1bb1-3c9e-45d6-ad95-d3e74972819a"
 storage_version_token = "1794981098086839"
 content_type = "text/html"
+
+[[outputs]]
+id = "ugmMzq65ryoCMQdSBUJiR"
+uri = "file://generated-artifacts/ask-chef-getaway-protected-spanish-founder-review.html"
+type = "html"
+title = "Protected Spanish passages — founder wording accepted"
+description = "Passages 1–7 accepted without revisions. All seven remain pending qualified clinical/medical translation review and are not activated."
+logical_id = "c08e919a-3acd-4918-830d-b73676c38d5e"
+content_hash = "sha256:5cf7e2f036b736df61b8451c63cee0435ec6ee83d2e9fe3ecbf0228ee514c2d9"
+size = 12619
+mtime_ms = 1795021874366
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/c08e919a-3acd-4918-830d-b73676c38d5e/455f0e23-972d-46bb-b43f-3f4d375e7186"
+storage_version_token = "1795021875046491"
+content_type = "text/html"
