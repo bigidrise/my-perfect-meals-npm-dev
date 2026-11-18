@@ -112,3 +112,17 @@ profile restored it. Anonymous hint retention alone did not prevent this.
 Apply explicit EN/ES/Auto from the hydrated profile before paint; do not add a
 timeout, delay authentication, or promote the routing cache into profile
 authority merely to prevent the language flash.
+
+Medical-reference localization must preserve official study titles, authors,
+journal citations, PMIDs, institution names and external URLs as authoritative
+metadata. Approved Spanish display titles and descriptions are presentation
+only; protected clinical explanations require qualified approval.
+
+**Why:** The founder requested one centralized EN/ES presentation, not a separate
+Spanish resource system, and explicitly separated translated explanations from
+authoritative source records and clinical behavior.
+
+**How to apply:** Reuse existing locale and clinical-review infrastructure,
+retain canonical citations alongside any approved display title, preserve link
+behavior, and never assume external websites will display Spanish or control
+the user's browser translation.

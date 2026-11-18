@@ -32,7 +32,7 @@ import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import MealRefinementSheet from "@/components/MealRefinementSheet";
 import { MealRefinementPanel } from "@/components/MealRefinementPanel";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import type { DiabeticMemoryContext } from "@/lib/diabeticMemory";
 import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
 import { GroceryCoachCarbStatus } from "@/components/shopping/GroceryCoachMacroTiles";
@@ -257,7 +257,7 @@ export function MealCard({
 
   const handleLogMacros = async () => {
     if (builderSnapshot?.uncertainFields.length) {
-      toast({ title: "Review meal nutrition", description: builderSnapshot.issues.join(". "), variant: "destructive" });
+      toast({ title: t("Review meal nutrition"), description: builderSnapshot.issues.join(". "), variant: "destructive" });
       return;
     }
     try {
@@ -641,7 +641,7 @@ export function MealCard({
               )}
             </MealCardAction>
             {date !== "board" && !!builderSnapshot?.uncertainFields.length && (
-              <p className="text-xs text-amber-300">Review incomplete nutrition before logging.</p>
+              <p className="text-xs text-amber-300">{t("Review incomplete nutrition before logging.")}</p>
             )}
             <MealCardAction kind="plan">
               <AddToMealPlanButton meal={{ ...meal, builderType: builderType ?? meal.builderType }} />

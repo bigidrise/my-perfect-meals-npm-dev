@@ -1,6 +1,7 @@
 import { useMemo } from "react";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import type { WeekBoard } from "@/lib/boardApi";
-import { formatWeekLabel as formatWeekLabelSafe, addDaysISOSafe } from "@/utils/midnight";
+import { formatWeekLabel as formatWeekLabelSafe, addDaysISOSafe, formatDateDisplay } from "@/utils/midnight";
 
 function formatWeekLabel(weekStartISO: string): string {
   return formatWeekLabelSafe(weekStartISO);
@@ -29,6 +30,8 @@ export default function WeeklyOverviewModal({
   board: WeekBoard | null;
   onJumpToDay?: (dateISO: string) => void;
 }) {
+  const { t, i18n } = useConsumerCopy();
+  const locale = i18n.resolvedLanguage === "es" ? "es" : "en";
   if (!open) return null;
 
   // Totals for the current loaded board (read-only)
@@ -61,17 +64,17 @@ export default function WeeklyOverviewModal({
           {/* Header matching the main board style */}
           <div className="px-4 py-3 flex items-center justify-between border-b border-zinc-700/50">
             <div>
-              <h2 className="text-white/95 text-lg sm:text-xl font-semibold">Week Overview</h2>
+              <h2 className="text-white/95 text-lg sm:text-xl font-semibold">{t("Week Overview")}</h2>
               <div className="text-sm font-medium text-white/90">
-                {formatWeekLabel(weekStartISO)}
+                {formatWeekLabelSafe(weekStartISO, undefined, locale)}
               </div>
             </div>
             <button
               className="rounded-md px-3 py-2 border border-white/20 text-white/80 hover:bg-white/10 transition-colors text-sm"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={t("Close")}
             >
-              Close
+              {t("Close")}
             </button>
           </div>
 
@@ -86,9 +89,9 @@ export default function WeeklyOverviewModal({
                     type="button"
                     onClick={() => onJumpToDay?.(dateISO)}
                     className="whitespace-nowrap border border-white/20 rounded-full px-3 py-1 text-sm text-white/80 hover:bg-white/10 transition-colors"
-                    aria-label={`Go to ${dayNameFromOffset(i)}`}
+                    aria-label={t("Go to {{day}}", { day: formatDateDisplay(dateISO, { weekday: "short" }, undefined, locale) })}
                   >
-                    {dayNameFromOffset(i)}
+                    {formatDateDisplay(dateISO, { weekday: "short" }, undefined, locale)}
                   </button>
                 );
               })}
@@ -96,33 +99,33 @@ export default function WeeklyOverviewModal({
 
             {/* Current-board summary with matching styling */}
             <div className="border border-zinc-700/50 bg-zinc-800/30 backdrop-blur rounded-xl p-4">
-              <h3 className="text-white/95 text-base font-semibold mb-3">Today's Summary (current board)</h3>
+              <h3 className="text-white/95 text-base font-semibold mb-3">{t("Today's Summary (current board)")}</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <div>
-                  <div className="text-white/60">Calories</div>
+                  <div className="text-white/60">{t("Calories")}</div>
                   <div className="font-semibold text-white/95">{Math.round(totals.calories)}</div>
                 </div>
                 <div>
-                  <div className="text-white/60">Protein</div>
+                  <div className="text-white/60">{t("Protein")}</div>
                   <div className="font-semibold text-white/95">{Math.round(totals.protein)} g</div>
                 </div>
                 <div>
-                  <div className="text-white/60">Carbs</div>
+                  <div className="text-white/60">{t("Carbs")}</div>
                   <div className="font-semibold text-white/95">{Math.round(totals.carbs)} g</div>
                 </div>
                 <div>
-                  <div className="text-white/60">Fat</div>
+                  <div className="text-white/60">{t("Fat")}</div>
                   <div className="font-semibold text-white/95">{Math.round(totals.fat)} g</div>
                 </div>
               </div>
               <div className="text-xs text-white/50 mt-3">
-                Tip: You can tap a day above to jump the planner to that date (once day-level boards are enabled).
+                {t("Tip: You can tap a day above to jump the planner to that date (once day-level boards are enabled).")}
               </div>
             </div>
 
             {/* Future features note with matching styling */}
             <div className="text-xs text-white/50 text-center">
-              Weekly per-day breakdown can be enabled later via a read-only snapshot endpoint, without changing this UI.
+              {t("Weekly per-day breakdown can be enabled later via a read-only snapshot endpoint, without changing this UI.")}
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import { useAuth } from "@/contexts/AuthContext";
 import { resolveDisplayCarbTargets } from "@/lib/macroResolver";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
@@ -288,9 +288,9 @@ export function RemainingMacrosFooter({
           {(consumedOverride?.estimated || consumedOverride?.issues?.length ||
             (consumedOverride?.unclassifiedCarbs ?? 0) > 0.01) && (
             <p className="text-[10px] text-white/60 mt-2">
-              {consumedOverride?.estimated && "Carb split estimated. "}
+              {consumedOverride?.estimated && t("Carb split estimated. ")}
               {(consumedOverride?.unclassifiedCarbs ?? 0) > 0.01 &&
-                `${Math.round(consumedOverride!.unclassifiedCarbs!)}g other/unclassified carbs. `}
+                t("{{grams}}g other/unclassified carbs. ", { grams: Math.round(consumedOverride!.unclassifiedCarbs!) })}
               {consumedOverride?.issues?.join(". ")}
             </p>
           )}
@@ -342,7 +342,7 @@ function MacroCell({
         {isOver ? `+${formatBuilderMacro(-remaining)}` : formatBuilderMacro(remaining)}
         <span className="text-[10px] font-normal text-white/60">{suffix}</span>
       </div>
-      {incomplete && <span className="text-[9px] text-white/60">Incomplete</span>}
+      {incomplete && <span className="text-[9px] text-white/60">{t("Incomplete")}</span>}
       <div className="w-full h-1 bg-black/30 rounded-full overflow-hidden mt-1">
         <div
           className={`h-full ${color.bg} transition-all duration-300`}
@@ -354,7 +354,7 @@ function MacroCell({
           {isOver ? t("remainingMacros.overLimit") : t("remainingMacros.limit")}
         </div>
       )}
-      {!isKeyMacro && isOver && <span className="text-[9px] text-pink-400">Over limit</span>}
+      {!isKeyMacro && isOver && <span className="text-[9px] text-pink-400">{t("Over limit")}</span>}
     </div>
   );
 }

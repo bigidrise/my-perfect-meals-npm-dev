@@ -1349,3 +1349,17 @@ mtime_ms = 1795024662042
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/4b6ba5fc-c05d-4342-a5c9-d9a2fd4c39d9/438c0b1c-f7ad-4bf9-b6b2-82a6cdad547d"
 storage_version_token = "1795024662821035"
 content_type = "text/html"
+
+[[outputs]]
+id = "qjuA6KsuVA18ww5FOs5rq"
+uri = "file://docs/localization/MEDICAL_RESOURCES_LOCALIZATION_RECOMMENDATION.html"
+type = "html"
+title = "Medical resources localization recommendation"
+description = "Reference ownership and counts, centralized EN/ES display design, metadata preservation, and clinical-review boundaries. No medical translations activated."
+logical_id = "8e623b91-3a54-47e6-8091-46749c5bb0d3"
+content_hash = "sha256:3006e4a0c2ba0bd47859e18748f98d92a1939b3b84aaaad5fd03c70cba515ac5"
+size = 11907
+mtime_ms = 1795025414954
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/8e623b91-3a54-47e6-8091-46749c5bb0d3/d374fe17-5d1d-44c9-9b6c-95a604352299"
+storage_version_token = "1795025431739982"
+content_type = "text/html"

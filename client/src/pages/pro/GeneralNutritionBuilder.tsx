@@ -98,13 +98,13 @@ import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { getBuilderProtocolBadges } from "@/lib/nutritionPersonalization";
 
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
 // Using noon UTC anchor pattern to prevent day-shift bugs
 
 export default function WeeklyMealBoard() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   usePageTitle(t("generalNutritionBuilder.pageTitle"));
   const [, setLocation] = useLocation();
   const search = useSearch();
@@ -812,8 +812,8 @@ export default function WeeklyMealBoard() {
 
       if (allMeals.length === 0) {
         toast({
-          title: "No Meals",
-          description: "Add some meals to your board first.",
+          title: t("metabolicBuilder.noMealsTitle"),
+          description: t("metabolicBuilder.noMealsDesc"),
           variant: "destructive",
         });
         return;
@@ -847,21 +847,21 @@ export default function WeeklyMealBoard() {
       window.dispatchEvent(new Event("macros:updated"));
 
       toast({
-        title: "All Meals Logged!",
-        description: `Successfully logged ${successCount} meal(s) to your macros.`,
+        title: t("metabolicBuilder.allMealsLoggedTitle"),
+        description: t("metabolicBuilder.allMealsLoggedDesc", { count: successCount }),
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to log meals. Please try again.",
+        title: t("common.error"),
+        description: t("metabolicBuilder.errorLogMeals"),
         variant: "destructive",
       });
     }
-  }, [board, toast, queryClient]);
+  }, [board, toast, queryClient, t]);
 
   if (loading || !board) return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pt-20">
-      <div className="text-white/80 p-6 text-center">Loading meal board...</div>
+      <div className="text-white/80 p-6 text-center">{t("metabolicBuilder.loadingBoard")}</div>
     </div>
   );
 
@@ -872,7 +872,7 @@ export default function WeeklyMealBoard() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24"
     >
-      <BuilderHeader title="General Nutrition Builder" onOpenTour={quickTour.openTour} clientId={isProCareMode ? clientId : null} protocols={getBuilderProtocolBadges(user)} />
+      <BuilderHeader title={t("generalNutritionBuilder.pageTitle")} onOpenTour={quickTour.openTour} clientId={isProCareMode ? clientId : null} protocols={getBuilderProtocolBadges(user)} />
 
       {/* Main Content */}
       <div
@@ -896,12 +896,12 @@ export default function WeeklyMealBoard() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-semibold text-sm text-white leading-tight">Training Nutrition Schedule</p>
+              <p className="font-semibold text-sm text-white leading-tight">{t("Training Nutrition Schedule")}</p>
               <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-300 bg-orange-600/20 border border-orange-500/30 px-2 py-0.5 rounded-full flex-shrink-0">
                 Clinical
               </span>
             </div>
-            <p className="text-white/40 text-xs mt-0.5">Adjust daily macro targets based on your workout schedule</p>
+            <p className="text-white/40 text-xs mt-0.5">{t("Adjust daily macro targets based on your workout schedule")}</p>
           </div>
           <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-orange-400 transition-colors flex-shrink-0" />
         </button>
@@ -920,7 +920,7 @@ export default function WeeklyMealBoard() {
                 ‹
               </button>
               <div className="text-sm font-medium text-white/90">
-                {weekStartISO ? formatWeekLabel(weekStartISO) : 'Loading…'}
+                {weekStartISO ? formatWeekLabel(weekStartISO, undefined, i18n.resolvedLanguage === "es" ? "es" : "en") : t("metabolicBuilder.loadingBoard")}
               </div>
               <button
                 type="button"
@@ -1354,7 +1354,7 @@ export default function WeeklyMealBoard() {
                       });
                       toast({
                         title: t("generalNutritionBuilder.daySavedCoach"),
-                        description: `${formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
+                        description: t("{{date}} has been locked.", { date: formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' }, undefined, i18n.resolvedLanguage === "es" ? "es" : "en") }),
                       });
                       setLocation(`/pro/clients/${clientId}/dashboard?tab=targets`);
                     }
