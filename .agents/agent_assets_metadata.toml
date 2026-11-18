@@ -1181,3 +1181,45 @@ mtime_ms = 1794959425112
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/66d52047-4a46-4c5b-b31d-1bedd8a51437/ea21be99-9014-4e22-858e-e409119c2aed"
 storage_version_token = "1794959449437082"
 content_type = "text/html"
+
+[[outputs]]
+id = "_PmfCYMZ-DVrqIGNwPdyn"
+uri = "file://docs/localization/application-inventory/inventory.html"
+type = "html"
+title = "Application localization inventory"
+description = "Read-only founder review: 248 route registrations, 36 feature/state families, 54 reviewed ownership records, protected wording and shared-first batch proposals. No additional translation authorized."
+logical_id = "dbe4d0aa-50e8-472a-b329-3caecb4d0550"
+content_hash = "sha256:be55b222f5e8df1bd274ba74d6c296778f7a89b830b9208898658a6f847ba7b4"
+size = 241885
+mtime_ms = 1794967119165
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/dbe4d0aa-50e8-472a-b329-3caecb4d0550/19d16506-04e3-46f7-b2cc-432aa8fc8298"
+storage_version_token = "1794967135949820"
+content_type = "text/html"
+
+[[outputs]]
+id = "cnqlpcY_LKc3M0JSSEdVG"
+uri = "file://docs/localization/application-inventory/feature-state-review.csv"
+type = "table"
+title = "Localization feature and state matrix"
+description = "Reviewable feature, role, state and device evidence with explicit uncertainty."
+logical_id = "92fcabf1-b4e9-48dd-b073-0afc65b8e1cd"
+content_hash = "sha256:10facb0cca76c929c3e1ca29bdbcb6f7965e003d2bcac134b9d0a81658945f37"
+size = 18980
+mtime_ms = 1794967119160
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/92fcabf1-b4e9-48dd-b073-0afc65b8e1cd/7cfbde38-2cdc-479e-8fe2-29e7ee16e27b"
+storage_version_token = "1794967136756428"
+content_type = "text/csv"
+
+[[outputs]]
+id = "DWXYm97LT84f_BfiGZ0u0"
+uri = "file://docs/localization/application-inventory/reviewed-findings.csv"
+type = "table"
+title = "Deduplicated localization findings"
+description = "Source owners, callers, routes, EN/ES key evidence, classifications and proposed batches."
+logical_id = "7cd5554d-4549-430b-884c-6d0bbb72205b"
+content_hash = "sha256:d9550df7a86c843c881a1c96efe6d40ce76335015a5f8d151074bc72dc5c2971"
+size = 110630
+mtime_ms = 1794967119157
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7cd5554d-4549-430b-884c-6d0bbb72205b/a8c94245-ec86-4506-bb77-bf15b0e54b8e"
+storage_version_token = "1794967137558555"
+content_type = "text/csv"

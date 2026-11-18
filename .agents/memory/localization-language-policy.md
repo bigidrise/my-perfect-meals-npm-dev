@@ -39,6 +39,12 @@ Hardcoded-string scanner results are candidates, not confirmed customer defects.
 
 **How to apply:** Verify visibility and meaning before extracting strings; preserve product names and identifiers and distinguish static evidence from browser/provider verification.
 
+Before reporting missing translations, resolve imported helper aliases, the caller's namespace and plural resource forms; distinguish a missing English value from a missing Spanish value.
+
+**Why:** A bare-key or helper-name scan can falsely classify connected consumer phrases and plural messages as missing, and a Spanish-only entry is not an untranslated-Spanish defect.
+
+**How to apply:** Treat initial lookups as candidates until source ownership and actual resource resolution are reconciled. Keep dictionary presence separate from runtime visibility and semantic approval.
+
 Required first-run consent gates cannot be treated as optional untranslated exceptions when claiming a Spanish consumer journey is complete.
 
 **Why:** Translating headings and buttons still makes a Spanish-speaking new user read and accept English; clinical/legal review requirements block completion rather than remove the gate from scope.
