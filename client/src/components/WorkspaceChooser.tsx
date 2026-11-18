@@ -160,13 +160,13 @@ export function WorkspaceChooser({
                   <h3 className="text-white font-semibold text-base">{t("Business / Organization")}</h3>
                   <p className="text-orange-200 text-sm mt-0.5">
                     {organizationCount > 1
-                      ? `${organizationCount} available organizations`
+                      ? t("{{count}} available organizations", { count: organizationCount })
                       : availability.organization.organizations[0]?.name}
                   </p>
                   <p className="text-white/50 text-xs mt-1">
                     {availability.organization.destination === "/business-organizations"
-                      ? "Choose an organization"
-                      : "Open Business Suite"}
+                      ? t("Choose an organization")
+                      : t("Open Business Suite")}
                   </p>
                 </div>
               </div>

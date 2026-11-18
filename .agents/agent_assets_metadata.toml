@@ -1321,3 +1321,17 @@ mtime_ms = 1795021874366
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/c08e919a-3acd-4918-830d-b73676c38d5e/455f0e23-972d-46bb-b43f-3f4d375e7186"
 storage_version_token = "1795021875046491"
 content_type = "text/html"
+
+[[outputs]]
+id = "RdloHvoZ1LXQFKCKFbYE7"
+uri = "file://generated-artifacts/targeted-spanish-screen-evidence.html"
+type = "html"
+title = "Targeted Spanish corrections — verification evidence"
+description = "Root cause, before/after regression evidence, four real desktop/mobile screenshots and the complete Development verification report."
+logical_id = "9d0bcab8-4288-469b-a07f-68f65792e1f8"
+content_hash = "sha256:c7c9141c2f457107dc08cda57ba5b2461d62666c82d3c2cf204770042bec2e3c"
+size = 166434
+mtime_ms = 1795023206394
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/9d0bcab8-4288-469b-a07f-68f65792e1f8/5b5b5990-cbe2-47ac-9a85-0d00d8280b83"
+storage_version_token = "1795023207455384"
+content_type = "text/html"
