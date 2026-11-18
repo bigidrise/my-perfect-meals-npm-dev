@@ -56,3 +56,9 @@ Keep the application-wide localization inventory as a separate task. Do not begi
 **Why:** The founder requested a customer-surface inventory that distinguishes actual text from scanner candidates and identifies shared fixes, rather than assuming a centralized language engine translates every feature.
 
 **How to apply:** Include routes, features, modals, sheets, menus, notifications, shared components and mobile/desktop variants. Report broad phase scope separately from measured coverage; connect future languages through the existing architecture.
+
+Finish the read-only application-wide localization inventory before translating individual pages. Keep measurement repairs separate from broad translation work, and reuse the existing measurement infrastructure rather than building another system.
+
+**Why:** The founder reviewed the international audit and explicitly selected inventory-first work, with measurement findings reserved for a separate, carefully tested repair.
+
+**How to apply:** Map untranslated pages and shared text owners without application-code changes or paid AI services. Return shared-first priorities for review; do not combine unit or nutrition changes with translation implementation.
