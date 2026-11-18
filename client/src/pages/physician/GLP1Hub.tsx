@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -37,6 +38,7 @@ import { isClinicalOrAbove } from "@/lib/subscriptionCheck";
 
 export default function GLP1Hub() {
   const { t } = useTranslation();
+  const { t: consumerT } = useConsumerCopy();
   const [, setLocation] = useLocation();
   const search = useSearch();
   const returnTo = useMemo(() => {
@@ -220,8 +222,8 @@ export default function GLP1Hub() {
           <div className="flex items-center gap-3 text-left">
             <Sparkles className="w-5 h-5 text-lime-400" />
             <div>
-              <p className="font-bold text-sm">My Perfect Menu</p>
-              <p className="text-white/60 text-xs mt-0.5">Create ideas for your GLP-1 Builder</p>
+              <p className="font-bold text-sm">{consumerT("My Perfect Menu")}</p>
+              <p className="text-white/60 text-xs mt-0.5">{consumerT("Create ideas for your GLP-1 Builder")}</p>
             </div>
           </div>
           <ChevronRight className="w-5 h-5 text-white/40 flex-shrink-0" />
@@ -510,7 +512,7 @@ export default function GLP1Hub() {
             {saveMutation.isPending
               ? t("glp1Hub.saving")
               : returnTo
-                ? "Save and return to My Perfect Menu"
+                ? consumerT("Save and return to My Perfect Menu")
                 : t("glp1Hub.saveGuardrails")}
           </Button>
         </section>

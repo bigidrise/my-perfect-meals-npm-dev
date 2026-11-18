@@ -28,6 +28,7 @@ import {
 import { sickDayHydrationRequiresEscalation } from "@shared/hydration/fourDoor";
 import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { useHydrationChoiceLabels } from "@/i18n/useConsumerChoiceLabels";
+import { useConsumerNotice } from "@/i18n/ConsumerNotice";
 
 type Props = {
   state: HydrationCenterState | null;
@@ -96,21 +97,9 @@ function nextLocalDate(localDate: string) {
   return new Date(Date.UTC(year, month - 1, day + 1, 12)).toISOString().slice(0, 10);
 }
 
-function protocolStatusLabel(protocol: HydrationProtocolRecord) {
-  if (protocol.status === "active") return "Active";
-  if (protocol.status === "expired") return "Expired";
-  if (protocol.status === "needs_review") return "Needs clarification";
-  return "Draft review";
-}
-
-function unresolvedLabel(code: string) {
-  if (code === "TIMING_NOT_STATED") return "Timing or frequency was not stated.";
-  if (code === "CONFLICTING_ITEM_CATEGORIES") return "A category is both allowed and restricted.";
-  return "Allowed or restricted categories were not provided.";
-}
-
 export default function HydrationFourDoorPanels({ state, navigate, onReload }: Props) {
   const { t } = useConsumerCopy();
+  const notice = useConsumerNotice();
   const labels = useHydrationChoiceLabels();
   const { toast } = useToast();
   const [door, setDoor] = useState<HydrationDoorKey>("everyday");
@@ -175,8 +164,8 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
       navigate(`/lifestyle/athlete-beverage-creator?${params.toString()}`);
     } catch (error) {
       toast({
-        title: t("Could not open the Creator"),
-        description: error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : t("Please try again."),
+        title: notice("Could not open the Creator"),
+        description: error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : notice("Please try again."),
         variant: "destructive",
       });
     }
@@ -185,8 +174,8 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
   const saveLiquidProtocol = async () => {
     if (!reason.trim() || !originalInstructionText.trim()) {
       toast({
-        title: "More instruction is needed",
-        description: "Add the reason and paste the original instruction so the review stays faithful.",
+        title: notice("More instruction is needed"),
+        description: notice("Add the reason and paste the original instruction so the review stays faithful."),
         variant: "destructive",
       });
       return;
@@ -209,13 +198,13 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
       setActivationConfirmed(false);
       await onReload();
       toast({
-        title: "Instructions ready for review",
-        description: "Nothing becomes active until you confirm what was captured.",
+        title: notice("Instructions ready for review"),
+        description: notice("Nothing becomes active until you confirm what was captured."),
       });
     } catch (error) {
       toast({
-        title: "Could not save instructions",
-        description: error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : t("Please try again."),
+        title: notice("Could not save instructions"),
+        description: error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : notice("Please try again."),
         variant: "destructive",
       });
     } finally {
@@ -231,13 +220,13 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
       setProtocol(result.protocol);
       await onReload();
       toast({
-        title: "Temporary support activated",
-        description: "The Hub will stop showing it after the supplied end date.",
+        title: notice("Temporary support activated"),
+        description: notice("The Hub will stop showing it after the supplied end date."),
       });
     } catch (error) {
       toast({
-        title: "Clarification is needed",
-        description: error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : "This instruction could not be activated.",
+        title: notice("Clarification is needed"),
+        description: error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : notice("This instruction could not be activated."),
         variant: "destructive",
       });
     } finally {
@@ -344,7 +333,7 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
             <Button onClick={() => void openAthleticCreator()} className="mt-4 bg-orange-400 text-slate-950 hover:bg-orange-300" data-testid="athletic-hydration-creator">
               {t("Create an Athletic Hydration Beverage")}
             </Button>
-            <p className="mt-3 text-xs text-white">The Creator remains responsible for formulation and runs its normal safety checks.</p>
+            <p className="mt-3 text-xs text-white">{t("The Creator remains responsible for formulation and runs its normal safety checks.")}</p>
           </CardContent>
         </Card>
       )}
@@ -365,7 +354,7 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
               {SICK_DAY_OPTIONS.map(([value, label]) => (
                 <label key={value} className="flex items-start gap-2 rounded-lg border border-white/15 bg-white/[.04] p-3 text-sm text-white">
                   <input type="checkbox" checked={sickDaySymptoms.includes(value)} onChange={() => toggleSickDaySymptom(value)} className="mt-0.5" data-testid={`sick-day-${value}`} />
-                  <span>{label}</span>
+                  <span>{labels.symptoms[value] ?? label}</span>
                 </label>
               ))}
             </div>
@@ -391,7 +380,7 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
               <div>
                 <h2 className="font-semibold text-white">{t("Liquid Nutrition Support")}</h2>
                 <p className="mt-1 text-sm leading-relaxed text-white">
-                  Your saved instructions are being checked. This section will open when their current status is available.
+                  {t("Your saved instructions are being checked. This section will open when their current status is available.")}
                 </p>
               </div>
             </div>
@@ -407,7 +396,7 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
               <div>
                 <h2 className="font-semibold text-white">{t("Liquid Nutrition Support")}</h2>
                 <p className="mt-1 text-sm leading-relaxed text-white">
-                  Paste the instruction you received and add only the categories and timing stated in it. User-entered instructions are stored as unverified.
+                  {t("Paste the instruction you received and add only the categories and timing stated in it. User-entered instructions are stored as unverified.")}
                 </p>
               </div>
             </div>
@@ -420,16 +409,16 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
               <label className="text-xs text-white">
                 {t("Instruction type")}
                 <select value={protocolType} onChange={(event) => setProtocolType(event.target.value as HydrationProtocolType)} className="mt-1 w-full rounded-md border border-white/20 bg-slate-900 px-3 py-2.5 text-sm text-white" data-testid="liquid-protocol-type">
-                  {LIQUID_PROTOCOL_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  {LIQUID_PROTOCOL_TYPES.map(([value, label]) => <option key={value} value={value}>{labels.protocolTypes[value] ?? label}</option>)}
                 </select>
               </label>
               <div className="rounded-md border border-violet-200/20 bg-violet-300/10 p-3 text-xs text-white">
                 <p className="font-semibold">{t("Source")}</p>
-                <p className="mt-1">User-entered · not professionally verified</p>
+                <p className="mt-1">{t("User-entered · not professionally verified")}</p>
               </div>
               <label className="text-xs text-white sm:col-span-2">
                 {t("Original instruction text")}
-                <Textarea value={originalInstructionText} onChange={(event) => setOriginalInstructionText(event.target.value)} placeholder="Paste the original instruction exactly as you received it." className="mt-1 min-h-24 border-white/20 bg-white/5 text-white placeholder:text-white/60" data-testid="liquid-protocol-original-text" />
+                <Textarea value={originalInstructionText} onChange={(event) => setOriginalInstructionText(event.target.value)} placeholder={t("Paste the original instruction exactly as you received it.")} className="mt-1 min-h-24 border-white/20 bg-white/5 text-white placeholder:text-white/60" data-testid="liquid-protocol-original-text" />
               </label>
               <label className="text-xs text-white">
                 {t("Start date")}
@@ -444,20 +433,20 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
                 <Input type="date" value={reviewOn} onChange={(event) => setReviewOn(event.target.value)} className="mt-1 border-white/20 bg-white/5 text-white" data-testid="liquid-protocol-review" />
               </label>
               <label className="text-xs text-white">
-                Timing/frequency exactly stated (optional)
-                <Input value={explicitTimingText} onChange={(event) => setExplicitTimingText(event.target.value)} placeholder="e.g. sip with meals" className="mt-1 border-white/20 bg-white/5 text-white placeholder:text-white/60" data-testid="liquid-protocol-timing" />
+                {t("Timing/frequency exactly stated (optional)")}
+                <Input value={explicitTimingText} onChange={(event) => setExplicitTimingText(event.target.value)} placeholder={t("e.g. sip with meals")} className="mt-1 border-white/20 bg-white/5 text-white placeholder:text-white/60" data-testid="liquid-protocol-timing" />
               </label>
               <label className="text-xs text-white">
-                Allowed categories exactly stated (comma-separated)
-                <Input value={allowedCategories} onChange={(event) => setAllowedCategories(event.target.value)} placeholder="e.g. broth, clear juice" className="mt-1 border-white/20 bg-white/5 text-white placeholder:text-white/60" data-testid="liquid-protocol-allowed" />
+                {t("Allowed categories exactly stated (comma-separated)")}
+                <Input value={allowedCategories} onChange={(event) => setAllowedCategories(event.target.value)} placeholder={t("e.g. broth, clear juice")} className="mt-1 border-white/20 bg-white/5 text-white placeholder:text-white/60" data-testid="liquid-protocol-allowed" />
               </label>
               <label className="text-xs text-white">
-                Restricted categories exactly stated (comma-separated)
-                <Input value={restrictedCategories} onChange={(event) => setRestrictedCategories(event.target.value)} placeholder="e.g. solid food" className="mt-1 border-white/20 bg-white/5 text-white placeholder:text-white/60" data-testid="liquid-protocol-restricted" />
+                {t("Restricted categories exactly stated (comma-separated)")}
+                <Input value={restrictedCategories} onChange={(event) => setRestrictedCategories(event.target.value)} placeholder={t("e.g. solid food")} className="mt-1 border-white/20 bg-white/5 text-white placeholder:text-white/60" data-testid="liquid-protocol-restricted" />
               </label>
               <label className="text-xs text-white sm:col-span-2">
-                Texture requirements exactly stated (optional)
-                <Input value={textureRequirements} onChange={(event) => setTextureRequirements(event.target.value)} placeholder="e.g. strained, no pulp" className="mt-1 border-white/20 bg-white/5 text-white placeholder:text-white/60" data-testid="liquid-protocol-texture" />
+                {t("Texture requirements exactly stated (optional)")}
+                <Input value={textureRequirements} onChange={(event) => setTextureRequirements(event.target.value)} placeholder={t("e.g. strained, no pulp")} className="mt-1 border-white/20 bg-white/5 text-white placeholder:text-white/60" data-testid="liquid-protocol-texture" />
               </label>
             </div>
             <Button onClick={() => void saveLiquidProtocol()} disabled={protocolSaving} className="mt-4 bg-violet-400 text-slate-950 hover:bg-violet-300" data-testid="liquid-protocol-save">
@@ -468,8 +457,8 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
               <div className="mt-5 rounded-2xl border border-white/20 bg-black/20 p-4" data-testid="liquid-protocol-review-panel">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="border-violet-200/40 text-white">{protocolStatusLabel(protocol)}</Badge>
-                    <Badge variant="outline" className="border-white/20 text-white">{protocol.verificationStatus === "unverified" ? "Unverified source" : "Professionally verified"}</Badge>
+                    <Badge variant="outline" className="border-violet-200/40 text-white">{labels.protocolStates[protocol.status] ?? labels.protocolStates.draft}</Badge>
+                    <Badge variant="outline" className="border-white/20 text-white">{protocol.verificationStatus === "unverified" ? t("Unverified source") : t("Professionally verified")}</Badge>
                   </div>
                   <span className="text-xs text-white">{protocol.startsOn} → {protocol.endsOn}</span>
                 </div>
@@ -480,31 +469,31 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-wide text-white">{t("Timing")}</p>
-                    <p className="mt-1 text-sm text-white">{protocol.explicitTimingText || "Not stated — needs clarification"}</p>
+                    <p className="mt-1 text-sm text-white">{protocol.explicitTimingText || t("Not stated — needs clarification")}</p>
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-wide text-white">Allowed categories</p>
-                    <p className="mt-1 text-sm text-white">{protocol.allowedCategories.length ? protocol.allowedCategories.join(", ") : "Not stated"}</p>
+                    <p className="text-xs uppercase tracking-wide text-white">{t("Allowed categories")}</p>
+                    <p className="mt-1 text-sm text-white">{protocol.allowedCategories.length ? protocol.allowedCategories.join(", ") : t("Not stated")}</p>
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-wide text-white">Restricted categories</p>
-                    <p className="mt-1 text-sm text-white">{protocol.restrictedCategories.length ? protocol.restrictedCategories.join(", ") : "Not stated"}</p>
+                    <p className="text-xs uppercase tracking-wide text-white">{t("Restricted categories")}</p>
+                    <p className="mt-1 text-sm text-white">{protocol.restrictedCategories.length ? protocol.restrictedCategories.join(", ") : t("Not stated")}</p>
                   </div>
                 </div>
                 <div className="mt-4 rounded-xl border border-white/15 bg-white/[.04] p-3">
-                  <p className="text-xs uppercase tracking-wide text-white">Original instruction preserved</p>
+                  <p className="text-xs uppercase tracking-wide text-white">{t("Original instruction preserved")}</p>
                   <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-white">{protocol.originalInstructionText}</p>
                 </div>
                 {protocol.unresolvedItems.length > 0 && (
                   <div className="mt-4 rounded-xl border border-amber-200/30 bg-amber-300/10 p-3" data-testid="liquid-protocol-unresolved">
-                    <p className="text-sm font-semibold text-white">Needs clarification</p>
+                    <p className="text-sm font-semibold text-white">{t("Needs clarification")}</p>
                     <ul className="mt-1 list-disc space-y-1 pl-5 text-xs text-white">
-                      {protocol.unresolvedItems.map((item) => <li key={item.code}>{unresolvedLabel(item.code)}</li>)}
+                      {protocol.unresolvedItems.map((item) => <li key={item.code}>{labels.unresolved[item.code] ?? labels.unresolved.missing}</li>)}
                     </ul>
                   </div>
                 )}
                 <div className="mt-4 rounded-xl border border-white/15 bg-white/[.04] p-3">
-                  <p className="text-xs uppercase tracking-wide text-white">Execution checklist</p>
+                  <p className="text-xs uppercase tracking-wide text-white">{t("Execution checklist")}</p>
                   <p className="mt-1 text-sm text-white">
                     {protocol.executionPlan.status === "ready"
                       ? `Explicit instruction carried across ${protocol.executionPlan.days.length} dated day${protocol.executionPlan.days.length === 1 ? "" : "s"}.`
@@ -518,7 +507,7 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
                       <span>I reviewed the fields above and confirm they reflect the instruction I supplied. I understand this is not professional verification.</span>
                     </label>
                     <Button onClick={() => void activateProtocol()} disabled={protocolSaving || !activationConfirmed || !protocol.handoffAllowed && protocol.unresolvedItems.some((item) => item.code !== "TIMING_NOT_STATED")} className="mt-3 bg-white/15 text-white hover:bg-white/25" data-testid="liquid-protocol-activate">
-                      {protocolSaving ? "Activating…" : "Confirm and activate"}
+                      {protocolSaving ? t("Activating…") : t("Confirm and activate")}
                     </Button>
                   </>
                 )}

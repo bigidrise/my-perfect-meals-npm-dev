@@ -63,7 +63,7 @@ jest.mock('@/hooks/useSpeechToText', () => ({
 }));
 
 import React from 'react';
-import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { post, get } from '@/lib/api';
 import GroceryStoreCoachSheet from '@/components/shopping/GroceryStoreCoachSheet';
@@ -129,6 +129,38 @@ function seedMealSession() {
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('Find a Product mode navigation', () => {
+  it.each([false, true])('matches the mobile meal composer to product mode, restored=%s', async (restored) => {
+    if (restored) seedMealSession();
+    render(<GroceryStoreCoachSheet open onOpenChange={jest.fn()} />);
+    if (restored) await screen.findByText('Grilled Chicken');
+
+    const composer = screen.getByTestId('meal-request-composer');
+    const input = screen.getByTestId('input-meal-request');
+    const actions = screen.getByTestId('meal-request-actions');
+    const send = screen.getByTestId('button-meal-request-send');
+    expect(composer).toHaveClass('flex-col', 'sm:flex-row');
+    expect(input.parentElement).toBe(composer);
+    expect(input).toHaveAttribute('rows', '3');
+    expect(input).toHaveStyle({ width: '100%', minWidth: '0', overflowWrap: 'anywhere' });
+    expect(actions.parentElement).toBe(composer);
+    expect(within(actions).getByText('Dictate product')).toBeVisible();
+    expect(send.parentElement).toBe(actions);
+    expect(send).toHaveClass('flex-1', 'sm:flex-none');
+    expect(send).toBeDisabled();
+
+    fireEvent.change(input, { target: { value: 'Keep this meal request' } });
+    expect(send).toBeEnabled();
+    fireEvent.click(screen.getByTestId('tab-find-product'));
+    expect(screen.getByTestId('product-search-composer').className).toBe(composer.className);
+    expect(screen.getByTestId('product-search-actions').className).toBe(actions.className);
+    expect(screen.getByTestId('input-find-product')).toHaveAttribute('rows', '3');
+    fireEvent.click(screen.getByTestId('tab-build-meal'));
+    expect(screen.getByTestId('input-meal-request')).toHaveValue('Keep this meal request');
+    // A restored meal can run its existing product-advisor request. Typing and
+    // switching modes must not submit a meal or start a product search.
+    expect((post as jest.Mock).mock.calls.filter(([path]) => path !== '/api/grocery-coach/product-advisor')).toHaveLength(0);
+  });
+
   it('shows mode tabs on a restored meal-result state and allows switching to Find a Product', async () => {
     seedMealSession();
     (post as jest.Mock).mockResolvedValue(PRODUCT_RESULT);

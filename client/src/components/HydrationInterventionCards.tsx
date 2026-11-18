@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { useConsumerNotice } from "@/i18n/ConsumerNotice";
+import { useHydrationInterventionDisplay } from "@/i18n/useHydrationInterventionDisplay";
 import {
   createHydrationHandoff,
   recordHydrationInterventionEvent,
@@ -22,11 +24,13 @@ export default function HydrationInterventionCards({
   reload: () => Promise<void>;
 }) {
   const { t } = useConsumerCopy();
+  const notice = useConsumerNotice();
+  const display = useHydrationInterventionDisplay();
   const { toast } = useToast();
   // The ref closes the interval before React renders the disabled buttons.
   const actionInFlight = useRef(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<{ id: string; error: boolean; text: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ id: string; error: boolean; text: React.ReactNode } | null>(null);
 
   const chooseIntervention = async (option: Intervention) => {
     if (actionInFlight.current) return;
@@ -50,15 +54,18 @@ export default function HydrationInterventionCards({
         navigate(`/lifestyle/beverage-creator?${new URLSearchParams({ hydrationHandoff: handoff.token })}`);
       } else {
         // Choosing to try is not evidence that the strategy was completed.
-        setFeedback({ id: option.id, error: false, text: t("Saved as something to try.") });
-        toast({ title: t("Saved as something to try"), description: t("Come back to My Perfect Hydration Center and tell us what worked.") });
+        setFeedback({ id: option.id, error: false, text: notice("Saved as something to try.") });
+        toast({ title: notice("Saved as something to try"), description: notice("Come back to My Perfect Hydration Center and tell us what worked.") });
         await reload();
       }
     } catch (error) {
-      const title = createsBeverage ? t("Could not open Beverage Creator") : t("Could not save this strategy");
-      const detail = error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : t("Please try again.");
-      setFeedback({ id: option.id, error: true, text: `${title}. ${detail}` });
-      toast({ title, description: detail, variant: "destructive" });
+      const title = createsBeverage ? "Could not open Beverage Creator" : "Could not save this strategy";
+      const source = error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : null;
+      const detail = source === "The Hydration handoff was unavailable."
+        ? notice("The Hydration handoff was unavailable.")
+        : source ?? notice("Please try again.");
+      setFeedback({ id: option.id, error: true, text: <>{notice(title)}. {detail}</> });
+      toast({ title: notice(title), description: detail, variant: "destructive" });
     } finally {
       actionInFlight.current = false;
       setPendingId(null);
@@ -72,8 +79,8 @@ export default function HydrationInterventionCards({
           <div className="flex items-start justify-between gap-3">
             <div>
               <Badge variant="outline" className="mb-2 border-white/30 text-[10px] text-white">{barrierLabel(option.barrierCode)}</Badge>
-              <h3 className="text-sm font-semibold text-white">{option.title}</h3>
-              <p className="mt-1 text-xs leading-relaxed text-white">{option.description}</p>
+              <h3 className="text-sm font-semibold text-white">{display(option).title}</h3>
+              <p className="mt-1 text-xs leading-relaxed text-white">{display(option).description}</p>
             </div>
             <Button
               size="sm"
