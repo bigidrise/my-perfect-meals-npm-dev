@@ -1,0 +1,134 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Builder entry screens and Chef modal — Development localization</title>
+<style>
+body{margin:0;background:#edf1f7;color:#182439;font:16px/1.6 system-ui,sans-serif}
+main{max-width:1060px;margin:28px auto;background:white;border:1px solid #d6dfea;border-radius:14px;padding:clamp(20px,4vw,44px)}
+h1{font-size:clamp(26px,4vw,36px);line-height:1.2}h2{font-size:23px;margin-top:32px}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:10px;border:1px solid #d6dfea;text-align:left;vertical-align:top}
+th{background:#edf3ff}code{font-size:.85em;overflow-wrap:anywhere}.notice{border-left:4px solid #365bd6;padding:14px 18px;background:#eef3ff}
+.muted{color:#58677c}li{margin:7px 0}.scroll{overflow:auto}figure{margin:20px 0}img{max-width:100%;height:auto;border-radius:8px}
+figcaption{font-size:14px;color:#58677c}
+</style></head><body><main>
+<p class="muted">Development only · November 18, 2026 · Approved follow-up to the accepted four-builder batch</p>
+<h1>Builder entry screens and shared Chef modal</h1>
+<p class="notice">This batch closes ordinary interface gaps around the builders before moving to My Perfect Menu.
+No Production change, deployment, merge, extra language, generation-logic change or clinical approval was performed.</p>
+
+<h2>1. Architecture and scope findings</h2>
+<p>The Diabetic, GLP-1 and Anti-Inflammatory entry screens repeat the same visual structure in three existing pages.
+There is not currently one shared selection-screen component. General Nutrition uses the same layout with the existing
+central <code>pro.gnbEntry</code> resources already connected.</p>
+<p>The three entry pages now reuse the existing <code>useConsumerCopy("pro")</code> adapter and matching
+<code>gnbEntry</code> keys. The small source-specific ordinary phrases and short training-session labels use the
+same central <code>consumerJourney</code> resources as the previous batches. No duplicate cards, Spanish-only pages,
+new language switch, translation engine or routing layer was created. This localization pass did not extract or rewrite
+the route/permission/mode handlers.</p>
+<p><code>CreateWithChefModal</code> is already shared by General Nutrition, Anti-Inflammatory, Diabetic, GLP-1,
+Performance, Weekly Meal Board and Beach Body. Most ordinary controls and placeholders were already translated.
+The reported remaining English safety controls are separate protected components, not missing ordinary modal keys.</p>
+
+<h2>2. Exact corrected areas</h2>
+<div class="scroll"><table>
+<tr><th>Owner</th><th>Corrected ordinary interface</th><th>Inheritance and limits</th></tr>
+<tr><td>Diabetic, GLP-1 and Anti-Inflammatory entry screens</td><td>“Where would you like to start?”, build-today button,
+ordinary profile/baseline description, training-aware heading, schedule title/description, active badge, short session
+labels, Today/session display, adjustment status and edit/setup links.</td><td>Identical labels reuse the same existing
+General Nutrition entry keys. GLP-1 and Anti-Inflammatory feature headings were connected; the registry-protected
+Diabetic heading remains unchanged. Protocol descriptions remain English.</td></tr>
+<tr><td>All four entry screens</td><td>Training title/badge row can wrap on narrow screens.</td><td>General Nutrition's
+existing translations remain intact; its only application edit is this small wrapping class.</td></tr>
+<tr><td>DailyStarchIndicator</td><td>“Starch Meals:”, Available/Used/Both Used, counted Available/Remaining,
+over-limit presentation and full/compact gram hints.</td><td>Seven existing meal boards inherit the display fix:
+General Nutrition, Anti-Inflammatory, Diabetic, GLP-1, Performance, Weekly and Beach Body.
+Classifier output, limits, colors and numerical values are unchanged. The zero-starch explanation remains protected.</td></tr>
+<tr><td>Shared snack-heading resources</td><td>The existing Spanish <code>metabolicBuilder.snacks</code>,
+<code>weeklyBoard.snacks</code> and <code>performanceCompetitionBuilder.snacksLabel</code> values are now
+“Refrigerios” instead of “Snacks”.</td><td>Existing callers such as General Nutrition, Diabetic, Anti-Inflammatory,
+GLP-1 and Performance inherit the central correction without separate page edits.</td></tr>
+<tr><td>CreateWithChefModal</td><td>Translated display-only meal slot in its subtitle, including meal4/5/6;
+translated voice-input accessibility label.</td><td>All seven modal consumers inherit the fix. Stored/request mealType
+identifiers and original typed descriptions are unchanged. Existing translated ordinary controls, placeholders,
+Ingredient Control/Keep It Simple, generate/cancel/stop and progress remain connected.</td></tr>
+</table></div>
+<p>English retains the original short session labels, including “Strength Day”; it does not silently replace them with
+General Nutrition's longer training-type labels. The modal still sends canonical slot identifiers, not translated labels.</p>
+
+<h2>3. Focused behavior and release checks</h2>
+<ul>
+<li><strong>269 tests passed across 14 suites in the final aggregate run.</strong> This includes 35 new entry/modal/status
+tests, seven existing starch-indicator tests and the previous 227 shared/four-builder/calculation/prescription/shopping/language tests.</li>
+<li><strong>Mounted entry pages:</strong> English, Spanish, Auto→EN and Auto→ES; existing schedule and setup states;
+in-place language changes; training eligibility; original mode PATCH bodies and navigation destinations.</li>
+<li><strong>Actual modal open state:</strong> subtitle/placeholder/voice label, empty generate-button gating, retained
+typed description after EN→ES, diet rejection, safety rejection, unchanged close callback and processing/Stop state.
+The test never lets generation proceed to a real provider.</li>
+<li><strong>Starch display:</strong> Available/Remaining/Used/over-limit values, compact/full modes, exact fractional grams,
+unchanged inputs and the untouched zero-starch callout.</li>
+<li><strong>Localization guard:</strong> passed with no new unresolved findings. No exception, checker change or exemption added.</li>
+<li><strong>Client and server compilation:</strong> passed. Existing bundle-size and Browserslist warnings remain visible.</li>
+<li><strong>Safety types:</strong> passed.</li>
+<li><strong>Canonical release types:</strong> exact unchanged 109 diagnostics, SHA-256
+<code>e8dadf605ccc7c3c6dec1285551bfa2a37871bee3a9fa1993444c871565813a7</code>.
+The approved baseline was not refreshed, and generated build-version state was restored.</li>
+<li><strong>Whitespace:</strong> passed.</li>
+</ul>
+<p>Before/after source comparison found all eight modal generation/safety callback initializers unchanged and all three
+mode/navigation callbacks unchanged in each entry owner. The classifier, allergy/PIN component, glucose component,
+starch override component, registry and both clinical-review manifests are unchanged against the starting checkpoint.</p>
+<p>The existing starch test gained English i18n initialization because the display component now consumes the real translator.
+Its assertions were retained. New tests initially needed a correctly shaped safety-conflict ref and emoji-tolerant text
+queries; the application safeguards were not changed to satisfy test fixtures.</p>
+<p>Build/test/type commands ran in sanitized child environments without inherited database or paid-provider credentials.
+Unexpected test fetches throw. The existing safe Development workflow was restarted once; startup confirmed migrations,
+seeding, recovery and automatic maintenance remained suppressed.</p>
+
+<h2>4. Desktop and mobile review</h2>
+<p><strong>56/56 passive structural cases passed:</strong> 28 fixtures at 390×844 mobile and 1280×800 desktop.
+This includes four entry pages in English, Spanish, Auto→EN and Auto→ES; four no-schedule setup states;
+four localized open-modal variants; entered-text and processing modal states; and English/Spanish starch indicators.
+No horizontal overflow, off-screen fixed labels, badge spill or unintended text clipping was found.
+The mobile processing modal measured 342×660 and fit within the viewport. Generate/Cancel/Stop and the input remained
+reachable in their applicable states; disabled controls and single-line input scrolling were correctly distinguished
+from layout defects. All rendered document languages matched their resolved locale.</p>
+<p>The passive review uses markup rendered from the actual four entry-page components and actual open shared modal,
+with compiled application CSS and synthetic data. Authentication, API/request hooks, voice input and selected preflight
+overlays are test substitutes; the entry animation is omitted so static markup remains visible. The original
+Allergy Protection, Glucose Guard and Keep It Simple controls remain in the modal's rendered component tree.</p>
+<p><strong>This is not a signed-in full-app end-to-end session.</strong> No real account, generation, save, PIN action
+or customer-data write was performed. Button behavior is covered by mounted component tests, not by clicking passive HTML.
+These results do not establish platform-wide Spanish readiness.</p>
+<!-- SCREENSHOT_EVIDENCE -->
+
+<h2>5. Remaining English and review boundary</h2>
+<ul>
+<li><strong>Diabetic Menu Builder</strong> remains the exact entry heading because that phrase is in the existing protected registry.</li>
+<li><strong>Clinical</strong> remains the entitlement badge on all four entries.</li>
+<li>For each of the three clinical entries, these complete protocol-dependent descriptions remain unchanged, using its original
+name (<strong>diabetic</strong>, <strong>GLP-1</strong> or <strong>anti-inflammatory</strong>):
+<ul>
+<li>“Build today’s meals with your [name] nutrition protocol, or use your training schedule to adapt targets around workouts.”</li>
+<li>“Set up a training schedule to automatically adjust your daily macro targets around your weekly workouts while honoring your [name] nutrition protocol.”</li>
+<li>“Your macro targets adapt to training — more carbohydrates on power days, reduced targets on rest days — while continuing to honor your [name] nutrition protocol. Your macro baseline stays under your Macro Calculator.”</li>
+</ul></li>
+<li><strong>🔵 Rest Day — Zero Starch</strong> remains unchanged. Ordinary starch counts are translated; the protocol callout is not.</li>
+<li><strong>Allergy Protection, Override Allergy Protection, Protection Overridden, PIN explanations and warnings,
+Glucose Guard, glucose-state labels and safety accessibility instructions</strong> remain unchanged in their original components.
+The modal's allergen-failure toast and Allergy Alert remain unchanged as well.</li>
+<li>Existing Active Clinical Supports, Hormonal &amp; Metabolic, medical-condition badges and protocol/medical explanations
+elsewhere on the boards remain on the qualified-review track.</li>
+<li>Original user input, saved/historical food content, generated titles/recipes and server-authored evidence remain original data.
+Translating surrounding controls does not translate generated meals.</li>
+</ul>
+<p>Remaining ordinary English in unrelated features is outside this batch. The earlier shared macro-card narrow-column
+wrapping issue was not expanded into a redesign here. No protected copy was approved or silently activated.</p>
+
+<h2>6. Evidence and stopping point</h2>
+<p>Source: the three clinical entry owners; one General Nutrition wrapping class; <code>DailyStarchIndicator</code>;
+<code>CreateWithChefModal</code>; centralized ordinary-copy resources and three existing Spanish snack values.
+Tests: <code>builderEntryModalSpanish.test.tsx</code> and the existing <code>dailyStarchIndicator.test.tsx</code>.</p>
+<p>Logs and integrity evidence: <code>.local/reports/spanish-builder-entry-*</code>.
+Ignored build outputs, passive fixtures and browser review: <code>generated-artifacts/spanish-builder-entry/</code>.</p>
+<p class="notice"><strong>Stopped after this bounded batch.</strong> My Perfect Menu, Hydration, Pregnancy, Macro Calculator,
+Journal, Gatherings and professional/business interfaces were not started. No Production modification, merge, publication,
+paid AI call, language activation, clinical approval change or baseline refresh was performed.</p>
+</main></body></html>
