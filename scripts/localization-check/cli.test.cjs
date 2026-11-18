@@ -64,6 +64,24 @@ test("pure resource reading supports current additive spreads and refuses execut
   write("client/src/i18n/consumerJourney.ts", 'export const consumerSpanish=fetch("https://example.invalid");');
   assert.throws(() => loadResources(read), /Unsupported static dictionary/);
 }));
+test("daily display resources are required when connected and preserve existing resource precedence", () => fixture(({ root, write }) => {
+  const read = file => fs.readFileSync(path.join(root, file), "utf8");
+  assert.equal(loadResources(read).es.consumerJourney.Approved, "Aprobado");
+  write("client/src/i18n/consumerJourney.ts", 'export const consumerSpanish={...consumerDailyDisplaySpanish,...approvedConsumerOnboardingSpanish};export const consumerEnglish=Object.fromEntries(Object.keys(consumerSpanish).map(key=>[key,key]));');
+  assert.throws(() => loadResources(read), /ENOENT/);
+  write("client/src/i18n/consumerDailyDisplayCopy.ts", 'export const consumerDailyDisplaySpanish={"Past Entries":"Entradas anteriores","Approved":"No debe reemplazar"};');
+  assert.equal(loadResources(read).es.consumerJourney["Past Entries"], "Entradas anteriores");
+  assert.equal(loadResources(read).es.consumerJourney.Approved, "Aprobado");
+  write("client/src/i18n/consumerDailyDisplayCopy.ts", 'export const consumerDailyDisplaySpanish=fetch("https://example.invalid");');
+  assert.throws(() => loadResources(read), /Unsupported static dictionary/);
+}));
+test("daily display resources cannot bypass interpolation or protected-wording checks", () => fixture(({ root, write }) => {
+  write("client/src/i18n/consumerJourney.ts", 'export const consumerSpanish={...consumerDailyDisplaySpanish};export const consumerEnglish=Object.fromEntries(Object.keys(consumerSpanish).map(key=>[key,key]));');
+  write("client/src/i18n/consumerDailyDisplayCopy.ts", 'export const consumerDailyDisplaySpanish={"Day {{day}}":"Día","Medical advice":"Consejo médico"};');
+  const findings = check(root).findings;
+  assert.ok(findings.some(item => item.text === "consumerJourney:Day {{day}}" && item.classification === "missing-connection"));
+  assert.ok(findings.some(item => item.text === "consumerJourney:Medical advice" && item.classification === "protected-review"));
+}));
 test("food dictionary is optional before adoption but required when connected, and checked statically", () => fixture(({ root, write }) => {
   const read = file => fs.readFileSync(path.join(root, file), "utf8");
   fs.unlinkSync(path.join(root, "client/src/i18n/foodWorkflowCopy.ts"));

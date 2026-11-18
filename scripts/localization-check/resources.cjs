@@ -45,10 +45,13 @@ function loadResources(read) {
   const features = /\.\.\.\s*consumerFeatureSpanish\b/.test(read("client/src/i18n/consumerJourney.ts"))
     ? stringsObject(read, "client/src/i18n/consumerFeatureCopy.ts", "consumerFeatureSpanish")
     : {};
+  const dailyDisplay = /\.\.\.\s*consumerDailyDisplaySpanish\b/.test(read("client/src/i18n/consumerJourney.ts"))
+    ? stringsObject(read, "client/src/i18n/consumerDailyDisplayCopy.ts", "consumerDailyDisplaySpanish")
+    : {};
   const phrases = Object.fromEntries(Object.entries(startupEn).map(([key, phrase]) => [phrase, startupEs[key]]));
   const consumerEs = stringsObject(read, "client/src/i18n/consumerJourney.ts", "consumerSpanish", {
     startupPhraseTranslations: phrases, approvedConsumerOnboardingSpanish: approved, foodWorkflowSpanish: food,
-    consumerFeatureSpanish: features,
+    consumerFeatureSpanish: features, consumerDailyDisplaySpanish: dailyDisplay,
   });
   const consumerEn = Object.fromEntries(Object.keys(consumerEs).map(key => [key, key]));
   // Never silently model a changed runtime resource-construction contract.

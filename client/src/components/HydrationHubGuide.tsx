@@ -205,11 +205,11 @@ export default function HydrationHubGuide() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-auto w-full justify-between border-white/15 bg-white/[.04] px-3 py-3 text-left text-white hover:bg-white/[.09] hover:text-white"
+                    className="h-auto w-full justify-between whitespace-normal border-white/15 bg-white/[.04] px-3 py-3 text-left text-white hover:bg-white/[.09] hover:text-white"
                     data-testid={`hydration-guide-${guide.id}`}
                   >
-                    <span className="flex items-center gap-2">
-                      <Icon className="h-4 w-4 text-sky-200" />
+                    <span className="flex min-w-0 items-center gap-2">
+                      <Icon className="h-4 w-4 shrink-0 text-sky-200" />
                       <span className="text-sm font-semibold">{guide.title}</span>
                     </span>
                     <ChevronDown className="h-4 w-4 shrink-0 text-white/60" />

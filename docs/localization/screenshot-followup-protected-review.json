@@ -1,0 +1,52 @@
+{
+  "status": "DRAFT ONLY — awaiting confirmation of clinical/legal wording review and Development approval",
+  "scope": "Six specific Hydration passages and three journal privacy passages only. No other protected draft, clinical behavior, data-handling change or Production release is authorized.",
+  "preservation": "Journal records, medication names and doses, and unknown professional-entered wording remain original.",
+  "passages": [
+    {
+      "id": "H34",
+      "english": "Optional setup helps choose practical strategies. It never changes a hydration requirement.",
+      "spanish": "La configuración opcional ayuda a elegir estrategias prácticas. Nunca cambia un requisito de hidratación."
+    },
+    {
+      "id": "H35",
+      "english": "I consent to saving these optional preferences and barriers for My Perfect Hydration Center suggestions.",
+      "spanish": "Doy mi consentimiento para guardar estas preferencias y dificultades opcionales para las sugerencias de Mi centro de hidratación."
+    },
+    {
+      "id": "H24",
+      "english": "No personal numeric target has been set by an authorized clinician. You can still track fluids and get practical help.",
+      "spanish": "Ningún profesional clínico autorizado ha establecido un objetivo numérico personal. Aun así, puedes registrar líquidos y recibir ayuda práctica."
+    },
+    {
+      "id": "H33",
+      "english": "Preferences may change practical suggestions, never physiological requirements.",
+      "spanish": "Las preferencias pueden cambiar las sugerencias prácticas, pero nunca los requisitos fisiológicos."
+    },
+    {
+      "id": "H04",
+      "english": "Choose what is making fluids difficult so the Hub can keep support practical and tolerable. This is not a diagnosis or a treatment calculator.",
+      "spanish": "Selecciona qué te dificulta beber líquidos para que el centro mantenga el apoyo práctico y tolerable. Esto no es un diagnóstico ni una calculadora de tratamiento."
+    },
+    {
+      "id": "H06",
+      "english": "Practical ideas: choose a familiar temperature, keep an easy-to-reach fluid nearby, and take comfortable sips as tolerated. Stop and seek care if you are getting worse or cannot keep fluids down.",
+      "spanish": "Ideas prácticas: elige una temperatura conocida, ten cerca un líquido de fácil acceso y toma sorbos que te resulten cómodos según los toleres. Detente y busca atención si estás empeorando o no puedes retener líquidos."
+    },
+    {
+      "id": "J01",
+      "english": "Your journal stays private",
+      "spanish": "Tu diario se mantiene privado"
+    },
+    {
+      "id": "J02",
+      "english": "Entries saved here stay in this browser. They are not sent to My Perfect Meals servers or used by MPM AI coaches, meal recommendations, or personalization.",
+      "spanish": "Las entradas guardadas aquí permanecen en este navegador. No se envían a los servidores de My Perfect Meals, ni las utilizan los asistentes de IA de MPM, ni se usan para recomendar comidas o para la personalización."
+    },
+    {
+      "id": "J03",
+      "english": "Voice Input uses your browser's speech-recognition service to turn speech into text. My Perfect Meals does not retain the raw audio.",
+      "spanish": "La entrada por voz utiliza el servicio de reconocimiento de voz de tu navegador para convertir la voz en texto. My Perfect Meals no conserva el audio sin procesar."
+    }
+  ]
+}
