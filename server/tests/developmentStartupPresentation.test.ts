@@ -1,4 +1,12 @@
 /** @jest-environment jsdom */
+it("unfinished saved languages fall back to English on Spanish devices without changing the saved choice", () => {
+  const device = jest.spyOn(navigator, "language", "get").mockReturnValue("es-MX");
+  localStorage.setItem("mpm.ui.languagePreference", "zh");
+  boot();
+  expect(document.documentElement.lang).toBe("en");
+  expect(localStorage.getItem("mpm.ui.languagePreference")).toBe("zh");
+  device.mockRestore();
+});
 import fs from "fs";
 import path from "path";
 import { addDevelopmentStartupPresentation } from "../developmentStartupPresentation";

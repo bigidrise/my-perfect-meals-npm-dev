@@ -1,6 +1,6 @@
 import { startupEnglish, startupSpanish } from "../shared/consumerStartupCopy";
 // This is a dependency-free, browser-safe preference contract, not a UI module.
-import { LANGUAGE_PREFERENCE_KEY, SUPPORTED_UI_LANGUAGES } from "../client/src/i18n/languagePreference";
+import { LANGUAGE_PREFERENCE_KEY, CUSTOMER_UI_LANGUAGES } from "../client/src/i18n/languagePreference";
 
 /**
  * Development-only first-paint presentation. Keep crawler-readable HTML intact:
@@ -34,11 +34,13 @@ export function addDevelopmentStartupPresentation(html: string): string {
         var page = document.documentElement;
         var timer, finished = false, failed = false;
         var preference = "auto", language = "en";
-        var supported = ${JSON.stringify(SUPPORTED_UI_LANGUAGES)};
+        var supported = ${JSON.stringify(CUSTOMER_UI_LANGUAGES)};
         try { preference = localStorage.getItem(${JSON.stringify(LANGUAGE_PREFERENCE_KEY)}) || "auto"; } catch (_) {}
         var chosen = preference.split("-")[0].toLowerCase();
-        if (supported.indexOf(chosen) < 0) chosen = "auto";
+        if (chosen !== "auto" && chosen !== "null" && supported.indexOf(chosen) < 0) chosen = "en";
+        if (chosen === "null") chosen = "auto";
         language = chosen === "auto" ? (navigator.language || "en").split("-")[0].toLowerCase() : chosen;
+        if (supported.indexOf(language) < 0) language = "en";
         var english = ${JSON.stringify(startupEnglish).replace(/</g, "\\u003c")};
         var spanish = ${JSON.stringify(startupSpanish).replace(/</g, "\\u003c")};
         var copy = language === "es" ? spanish : english;

@@ -1251,3 +1251,17 @@ mtime_ms = 1794973272388
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7d42b106-7a61-4502-a656-3d60c1e22856/2db367bf-aba2-4010-a902-d3e809e4d017"
 storage_version_token = "1794973308023164"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "gq0TEuly1slum6emBH4MR"
+uri = "file://.local/reports/measurement-language-development-verification.html"
+type = "html"
+title = "Development verification report"
+description = "Language and measurement coverage, test results, and explicit release blockers."
+logical_id = "857df5ee-24c0-4f7e-9351-03d2b77cd294"
+content_hash = "sha256:7a49ae29b6a29b8c5c471be91c6457b8d3ec82dd674d9c4a2be2094db2d35e78"
+size = 11500
+mtime_ms = 1794977017743
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/857df5ee-24c0-4f7e-9351-03d2b77cd294/593e7922-9986-4aa4-b472-9fe7678a9bfd"
+storage_version_token = "1794977030367229"
+content_type = "text/html"

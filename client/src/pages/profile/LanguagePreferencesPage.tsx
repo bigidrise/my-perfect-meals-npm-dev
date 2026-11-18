@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/apiRequest";
 import i18n, { resolveI18nLang } from "@/i18n";
-import { storeLanguagePreference } from "@/i18n/languagePreference";
+import { storeLanguagePreference, isCustomerLanguage, resolveLanguagePreference } from "@/i18n/languagePreference";
 import { Globe, ChevronLeft, Loader2, Check } from "lucide-react";
 
 const LANGUAGES = [
@@ -36,12 +36,15 @@ type LanguageCode = typeof LANGUAGES[number]["code"];
 export default function LanguagePreferencesPage() {
   const [, setLocation] = useLocation();
   const { t } = useTranslation();
+  const descriptions = {
+    auto: t("language.autoDesc"), en: t("language.enDesc"), es: t("language.esDesc"),
+  };
   const { user, setUser } = useAuth();
   const currentUserId = useRef(user?.id);
   currentUserId.current = user?.id;
   const { toast } = useToast();
 
-  const [selected, setSelected] = useState<LanguageCode>("auto");
+  const [selected, setSelected] = useState<string>("auto");
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -142,13 +145,15 @@ export default function LanguagePreferencesPage() {
 
         {/* Language list */}
         <section className="space-y-2">
-          {LANGUAGES.map((lang) => {
-            const isActive = selected === lang.code;
+          {LANGUAGES.filter(lang => lang.code === "auto" || isCustomerLanguage(lang.code)).map((lang) => {
+            const displayedSelection = selected === "auto" ? "auto" : resolveLanguagePreference(selected);
+            const isActive = displayedSelection === lang.code;
             return (
               <button
                 key={lang.code}
                 onClick={() => handleSelect(lang.code)}
                 disabled={saving}
+                aria-pressed={isActive}
                 className={[
                   "w-full text-left rounded-xl border px-4 py-3 transition-colors flex items-start justify-between gap-3",
                   saving ? "opacity-60 cursor-not-allowed" : "",
@@ -166,7 +171,7 @@ export default function LanguagePreferencesPage() {
                       <p className="text-xs text-white/40">{lang.label}</p>
                     )}
                   </div>
-                  <p className="text-xs text-white/50 mt-0.5 leading-relaxed">{lang.code === "auto" ? t("language.autoDesc") : lang.description}</p>
+                  <p className="text-xs text-white/50 mt-0.5 leading-relaxed">{descriptions[lang.code as keyof typeof descriptions]}</p>
                 </div>
                 {isActive && (
                   <div className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center">
@@ -182,6 +187,10 @@ export default function LanguagePreferencesPage() {
         <p className="text-xs text-white/30 text-center leading-relaxed px-2">
           {t("localeFoundation.preferencesNote")}
         </p>
+        <button type="button" onClick={() => setLocation("/profile")}
+          className="block mx-auto text-xs text-white/50 underline underline-offset-2">
+          {t("language.measurementLink")}
+        </button>
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import { isCustomerLanguage } from "@/i18n/languagePreference";
 // 🔒🔒🔒 RESTAURANT GUIDE - GOOGLE PLACES UPGRADE (DECEMBER 11, 2025) 🔒🔒🔒
 // STATUS: Upgraded with Google Places API integration
 // UPGRADE: Added ZIP code input + real restaurant data (name, address, rating) from Google Places
@@ -1497,7 +1498,7 @@ export default function RestaurantGuidePage() {
                                     )}
                                   </summary>
                                   <div className="mt-2 flex flex-wrap gap-1.5">
-                                    {TRANSLATE_LANGUAGES.map((lang) => (
+                                    {TRANSLATE_LANGUAGES.filter(lang => isCustomerLanguage(lang.code)).map((lang) => (
                                       <button
                                         key={lang.code}
                                         disabled={translatingId === mealKey}

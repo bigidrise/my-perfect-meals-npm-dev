@@ -1,3 +1,4 @@
+import { MeasurementQuantity } from "@/components/MeasurementQuantity";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { apiUrl } from '@/lib/resolveApiBase';
@@ -186,7 +187,7 @@ export default function MealCard({ recipe, compact = false, onSelect, onViewReci
               {recipe.ingredients.map((ingredient, index) => (
                 <div key={index} className="flex justify-between">
                   <span>{ingredient.name}</span>
-                  <span className="font-medium">{ingredient.amount} {ingredient.unit}</span>
+                  <span className="font-medium"><MeasurementQuantity amount={ingredient.amount} unit={ingredient.unit} /></span>
                 </div>
               ))}
             </div>

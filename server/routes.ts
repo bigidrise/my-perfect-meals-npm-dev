@@ -4569,7 +4569,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cuisinePreference: user.cuisinePreference || null,
         cuisineIntensity: user.cuisineIntensity || null,
         isAdmin: user.isAdmin || false,
-        measurementSystem: (user as any).measurementSystem || "imperial",
+        measurementSystem: (user as any).measurementSystem || "auto",
         countryCode: (user as any).countryCode || "US",
         preferredLanguage: (user as any).preferredLanguage || "auto",
         pregnancyStage: (user as any).pregnancyStage ?? null,
@@ -4611,7 +4611,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
-      const ALLOWED_SYSTEMS = ["imperial", "metric"];
+      const ALLOWED_SYSTEMS = ["auto", "imperial", "metric"];
       const ALLOWED_COUNTRIES = ["US", "CA", "AU", "UK", "NZ"];
 
       const { measurementSystem, countryCode, preferredLanguage } = req.body;
@@ -4619,7 +4619,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updates: Record<string, any> = {};
       if (measurementSystem !== undefined) {
         if (!ALLOWED_SYSTEMS.includes(measurementSystem)) {
-          return res.status(400).json({ error: "Invalid measurementSystem. Must be 'imperial' or 'metric'." });
+          return res.status(400).json({ error: "Invalid measurementSystem. Must be 'auto', 'imperial' or 'metric'." });
         }
         updates.measurementSystem = measurementSystem;
       }

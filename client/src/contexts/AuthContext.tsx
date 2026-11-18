@@ -71,6 +71,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const profileRefreshSingleFlight = useRef(createSingleFlight<User | null>());
 
   const fetchFreshUser = useCallback(async (): Promise<User | null> => {
+    const startingAccountId = getCurrentUser()?.id ?? null;
+    const assertSameAccount = () => {
+      if ((getCurrentUser()?.id ?? null) !== startingAccountId) throw new Error("transient:account-changed");
+    };
     try {
       console.log("📡 [AuthContext] Refreshing user...");
       const response = await fetch(apiUrl(`/api/user/profile`), {
@@ -79,8 +83,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         cache: "no-store",
       });
 
+      assertSameAccount();
       if (response.ok) {
         const userData = await response.json();
+        assertSameAccount();
         const updatedUser: User = {
           id: userData.id,
           email: userData.email,
@@ -166,7 +172,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           isAdmin: userData.isAdmin || false,
           availabilityStatus: userData.availabilityStatus ?? null,
           backAt: userData.backAt ?? null,
-          measurementSystem: userData.measurementSystem || "imperial",
+          measurementSystem: userData.measurementSystem || "auto",
           countryCode: userData.countryCode || "US",
           preferredLanguage: userData.preferredLanguage || "auto",
           pregnancyStage: userData.pregnancyStage ?? null,
@@ -365,6 +371,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setIsSlowStart(false);
         hasFinishedInitialLoad.current = true;
       };
+      const supersededByAccountChange = (error: unknown) => {
+        if ((error as Error)?.message !== "transient:account-changed") return false;
+        // The old request owns neither the new identity nor its error state.
+        setLoading(false);
+        setIsSlowStart(false);
+        hasFinishedInitialLoad.current = true;
+        return true;
+      };
       let currentUser = getCurrentUser();
       const appleReviewFullAccess =
         localStorage.getItem("appleReviewFullAccess") === "true";
@@ -376,7 +390,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         try {
           currentUser = await refreshUser();
           restoredFromServer = !!currentUser;
-        } catch {
+        } catch (error) {
+          if (supersededByAccountChange(error)) return;
           console.warn("⚠️ [AuthContext] Initial session could not be restored");
           unavailable();
           return;
@@ -402,7 +417,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
               window.location.href = "/auth";
             }
           }
-        } catch {
+        } catch (error) {
+          if (supersededByAccountChange(error)) return;
           console.warn("⚠️ [AuthContext] Initial profile verification unavailable");
           unavailable();
           return;

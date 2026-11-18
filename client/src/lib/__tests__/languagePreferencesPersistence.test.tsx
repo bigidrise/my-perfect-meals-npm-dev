@@ -14,8 +14,11 @@ jest.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }
 jest.mock("wouter", () => ({ useLocation: () => ["/profile/language", jest.fn()] }));
 jest.mock("@/lib/apiRequest", () => ({ apiRequest: jest.fn() }));
 
-function Harness() {
-  const [user, setUser] = React.useState({ id: "synthetic-locale", preferredLanguage: "en" });
+function Harness({ preference = "en" }: { preference?: string }) {
+  const [user, setUser] = React.useState({
+    id: "synthetic-locale", preferredLanguage: preference,
+    countryCode: "CA", measurementSystem: "auto",
+  });
   mockAuth = { user, setUser };
   return <LanguagePreferencesPage />;
 }
@@ -35,8 +38,36 @@ test("explicit Spanish saves once, updates visible controls and emits a Spanish 
   expect(apiRequest).toHaveBeenCalledWith("/api/user/preferences", expect.objectContaining({ body: JSON.stringify({ preferredLanguage: "es" }) }));
   expect(i18n.language).toBe("es");
   expect(mockAuth.user.preferredLanguage).toBe("es");
+  expect(mockAuth.user.countryCode).toBe("CA");
+  expect(mockAuth.user.measurementSystem).toBe("auto");
   expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: i18n.t("language.saved") }));
   expect(screen.getByRole("button", { name: "Atrás" })).toBeInTheDocument();
+});
+
+test("only Automatic, English and Español are selectable and describe the interface", async () => {
+  render(<Harness />);
+  expect(await screen.findByRole("button", { name: /^Automatic/ })).toHaveTextContent("interface");
+  expect(screen.getByRole("button", { name: /^English/ })).toHaveTextContent("interface");
+  expect(screen.getByRole("button", { name: /^Español/ })).toHaveTextContent("interface");
+  for (const language of ["Français", "Deutsch", "中文", "العربية", "日本語"]) {
+    expect(screen.queryByRole("button", { name: new RegExp(language) })).not.toBeInTheDocument();
+  }
+  expect(screen.getByText(/Spanish coverage is being verified/)).toBeInTheDocument();
+  expect(apiRequest).not.toHaveBeenCalled();
+});
+
+test("an unsupported saved choice displays English without writing until an explicit selection", async () => {
+  (apiRequest as jest.Mock).mockResolvedValue({ ok: true });
+  render(<Harness preference="zh" />);
+  const english = await screen.findByRole("button", { name: /^English/ });
+  expect(english).toHaveAttribute("aria-pressed", "true");
+  expect(mockAuth.user.preferredLanguage).toBe("zh");
+  expect(apiRequest).not.toHaveBeenCalled();
+  fireEvent.click(english);
+  await waitFor(() => expect(mockAuth.user.preferredLanguage).toBe("en"));
+  expect(apiRequest).toHaveBeenCalledWith("/api/user/preferences", expect.objectContaining({
+    body: JSON.stringify({ preferredLanguage: "en" }),
+  }));
 });
 
 test("Auto persists Auto, not the Spanish device resolution", async () => {

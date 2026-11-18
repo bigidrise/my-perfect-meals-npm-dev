@@ -88,7 +88,9 @@ import TherapeuticNutritionCard from "@/components/biometrics/TherapeuticNutriti
 import MacroConsistencyTimeline from "@/components/biometrics/MacroConsistencyTimeline";
 import { canAccessClinicalLabs, canAccessTherapeuticNutrition } from "@/lib/subscriptionCheck";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
-import { convertWeightLbsDisplay } from "@shared/units";
+import { convertWeightLbsDisplay, convertLengthDisplay, parseMeasurementNumber, parseWeightToLbs } from "@shared/units";
+import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
+import { macroCalculatorStorageKeys } from "@/lib/macroCalculatorResume";
 
 // ============================== CONFIG ==============================
 const SYNC_ENDPOINT = ""; // optional API endpoint; if set, we POST after local save
@@ -145,9 +147,17 @@ const saveJSON = (k: string, v: any) => {
 
 // ============================== PAGE ==============================
 export default function MyBiometrics() {
+  const { user } = useAuth();
+  return <AccountMyBiometrics key={user?.id ?? "awaiting-account"} />;
+}
+
+function AccountMyBiometrics() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const measurementSystem = useMeasurementSystem();
   const { t } = useTranslation("biometrics");
+  const { t: measurementT } = useTranslation("measurementPreferences");
+  const metricDisplay = measurementSystem === "metric";
   const isDesktop = useIsDesktop();
   const { requestUpgrade } = useUpgradeModal();
   
@@ -1334,6 +1344,12 @@ export default function MyBiometrics() {
   // ── Body stat tab + log-weight input ────────────────────────────────────────
   const [bodyStatTab, setBodyStatTab] = useState<"weight" | "waist" | "bodyfat">("weight");
   const [logWeightInput, setLogWeightInput] = useState("");
+  // Keep a nonempty input bound to its original unit if account settings refresh.
+  const [logWeightSystem, setLogWeightSystem] = useState(measurementSystem);
+  const logWeightUnit = logWeightSystem === "metric" ? "kg" : "lb";
+  useEffect(() => {
+    if (!logWeightInput) setLogWeightSystem(measurementSystem);
+  }, [measurementSystem, logWeightInput]);
   const [logWeightSaving, setLogWeightSaving] = useState(false);
 
   // ── Waist history (server) ────────────────────────────────────────────────
@@ -1364,7 +1380,8 @@ export default function MyBiometrics() {
 
   // ── Log Today's Weight (measurement only — does NOT update prescription) ──
   const logTodayWeight = async () => {
-    const w = Number(logWeightInput.trim());
+    const originalWeight = parseMeasurementNumber(logWeightInput);
+    const w = parseWeightToLbs(logWeightInput, logWeightSystem);
     if (!w || w <= 0) return;
     setLogWeightSaving(true);
     try {
@@ -1373,7 +1390,7 @@ export default function MyBiometrics() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ metric: "weight", value: w, unit: "lb", localDate }),
+        body: JSON.stringify({ metric: "weight", value: originalWeight, unit: logWeightSystem === "metric" ? "kg" : "lb", localDate }),
       });
       if (!res.ok) throw new Error("Save failed");
 
@@ -1407,19 +1424,19 @@ export default function MyBiometrics() {
   // Review-macros nudge: appears when the entered log weight differs from the
   // prescription baseline by ≥ 3 lb.  Reads MacroCalculator localStorage settings.
   const reviewMacrosNudge = useMemo<string | null>(() => {
-    const w = Number(logWeightInput.trim());
+    const w = parseWeightToLbs(logWeightInput, logWeightSystem);
     if (!w || w <= 0) return null;
     try {
-      const settings = JSON.parse(localStorage.getItem("mpm_macro_settings") || "{}");
+      const settings = JSON.parse(localStorage.getItem(macroCalculatorStorageKeys(user?.id ?? null).settings) || "{}");
       const baseline = settings.weightLbs;
       if (!baseline) return null;
       const diff = Math.round(Math.abs(w - baseline));
       if (diff < 3) return null;
-      return `${diff} lb ${w < baseline ? "below" : "above"} your Macro Calculator weight`;
+      return `${convertWeightLbsDisplay(diff, measurementSystem)} ${w < baseline ? "below" : "above"} your Macro Calculator weight`;
     } catch {
       return null;
     }
-  }, [logWeightInput]);
+  }, [logWeightInput, logWeightSystem, measurementSystem, user?.id]);
 
   const bmi = useMemo(() => {
     if (!latestWeight || !body.heightIn) return undefined;
@@ -2372,12 +2389,12 @@ export default function MyBiometrics() {
                 <div className="flex items-baseline gap-3 mb-1">
                   <span className="text-2xl font-bold text-white">
                     {latestWeight
-                      ? convertWeightLbsDisplay(latestWeight, (user as any)?.measurementSystem ?? "imperial")
+                      ? convertWeightLbsDisplay(latestWeight, measurementSystem)
                       : "—"}
                   </span>
                   {weightPeriodChange !== null && (
                     <span className={`text-sm ${weightPeriodChange < 0 ? "text-emerald-400" : weightPeriodChange > 0 ? "text-orange-400" : "text-white/50"}`}>
-                      {weightPeriodChange > 0 ? "+" : ""}{weightPeriodChange} lb this period
+                      {measurementT("periodQuantity", { quantity: `${weightPeriodChange > 0 ? "+" : ""}${convertWeightLbsDisplay(weightPeriodChange, measurementSystem)}` })}
                     </span>
                   )}
                 </div>
@@ -2402,13 +2419,13 @@ export default function MyBiometrics() {
                           return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
                         }}
                       />
-                      <YAxis tick={{ fontSize: 10, fill: "#fff" }} domain={["auto", "auto"]} />
+                      <YAxis tick={{ fontSize: 10, fill: "#fff" }} domain={["auto", "auto"]} tickFormatter={v => convertWeightLbsDisplay(Number(v), measurementSystem)} />
                       <Tooltip
                         contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid #333", color: "#fff", borderRadius: 8 }}
                         labelFormatter={(l) => new Date(l + "T12:00:00").toLocaleDateString()}
-                        formatter={(v: any) => [`${v} lb`, "Weight"]}
+                        formatter={(v: any) => [convertWeightLbsDisplay(Number(v), measurementSystem), "Weight"]}
                       />
-                      <Line type="monotone" dataKey="weightAvg" stroke="#10b981" dot={false} name="Weight (lb)" connectNulls={false} />
+                      <Line type="monotone" dataKey="weightAvg" stroke="#10b981" dot={false} name={measurementT("weightLabel", { unit: metricDisplay ? "kg" : "lb" })} connectNulls={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -2421,13 +2438,15 @@ export default function MyBiometrics() {
                   <div className="flex gap-2 items-center">
                     <Input
                       inputMode="decimal"
-                      placeholder="lbs"
+                      placeholder={logWeightUnit}
+                      aria-label={measurementT("weightLabel", { unit: logWeightUnit })}
                       className="bg-black/20 border-white/20 text-white w-28"
                       value={logWeightInput}
                       onChange={(e) => setLogWeightInput(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && logTodayWeight()}
                       data-testid="input-log-weight"
                     />
+                    <span className="text-white/70 text-xs">{logWeightUnit}</span>
                     <PillButton
                       id="save-weight-button"
                       data-testid="biometrics-save-weight-button"
@@ -2464,7 +2483,7 @@ export default function MyBiometrics() {
                   {latestWeight && (
                     <Summary
                       label="Weight"
-                      value={convertWeightLbsDisplay(latestWeight, (user as any)?.measurementSystem ?? "imperial")}
+                      value={convertWeightLbsDisplay(latestWeight, measurementSystem)}
                     />
                   )}
                   {bmi && bmiCategory && (
@@ -2481,11 +2500,11 @@ export default function MyBiometrics() {
                 {/* Current value + period delta */}
                 <div className="flex items-baseline gap-3 mb-1">
                   <span className="text-2xl font-bold text-white">
-                    {latestWaist ? `${latestWaist}"` : "—"}
+                    {latestWaist ? convertLengthDisplay(latestWaist, "in", measurementSystem) : "—"}
                   </span>
                   {waistPeriodChange !== null && (
                     <span className={`text-sm ${waistPeriodChange < 0 ? "text-emerald-400" : waistPeriodChange > 0 ? "text-orange-400" : "text-white/50"}`}>
-                      {waistPeriodChange > 0 ? "+" : ""}{waistPeriodChange}" this period
+                      {measurementT("periodQuantity", { quantity: `${waistPeriodChange > 0 ? "+" : ""}${convertLengthDisplay(waistPeriodChange, "in", measurementSystem)}` })}
                     </span>
                   )}
                 </div>
@@ -2508,13 +2527,13 @@ export default function MyBiometrics() {
                             return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
                           }}
                         />
-                        <YAxis tick={{ fontSize: 10, fill: "#fff" }} domain={["auto", "auto"]} />
+                        <YAxis tick={{ fontSize: 10, fill: "#fff" }} domain={["auto", "auto"]} tickFormatter={v => convertLengthDisplay(Number(v), "in", measurementSystem)} />
                         <Tooltip
                           contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid #333", color: "#fff", borderRadius: 8 }}
                           labelFormatter={(l) => new Date(l + "T12:00:00").toLocaleDateString()}
-                          formatter={(v: any) => [`${v}"`, "Waist"]}
+                          formatter={(v: any) => [convertLengthDisplay(Number(v), "in", measurementSystem), "Waist"]}
                         />
-                        <Line type="monotone" dataKey="metricAvg" stroke="#f97316" dot={false} name='Waist (in)' connectNulls={false} />
+                        <Line type="monotone" dataKey="metricAvg" stroke="#f97316" dot={false} name={measurementT("waistLabel", { unit: metricDisplay ? "cm" : "in" })} connectNulls={false} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -2537,7 +2556,7 @@ export default function MyBiometrics() {
                 {/* Summary */}
                 {(latestWaist || whr) && (
                   <div className="grid grid-cols-2 gap-3 text-sm mt-4">
-                    {latestWaist && <Summary label="Waist" value={`${latestWaist}"`} />}
+                    {latestWaist && <Summary label="Waist" value={convertLengthDisplay(latestWaist, "in", measurementSystem)} />}
                     {whr && <Summary label="Waist/Height" value={whr} />}
                   </div>
                 )}

@@ -33,6 +33,7 @@ import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { PillButton } from "@/components/ui/pill-button";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { SavedProductAnalysisAction } from "./SavedProductAnalysisAction";
+import { ProductLabelQuantity } from "@/components/ProductLabelQuantity";
 
 interface SavedGroceryItemMeta extends SavedRecommendationMetadata {
   [key: string]: any;
@@ -600,7 +601,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
       result={buildResultFromSavedItem(displayedItem!)}
       savedContext={<section className="rounded-xl border border-white/20 p-3 my-3 text-sm space-y-2">
         <p>{savedAnalysisKind(displayedItem!) === "full" ? "Analysis saved" : savedAnalysisKind(displayedItem!) === "recommendation" ? "Recommendation saved" : "Saved product — original analysis may be unavailable"}</p>
-        {itemPackageSize(displayedItem!) && <p>Package: {itemPackageSize(displayedItem!)}</p>}
+        {itemPackageSize(displayedItem!) && <p>Package: <ProductLabelQuantity label={itemPackageSize(displayedItem!)} /></p>}
         <p>{savedProductStatus(analysisItem)}</p>
         {analysisItem.compliance.reason && <p>{analysisItem.compliance.reason}</p>}
         <p>Saving analysis does not verify the current label. Historical analysis is not current safety approval.</p>

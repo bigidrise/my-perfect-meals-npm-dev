@@ -1,3 +1,4 @@
+import { resolveLanguagePreference } from "@/i18n/languagePreference";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -653,22 +654,22 @@ export default function DemoPhysicianWorkspace({ fallback }: { fallback?: ReactN
           </label>
           <label className="text-xs font-semibold text-white/75">
             Preferred language
-            <select value={editLanguage} onChange={event => setEditLanguage(event.target.value)} className="mt-1.5 min-h-10 w-full rounded-lg border border-white/20 bg-[#211b18] px-3 text-sm text-white outline-none focus:border-orange-200/70">
+            <select value={editLanguage === "auto" ? "auto" : resolveLanguagePreference(editLanguage)} onChange={event => setEditLanguage(event.target.value)} className="mt-1.5 min-h-10 w-full rounded-lg border border-white/20 bg-[#211b18] px-3 text-sm text-white outline-none focus:border-orange-200/70">
               <option value="auto">Automatic</option>
               <option value="en">English</option>
               <option value="es">Español</option>
-              <option value="fr">Français</option>
-              <option value="de">Deutsch</option>
-              <option value="it">Italiano</option>
-              <option value="pt">Português</option>
-              <option value="zh">中文</option>
-              <option value="ja">日本語</option>
-              <option value="ko">한국어</option>
-              <option value="hi">हिन्दी</option>
-              <option value="ru">Русский</option>
-              <option value="vi">Tiếng Việt</option>
-              <option value="tl">Filipino</option>
-              <option value="ar">العربية</option>
+              <option hidden disabled value="fr">Français</option>
+              <option hidden disabled value="de">Deutsch</option>
+              <option hidden disabled value="it">Italiano</option>
+              <option hidden disabled value="pt">Português</option>
+              <option hidden disabled value="zh">中文</option>
+              <option hidden disabled value="ja">日本語</option>
+              <option hidden disabled value="ko">한국어</option>
+              <option hidden disabled value="hi">हिन्दी</option>
+              <option hidden disabled value="ru">Русский</option>
+              <option hidden disabled value="vi">Tiếng Việt</option>
+              <option hidden disabled value="tl">Filipino</option>
+              <option hidden disabled value="ar">العربية</option>
             </select>
           </label>
           <div className="flex flex-wrap items-center gap-2 sm:col-span-3">

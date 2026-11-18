@@ -3,11 +3,16 @@ export const LANGUAGE_PREFERENCE_KEY = "mpm.ui.languagePreference";
 export const SUPPORTED_UI_LANGUAGES = [
   "en", "es", "fr", "de", "it", "pt", "zh", "ja", "ko", "ar", "hi", "ru", "vi", "tl",
 ] as const;
+/** Release availability only. Keep the full definitions/resources for later activation. */
+export const CUSTOMER_UI_LANGUAGES = ["en", "es"] as const;
+export function isCustomerLanguage(value: string): value is typeof CUSTOMER_UI_LANGUAGES[number] {
+  return (CUSTOMER_UI_LANGUAGES as readonly string[]).includes(value);
+}
 
 export function normalizeLanguagePreference(value: string | null | undefined): string {
   if (!value || value === "auto" || value === "null") return "auto";
   const base = value.split("-")[0].toLowerCase();
-  return (SUPPORTED_UI_LANGUAGES as readonly string[]).includes(base) ? base : "auto";
+  return (SUPPORTED_UI_LANGUAGES as readonly string[]).includes(base) ? base : "en";
 }
 
 export function readLanguagePreference(): string {
@@ -32,7 +37,7 @@ export function resolveLanguagePreference(
   deviceLanguage = typeof navigator === "undefined" ? "en" : navigator.language,
 ): string {
   const normalized = normalizeLanguagePreference(preference);
-  if (normalized !== "auto") return normalized;
+  if (normalized !== "auto") return isCustomerLanguage(normalized) ? normalized : "en";
   const base = (deviceLanguage || "en").split("-")[0].toLowerCase();
-  return (SUPPORTED_UI_LANGUAGES as readonly string[]).includes(base) ? base : "en";
+  return isCustomerLanguage(base) ? base : "en";
 }

@@ -17,7 +17,11 @@ import { onboardingWelcomeEligible } from "@/lib/onboardingWelcomeEligibility";
 import { useConsumerOncologySelection } from "@/components/OncologySymptomSelector";
 import { OncologySymptomDialog, OncologySymptomSummary } from "@/components/OncologySymptomDialog";
 import { oncologyDevelopmentReviewEnabled } from "@/lib/oncologyDevelopmentGate";
-import { getAuthHeaders } from "@/lib/auth";
+import { getAuthHeaders, getCurrentUser } from "@/lib/auth";
+import { measurementPreference, type MeasurementPreference } from "@shared/units";
+import { saveMeasurementPreferences } from "@/lib/measurementPreferences";
+import { MeasurementPreferencesControls } from "@/components/profile/MeasurementPreferencesControls";
+import { useTranslation as useMeasurementTranslation } from "react-i18next";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { useToast } from "@/hooks/use-toast";
 import { PillButton } from "@/components/ui/pill-button";
@@ -177,6 +181,7 @@ function AccountOnboardingV3() {
   const [oncologySymptomsOpen, setOncologySymptomsOpen] = useState(false);
   const { toast } = useToast();
   const { t } = useTranslation("onboarding");
+  const { t: measurementT } = useMeasurementTranslation("measurementPreferences");
 
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
@@ -216,7 +221,7 @@ function AccountOnboardingV3() {
   const [dietaryStyle, setDietaryStyle] = useState("");
   const [customDietInput, setCustomDietInput] = useState("");
   const [countryCode, setCountryCode] = useState<string>("US");
-  const [measurementSystem, setMeasurementSystem] = useState<"imperial" | "metric">("imperial");
+  const [measurementSystem, setMeasurementSystem] = useState<MeasurementPreference>("auto");
   const nutritionPriorities = useAdultNutritionPriorities(user?.id);
 
   const progress = (step / TOTAL_STEPS) * 100;
@@ -279,7 +284,7 @@ function AccountOnboardingV3() {
     }
     if (user.cuisinePreference) setCuisinePreference(user.cuisinePreference);
     if (user.preferredBuilder) setSelectedBuilder(user.preferredBuilder);
-    if ((user as any).measurementSystem) setMeasurementSystem((user as any).measurementSystem);
+    setMeasurementSystem(measurementPreference(user.measurementSystem));
     if ((user as any).countryCode) setCountryCode((user as any).countryCode);
   }, [user]);
 
@@ -504,13 +509,15 @@ function AccountOnboardingV3() {
           }, "cuisine");
           break;
         case 10:
-          // Non-blocking — saves measurement preference; failure does not block step advance
-          fetch(apiUrl("/api/user/preferences"), {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-            body: JSON.stringify({ measurementSystem, countryCode }),
-          }).catch((err) => {
-            captureException(err, { step: "measurement_preference", measurementSystem, countryCode });
+          await saveMeasurementPreferences({ measurementSystem, countryCode, accountId: user!.id }, {
+            request: payload => fetchWithTimeout(apiUrl("/api/user/preferences"), {
+              method: "PATCH", credentials: "include",
+              headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+              body: JSON.stringify(payload),
+            }),
+            refresh: refreshUser,
+            isCurrentAccount: () => getCurrentUser()?.id === user?.id,
+            message: key => key === "saveFailed" ? measurementT("saveFailed") : measurementT("refreshFailed"),
           });
           break;
       }
@@ -1358,49 +1365,8 @@ function AccountOnboardingV3() {
             </div>
 
             <div className="max-w-sm mx-auto space-y-4">
-              <div className="space-y-2">
-                <p className="text-white/80 text-sm font-medium">{t("Country")}</p>
-                <div className="flex flex-wrap gap-2">
-                  {([
-                    { label: "🇺🇸 United States", value: "US" },
-                    { label: "🇨🇦 Canada", value: "CA" },
-                    { label: "🇦🇺 Australia", value: "AU" },
-                    { label: "🇬🇧 United Kingdom", value: "UK" },
-                    { label: "🇳🇿 New Zealand", value: "NZ" },
-                  ] as const).map((c) => (
-                    <PillButton
-                      key={c.value}
-                      active={countryCode === c.value}
-                      onClick={() => {
-                        setCountryCode(c.value);
-                        if (c.value !== "US") setMeasurementSystem("metric");
-                        else setMeasurementSystem("imperial");
-                      }}
-                    >
-                      {t(c.label)}
-                    </PillButton>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-white/80 text-sm font-medium">{t("Measurement System")}</p>
-                <p className="text-white/50 text-xs">{t("Controls units in your meals, shopping list, and biometrics.")}</p>
-                <div className="flex gap-2">
-                  <PillButton
-                    active={measurementSystem === "imperial"}
-                    onClick={() => setMeasurementSystem("imperial")}
-                  >
-                    {t("🇺🇸 Imperial (oz, lbs, cups)")}
-                  </PillButton>
-                  <PillButton
-                    active={measurementSystem === "metric"}
-                    onClick={() => setMeasurementSystem("metric")}
-                  >
-                    {t("🌍 Metric (g, kg, ml)")}
-                  </PillButton>
-                </div>
-              </div>
+              <MeasurementPreferencesControls value={measurementSystem} country={countryCode}
+                onChange={setMeasurementSystem} onCountryChange={setCountryCode} disabled={saving} />
 
               <div className="rounded-xl border border-orange-500/20 bg-orange-950/20 p-3 text-xs text-white/60">
                 {t("You can always change this later in your profile settings.")}

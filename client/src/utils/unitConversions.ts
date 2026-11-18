@@ -1,5 +1,6 @@
 
 import { INGREDIENT_MACROS } from "@/data/ingredients.nutrition";
+import { convertServingDisplay, type MeasurementSystem } from "@shared/units";
 
 // Convert oz to grams (weight)
 const ozToGrams = (oz: number) => Math.round(oz * 28.35);
@@ -146,12 +147,12 @@ function convertMetricToUS(rawAmount: string | number, rawUnit: string, itemName
 export function formatIngredientWithGrams(
   amount: string | number,
   unit: string,
-  item: string
+  item: string,
+  system: MeasurementSystem = "imperial",
 ): string {
   if (!amount || !unit) {
     return `${amount || ''} ${unit || ''} ${item}`.trim();
   }
 
-  const { amount: displayAmount, unit: displayUnit } = convertMetricToUS(amount, unit, item);
-  return `${displayAmount} ${displayUnit} ${item}`;
+  return `${convertServingDisplay(amount, unit, system)} ${item}`;
 }

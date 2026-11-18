@@ -40,7 +40,8 @@ import { readOtherItems, addOtherItem } from "@/stores/otherItemsStore";
 import { GROCERY_RETAILERS, type GroceryRetailerId } from "@/lib/groceryRetailers";
 import GroceryExportModal from "@/components/shopping/GroceryExportModal";
 import { formatQuantity } from "@/lib/formatQuantity";
-import { convertServingDisplay } from "@shared/units";
+import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
+import { parseMeasurementNumber } from "@shared/units";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
@@ -102,7 +103,7 @@ export default function ShoppingListMasterView() {
   const categoryLabels = useFoodCategoryLabels();
   const { user } = useAuth();
   const { requestUpgrade } = useUpgradeModal();
-  const measurementSystem = ((user as any)?.measurementSystem ?? "imperial") as "imperial" | "metric";
+  const measurementSystem = useMeasurementSystem();
   const entitlements: string[] = (user as any)?.entitlements || [];
   const hasGroceryCoachAccess =
     entitlements.includes("grocery_coach") || entitlements.includes("FULL_ACCESS");
@@ -363,12 +364,12 @@ export default function ShoppingListMasterView() {
       ids: row.allIds,
       sessionKey: productPickerSessionKey,
       ingredient,
-      quantityLabel: formatQuantity(row.quantity, row.unit),
+      quantityLabel: formatQuantity(row.quantity, row.unit, measurementSystem),
       currentSelection: row.ingredientMetadata?.selectedProduct
         ? { ingredient, product: row.ingredientMetadata.selectedProduct }
         : null,
     });
-  }, [productPickerEnabled, hasProductPickerAccess, requestUpgrade, productPickerSessionKey]);
+  }, [productPickerEnabled, hasProductPickerAccess, requestUpgrade, productPickerSessionKey, measurementSystem]);
 
   const commitProductChoice = useCallback(async (selection: ShoppingProductSelection | null) => {
     const target = productPickerTarget;
@@ -432,16 +433,20 @@ export default function ShoppingListMasterView() {
     (id: string, field: "quantity" | "unit" | "name" | "notes") => {
       return (e: React.ChangeEvent<HTMLInputElement>) => {
         const v =
-          field === "quantity" ? Number(e.target.value) : e.target.value;
+          field === "quantity" ? parseMeasurementNumber(e.target.value) : e.target.value;
+        if (field === "quantity" && (v === null || Number(v) < 0)) {
+          toast({ title: t("Qty"), description: t("measurementPreferences:invalidQuantity"), variant: "destructive" });
+          return;
+        }
         updateItem(
           id,
           field === "quantity"
-            ? { quantity: Number.isFinite(v as number) ? (v as number) : 1 }
+            ? { quantity: v as number }
             : { [field]: v },
         );
       };
     },
-    [updateItem],
+    [updateItem, toast, t],
   );
 
   const onClearChecked = useCallback(() => {
@@ -475,7 +480,7 @@ export default function ShoppingListMasterView() {
       .filter((i) => !i.isChecked)
       .map(
         (i) =>
-          `• ${i.name}${i.quantity ? ` — ${formatQuantity(i.quantity, i.unit)}` : ""}`,
+          `• ${i.name}${i.quantity ? ` — ${formatQuantity(i.quantity, i.unit, measurementSystem)}` : ""}`,
       );
 
     const otherItems = readOtherItems()
@@ -1073,12 +1078,10 @@ export default function ShoppingListMasterView() {
                             onBlur={onInlineEdit(item.id, "quantity")}
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {
-                                const val = Number(
+                                const val = parseMeasurementNumber(
                                   (e.target as HTMLInputElement).value,
                                 );
-                                updateItem(item.id, {
-                                  quantity: Number.isFinite(val) ? val : 1,
-                                });
+                                if (val !== null && val >= 0) updateItem(item.id, { quantity: val });
                               }
                             }}
                             className="w-16 bg-black/30 border-white/30 text-white h-8"

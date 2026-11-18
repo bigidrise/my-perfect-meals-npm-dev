@@ -1,3 +1,4 @@
+import { MeasurementQuantity } from "@/components/MeasurementQuantity";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { createPortal } from "react-dom";
@@ -1762,7 +1763,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                                     <div key={`${SESSION_KEY}:${JSON.stringify(result)}:${i}`} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 14, padding: "2px 0" }}>
                                       <span style={{ color: "rgba(255,255,255,0.85)", lineHeight: 1.3, flex: 1, minWidth: 0 }}>{s.item}</span>
                                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                                        <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 12 }}>{s.quantity} {s.unit}</span>
+                                        <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 12 }}><MeasurementQuantity amount={s.quantity} unit={s.unit} /></span>
                                         <button
                                           onClick={() => handleSwapRequest(s)}
                                           title={t("Replace {{item}}", { item: s.item })}
@@ -1841,7 +1842,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                       {result.ownedIngredients.map((o, i) => (
                         <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 13 }}>
                           <span style={{ color: "rgba(255,255,255,0.55)", lineHeight: 1.3 }}>{o.item}</span>
-                          <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, flexShrink: 0 }}>{o.quantity} {o.unit}</span>
+                          <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, flexShrink: 0 }}><MeasurementQuantity amount={o.quantity} unit={o.unit} /></span>
                         </div>
                       ))}
                     </div>
@@ -2398,7 +2399,7 @@ function SwapOptionCard({
         <span style={{ color: "white", fontWeight: 600, fontSize: 14 }}>{suggestion.item}</span>
         {suggestion.quantity && (
           <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
-            · {suggestion.quantity}{suggestion.unit ? ` ${suggestion.unit}` : ""}
+            · <MeasurementQuantity amount={suggestion.quantity} unit={suggestion.unit} />
           </span>
         )}
       </div>

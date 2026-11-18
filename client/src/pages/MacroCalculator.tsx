@@ -131,6 +131,8 @@ import { isGuestMode, markMacrosCompleted } from "@/lib/guestMode";
 import { getCurrentUser } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
+import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
+import { restoreBodyMeasurementDraft } from "@/lib/units";
 
 type Goal = "loss" | "maint" | "gain" | "contest_prep";
 type Sex = "male" | "female";
@@ -727,7 +729,7 @@ function ClinicalCategoryReasoningList({ categories }: { categories: string[] })
 
 export default function MacroCounter() {
   const { user } = useAuth();
-  return <AccountMacroCounter key={IS_DEVELOPMENT ? user?.id ?? "awaiting-account" : "calculator"} />;
+  return <AccountMacroCounter key={user?.id ?? "awaiting-account"} />;
 }
 
 function AccountMacroCounter() {
@@ -735,6 +737,7 @@ function AccountMacroCounter() {
   const { toast } = useToast();
   const { t } = useTranslation("macroCalc");
   const { user, refreshUser } = useAuth();
+  const accountMeasurementSystem = useMeasurementSystem();
   const { activeProfileId: guidedHouseholdProfileId } = useHousehold();
   const [isSaving, setIsSaving] = useState(false);
   const [isApplyingOverlay, setIsApplyingOverlay] = useState(false);
@@ -750,7 +753,7 @@ function AccountMacroCounter() {
     && !user.studioMembership && !user.hasStudioMembership && !isProSession
     && (!guidedHouseholdProfileId || guidedHouseholdProfileId === user.id);
   const savedMacroSetup = useSavedMacroSetup(setupGuideEnabled ? user!.id : null);
-  const calculatorDraftAccountId = setupGuideEnabled ? user!.id : null;
+  const calculatorDraftAccountId = user?.id ?? null;
   const calculatorStorageKeys = macroCalculatorStorageKeys(calculatorDraftAccountId);
   useEffect(() => {
     if (savedMacroSetup.error) toast({
@@ -771,7 +774,7 @@ function AccountMacroCounter() {
       if (saved) {
         const parsed = JSON.parse(saved);
         console.log("📥 Loaded macro settings:", parsed);
-        return parsed;
+        return restoreBodyMeasurementDraft(parsed);
       }
     } catch (error) {
       console.error("Failed to load macro settings:", error);
@@ -790,7 +793,7 @@ function AccountMacroCounter() {
     (savedSettings?.userType as UserType) ?? "flexible",
   );
   const [units, setUnits] = useState<Units>(
-    savedSettings?.units ?? ((user as any)?.measurementSystem as Units) ?? "imperial"
+    accountMeasurementSystem
   );
   const [sex, setSex] = useState<Sex>(savedSettings?.sex ?? "female");
   const [age, setAge] = useState<number>(savedSettings?.age ?? 30);
@@ -815,6 +818,25 @@ function AccountMacroCounter() {
   const [waistCm, setWaistCm] = useState<number>(
     savedSettings?.waistCm ?? 0,
   );
+  const changeInputUnits = (nextUnits: Units) => {
+    if (nextUnits === units) return;
+    const draft = restoreBodyMeasurementDraft({
+      units, weightLbs, weightKg, heightFt, heightIn, heightCm, waistIn, waistCm,
+    });
+    setWeightLbs(draft.weightLbs);
+    setWeightKg(draft.weightKg);
+    setHeightFt(draft.heightFt);
+    setHeightIn(draft.heightIn);
+    setHeightCm(draft.heightCm);
+    setWaistIn(draft.waistIn);
+    setWaistCm(draft.waistCm);
+    setUnits(nextUnits);
+  };
+  useEffect(() => {
+    changeInputUnits(accountMeasurementSystem);
+  // The account preference, not local draft edits, triggers this synchronization.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountMeasurementSystem]);
   const [activity, setActivity] = useState<ActivityLevel | "">(
     savedSettings?.activity ?? "sedentary",
   );
@@ -2107,7 +2129,7 @@ function AccountMacroCounter() {
                     <div className="grid grid-cols-2 gap-3">
                       <div
                         onClick={() => {
-                          setUnits("imperial");
+                          changeInputUnits("imperial");
                           advanceGuided("sex");
                         }}
                         className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${units === "imperial" ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
@@ -2116,7 +2138,7 @@ function AccountMacroCounter() {
                       </div>
                       <div
                         onClick={() => {
-                          setUnits("metric");
+                          changeInputUnits("metric");
                           advanceGuided("sex");
                         }}
                         className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${units === "metric" ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
@@ -3820,7 +3842,7 @@ function AccountMacroCounter() {
                       <RadioGroup
                         data-wt="mc-units-toggle"
                         value={units}
-                        onValueChange={(v: Units) => setUnits(v)}
+                        onValueChange={(v: Units) => changeInputUnits(v)}
                         className="grid grid-cols-2 gap-2"
                       >
                         {(["imperial", "metric"] as const).map((u) => (
@@ -3838,7 +3860,7 @@ function AccountMacroCounter() {
                               value={u}
                               className="sr-only"
                             />
-                            {u === "imperial" ? "US / Imperial" : "Metric"}
+                            {u === "imperial" ? t("measurementPreferences:imperial") : t("measurementPreferences:metric")}
                           </Label>
                         ))}
                       </RadioGroup>
