@@ -3220,7 +3220,8 @@ function LibraryItem({
           >
             <div className="mt-1 p-4 bg-black/40 rounded-xl border border-white/10">
               <div className="flex items-center justify-between mb-4">
-                <div className="flex gap-2">
+                {/* Retain both controls and handlers for a future release; hide only this control group. */}
+                <div className="flex gap-2" hidden style={{ display: "none" }}>
                   <PillButton
                     onClick={() => handleModeChange("read")}
                     active={mode === "read"}

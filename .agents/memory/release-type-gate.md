@@ -49,6 +49,17 @@ Literal-union ordering inside a compiler error message can change even when the 
 
 **How to apply:** Compare complete diagnostic output and source history when attributing a fingerprint delta. Distinguish the real additional error from message-format drift, but keep the raw gate and baseline intact. Do not edit unrelated legacy behavior merely to force a particular diagnostic display order.
 
+When pairing identical diagnostic messages across snapshots, preserve
+multiplicities and match independently diff-mapped source positions, not the
+lexical ordering of compiler output.
+
+**Why:** Duplicate legacy errors at line 112 sort before line 40; pairing their
+normalized messages by output order falsely appeared to move unrelated errors.
+
+**How to apply:** Prove unchanged source lines and old-to-current positions for
+every duplicate before treating a fingerprint change as location-only. This
+comparison must never normalize or weaken the actual release gate.
+
 ## AI smoke-test gate (section 7 of release-check.sh)
 
 ## Interrupted-check lock boundary

@@ -154,3 +154,4 @@
 - [Meal-card presentation](meal-card-presentation-policy.md) — compact outlined meal deletion with red icons before hover; expanded Create a Dish puts controls above the full wrapping title.
 - [Clinical protocol repair governance](clinical-protocol-repair-governance.md) — all 17 conditions; preserve existing indicators and physician restrictions without treating ordinary trainer enrollment as authority.
 - [Restaurant cuisine correction](restaurant-cuisine-fidelity-boundary.md) — Development-only pending review; saved guidance, explicit cuisine, restaurant evidence and display language stay separate.
+- [Measurement preference authority](measurement-preference-authority.md) — country-based Auto and manual units stay independent of language; display changes never rewrite canonical data or product evidence.
