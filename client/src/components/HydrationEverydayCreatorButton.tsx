@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { createHydrationHandoff } from "@/lib/hydrationApi";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 /** Shared direct entry: choosing a barrier is never required to open the Creator. */
 export default function HydrationEverydayCreatorButton({
@@ -13,6 +14,7 @@ export default function HydrationEverydayCreatorButton({
   className?: string;
   testId?: string;
 }) {
+  const { t } = useConsumerCopy();
   const { toast } = useToast();
   const inFlight = useRef(false);
   const [opening, setOpening] = useState(false);
@@ -31,9 +33,9 @@ export default function HydrationEverydayCreatorButton({
       if (!handoff.token) throw new Error("The Hydration handoff was unavailable.");
       navigate(`/lifestyle/beverage-creator?${new URLSearchParams({ hydrationHandoff: handoff.token })}`);
     } catch (failure) {
-      const detail = failure instanceof Error ? failure.message.replace(/^\d+:\s*/, "") : "Please try again.";
-      setError(`Could not open the Creator. ${detail}`);
-      toast({ title: "Could not open the Creator", description: detail, variant: "destructive" });
+      const detail = failure instanceof Error ? failure.message.replace(/^\d+:\s*/, "") : t("Please try again.");
+      setError(t("Could not open the Creator. {{detail}}", { detail }));
+      toast({ title: t("Could not open the Creator"), description: detail, variant: "destructive" });
     } finally {
       inFlight.current = false;
       setOpening(false);
@@ -43,7 +45,7 @@ export default function HydrationEverydayCreatorButton({
   return (
     <div>
       <Button onClick={() => void open()} disabled={opening} aria-busy={opening} className={className} data-testid={testId}>
-        {opening ? "Opening Creator…" : "Create a Hydration Beverage"}
+        {opening ? t("Opening Creator…") : t("Create a Hydration Beverage")}
       </Button>
       {error && <p role="alert" className="mt-2 text-sm text-rose-200">{error}</p>}
     </div>

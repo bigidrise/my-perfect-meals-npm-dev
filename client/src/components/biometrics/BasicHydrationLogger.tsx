@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { PillButton } from "@/components/ui/pill-button";
 import { useToast } from "@/hooks/use-toast";
 import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { useHydrationChoiceLabels } from "@/i18n/useConsumerChoiceLabels";
 import { parseMeasurementNumber } from "@shared/units";
 import {
   createWaterLog,
@@ -32,7 +33,9 @@ export function BasicHydrationLogger({ userId }: { userId: string }) {
 }
 
 function AccountBasicHydrationLogger({ userId }: { userId: string }) {
-  const { t } = useTranslation("measurementPreferences");
+  const { t } = useConsumerCopy("measurementPreferences");
+  const { beverages } = useHydrationChoiceLabels();
+  const beverageLabels = { ...beverages, water: t("Water") } as Record<string, string>;
   const { toast } = useToast();
   const system = useMeasurementSystem();
   const [amount, setAmount] = useState(system === "metric" ? String(8 * ML_PER_OUNCE) : "8");
@@ -64,7 +67,7 @@ function AccountBasicHydrationLogger({ userId }: { userId: string }) {
       setItems(page.items);
       setLocalDate(page.localDate);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message.replace(/^\d+:\s*/, "") : "Hydration history is unavailable.");
+      setError(loadError instanceof Error ? loadError.message.replace(/^\d+:\s*/, "") : t("Hydration history is unavailable."));
     } finally {
       setLoading(false);
     }
@@ -86,8 +89,8 @@ function AccountBasicHydrationLogger({ userId }: { userId: string }) {
     const numericAmount = parseMeasurementNumber(amount);
     if (numericAmount === null || numericAmount <= 0) {
       toast({
-        title: "Enter a fluid amount",
-        description: "Use a number greater than zero.",
+        title: t("Enter a fluid amount"),
+        description: t("Use a number greater than zero."),
         variant: "destructive",
       });
       return;
@@ -97,13 +100,13 @@ function AccountBasicHydrationLogger({ userId }: { userId: string }) {
       await createWaterLog({ amount: numericAmount, unit, beverageClass });
       await load();
       toast({
-        title: "Fluid logged",
-        description: `${numericAmount} ${unit} was added to Basic Hydration Tracking.`,
+        title: t("Fluid logged"),
+        description: t("{{amount}} {{unit}} was added to Basic Hydration Tracking.", { amount: numericAmount, unit }),
       });
     } catch (saveError) {
       toast({
-        title: "Could not log fluid",
-        description: saveError instanceof Error ? saveError.message.replace(/^\d+:\s*/, "") : "Please try again.",
+        title: t("Could not log fluid"),
+        description: saveError instanceof Error ? saveError.message.replace(/^\d+:\s*/, "") : t("Please try again."),
         variant: "destructive",
       });
     } finally {
@@ -119,14 +122,14 @@ function AccountBasicHydrationLogger({ userId }: { userId: string }) {
         <div>
           <div className="flex items-center gap-2">
             <Droplets className="h-5 w-5 text-sky-300" />
-            <h3 className="font-semibold text-white">Basic Hydration Tracking</h3>
+            <h3 className="font-semibold text-white">{t("Basic Hydration Tracking")}</h3>
           </div>
           <p className="mt-1 text-sm text-white/80">
-            Log fluids here on any plan. Pro adds personalized hydration intelligence.
+            {t("Log fluids here on any plan. Pro adds personalized hydration intelligence.")}
           </p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-xs uppercase tracking-wide text-white/70">Today</p>
+          <p className="text-xs uppercase tracking-wide text-white/70">{t("Today")}</p>
           <p className="text-lg font-bold text-white" data-testid="basic-hydration-total">
             {loading ? "—" : totalDisplay}
           </p>
@@ -134,7 +137,7 @@ function AccountBasicHydrationLogger({ userId }: { userId: string }) {
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2" aria-label="Fluid type">
+      <div className="mt-4 flex flex-wrap gap-2" aria-label={t("Fluid type")}>
         {BEVERAGES.map(([value, label]) => (
           <PillButton
             key={value}
@@ -144,7 +147,7 @@ function AccountBasicHydrationLogger({ userId }: { userId: string }) {
             onClick={() => setBeverageClass(value)}
             data-testid={`basic-hydration-beverage-${value}`}
           >
-            {label}
+            {beverageLabels[value] ?? label}
           </PillButton>
         ))}
       </div>
@@ -158,10 +161,10 @@ function AccountBasicHydrationLogger({ userId }: { userId: string }) {
           value={amount}
           onChange={(event) => setAmount(event.target.value)}
           className="min-w-0 flex-1 border-white/20 bg-black/30 text-white"
-          aria-label="Fluid amount"
+          aria-label={t("Fluid amount")}
           data-testid="basic-hydration-amount"
         />
-        <div className="flex gap-1" aria-label="Fluid unit">
+        <div className="flex gap-1" aria-label={t("Fluid unit")}>
           {(["oz", "ml"] as const).map((value) => (
             <PillButton
               key={value}
@@ -182,7 +185,7 @@ function AccountBasicHydrationLogger({ userId }: { userId: string }) {
           className="shrink-0 bg-sky-600 text-white active:bg-sky-500"
           data-testid="basic-hydration-submit"
         >
-          {saving ? "Logging…" : "Log fluid"}
+          {saving ? t("Logging…") : t("Log fluid")}
         </Button>
       </div>
 

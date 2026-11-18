@@ -51,7 +51,10 @@ import PerformanceNutritionSetupForm from "@/components/performance/PerformanceN
 import { getTodayISOSafe } from "@/utils/midnight";
 import { BouncingDots } from "@/components/ui/bouncing-dots";
 import type { MyPerfectMenuSnackType } from "@shared/myPerfectMenu";
-import { getMyPerfectMenuSlotGuidance, getMyPerfectMenuSlotInstruction } from "@/lib/myPerfectMenuSlotGuidance";
+import { getMyPerfectMenuSlotGuidance } from "@/lib/myPerfectMenuSlotGuidance";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { useMenuDisplayCopy } from "@/i18n/useMenuDisplayCopy";
+import { isDevelopmentRuntime } from "@/lib/developmentRuntimeFlag";
 
 type IdeaType = "breakfast" | "lunch" | "dinner" | "snack";
 
@@ -92,18 +95,21 @@ function responseError(response: Response, payload: any, fallback: string): Erro
   return new Error(payload?.error || fallback);
 }
 
-const IDEA_TYPES: Array<{
+function useIdeaTypes(): Array<{
   value: IdeaType;
   title: string;
   description: string;
   icon: typeof Coffee;
   color: string;
-}> = [
-  { value: "breakfast", title: "Breakfast Ideas", description: "Comforting, energizing ways to start any meal.", icon: Coffee, color: "from-amber-500/25 to-orange-950/20" },
-  { value: "lunch", title: "Lunch Ideas", description: "Fresh, satisfying choices for any time of day.", icon: Soup, color: "from-emerald-500/25 to-emerald-950/20" },
-  { value: "dinner", title: "Dinner Ideas", description: "Complete, flavorful meals without the decision fatigue.", icon: UtensilsCrossed, color: "from-violet-500/25 to-violet-950/20" },
-  { value: "snack", title: "Snack Ideas", description: "Choose food-style or dessert-style ideas.", icon: Apple, color: "from-rose-500/25 to-rose-950/20" },
-];
+}> {
+  const { t } = useConsumerCopy();
+  return [
+  { value: "breakfast", title: t("Breakfast Ideas"), description: t("Comforting, energizing ways to start any meal."), icon: Coffee, color: "from-amber-500/25 to-orange-950/20" },
+  { value: "lunch", title: t("Lunch Ideas"), description: t("Fresh, satisfying choices for any time of day."), icon: Soup, color: "from-emerald-500/25 to-emerald-950/20" },
+  { value: "dinner", title: t("Dinner Ideas"), description: t("Complete, flavorful meals without the decision fatigue."), icon: UtensilsCrossed, color: "from-violet-500/25 to-violet-950/20" },
+  { value: "snack", title: t("Snack Ideas"), description: t("Choose food-style or dessert-style ideas."), icon: Apple, color: "from-rose-500/25 to-rose-950/20" },
+  ];
+}
 
 function completedMealPayload(meal: any) {
   return {
@@ -131,7 +137,10 @@ function completedMealPayload(meal: any) {
 }
 
 export default function MyPerfectMenu() {
-  usePageTitle("My Perfect Menu");
+  const { t } = useConsumerCopy();
+  const IDEA_TYPES = useIdeaTypes();
+  const menuCopy = useMenuDisplayCopy();
+  usePageTitle(t("My Perfect Menu"));
   const [, setLocation] = useLocation();
   const search = useSearch();
   const { user } = useAuth();
@@ -284,10 +293,10 @@ export default function MyPerfectMenu() {
           setRestorationStatus("succeeded");
           return;
         }
-        if (!response.ok) throw responseError(response, payload, "We couldn't restore your menu ideas.");
+        if (!response.ok) throw responseError(response, payload, t("We couldn't restore your menu ideas."));
         const expectedSubject = subjectUserId ?? user?.id;
         if (!payload.subject?.id || payload.subject.id !== expectedSubject || !payload.builder || !payload.categories) {
-          throw new Error("We couldn't verify your saved menu ideas. Please reload.");
+          throw new Error(t("We couldn't verify your saved menu ideas. Please reload."));
         }
         setConceptSets(payload.categories ?? {});
         setPartialChoicesEnabled(payload.partialChoicesEnabled === true);
@@ -298,7 +307,7 @@ export default function MyPerfectMenu() {
       } catch (cause) {
         if (!cancelled) {
           setRestorationStatus("failed");
-          setError(cause instanceof Error ? cause.message : "We couldn't restore your menu ideas.");
+          setError(cause instanceof Error ? cause.message : t("We couldn't restore your menu ideas."));
         }
       }
     })();
@@ -320,7 +329,7 @@ export default function MyPerfectMenu() {
     selectedSnackType = snackType,
   ) => {
     if (nextType === "snack" && !selectedSnackType) {
-      setError("Choose Food Snack or Dessert Snack first.");
+      setError(t("Choose Food Snack or Dessert Snack first."));
       return;
     }
     const requestedSubject = subjectUserId ?? user?.id ?? null;
@@ -360,7 +369,7 @@ export default function MyPerfectMenu() {
             return next;
           });
         }
-        const failure = responseError(response, payload, "We couldn't create your ideas.");
+        const failure = responseError(response, payload, t("We couldn't create your ideas."));
         throw new Error(menuFailureMessage(failure.message, verifiedAvailability));
       }
       setConceptSets((current) => ({ ...current, [nextType]: payload.concepts || [] }));
@@ -368,7 +377,7 @@ export default function MyPerfectMenu() {
       if (payload.builder) setBuilderContext(payload.builder);
     } catch (cause) {
       if (subjectEpochRef.current !== requestedEpoch || subjectRef.current !== requestedSubject) return;
-      setError(cause instanceof Error ? cause.message : "We couldn't create your ideas.");
+      setError(cause instanceof Error ? cause.message : t("We couldn't create your ideas."));
     } finally {
       if (subjectEpochRef.current === requestedEpoch && subjectRef.current === requestedSubject) {
         setLoadingIdeas(false);
@@ -394,7 +403,7 @@ export default function MyPerfectMenu() {
       headers: getAuthHeaders(),
     });
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw responseError(response, payload, "We couldn't check the current food context.");
+    if (!response.ok) throw responseError(response, payload, t("We couldn't check the current food context."));
     if (
       subjectEpochRef.current !== expectedEpoch ||
       subjectRef.current !== expectedSubject ||
@@ -454,7 +463,7 @@ export default function MyPerfectMenu() {
       setPendingIdeaType(null);
       await requestIdeas(nextType, destination, selectedSnackType);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "We couldn't check the current food context.");
+      setError(cause instanceof Error ? cause.message : t("We couldn't check the current food context."));
     } finally {
       setLoadingContext(false);
     }
@@ -477,7 +486,7 @@ export default function MyPerfectMenu() {
 
   const openGlp1Settings = () => {
     const category = ideaType ?? pendingIdeaType;
-    const returnBuilder = import.meta.env.DEV && builderContext?.key === "diabetic" ? "diabetic" : "glp1";
+    const returnBuilder = isDevelopmentRuntime && builderContext?.key === "diabetic" ? "diabetic" : "glp1";
     setLocation(`/glp1-hub?returnTo=${encodeURIComponent(glp1HubReturnTarget(category, returnBuilder))}`);
   };
 
@@ -502,7 +511,7 @@ export default function MyPerfectMenu() {
       return;
     }
     if (restorationStatus === "failed") {
-      setError("We couldn't restore your saved menu ideas. Please reload before creating new ones.");
+      setError(t("We couldn't restore your saved menu ideas. Please reload before creating new ones."));
       return;
     }
     setError(null);
@@ -601,7 +610,7 @@ export default function MyPerfectMenu() {
         }),
       });
       const payload = await response.json().catch(() => ({}));
-       if (!response.ok) throw responseError(response, payload, "We couldn't clear these ideas.");
+       if (!response.ok) throw responseError(response, payload, t("We couldn't clear these ideas."));
       if (
         subjectEpochRef.current !== requestedEpoch ||
         subjectRef.current !== requestedSubject ||
@@ -616,13 +625,13 @@ export default function MyPerfectMenu() {
       setPendingIdeaType(null);
     } catch (cause) {
       if (subjectEpochRef.current !== requestedEpoch || subjectRef.current !== requestedSubject) return;
-      setError(cause instanceof Error ? cause.message : "We couldn't clear these ideas.");
+      setError(cause instanceof Error ? cause.message : t("We couldn't clear these ideas."));
     }
   };
 
   const chooseConcept = (concept: MenuConcept) => {
     if (concept.ideaType === "snack" && (!snackType || concept.snackType !== snackType)) {
-      setError("Choose the current snack type before completing an idea.");
+      setError(t("Choose the current snack type before completing an idea."));
       return;
     }
     setSelectedConcept(concept);
@@ -742,7 +751,7 @@ export default function MyPerfectMenu() {
         );
       }
       const resolvedBuilder = validationPayload.builder as MyPerfectMenuBuilderContext | undefined;
-      if (!resolvedBuilder) throw new Error("We couldn't resolve the assigned Meal Builder. Please try again.");
+      if (!resolvedBuilder) throw new Error(t("We couldn't resolve the assigned Meal Builder. Please try again."));
       const performance = validationPayload.performance as any;
       const performanceAuthorityToken = validationPayload.performanceAuthorityToken as string | null;
       setBuilderContext(resolvedBuilder);
@@ -818,10 +827,10 @@ export default function MyPerfectMenu() {
             resolvedBuilder.key === "performance_competition" ? conceptToGenerate.id : undefined,
             resolvedBuilder.key === "performance_competition",
           );
-      if (!meal) throw new Error("We couldn't finish this meal. Please choose it again.");
-      if (subjectRef.current !== requestedSubject) throw new Error("The active food profile changed. Please choose the meal again.");
+      if (!meal) throw new Error(t("We couldn't finish this meal. Please choose it again."));
+      if (subjectRef.current !== requestedSubject) throw new Error(t("The active food profile changed. Please choose the meal again."));
       const finalMeal = await finalizeMeal(meal, destination.slot === "snacks" ? "snack" : destination.slot);
-      if (subjectRef.current !== requestedSubject) throw new Error("The active food profile changed. Please choose the meal again.");
+      if (subjectRef.current !== requestedSubject) throw new Error(t("The active food profile changed. Please choose the meal again."));
       if (validationPayload.occasionSuitabilityRequired || conceptToGenerate.ideaType === "snack") {
         const identityResponse = await fetch(apiUrl("/api/my-perfect-menu/validate-selection"), {
           method: "POST",
@@ -849,13 +858,13 @@ export default function MyPerfectMenu() {
             ? "The finished recipe did not match your selected idea."
             : "The finished snack did not match your selected idea.");
       }
-      if (validationPayload.occasionSuitabilityRequired && subjectRef.current !== requestedSubject) throw new Error("The active food profile changed. Please choose the meal again.");
+      if (validationPayload.occasionSuitabilityRequired && subjectRef.current !== requestedSubject) throw new Error(t("The active food profile changed. Please choose the meal again."));
       await addCompletedMeal(destination, finalMeal, resolvedBuilder);
       setPickerOpen(false);
       window.dispatchEvent(new CustomEvent("show-toast", {
         detail: {
-          title: "Your meal is ready",
-          description: `${finalMeal.name || finalMeal.title} was added to your plan.`,
+          title: t("Your meal is ready"),
+          description: t("{{name}} was added to your plan.", { name: finalMeal.name || finalMeal.title }),
         },
       }));
       const routeParams = new URLSearchParams();
@@ -875,7 +884,7 @@ export default function MyPerfectMenu() {
       const routeQuery = routeParams.toString();
       setLocation(`${resolvedBuilder.route}${routeQuery ? `?${routeQuery}` : ""}`);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "We couldn't finish this meal.");
+      setError(cause instanceof Error ? cause.message : t("We couldn't finish this meal."));
       setPickerOpen(false);
     } finally {
       setSavingMeal(false);
@@ -911,13 +920,13 @@ export default function MyPerfectMenu() {
               type="button"
               onClick={handleBack}
               className="inline-flex min-h-11 items-center gap-1.5 px-1 text-sm font-semibold text-orange-400 hover:text-orange-300 hover:underline underline-offset-4 focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-400"
-              aria-label={ideaType ? "Back to menu categories" : "Back to dashboard"}
+              aria-label={ideaType ? t("Back to menu categories") : t("Back to dashboard")}
             >
               <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-              <span>Back</span>
+              <span>{t("Back")}</span>
             </button>
             <Sparkles className="h-5 w-5 text-violet-300" />
-            <p className="text-base font-black tracking-tight">My Perfect Menu</p>
+            <p className="text-base font-black tracking-tight">{t("My Perfect Menu")}</p>
           </div>
         </div>
       </MobileHeaderGuard>
@@ -931,43 +940,43 @@ export default function MyPerfectMenu() {
         </div>
         <div className="flex items-center gap-3">
           <button type="button" onClick={handleBack} className="hidden min-h-11 items-center gap-1.5 px-1 text-sm font-semibold text-orange-400 hover:text-orange-300 hover:underline underline-offset-4 focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-400 lg:inline-flex">
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {t("Back")}
           </button>
         </div>
 
         <header className="mt-5 rounded-[2rem] border border-violet-300/20 bg-black/55 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
           <div className="flex items-center gap-3 text-violet-200">
             <div className="rounded-2xl border border-violet-300/30 bg-violet-400/15 p-3"><Sparkles className="h-6 w-6" /></div>
-            <p className="text-xs font-black uppercase tracking-[0.22em]">Personalized for you</p>
+            <p className="text-xs font-black uppercase tracking-[0.22em]">{t("Personalized for you")}</p>
           </div>
-          <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">My Perfect Menu</h1>
+          <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">{t("My Perfect Menu")}</h1>
           <p className="mt-3 max-w-2xl text-base leading-relaxed text-white/65">
-            Not sure what to eat? Pick a meal and we’ll give you 3 personalized ideas.
+            {t("Not sure what to eat? Pick a meal and we’ll give you 3 personalized ideas.")}
           </p>
           {builderContext?.displayName && (
             <div className="mt-4 inline-flex max-w-full items-center rounded-full border border-emerald-300 bg-emerald-600 px-3 py-1.5 text-xs font-extrabold leading-tight text-white shadow-md shadow-emerald-500/25 sm:px-3.5 sm:py-1.5 sm:text-sm">
-              {builderContext.displayName}
+              {menuCopy.builders[builderContext.key] ?? builderContext.displayName}
             </div>
           )}
-          {activeProfile && <p className="mt-3 text-sm font-semibold text-violet-200">Choosing for {activeProfile.displayName}</p>}
+          {activeProfile && <p className="mt-3 text-sm font-semibold text-violet-200">{t("Choosing for {{name}}", { name: activeProfile.displayName })}</p>}
           {builderContext?.key === "performance_competition" && (
             <button type="button" onClick={() => setPerformanceSetupOpen(true)} className="mt-3 block text-xs font-semibold text-orange-200 underline-offset-2 hover:underline">
-              Edit Performance setup
+              {t("Edit Performance setup")}
             </button>
           )}
         </header>
 
         <details className="group mt-4 rounded-2xl border border-white/15 bg-black/45 px-5 py-4 shadow-xl backdrop-blur-xl">
           <summary className="flex min-h-8 cursor-pointer list-none items-center justify-between gap-3 text-sm font-bold text-violet-100 [&::-webkit-details-marker]:hidden">
-            <span>How It Works</span>
+            <span>{t("How It Works")}</span>
             <span className="text-lg leading-none text-violet-300 transition-transform group-open:rotate-45" aria-hidden="true">+</span>
           </summary>
           <div className="mt-4 grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-2">
             {[
-              ["1. Pick an idea type", "Choose Breakfast, Lunch, Dinner, or Snack."],
-              ["2. Pick what sounds good", "Choose from 3 personalized ideas. Don’t see one you want? Try 3 More."],
-              ["3. Choose when you want it", "Pick a date and Meal 1–6 or Snack."],
-              ["4. We’ll create it for you", "My Perfect Meals creates the completed meal and adds it to your meal plan."],
+              [t("1. Pick an idea type"), t("Choose Breakfast, Lunch, Dinner, or Snack.")],
+              [t("2. Pick what sounds good"), t("Choose from 3 personalized ideas. Don’t see one you want? Try 3 More.")],
+              [t("3. Choose when you want it"), t("Pick a date and Meal 1–6 or Snack.")],
+              [t("4. We’ll create it for you"), t("My Perfect Meals creates the completed meal and adds it to your meal plan.")],
             ].map(([title, description]) => (
               <div key={title} className="rounded-xl bg-white/[0.04] p-3">
                 <p className="text-sm font-bold text-white">{title}</p>
@@ -976,22 +985,22 @@ export default function MyPerfectMenu() {
             ))}
           </div>
           <p className="mt-4 text-xs leading-relaxed text-white/50">
-            Breakfast, Lunch, and Dinner describe the kind of food you’re looking for. Meal 1–6 is simply where you want it placed in your plan.
+            {t("Breakfast, Lunch, and Dinner describe the kind of food you’re looking for. Meal 1–6 is simply where you want it placed in your plan.")}
           </p>
         </details>
 
         {!ideaType ? (
           <section className="mt-8">
-            <h2 className="text-xl font-bold">What sounds good?</h2>
+            <h2 className="text-xl font-bold">{t("What sounds good?")}</h2>
              <p className="mt-1 text-sm text-white/50">
                {builderContext?.key === "performance_competition"
                  ? "Choose the day and intended meal slot first so your Performance prescription guides the ideas."
-                 : "Choose a food style now. Pick the actual meal slot afterward."}
+                 : t("Choose a food style now. Pick the actual meal slot afterward.")}
              </p>
              {restorationStatus === "loading" && (
                <div role="status" aria-live="polite" className="mt-4 flex items-center gap-3 rounded-2xl border border-violet-300/20 bg-black/45 px-4 py-3 text-sm font-semibold text-violet-100">
                  <BouncingDots dotClassName="h-2 w-2" />
-                 Restoring your saved menu ideas…
+                 {t("Restoring your saved menu ideas…")}
                </div>
              )}
              <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -1009,14 +1018,14 @@ export default function MyPerfectMenu() {
           <section className="mt-8">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-300">{partialChoicesEnabled && concepts.length > 0 && concepts.length < 3 ? `${concepts.length} verified ${concepts.length === 1 ? "choice" : "choices"}` : "Three choices"}</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-300">{partialChoicesEnabled && concepts.length > 0 && concepts.length < 3 ? concepts.length === 1 ? t("{{count}} verified choice", { count: concepts.length }) : t("{{count}} verified choices", { count: concepts.length }) : t("Three choices")}</p>
                 <h2 className="mt-1 text-2xl font-black">{ideaType === "snack" && snackType
-                  ? `${snackType === "dessert" ? "Dessert" : "Food"} Snack Ideas`
+                  ? snackType === "dessert" ? t("Dessert Snack Ideas") : t("Food Snack Ideas")
                   : activeType?.title}</h2>
-                {ideaType === "snack" && <button type="button" disabled={loadingIdeas || loadingContext || savingMeal} onClick={() => setSnackChoiceOpen(true)} className="mt-2 text-sm font-semibold text-violet-200 underline underline-offset-4 disabled:opacity-50">Change snack type</button>}
+                {ideaType === "snack" && <button type="button" disabled={loadingIdeas || loadingContext || savingMeal} onClick={() => setSnackChoiceOpen(true)} className="mt-2 text-sm font-semibold text-violet-200 underline underline-offset-4 disabled:opacity-50">{t("Change snack type")}</button>}
                  {builderContext?.key === "performance_competition" && performanceDestination && (
                    <p className="mt-2 text-xs font-semibold text-orange-200">
-                     For {performanceDestination.dateISO} · {performanceDestination.slot}
+                     {t("For {{date}} · {{slot}}", { date: performanceDestination.dateISO, slot: menuCopy.slots[performanceDestination.slot] ?? performanceDestination.slot })}
                    </p>
                  )}
               </div>
@@ -1033,36 +1042,36 @@ export default function MyPerfectMenu() {
                         }}
                         className="min-h-10 rounded-xl border border-orange-300/20 bg-orange-950/25 px-4 text-sm font-semibold text-orange-100/80"
                       >
-                        Change date or slot
+                        {t("Change date or slot")}
                       </button>
                     )}
-                   <button type="button" onClick={clearCategory} className="min-h-10 rounded-xl border border-red-300/20 bg-red-950/25 px-4 text-sm font-semibold text-red-100/75">Clear</button>
-                    <button type="button" onClick={() => setTryMoreOpen(true)} className="min-h-10 rounded-xl border border-white/15 bg-white/5 px-4 text-sm font-semibold text-white/70">Try 3 More</button>
+                   <button type="button" onClick={clearCategory} className="min-h-10 rounded-xl border border-red-300/20 bg-red-950/25 px-4 text-sm font-semibold text-red-100/75">{t("Clear")}</button>
+                    <button type="button" onClick={() => setTryMoreOpen(true)} className="min-h-10 rounded-xl border border-white/15 bg-white/5 px-4 text-sm font-semibold text-white/70">{t("Try 3 More")}</button>
                  </div>
                )}
             </div>
 
             <div className="mt-4 rounded-2xl border border-violet-300/20 bg-violet-950/20 p-4">
-              <p className="text-sm font-bold text-violet-100">{getMyPerfectMenuSlotInstruction(ideaType)?.title}</p>
-              <p className="mt-1 text-sm leading-relaxed text-white/75">{getMyPerfectMenuSlotInstruction(ideaType)?.message}</p>
+              <p className="text-sm font-bold text-violet-100">{menuCopy.instructions[ideaType]?.title}</p>
+              <p className="mt-1 text-sm leading-relaxed text-white/75">{menuCopy.instructions[ideaType]?.message}</p>
             </div>
 
             {!loadingContext && concepts.length > 0 && (
               <div className="mt-4 rounded-2xl border border-violet-300/20 bg-violet-950/20 p-4">
-                <p className="text-sm font-bold text-violet-100">Want to explore more than one?</p>
+                <p className="text-sm font-bold text-violet-100">{t("Want to explore more than one?")}</p>
                 <p className="mt-1 text-sm leading-relaxed text-white/60">
-                  Choose an idea to create the full meal. If you like the finished meal, save it to Favorites before replacing or deleting it from your plan. You can return here to try another of these ideas.
+                  {t("Choose an idea to create the full meal. If you like the finished meal, save it to Favorites before replacing or deleting it from your plan. You can return here to try another of these ideas.")}
                 </p>
               </div>
             )}
 
              {builderContext?.key === "performance_competition" && pendingIdeaType && !performanceDestination && (
                <div className="mt-5 rounded-3xl border border-orange-300/25 bg-orange-950/25 p-5">
-                 <h3 className="font-black text-white">When are you planning this meal?</h3>
+                 <h3 className="font-black text-white">{t("When are you planning this meal?")}</h3>
                  <p className="mt-1 text-sm text-white/60">Your Performance Builder can change fuel and starch guidance by day and meal slot.</p>
                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
                    <label className="text-xs font-bold text-white/70">
-                     Date
+                     {t("Date")}
                      <input
                        type="date"
                         value={performanceDate}
@@ -1071,27 +1080,27 @@ export default function MyPerfectMenu() {
                      />
                    </label>
                    <label className="text-xs font-bold text-white/70">
-                     Intended meal slot
+                     {t("Intended meal slot")}
                      <select
                         value={performanceSlot ?? ""}
                         onChange={(event) => setPerformanceSlot(event.target.value as MealPlanDestination["slot"])}
                        className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-black/45 px-3 text-sm text-white"
                      >
-                       <option value="" disabled>Select a slot</option>
-                       <option value="breakfast">Meal 1</option>
-                       <option value="lunch">Meal 2</option>
-                       <option value="dinner">Meal 3</option>
-                       <option value="meal4">Meal 4</option>
-                       <option value="meal5">Meal 5</option>
-                       <option value="meal6">Meal 6</option>
-                       <option value="snacks">Snack</option>
+                       <option value="" disabled>{t("Select a slot")}</option>
+                       <option value="breakfast">{t("Meal 1")}</option>
+                       <option value="lunch">{t("Meal 2")}</option>
+                       <option value="dinner">{t("Meal 3")}</option>
+                       <option value="meal4">{t("Meal 4")}</option>
+                       <option value="meal5">{t("Meal 5")}</option>
+                       <option value="meal6">{t("Meal 6")}</option>
+                       <option value="snacks">{t("Snack")}</option>
                      </select>
                    </label>
                  </div>
                   {getMyPerfectMenuSlotGuidance(ideaType, performanceSlot) && (
                     <div role="status" aria-live="polite" className="mt-3 text-sm text-violet-100">
-                      <p className="font-semibold">{getMyPerfectMenuSlotGuidance(ideaType, performanceSlot)!.title}</p>
-                      <p className="mt-1">{getMyPerfectMenuSlotGuidance(ideaType, performanceSlot)!.message}</p>
+                      <p className="font-semibold">{menuCopy.guidance.title}</p>
+                      <p className="mt-1">{menuCopy.guidance.message}</p>
                     </div>
                   )}
                   <button type="button" disabled={!performanceDate || !performanceSlot} onClick={() => void startPerformanceIdeas()} className="mt-4 min-h-11 rounded-xl bg-orange-600 px-4 text-sm font-black text-white disabled:opacity-40">
@@ -1103,14 +1112,14 @@ export default function MyPerfectMenu() {
              {restorationStatus === "loading" && (
                <div role="status" aria-live="polite" className="mt-6 flex min-h-32 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45">
                  <BouncingDots />
-                 <p className="mt-3 text-sm font-semibold">Restoring your {activeType?.title ?? "Menu Ideas"}…</p>
+                 <p className="mt-3 text-sm font-semibold">{t("Restoring your {{type}}…", { type: activeType?.title ?? t("Menu Ideas") })}</p>
                </div>
              )}
 
              {restorationStatus !== "loading" && loadingContext && (
                <div role="status" aria-live="polite" className="mt-6 flex min-h-32 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45">
                  <BouncingDots />
-                <p className="mt-3 text-sm font-semibold">Checking your current food context…</p>
+                <p className="mt-3 text-sm font-semibold">{t("Checking your current food context…")}</p>
               </div>
             )}
 
@@ -1140,17 +1149,17 @@ export default function MyPerfectMenu() {
                     />
                   </label>
                   <label className="text-xs font-bold text-white/70">
-                    Reading context
+                    {t("Reading context")}
                     <select
                       value={glucoseContext}
                       onChange={(event) => setGlucoseContext(event.target.value as GlucoseContext)}
                       className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-black/45 px-3 text-sm text-white outline-none focus:border-sky-300/60"
                     >
-                      <option value="FASTED">Fasted</option>
-                      <option value="PRE_MEAL">Before meal</option>
-                      <option value="POST_MEAL_1H">1 hour after meal</option>
-                      <option value="POST_MEAL_2H">2 hours after meal</option>
-                      <option value="RANDOM">Other time</option>
+                      <option value="FASTED">{t("Fasted")}</option>
+                      <option value="PRE_MEAL">{t("Before meal")}</option>
+                      <option value="POST_MEAL_1H">{t("1 hour after meal")}</option>
+                      <option value="POST_MEAL_2H">{t("2 hours after meal")}</option>
+                      <option value="RANDOM">{t("Other time")}</option>
                     </select>
                   </label>
                   <button
@@ -1159,7 +1168,7 @@ export default function MyPerfectMenu() {
                     disabled={logGlucose.isPending}
                     className="min-h-11 self-end rounded-xl bg-sky-500 px-4 text-sm font-black text-white disabled:opacity-60"
                   >
-                    {logGlucose.isPending ? "Saving…" : "Save & Continue"}
+                    {logGlucose.isPending ? t("Saving…") : t("Save & Continue")}
                   </button>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -1216,14 +1225,14 @@ export default function MyPerfectMenu() {
 
              {partialChoicesEnabled && !loadingIdeas && !loadingContext && concepts.length > 0 && concepts.length < 3 && (
                <div role="status" className="mt-6 rounded-2xl border border-violet-300/25 bg-black/30 p-4 text-sm text-violet-100">
-                 We could verify only {concepts.length} of three ideas this time. You can choose any shown idea or try again for a new set. No unverified ideas are shown, and your food settings and nutrition targets were not changed.
+                 {t("We could verify only {{count}} of three ideas this time. You can choose any shown idea or try again for a new set. No unverified ideas are shown, and your food settings and nutrition targets were not changed.", { count: concepts.length })}
                </div>
              )}
              {restorationStatus !== "loading" && !loadingContext && !pendingIdeaType && loadingIdeas && concepts.length === 0 ? (
                <div role="status" aria-live="polite" className="mt-6 flex min-h-56 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45 px-6 text-center">
                  <BouncingDots />
-                 <p className="mt-4 font-semibold">Creating your {activeType?.title ?? "Menu Ideas"}…</p>
-                <p className="mt-1 max-w-xs text-sm leading-relaxed text-white/45">Using your food preferences and current nutrition context.</p>
+                 <p className="mt-4 font-semibold">{t("Creating your {{type}}…", { type: activeType?.title ?? t("Menu Ideas") })}</p>
+                <p className="mt-1 max-w-xs text-sm leading-relaxed text-white/45">{t("Using your food preferences and current nutrition context.")}</p>
               </div>
              ) : restorationStatus !== "loading" && !loadingContext && !pendingIdeaType ? (
               <div className="mt-5 grid gap-4">
@@ -1235,7 +1244,7 @@ export default function MyPerfectMenu() {
                         <h3 className="text-lg font-black text-white">{concept.title}</h3>
                         <p className="mt-2 text-sm leading-relaxed text-white/60">{concept.description}</p>
                         <button type="button" onClick={() => chooseConcept(concept)} className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-violet-500 px-5 text-sm font-black text-white shadow-lg shadow-violet-950/50 transition-all hover:bg-violet-400">
-                          Choose This
+                          {t("Choose This")}
                         </button>
                       </div>
                     </div>
@@ -1245,7 +1254,7 @@ export default function MyPerfectMenu() {
             ) : null}
             {loadingIdeas && concepts.length > 0 && (
                <div role="status" aria-live="polite" className="mt-4 flex items-center justify-center gap-3 text-sm font-semibold text-violet-200">
-                 <BouncingDots dotClassName="h-2 w-2" /> Creating 3 new {activeType?.title ?? "Menu Ideas"}…
+                 <BouncingDots dotClassName="h-2 w-2" /> {t("Creating 3 new {{type}}…", { type: activeType?.title ?? t("Menu Ideas") })}
               </div>
             )}
           </section>
@@ -1254,7 +1263,7 @@ export default function MyPerfectMenu() {
         {error && <div role="alert" className="mt-5 rounded-2xl border border-red-300/25 bg-red-950/45 p-4 text-sm font-semibold text-red-100">{error}</div>}
         <div className="mt-8 flex items-start gap-3 rounded-2xl border border-white/10 bg-black/40 p-4 text-sm text-white/50">
           <Cookie className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" />
-          <p>These are simple ideas, not full recipes yet. Your complete meal is created only after you choose where it belongs in your plan.</p>
+          <p>{t("These are simple ideas, not full recipes yet. Your complete meal is created only after you choose where it belongs in your plan.")}</p>
         </div>
       </div>
 
@@ -1282,16 +1291,16 @@ export default function MyPerfectMenu() {
       <Dialog open={snackChoiceOpen} onOpenChange={setSnackChoiceOpen}>
         <DialogContent className="border-violet-300/25 bg-black/95 text-white">
           <DialogHeader>
-            <DialogTitle>What kind of snack would you like?</DialogTitle>
+            <DialogTitle>{t("What kind of snack would you like?")}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3 py-2">
             <button type="button" onClick={() => chooseSnackType("food")} className="min-h-20 rounded-2xl border border-white/20 bg-white/5 p-4 text-left hover:border-violet-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-300">
-              <span className="block font-bold">🍽️ Food Snack</span>
-              <span className="block text-sm text-white/65">Something savory or food-style</span>
+              <span className="block font-bold">{t("🍽️ Food Snack")}</span>
+              <span className="block text-sm text-white/65">{t("Something savory or food-style")}</span>
             </button>
             <button type="button" onClick={() => chooseSnackType("dessert")} className="min-h-20 rounded-2xl border border-white/20 bg-white/5 p-4 text-left hover:border-violet-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-300">
-              <span className="block font-bold">🍰 Dessert Snack</span>
-              <span className="block text-sm text-white/65">Something dessert-style or sweet</span>
+              <span className="block font-bold">{t("🍰 Dessert Snack")}</span>
+              <span className="block text-sm text-white/65">{t("Something dessert-style or sweet")}</span>
             </button>
           </div>
         </DialogContent>
@@ -1305,13 +1314,13 @@ export default function MyPerfectMenu() {
       }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Replace your current snack ideas?</AlertDialogTitle>
+            <AlertDialogTitle>{t("Replace your current snack ideas?")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Switching snack types replaces the three saved snack ideas. Save any finished recipe you want to keep to Favorites first.
+              {t("Switching snack types replaces the three saved snack ideas. Save any finished recipe you want to keep to Favorites first.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep These Ideas</AlertDialogCancel>
+            <AlertDialogCancel>{t("Keep These Ideas")}</AlertDialogCancel>
             <AlertDialogAction onClick={(event) => {
               event.preventDefault();
               const next = snackSwitchType;
@@ -1320,7 +1329,7 @@ export default function MyPerfectMenu() {
                 setSnackType(next);
                 void prepareIdeaRequest("snack", performanceDestination, next);
               }
-            }}>Replace Ideas</AlertDialogAction>
+            }}>{t("Replace Ideas")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1328,14 +1337,14 @@ export default function MyPerfectMenu() {
       <AlertDialog open={tryMoreOpen} onOpenChange={setTryMoreOpen}>
         <AlertDialogContent className="border-orange-300/20 bg-black/95 text-white shadow-2xl backdrop-blur-xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Try 3 new ideas?</AlertDialogTitle>
+            <AlertDialogTitle className="text-white">{t("Try 3 new ideas?")}</AlertDialogTitle>
             <AlertDialogDescription className="text-white/70">
-              These three ideas will be replaced with three new personalized choices. If you already created a meal you want to keep, save the finished meal to Favorites first.
+              {t("These three ideas will be replaced with three new personalized choices. If you already created a meal you want to keep, save the finished meal to Favorites first.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-white/15 bg-white/10 text-white hover:bg-white/15 hover:text-white">Keep These Ideas</AlertDialogCancel>
-            <AlertDialogAction className="bg-orange-600 text-white hover:bg-orange-700" onClick={confirmTryMore}>Replace with 3 New Ideas</AlertDialogAction>
+            <AlertDialogCancel className="border-white/15 bg-white/10 text-white hover:bg-white/15 hover:text-white">{t("Keep These Ideas")}</AlertDialogCancel>
+            <AlertDialogAction className="bg-orange-600 text-white hover:bg-orange-700" onClick={confirmTryMore}>{t("Replace with 3 New Ideas")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1343,7 +1352,7 @@ export default function MyPerfectMenu() {
       <Dialog open={performanceSetupOpen} onOpenChange={setPerformanceSetupOpen}>
         <DialogContent className="max-h-[90vh] overflow-hidden border-orange-300/20 bg-black/95 p-0 text-white sm:max-w-2xl">
           <DialogHeader className="border-b border-white/10 px-5 py-4">
-            <DialogTitle className="text-white">Performance setup</DialogTitle>
+            <DialogTitle className="text-white">{t("Performance setup")}</DialogTitle>
           </DialogHeader>
           <div className="max-h-[calc(90vh-5rem)] overflow-y-auto">
             <PerformanceNutritionSetupForm

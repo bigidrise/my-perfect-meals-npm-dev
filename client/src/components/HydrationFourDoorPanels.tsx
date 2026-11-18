@@ -26,6 +26,8 @@ import {
   type HydrationProtocolType,
 } from "@/lib/hydrationApi";
 import { sickDayHydrationRequiresEscalation } from "@shared/hydration/fourDoor";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { useHydrationChoiceLabels } from "@/i18n/useConsumerChoiceLabels";
 
 type Props = {
   state: HydrationCenterState | null;
@@ -108,6 +110,8 @@ function unresolvedLabel(code: string) {
 }
 
 export default function HydrationFourDoorPanels({ state, navigate, onReload }: Props) {
+  const { t } = useConsumerCopy();
+  const labels = useHydrationChoiceLabels();
   const { toast } = useToast();
   const [door, setDoor] = useState<HydrationDoorKey>("everyday");
 
@@ -171,8 +175,8 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
       navigate(`/lifestyle/athlete-beverage-creator?${params.toString()}`);
     } catch (error) {
       toast({
-        title: "Could not open the Creator",
-        description: error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : "Please try again.",
+        title: t("Could not open the Creator"),
+        description: error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : t("Please try again."),
         variant: "destructive",
       });
     }
@@ -211,7 +215,7 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
     } catch (error) {
       toast({
         title: "Could not save instructions",
-        description: error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : "Please try again.",
+        description: error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : t("Please try again."),
         variant: "destructive",
       });
     } finally {
@@ -247,7 +251,7 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
         <div className="flex items-start gap-3">
           <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-sky-300" />
           <div>
-            <p className="text-xs uppercase tracking-[.2em] text-white">Choose a Hydration door</p>
+            <p className="text-xs uppercase tracking-[.2em] text-white">{t("Choose a Hydration door")}</p>
             <p className="mt-1 text-sm leading-relaxed text-white">
               One Hub, four kinds of support. Everyday tools stay simple; the other doors add context without creating an automatic medical plan.
             </p>
@@ -271,8 +275,8 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
                 <Icon className="h-5 w-5 text-sky-200" />
                 <ChevronRight className="h-4 w-4 text-white/60 transition group-hover:translate-x-0.5" />
               </div>
-              <p className="mt-3 text-sm font-semibold text-white">{title}</p>
-              <p className="mt-1 text-xs leading-relaxed text-white">{description}</p>
+              <p className="mt-3 text-sm font-semibold text-white">{labels.doors[key] ?? title}</p>
+              <p className="mt-1 text-xs leading-relaxed text-white">{labels.doorDescriptions[key] ?? description}</p>
             </button>
           ))}
         </div>
@@ -283,7 +287,7 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
           <CardContent className="flex items-start gap-3 p-4">
             <Droplets className="mt-0.5 h-5 w-5 shrink-0 text-sky-300" />
             <div className="min-w-0 flex-1">
-              <h2 className="font-semibold text-white">Everyday support is ready below</h2>
+              <h2 className="font-semibold text-white">{t("Everyday support is ready below")}</h2>
               <p className="mt-1 text-sm leading-relaxed text-white">
                 Log a fluid, save optional preferences, or ask for a practical barrier-based option. These tools never create a personal target.
               </p>
@@ -299,7 +303,7 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
             <div className="flex items-start gap-3">
               <Activity className="mt-0.5 h-5 w-5 shrink-0 text-orange-200" />
               <div>
-                <h2 className="font-semibold text-white">Athletic Hydration</h2>
+                <h2 className="font-semibold text-white">{t("Athletic Hydration")}</h2>
                 <p className="mt-1 text-sm leading-relaxed text-white">
                   Capture context for a practical beverage idea. This does not calculate fluid replacement, electrolytes, sodium, or a sports-medicine prescription.
                 </p>
@@ -307,38 +311,38 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="text-xs text-white">
-                When
+                {t("When")}
                 <select value={athleticPhase} onChange={(event) => setAthleticPhase(event.target.value)} className="mt-1 w-full rounded-md border border-white/20 bg-slate-900 px-3 py-2.5 text-sm text-white" data-testid="athletic-hydration-phase">
-                  <option value="before">Before activity</option>
-                  <option value="during">During activity</option>
-                  <option value="after">After activity</option>
+                  <option value="before">{t("Before activity")}</option>
+                  <option value="during">{t("During activity")}</option>
+                  <option value="after">{t("After activity")}</option>
                 </select>
               </label>
               <label className="text-xs text-white">
-                Activity
+                {t("Activity")}
                 <select value={athleticActivity} onChange={(event) => setAthleticActivity(event.target.value)} className="mt-1 w-full rounded-md border border-white/20 bg-slate-900 px-3 py-2.5 text-sm text-white" data-testid="athletic-hydration-activity">
-                  <option value="training">Training</option>
-                  <option value="competition">Competition</option>
-                  <option value="outdoor">Outdoor activity</option>
-                  <option value="other">Other</option>
+                  <option value="training">{t("Training")}</option>
+                  <option value="competition">{t("Competition")}</option>
+                  <option value="outdoor">{t("Outdoor activity")}</option>
+                  <option value="other">{t("Other")}</option>
                 </select>
               </label>
               <label className="text-xs text-white">
-                Approximate duration (optional)
-                <Input value={athleticDuration} onChange={(event) => setAthleticDuration(event.target.value)} placeholder="e.g. 45 minutes" className="mt-1 border-white/20 bg-white/5 text-white placeholder:text-white/60" data-testid="athletic-hydration-duration" />
+                {t("Approximate duration (optional)")}
+                <Input value={athleticDuration} onChange={(event) => setAthleticDuration(event.target.value)} placeholder={t("e.g. 45 minutes")} className="mt-1 border-white/20 bg-white/5 text-white placeholder:text-white/60" data-testid="athletic-hydration-duration" />
               </label>
               <label className="text-xs text-white">
-                Environment context
+                {t("Environment context")}
                 <select value={athleticEnvironment} onChange={(event) => setAthleticEnvironment(event.target.value)} className="mt-1 w-full rounded-md border border-white/20 bg-slate-900 px-3 py-2.5 text-sm text-white" data-testid="athletic-hydration-environment">
-                  <option value="unknown">Not sure / skip</option>
-                  <option value="indoors">Indoors</option>
-                  <option value="outdoors">Outdoors</option>
-                  <option value="hot_or_humid">Hot or humid context</option>
+                  <option value="unknown">{t("Not sure / skip")}</option>
+                  <option value="indoors">{t("Indoors")}</option>
+                  <option value="outdoors">{t("Outdoors")}</option>
+                  <option value="hot_or_humid">{t("Hot or humid context")}</option>
                 </select>
               </label>
             </div>
             <Button onClick={() => void openAthleticCreator()} className="mt-4 bg-orange-400 text-slate-950 hover:bg-orange-300" data-testid="athletic-hydration-creator">
-              Create an Athletic Hydration Beverage
+              {t("Create an Athletic Hydration Beverage")}
             </Button>
             <p className="mt-3 text-xs text-white">The Creator remains responsible for formulation and runs its normal safety checks.</p>
           </CardContent>
@@ -351,7 +355,7 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
             <div className="flex items-start gap-3">
               <HeartPulse className="mt-0.5 h-5 w-5 shrink-0 text-rose-200" />
               <div>
-                <h2 className="font-semibold text-white">Sick-Day Hydration</h2>
+                <h2 className="font-semibold text-white">{t("Sick-Day Hydration")}</h2>
                 <p className="mt-1 text-sm leading-relaxed text-white">
                   Choose what is making fluids difficult so the Hub can keep support practical and tolerable. This is not a diagnosis or a treatment calculator.
                 </p>
@@ -385,7 +389,7 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
             <div className="flex items-start gap-3">
               <ClipboardList className="mt-0.5 h-5 w-5 shrink-0 text-violet-200" />
               <div>
-                <h2 className="font-semibold text-white">Liquid Nutrition Support</h2>
+                <h2 className="font-semibold text-white">{t("Liquid Nutrition Support")}</h2>
                 <p className="mt-1 text-sm leading-relaxed text-white">
                   Your saved instructions are being checked. This section will open when their current status is available.
                 </p>
@@ -401,7 +405,7 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
             <div className="flex items-start gap-3">
               <ClipboardList className="mt-0.5 h-5 w-5 shrink-0 text-violet-200" />
               <div>
-                <h2 className="font-semibold text-white">Liquid Nutrition Support</h2>
+                <h2 className="font-semibold text-white">{t("Liquid Nutrition Support")}</h2>
                 <p className="mt-1 text-sm leading-relaxed text-white">
                   Paste the instruction you received and add only the categories and timing stated in it. User-entered instructions are stored as unverified.
                 </p>
@@ -410,33 +414,33 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="text-xs text-white sm:col-span-2">
-                Reason
-                <Input value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Why are you organizing this instruction?" className="mt-1 border-white/20 bg-white/5 text-white placeholder:text-white/60" data-testid="liquid-protocol-reason" />
+                {t("Reason")}
+                <Input value={reason} onChange={(event) => setReason(event.target.value)} placeholder={t("Why are you organizing this instruction?")} className="mt-1 border-white/20 bg-white/5 text-white placeholder:text-white/60" data-testid="liquid-protocol-reason" />
               </label>
               <label className="text-xs text-white">
-                Instruction type
+                {t("Instruction type")}
                 <select value={protocolType} onChange={(event) => setProtocolType(event.target.value as HydrationProtocolType)} className="mt-1 w-full rounded-md border border-white/20 bg-slate-900 px-3 py-2.5 text-sm text-white" data-testid="liquid-protocol-type">
                   {LIQUID_PROTOCOL_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select>
               </label>
               <div className="rounded-md border border-violet-200/20 bg-violet-300/10 p-3 text-xs text-white">
-                <p className="font-semibold">Source</p>
+                <p className="font-semibold">{t("Source")}</p>
                 <p className="mt-1">User-entered · not professionally verified</p>
               </div>
               <label className="text-xs text-white sm:col-span-2">
-                Original instruction text
+                {t("Original instruction text")}
                 <Textarea value={originalInstructionText} onChange={(event) => setOriginalInstructionText(event.target.value)} placeholder="Paste the original instruction exactly as you received it." className="mt-1 min-h-24 border-white/20 bg-white/5 text-white placeholder:text-white/60" data-testid="liquid-protocol-original-text" />
               </label>
               <label className="text-xs text-white">
-                Start date
+                {t("Start date")}
                 <Input type="date" value={startsOn} onChange={(event) => setStartsOn(event.target.value)} className="mt-1 border-white/20 bg-white/5 text-white" data-testid="liquid-protocol-start" />
               </label>
               <label className="text-xs text-white">
-                End date
+                {t("End date")}
                 <Input type="date" value={endsOn} onChange={(event) => setEndsOn(event.target.value)} className="mt-1 border-white/20 bg-white/5 text-white" data-testid="liquid-protocol-end" />
               </label>
               <label className="text-xs text-white">
-                Review date (optional)
+                {t("Review date (optional)")}
                 <Input type="date" value={reviewOn} onChange={(event) => setReviewOn(event.target.value)} className="mt-1 border-white/20 bg-white/5 text-white" data-testid="liquid-protocol-review" />
               </label>
               <label className="text-xs text-white">
@@ -457,7 +461,7 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
               </label>
             </div>
             <Button onClick={() => void saveLiquidProtocol()} disabled={protocolSaving} className="mt-4 bg-violet-400 text-slate-950 hover:bg-violet-300" data-testid="liquid-protocol-save">
-              {protocolSaving ? "Saving…" : "Review instructions"}
+              {protocolSaving ? t("Saving…") : t("Review instructions")}
             </Button>
 
             {protocol && (
@@ -471,11 +475,11 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <div>
-                    <p className="text-xs uppercase tracking-wide text-white">Reason</p>
+                    <p className="text-xs uppercase tracking-wide text-white">{t("Reason")}</p>
                     <p className="mt-1 text-sm text-white">{protocol.reason}</p>
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-wide text-white">Timing</p>
+                    <p className="text-xs uppercase tracking-wide text-white">{t("Timing")}</p>
                     <p className="mt-1 text-sm text-white">{protocol.explicitTimingText || "Not stated — needs clarification"}</p>
                   </div>
                   <div>
