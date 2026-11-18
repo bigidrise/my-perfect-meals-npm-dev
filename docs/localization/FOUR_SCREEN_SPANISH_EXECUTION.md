@@ -77,7 +77,7 @@ no guard exemption or new localization system was introduced.
 | Strict safety types | Passed. |
 | Public startup screenshot | Anonymous `/welcome` rendered at 390×844. This verifies startup only, not signed-in pages or Spanish layout. |
 | Signed-in EN/ES desktop/mobile review | **Unable, not passed.** The hosted browser cannot install request interception/fulfillment before navigation. A bounded CSP alternative did not demonstrate enforcement. The reviewer therefore never loaded the app or sent `/api` requests. No real account was used. |
-| Final canonical root type gate | **Blocked pending a second exact fingerprint approval**, described below. |
+| Four-screen canonical root type gate | **Passed after the founder's exact second approval**, described below. Later Ask Chef/Getaway work has a separate newly introduced blocker; see `ASK_CHEF_GETAWAY_SPANISH_EXECUTION.md`. |
 
 Focused suites:
 
@@ -95,20 +95,22 @@ viewport layout, scrolling or wrapping. The requested 1440×1000 and 390×844
 signed-in EN/ES checks remain unverified. Fresh live-model language compliance
 also remains unverified because live generation was not authorized.
 
-## Exact final fingerprint approval still required
+## Exact final fingerprint approval received and verified
 
 The Gatherings localization imports move four already-reviewed diagnostics by
 exactly two lines. The count remains **109**, every full diagnostic message
 matches the first approval, and **105 raw diagnostic blocks are unchanged**.
 There are no added or removed messages.
 
-Proposed exact change:
+Approved exact change:
 
 - Stored: `7935edf0da4703eb6a68d259d0fbf0f3ee8715527c3b956194b49947057f2098`
 - Final: `e8dadf605ccc7c3c6dec1285551bfa2a37871bee3a9fa1993444c871565813a7`
 
-The stored value has **not** been updated to the final hash without permission.
-The checker, compiler configuration, count and exemptions remain unchanged.
+The founder explicitly approved this exact update in the subsequent continuation.
+Only the stored hash was changed, and the canonical gate passed with 109
+diagnostics. The checker, compiler configuration, count and exemptions remain unchanged.
+The generated build module was restored byte-for-byte.
 The complete comparison is retained in
 `.local/reports/final-spanish-position-comparison.json` and
 `.local/reports/final-spanish-fingerprint-review.html`.
@@ -125,6 +127,6 @@ An English restored recipe is not evidence that a fresh Spanish request failed.
 
 The broader residual inventory, professional surfaces, educational content and
 other previously separated scopes are not declared complete by this slice.
-Signed-in visual coverage and the exact final type-gate approval are the current
-delivery blockers; neither has been replaced by a passing unit test or startup
-screenshot.
+Signed-in visual coverage remains unverified; it has not been replaced by a
+passing unit test or startup screenshot. The four-screen fingerprint approval
+is resolved. Later implementation verification is reported separately.

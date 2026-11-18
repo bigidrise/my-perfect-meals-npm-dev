@@ -16,8 +16,12 @@ At the investigation capture, the lockfile, compiler configuration, validator an
 - Validator/baseline/tsconfig unchanged at the pre-approval investigation capture: **true**.
 
 Subsequent four-screen implementation moved four existing Gatherings diagnostics
-by two lines. That later exact fingerprint is a separate, still-unapproved
-change; see [the execution report](FOUR_SCREEN_SPANISH_EXECUTION.md).
+by two lines. The founder separately approved the exact update to
+`e8dadf605ccc7c3c6dec1285551bfa2a37871bee3a9fa1993444c871565813a7`.
+The unchanged canonical gate then passed with the same 109 diagnostic messages,
+codes and severity; see [the execution report](FOUR_SCREEN_SPANISH_EXECUTION.md).
+Later Ask Chef/Getaway work is not covered by that approval and has a separately
+reported new diagnostic; the stored baseline was not refreshed again.
 
 ## Exact differences
 ### client/src/components/FlavorToggle.tsx
