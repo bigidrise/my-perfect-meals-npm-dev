@@ -50,3 +50,16 @@ equivalent is unavailable, report the browser checks as unable. Keep component
 unit tests and anonymous startup screenshots separate from responsive or
 authenticated browser evidence; do not create an unapproved runtime to bypass
 the limitation.
+
+Passive static markup is a separate review option: the testing browser can
+load local, script-free component HTML into an about:blank document using
+document.open/write. This can establish text wrapping and responsive geometry,
+but not authenticated flows, persistence, interactive callbacks or eligibility.
+
+**Why:** A bounded localization review verified real shared-component markup
+and compiled CSS without loading the app, accessing customer data or weakening
+Vite's intentional restriction on generated artifacts.
+
+**How to apply:** Use only synthetic, self-contained markup with no scripts,
+remote assets or application startup. State the composed-fixture limitation;
+never treat this as a substitute for required full-page or write-path evidence.

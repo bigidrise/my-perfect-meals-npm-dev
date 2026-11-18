@@ -1377,3 +1377,17 @@ mtime_ms = 1795026371019
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/eff63223-a930-4830-87ef-e215364fa6b3/0c951a39-7e90-4baf-906c-90521c754dd9"
 storage_version_token = "1795026395053832"
 content_type = "text/html"
+
+[[outputs]]
+id = "91gWsut0UhDKK9xfdurTD"
+uri = "file://generated-artifacts/spanish-four-builders/verification-report.html"
+type = "html"
+title = "Four-builder Spanish localization — Development report"
+description = "Exact shared and builder-specific scope, central resource additions, 227 passing tests, 32 passive responsive cases, screenshots, unchanged release fingerprint and remaining limits."
+logical_id = "662853fc-790a-478a-b79d-1301666c23cf"
+content_hash = "sha256:9c9e341a6de7cda63d8143f8f65134a716da661e7a23767c64c911569a07094a"
+size = 149246
+mtime_ms = 1795027452890
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/662853fc-790a-478a-b79d-1301666c23cf/688a2a0a-bdcd-47d0-a6fa-e9da5be8ef72"
+storage_version_token = "1795027453747910"
+content_type = "text/html"

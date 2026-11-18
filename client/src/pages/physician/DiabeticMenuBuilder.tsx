@@ -125,14 +125,14 @@ import { PillButton } from "@/components/ui/pill-button";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { getBuilderProtocolBadges } from "@/lib/nutritionPersonalization";
 
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
 // Using noon UTC anchor pattern to prevent day-shift bugs
 
 export default function DiabeticMenuBuilder() {
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const DIABETIC_BUILDER_TOUR_STEPS = useMemo<TourStep[]>(() => [
     { icon: "1", title: t("diabeticBuilder.tour1Title"), description: t("diabeticBuilder.tour1Desc") },
@@ -466,7 +466,7 @@ export default function DiabeticMenuBuilder() {
         });
       }
     },
-    [board, planningMode, activeDayISO, saveBoard, weekStartISO, toast],
+    [board, planningMode, activeDayISO, saveBoard, weekStartISO, toast, t],
   );
 
   // Handler for premade meal selection
@@ -536,6 +536,7 @@ export default function DiabeticMenuBuilder() {
       saveBoard,
       weekStartISO,
       toast,
+      t,
     ],
   );
 
@@ -765,7 +766,7 @@ export default function DiabeticMenuBuilder() {
         });
       }
     },
-    [board, activeDayISO, weekStartISO, saveBoard, toast],
+    [board, activeDayISO, weekStartISO, saveBoard, toast, t],
   );
 
 
@@ -836,10 +837,10 @@ export default function DiabeticMenuBuilder() {
 
       toast({
         title: t("metabolicBuilder.aiMealCreated"),
-        description: `${generatedMeal.name} saved to your ${slot}`,
+        description: t("metabolicBuilder.aiMealCreatedDesc", { name: generatedMeal.name, slot }),
       });
     },
-    [board, activeDayISO, toast, saveBoard, weekStartISO],
+    [board, activeDayISO, toast, saveBoard, weekStartISO, t],
   );
 
   const profile = useOnboardingProfile();
@@ -1115,22 +1116,22 @@ export default function DiabeticMenuBuilder() {
 
       toast({
         title: t("metabolicBuilder.allMealsLoggedTitle"),
-        description: `Successfully logged ${successCount} meal(s) to your macros.`,
+        description: t("metabolicBuilder.allMealsLoggedDesc", { count: successCount }),
       });
     } catch (error) {
       toast({
-        title: "Error",
+        title: t("Error"),
         description: t("metabolicBuilder.errorLogMeals"),
         variant: "destructive",
       });
     }
-  }, [board, toast, queryClient]);
+  }, [board, toast, queryClient, t]);
 
   if (loading || !board)
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pt-20">
         <div className="text-white/80 p-6 text-center">
-          Loading meal board...
+          {t("metabolicBuilder.loadingBoard")}
         </div>
       </div>
     );
@@ -1180,7 +1181,7 @@ export default function DiabeticMenuBuilder() {
                 </button>
 
                 <div className="text-sm font-medium text-white/90">
-                  {weekStartISO ? formatWeekLabel(weekStartISO) : "Loading…"}
+                  {weekStartISO ? formatWeekLabel(weekStartISO, undefined, i18n.resolvedLanguage === "es" ? "es" : "en") : t("Loading…")}
                 </div>
 
                 <button
@@ -1412,7 +1413,7 @@ export default function DiabeticMenuBuilder() {
                   {/* Snack Creator Section */}
                   <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4 col-span-full">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-white/90 text-lg font-medium">Snacks</h2>
+                      <h2 className="text-white/90 text-lg font-medium">{t("metabolicBuilder.snacks")}</h2>
                       <GlobalMealActionBar
                         slot="snacks"
                         onCreateWithAI={() => {}}
@@ -1605,7 +1606,7 @@ export default function DiabeticMenuBuilder() {
                       });
                       toast({
                         title: t("metabolicBuilder.daySaved"),
-                        description: `${formatDateDisplay(activeDayISO, { weekday: "long", month: "short", day: "numeric" })} has been locked.`,
+                        description: t("{{date}} has been locked.", { date: formatDateDisplay(activeDayISO, { weekday: "long", month: "short", day: "numeric" }, undefined, i18n.resolvedLanguage === "es" ? "es" : "en") }),
                       });
                       setLocation("/my-biometrics");
                     }
