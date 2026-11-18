@@ -138,3 +138,18 @@ authorize another builder's page-owned copy.
 **How to apply:** Reuse the completed inventory and EN/ES architecture, finish
 the current group's checks, identify remaining English/protected wording and
 stop for approval. Keep Medical Resources implementation separate.
+
+The long-term requirement is a plug-and-play multilingual architecture across
+consumer features, builders, creators, meal cards, modals, Academy, ProCare,
+professional studios, Business Center and shared navigation. Future languages
+must enter through centralized resources and validation, not rewritten pages,
+duplicate meal cards, separate language pages or per-page language switches.
+
+**Why:** The founder explicitly stated this platform-wide architectural
+requirement while approving a bounded four-builder ordinary-interface batch.
+
+**How to apply:** Keep new interface copy connected to the existing shared
+localization infrastructure. Broad architectural coverage is a long-term
+requirement, not authorization to localize more features or activate languages.
+Preserve authored/history content and distinguish interface translation from
+AI-generated recipe language.

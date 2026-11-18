@@ -116,7 +116,7 @@ import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { useDailyNutritionState } from "@/hooks/useDailyNutritionState";
 import { prescriptionToTargetsOverride } from "@/lib/prescriptionAdapter";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 
 
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
@@ -128,7 +128,7 @@ interface AthleteBoardProps {
 }
 
 export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   usePageTitle(t("performanceCompetitionBuilder.pageTitle"));
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -624,7 +624,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         toast({ title: t("metabolicBuilder.failedToDuplicate"), description: t("metabolicBuilder.tryAgain"), variant: "destructive" });
       }
     },
-    [board, activeDayISO, weekStartISO, saveBoard, toast],
+    [board, activeDayISO, weekStartISO, saveBoard, toast, t],
   );
 
 
@@ -682,8 +682,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           });
         }
         toast({
-          title: "AI Meal Added!",
-          description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
+          title: t("AI Meal Added!"),
+          description: t("{{name}} added to {{slot}}", { name: generatedMeal.name, slot: lists.find((l) => l[0] === slot)?.[1] }),
         });
 
         try {
@@ -693,7 +693,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         }
       }
     },
-    [activeDayISO, board, saveBoard, toast],
+    [activeDayISO, board, saveBoard, toast, t],
   );
 
   // Handler for snack selection from AI Snack Creator
@@ -734,8 +734,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         }
 
         toast({
-          title: "Snack Added!",
-          description: `${snack.title} added successfully`,
+          title: t("Snack Added!"),
+          description: t("generalNutritionBuilder.mealAddedDesc", { name: snack.title }),
         });
 
         if (!snack.imageUrl) {
@@ -752,13 +752,13 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       } catch (error) {
         console.error("Failed to add snack:", error);
         toast({
-          title: "Failed to add snack",
+          title: t("Failed to add snack"),
           description: t("metabolicBuilder.tryAgain"),
           variant: "destructive",
         });
       }
     },
-    [board, planningMode, activeDayISO, saveBoard, toast],
+    [board, planningMode, activeDayISO, saveBoard, toast, t],
   );
 
   // Week navigation - just update weekStartISO, the useWeeklyBoard hook handles fetching with cache fallback
@@ -865,7 +865,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     setLocation(
       "/my-biometrics?from=performance-competition-builder&view=macros",
     );
-  }, [coachMacroTargets, effectiveUserId, toast, setLocation]);
+  }, [coachMacroTargets, effectiveUserId, toast, setLocation, t]);
 
   // Silent error handling - Facebook-style: no UI for transient network events
   React.useEffect(() => {
@@ -936,7 +936,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 </button>
 
                 <div className="text-sm font-medium text-white/90">
-                  {formatWeekLabel(weekStartISO)}
+                  {formatWeekLabel(weekStartISO, undefined, i18n.resolvedLanguage === "es" ? "es" : "en")}
                 </div>
 
                 <button
@@ -1319,7 +1319,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                           }}
                         >
                           <Sparkles className="h-3 w-3" />
-                          Create with AI
+                  {t("Create with AI")}
                         </Button>
                       )}
 
@@ -1336,7 +1336,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         }}
                       >
                         <ChefHat className="h-3 w-3" />
-                        Create with Chef
+                  {t("Create with Chef")}
                       </Button>
 
                       <AddOwnMealButton
@@ -1496,7 +1496,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         window.dispatchEvent(new Event("macros:updated"));
                         toast({
                           title: t("performanceCompetitionBuilder.daySavedCoach"),
-                          description: `${formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
+                          description: t("{{date}} has been locked.", { date: formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' }, undefined, i18n.resolvedLanguage === "es" ? "es" : "en") }),
                         });
                         setLocation(`/pro/clients/${clientId}/dashboard?tab=targets`);
                       }

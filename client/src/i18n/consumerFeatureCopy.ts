@@ -1,5 +1,13 @@
 /** Ordinary display copy only. Never translate saved recipes, API errors or safety evidence here. */
 export const consumerFeatureSpanish: Record<string, string> = {
+  "Error": "Error",
+  "Create with Chef": "Crear con Chef",
+  "Loading…": "Cargando…",
+  "Metabolic Hub": "Centro metabólico",
+  "AI Meal Added!": "¡Comida con IA añadida!",
+  "{{name}} added to {{slot}}": "{{name}} se añadió a {{slot}}",
+  "Snack Added!": "¡Refrigerio añadido!",
+  "Failed to add snack": "No se pudo añadir el refrigerio",
   "Daily Targets": "Objetivos diarios",
   "Back to {{name}}": "Volver a {{name}}",
   "Hub": "Centro",
