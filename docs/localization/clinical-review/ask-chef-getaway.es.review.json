@@ -1,0 +1,86 @@
+{
+  "_meta": {
+    "locale": "es",
+    "status": "pending",
+    "description": "Supplement to the existing controlled clinical-language review. Candidates only, not runtime resources or approvals. Existing registry and es.review.json decisions are unchanged. A qualified clinical reviewer must approve wording before engineering registers and connects it through the existing controlled workflow."
+  },
+  "entries": [
+    {
+      "key": "getaway.menu_evidence_notice",
+      "file": "shared/getawayEvidence.ts",
+      "sourceText": "Illustrative meal ideas — not verified menu offerings. Restaurants, dishes, ingredients, preparation, availability and nutrition have not been verified. Confirm with venue staff, especially for allergies or clinical requirements.",
+      "proposedTranslation": "Ideas de comidas orientativas, no platos de un menú verificado. No se han verificado los restaurantes, los platos, los ingredientes, la preparación, la disponibilidad ni la información nutricional. Confírmalo con el personal del establecimiento, especialmente si tienes alergias o requisitos clínicos.",
+      "category": "allergy_safety",
+      "status": "pending",
+      "reviewer": null,
+      "reviewedAt": null,
+      "notes": "Keep the English constant, evidence sanitizer and all enforcement unchanged until approved through the controlled process."
+    },
+    {
+      "key": "coachbubble.professional_boundary_notice",
+      "file": "client/src/components/coaching/CoachBubble.tsx",
+      "sourceText": "These are suggestions to help you make an informed choice right now. If you're working with a coach, dietitian, or physician, please follow their guidance and check with them about concerns or changes to your nutrition or health plan.",
+      "proposedTranslation": "Estas sugerencias te ayudan a tomar una decisión informada en este momento. Si trabajas con un entrenador, dietista o médico, sigue sus indicaciones y consulta con ese profesional cualquier inquietud o cambio en tu plan de nutrición o salud.",
+      "category": "general_clinical",
+      "status": "pending",
+      "reviewer": null,
+      "reviewedAt": null,
+      "notes": "Preserve both existing placements and concierge behavior. No runtime activation."
+    },
+    {
+      "key": "getaway.profile_protocol_intro",
+      "file": "client/src/pages/lifestyle/MyPerfectGetaway.tsx",
+      "sourceText": "Get picks matched to your health profile, goals, and any medical protocols",
+      "proposedTranslation": "Recibe opciones adaptadas a tu perfil de salud, tus objetivos y los protocolos médicos que sigas",
+      "category": "general_clinical",
+      "status": "pending",
+      "reviewer": null,
+      "reviewedAt": null,
+      "notes": "Candidate only; English remains visible pending approval."
+    },
+    {
+      "key": "getawayvenuemeals.profile_evidence_intro",
+      "file": "client/src/components/away-from-home/GetawayVenueMeals.tsx",
+      "sourceText": "Enter the restaurant or dining concept you intend to visit. Its presence and current menu are not independently verified. Your saved nutrition profile applies.",
+      "proposedTranslation": "Introduce el restaurante o tipo de establecimiento que piensas visitar. Su presencia y su menú actual no se han verificado de forma independiente. Se aplica tu perfil de nutrición guardado.",
+      "category": "general_clinical",
+      "status": "pending",
+      "reviewer": null,
+      "reviewedAt": null,
+      "notes": "Do not imply location, menu, allergy or nutrient verification."
+    },
+    {
+      "key": "getawayvenuemeals.menu_ingredient_evidence",
+      "file": "client/src/components/away-from-home/GetawayVenueMeals.tsx",
+      "sourceText": "Menu items were found. Complete ingredients and clinical nutrient compliance remain unverified.",
+      "proposedTranslation": "Se encontraron platos del menú. Los ingredientes completos y el cumplimiento de los requisitos clínicos de nutrientes siguen sin verificarse.",
+      "category": "general_clinical",
+      "status": "pending",
+      "reviewer": null,
+      "reviewedAt": null,
+      "notes": "Retain the existing compositionEvidence condition."
+    },
+    {
+      "key": "getawayvenuemeals.cuisine_evidence",
+      "file": "client/src/components/away-from-home/GetawayVenueMeals.tsx",
+      "sourceText": "Cuisine-based meal suggestions, not a confirmed current menu.",
+      "proposedTranslation": "Sugerencias de comidas basadas en el tipo de cocina, no en un menú actual confirmado.",
+      "category": "general_clinical",
+      "status": "pending",
+      "reviewer": null,
+      "reviewedAt": null,
+      "notes": "Retain the distinction from actual menu-item evidence."
+    },
+    {
+      "key": "getawayvenuemeals.nutrition_evidence_footer",
+      "file": "client/src/components/away-from-home/GetawayVenueMeals.tsx",
+      "sourceText": "Nutrition refers to one serving; estimates are labeled on the cards. Confirm availability and preparation with the venue.",
+      "proposedTranslation": "La información nutricional corresponde a una porción; las estimaciones se indican en las tarjetas. Confirma la disponibilidad y la preparación con el establecimiento.",
+      "category": "general_clinical",
+      "status": "pending",
+      "reviewer": null,
+      "reviewedAt": null,
+      "notes": "Do not change numeric evidence, serving calculations or card qualification."
+    }
+  ]
+}

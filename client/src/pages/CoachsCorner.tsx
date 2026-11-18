@@ -26,7 +26,7 @@ import type { CoachCornerQuestion } from "@shared/coachCornerTypes";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { isChefConversationEnabled } from "@/lib/chefCornerExperience";
 import { isChefConversationReliabilityEnabled, isChefFeatureScreenContextEnabled } from "@/lib/chefConversationReliabilityGate";
-import { chefMemberText } from "@/lib/chefMemberBranding";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import CoachBubble, {
   ProfessionalBoundaryNotice, isConciergeMessage, type CoachStructuredResponse,
 } from "@/components/coaching/CoachBubble";
@@ -169,6 +169,7 @@ function MessageRow({
   setOpenMenuId: (id: string | null) => void;
   onDelete: (id: string) => void;
 }) {
+  const { t } = useConsumerCopy();
   const isOpen = openMenuId === msg.id;
   const isUser = msg.role === "user";
 
@@ -189,7 +190,7 @@ function MessageRow({
               setOpenMenuId(isOpen ? null : msg.id);
             }}
             className="p-1 rounded-full text-white/20 hover:text-white/55 hover:bg-white/8 transition-all"
-            aria-label="Message options"
+            aria-label={t("Message options")}
           >
             <MoreHorizontal className="w-3.5 h-3.5" />
           </button>
@@ -202,7 +203,7 @@ function MessageRow({
                 onClick={() => onDelete(msg.id)}
                 className="flex items-center px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 w-full text-left whitespace-nowrap transition-colors"
               >
-                Delete message
+                {t("Delete message")}
               </button>
             </div>
           )}
@@ -361,6 +362,7 @@ interface BootstrapData {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function CoachsCorner() {
+  const { t } = useConsumerCopy();
   const conversationEnabled = isChefConversationEnabled();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -622,8 +624,8 @@ export default function CoachsCorner() {
           id: `err-${variables.turnId ?? Date.now()}`,
           role: "coach",
           structured: {
-            whatIFound: "I ran into a problem processing your message. This is usually temporary.",
-            whatItCouldMean: "Try again in a moment.",
+            whatIFound: t("I ran into a problem processing your message. This is usually temporary."),
+            whatItCouldMean: t("Try again in a moment."),
             todayPlan: null,
             learningOpportunity: null,
           },
@@ -778,10 +780,10 @@ export default function CoachsCorner() {
       const match = error instanceof Error ? /^(\d{3}):/.exec(error.message) : null;
       const status = match ? Number(match[1]) : undefined;
       setClearError(status === 401
-        ? "Your session may have expired. Your messages are still shown. Sign in again, then retry."
+        ? t("Your session may have expired. Your messages are still shown. Sign in again, then retry.")
         : status === 403
-          ? "Clearing wasn't authorized. Your messages are still shown. Check your access, then retry."
-          : "We couldn't confirm that the conversation was cleared. Your messages are still shown. Please try again.");
+          ? t("Clearing wasn't authorized. Your messages are still shown. Check your access, then retry.")
+          : t("We couldn't confirm that the conversation was cleared. Your messages are still shown. Please try again."));
       const reason = status ? "http_error"
         : error instanceof TypeError ? "network_error"
           : error instanceof Error && error.message === "Deletion was not confirmed"
@@ -793,7 +795,7 @@ export default function CoachsCorner() {
 
   const handleClear = () => {
     if (reliableConversation && activeTurnRef.current) {
-      setClearError("Wait for Chef to finish replying before clearing this conversation.");
+      setClearError(t("Wait for Chef to finish replying before clearing this conversation."));
       return;
     }
     if (clearInFlight.current || clearMutation.isPending) {
@@ -804,7 +806,7 @@ export default function CoachsCorner() {
     // Fall back to live state / bootstrap data for safety.
     const cid = pendingClearId.current ?? conversationId ?? bootstrapQuery.data?.conversationId ?? null;
     if (!cid) {
-      setClearError("This conversation isn't ready to clear. Close this dialog and let your conversation finish restoring, then try again. Your messages are still shown.");
+      setClearError(t("This conversation isn't ready to clear. Close this dialog and let your conversation finish restoring, then try again. Your messages are still shown."));
       logClearDiagnostic("missing_id");
       return;
     }
@@ -858,10 +860,10 @@ export default function CoachsCorner() {
               }
             }}
             className="flex items-center gap-1 h-11 px-2 rounded-full text-white/60 hover:text-white transition-colors"
-            aria-label="Go back"
+            aria-label={t("Go back")}
           >
             <ArrowLeft className="w-4 h-4" />
-            <span className="text-xs">Back</span>
+            <span className="text-xs">{t("Back")}</span>
           </button>
           <h1 className="text-base font-bold text-white">Ask Chef</h1>
           <div className="flex items-center gap-2">
@@ -880,20 +882,20 @@ export default function CoachsCorner() {
                 }}
                 disabled={clearMutation.isPending || isLoading || isLoadingOlder}
                 className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-white/8 border border-white/15 text-white/50 text-xs hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-colors disabled:opacity-40"
-                aria-label="Clear conversation"
+                aria-label={t("Clear conversation")}
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                Clear
+                {t("Clear")}
               </button>
             )}
             {!conversationEnabled && <button
               onClick={() => setShowProfile(true)}
               disabled={!bootstrapReady}
               className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-white/8 border border-white/15 text-white/70 text-xs hover:text-white hover:bg-white/12 transition-colors disabled:opacity-40 disabled:cursor-default"
-              aria-label="Edit coaching profile"
+              aria-label={t("Edit coaching profile")}
             >
               <Settings className="w-3.5 h-3.5" />
-              Edit profile
+              {t("Edit profile")}
             </button>}
           </div>
         </div>
@@ -915,9 +917,9 @@ export default function CoachsCorner() {
             : "flex-1 overflow-y-auto px-4 py-5"}>
           {historyUnavailable ? (
             <div role="alert" className="py-8 text-center text-sm text-white/80">
-              <p>Your conversation couldn't be restored. Your saved messages have not been cleared.</p>
+              <p>{t("Your conversation couldn't be restored. Your saved messages have not been cleared.")}</p>
               <button onClick={() => bootstrapQuery.refetch()} className="mt-3 underline">
-                Retry loading conversation
+                {t("Retry loading conversation")}
               </button>
             </div>
           ) : bootstrapLoading ? (
@@ -942,10 +944,10 @@ export default function CoachsCorner() {
                 className="w-44 h-44 mb-3 object-contain"
               />
               <h2 className="text-2xl font-bold text-white mb-2">
-                {conversationEnabled ? "How can I help you today?" : "What's on your mind?"}
+                {conversationEnabled ? t("How can I help you today?") : t("What's on your mind?")}
               </h2>
               <p className="text-sm text-white max-w-[240px] leading-relaxed drop-shadow-md">
-                {conversationEnabled ? "Ask about nutrition or anything in My Perfect Meals." : "Your data, your patterns — let's figure it out together."}
+                {conversationEnabled ? t("Ask about nutrition or anything in My Perfect Meals.") : t("Your data, your patterns — let's figure it out together.")}
               </p>
             </div>
           ) : (
@@ -961,10 +963,10 @@ export default function CoachsCorner() {
                     {isLoadingOlder ? (
                       <>
                         <Loader2 className="w-3 h-3 animate-spin" />
-                        Loading…
+                        {t("Loading…")}
                       </>
                     ) : (
-                      "Load older messages"
+                      t("Load older messages")
                     )}
                   </button>
                 </div>
@@ -997,7 +999,7 @@ export default function CoachsCorner() {
               value={inputText}
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
-              placeholder="Ask me anything..."
+              placeholder={t("Ask me anything...")}
               disabled={isLoading || clearMutation.isPending || bootstrapLoading || historyUnavailable}
               rows={1}
               className="col-span-2 w-full min-w-0 sm:w-auto sm:flex-1 resize-none bg-zinc-900 border border-white/25 text-white placeholder:text-white/45 text-sm rounded-xl py-3 px-4 focus:outline-none focus:ring-1 focus:ring-orange-500/60 focus:border-orange-500/50 disabled:opacity-50 transition-colors"
@@ -1007,7 +1009,7 @@ export default function CoachsCorner() {
               value={inputText}
               onChange={setInputText}
               disabled={isLoading || clearMutation.isPending || bootstrapLoading || historyUnavailable}
-              label={chefMemberText("Use voice input for Coach's Corner")}
+              label={t("Use voice input for Ask Chef")}
               className="min-w-0 justify-self-start shrink-0 [&_button]:min-h-11"
             />
             <Button
@@ -1015,7 +1017,7 @@ export default function CoachsCorner() {
               disabled={!inputText.trim() || isLoading || clearMutation.isPending || bootstrapLoading || historyUnavailable}
               size="icon"
               className="w-11 h-11 rounded-xl bg-orange-600 hover:bg-orange-700 disabled:opacity-40 disabled:bg-zinc-700 shrink-0 transition-colors"
-              aria-label="Send message"
+              aria-label={t("Send message")}
             >
               <Send className="w-4 h-4 text-white" />
             </Button>
@@ -1051,12 +1053,12 @@ export default function CoachsCorner() {
         <DialogContent showCloseButton={!clearMutation.isPending} aria-describedby="chef-clear-description"
           className="bg-zinc-950 border border-white/10 text-white max-w-sm w-full p-6">
           <DialogHeader>
-            <DialogTitle className="text-white text-base">Clear this conversation?</DialogTitle>
+            <DialogTitle className="text-white text-base">{t("Clear this conversation?")}</DialogTitle>
           </DialogHeader>
           <p id="chef-clear-description" className="text-sm text-white/55 mt-1 leading-relaxed">
             {conversationEnabled
-              ? "All messages will be permanently deleted. Only the chat history is removed."
-              : "All messages will be permanently deleted. Your coaching profile stays intact — only the chat history is removed."}
+              ? t("All messages will be permanently deleted. Only the chat history is removed.")
+              : t("All messages will be permanently deleted. Your coaching profile stays intact — only the chat history is removed.")}
           </p>
           {clearError && <p role="alert" className="mt-3 text-sm text-red-300">{clearError}</p>}
           <div className="flex gap-3 mt-5">
@@ -1065,14 +1067,14 @@ export default function CoachsCorner() {
               disabled={clearMutation.isPending}
               className="flex-1 py-2.5 rounded-xl border border-white/15 text-white/60 text-sm hover:text-white hover:border-white/25 transition-colors disabled:opacity-40"
             >
-              Cancel
+              {t("Cancel")}
             </button>
             <button
               onClick={handleClear}
               disabled={clearMutation.isPending}
               className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
             >
-              {clearMutation.isPending ? "Clearing…" : clearError ? "Try again" : "Clear"}
+              {clearMutation.isPending ? t("Clearing…") : clearError ? t("Try again") : t("Clear")}
             </button>
           </div>
         </DialogContent>

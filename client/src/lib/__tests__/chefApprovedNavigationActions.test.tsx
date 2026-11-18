@@ -1,5 +1,6 @@
 /** @jest-environment jsdom */
 import React, { act } from "react";
+import "@/i18n";
 import { createRoot, type Root } from "react-dom/client";
 import CoachBubble, { type CoachStructuredResponse } from "@/components/coaching/CoachBubble";
 import { chefNavigationRoute } from "@shared/coaching/creatorRequest";
