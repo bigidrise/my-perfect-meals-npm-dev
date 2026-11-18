@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Medical resources — bounded localization recommendation</title>
+<style>
+:root{color-scheme:light;font-family:system-ui,sans-serif;color:#162238;background:#eef2f6}
+body{max-width:1020px;margin:0 auto;padding:32px 20px;line-height:1.6}
+main{background:white;padding:clamp(20px,4vw,48px);border:1px solid #d6deea;border-radius:14px}
+h1{font-size:clamp(25px,4vw,36px);line-height:1.2}h2{margin-top:32px;font-size:22px}
+h3{font-size:17px}code{font-size:.86em;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #d6deea;padding:10px;text-align:left;vertical-align:top}
+th{background:#eef3fa}.notice{border-left:4px solid #355cd4;background:#eef3ff;padding:14px 18px}
+.muted{color:#536278}li{margin:7px 0}.table{overflow:auto}
+</style>
+</head>
+<body><main>
+<p class="muted">Development only · November 18, 2026 · Read-only source investigation</p>
+<h1>Medical Resources / Clinical References</h1>
+<p class="notice"><strong>Recommendation:</strong> retain the existing shared panel and authoritative references.
+Add stable presentation identities and approved EN/ES display fields through the existing localization system.
+Do not create a separate Spanish reference catalog, move records into a database, or activate unreviewed clinical wording.</p>
+
+<h2>1. Findings and exact scope</h2>
+<p>The screenshot matches <code>client/src/components/MedicalSourcesInfo.tsx</code>.
+Its headings, explanations and reference cards are predominantly embedded English JSX, without a translation hook.
+Translating the dashboard entry card therefore does not translate the sheet it opens.</p>
+<div class="table"><table>
+<thead><tr><th>Owner</th><th>Count</th><th>Authority and behavior</th></tr></thead>
+<tbody>
+<tr><td>Shared MedicalSourcesInfo panel</td><td>121 reference-card placements, 100 distinct literal URLs</td><td>Embedded source-owned JSX; common SourceItem renderer. Every placement has a title, description and URL. One title uses the existing Ask Chef display-name expression. Not database-backed.</td></tr>
+<tr><td>Hydration evidence section</td><td>32 keyed source records</td><td>research/sources.json → authenticated GET /api/hydration/evidence → shared panel. File-backed, not database-backed. Client section and fetching are Development-only; preserve that gate and endpoint authentication.</td></tr>
+<tr><td>Related diabetes education module</td><td>6 citation records</td><td>client/src/content/diabetesEducation.ts exports CLINICAL_REFERENCES. No importing consumer was found. Separate ownership; not counted as visible panel entries and no activation proposed.</td></tr>
+</tbody></table></div>
+<p><strong>Total panel capacity: 153 reference placements</strong> when the Development hydration section loads successfully.
+This is not a claim of 153 unique scientific sources. Repeated URLs and duplicated topic sections exist.
+It is a source count, not a signed-in browser observation or a platform-wide audit.</p>
+<p>The panel has 21 section headings: 18 sections containing citation cards, plus the nutrition-calculation explanation,
+the important-note disclaimer and the hydration registry. Two GLP-1 sections each contain eight cards.
+Do not deduplicate or remove them as part of localization.</p>
+<p>Direct callers are DashboardNew, MacroCalculator, HydrationCenter, MyPerfectPregnancyPage, GuestBuilder,
+GLP1Hub and DiabeticHub, plus a legacy Profile caller. These are source relationships, not proof of runtime eligibility.
+Custom triggers supplied by callers remain caller-owned.</p>
+
+<h2>2. Existing review governance</h2>
+<p>The clinical registry already covers this panel: <strong>83 registered string occurrences representing
+69 distinct keys</strong>. The Spanish manifest has those 69 keys, all <strong>pending</strong>.
+The difference is repeated occurrences, not 14 missing review entries. No registered key was missing from that manifest.</p>
+<p>The registry is not a complete current content inventory. Newer explanations and the hydration records need
+bounded reconciliation before anyone claims all clinical presentation text is covered.
+All 32 hydration source records currently carry <code>status: proposed</code>; that status is not Spanish clinical approval.</p>
+<p>Even “Clinical Background” is already registered as protected. Do not bypass its review requirement by
+placing its Spanish wording in the ordinary consumer namespace. Existing protected-key classification stays intact.</p>
+<p>Current review enforcement compares approved status, reviewer, review timestamp, source text and exact translated value.
+It primarily inspects locale JSON. The additive consumer namespace must not become a route around protected-copy validation.
+Do not regenerate the registry, approve entries or alter existing enforcement during this investigation.</p>
+
+<h2>3. Smallest reusable presentation structure</h2>
+<ol>
+<li><strong>Ordinary interface:</strong> connect the shared panel’s controls and unprotected generic headings
+through the existing useConsumerCopy / EN/ES resources. Examples: panel title, Info, Open source, Visit {{title}},
+loading and unavailable states, and Scope. Resolve existing protected registration before treating any heading as ordinary.
+Localize custom entry controls at their existing caller without replacing the caller’s component.</li>
+<li><strong>Stable display identity:</strong> add a stable resourceId to embedded cards and a stable section ID to headings
+when implementation is approved. Continue using hydration’s existing record.key.
+IDs must not depend on array order, current title text or URL alone; repeated citations can have different contextual descriptions.</li>
+<li><strong>Keep authoritative metadata:</strong> retain source titles, author/institution names, journal citations,
+PMIDs, publication dates and original URLs exactly. Optionally show an approved Spanish display title above the original
+citation; never replace the original citation with the Spanish display title.</li>
+<li><strong>Approved display overlay:</strong> associate each stable ID with optional displayTitle and displayDescription
+translation keys in the existing locale resources. Use the existing clinical review manifest for protected fields.
+This is a presentation-key mapping, not a second source-of-truth reference catalog or a new translation service.
+Embedded canonical metadata can stay in place; no wholesale extraction or database migration is necessary.</li>
+<li><strong>Fail closed on approval:</strong> display Spanish protected copy only when the exact wording and current
+English source have qualified approval through the existing controlled process. Unapproved, missing or stale fields
+fall back independently to their existing English source. Pending candidate prose stays outside runtime translation resources.
+Ensure validation covers every new overlay key regardless of namespace, without weakening any existing gate.</li>
+<li><strong>One renderer:</strong> SourceItem resolves approved display fields while retaining its exact original href,
+target and rel behavior. Hydration’s details/summary renderer uses the same presentation-resolution contract but preserves
+its existing expansion behavior, authentication, Development gate and API response.
+Do not send locale changes to the evidence API or mutate the records.</li>
+</ol>
+<p>The overlay can cover hundreds of entries without adding a Spanish-only page. Existing explicit English,
+explicit Spanish and Auto preference resolution remain authoritative; no new selector, locale detection or storage is needed.</p>
+
+<h2>4. What requires qualified review</h2>
+<ul>
+<li>All 121 contextual card descriptions, including their claims about what a study supports.</li>
+<li>Optional Spanish display titles that describe a condition, intervention or clinical claim; original official titles remain unchanged.</li>
+<li>Clinical section headings and existing protected headings, including Alpha-gal, GLP-1, lab/biomarker, oncology,
+thyroid, pregnancy, pediatric and protocol-priority content.</li>
+<li>Clinical introductions, “Drives:” explanations, ingredient restrictions, hard-block versus verify-source language,
+symptom/escalation guidance, medication guidance and numerical nutrient or safety explanations.</li>
+<li>The protocol-priority tier labels and details, physician-precedence explanations and the concluding
+wellness/allergen/oncology/pregnancy/pediatric disclaimer.</li>
+<li>Hydration’s ruleSupported and populationScope prose and its numeric-policy/no-number explanation.
+Do not translate evidence classifications as clinical conclusions without a reviewed mapping.</li>
+</ul>
+<p>“Clinical Background,” “Authoritative Guidance” and other registered terms must retain their existing protected status.
+Generic controls can be translated independently; this does not make the clinical panel fully Spanish.</p>
+
+<h2>5. External sources and safety boundary</h2>
+<p>Links must continue to use their original destinations. No guessed /es URLs, automatic browser translation,
+external language redirects or promise that the destination is Spanish. A neutral local explanation can tell users
+that external sites control their language options and browser translation is their choice.</p>
+<p>No clinical protocol, allergy restriction, nutrient rule, physician authority, reference record or reference status
+needs to change. Localized display content explains existing evidence; it must never become input to clinical decisions.</p>
+
+<h2>6. Verification recommended for an approved implementation</h2>
+<ul>
+<li>Focused EN/ES and Auto tests of actual shared renderers and caller triggers.</li>
+<li>Exact metadata/link preservation, including original citations, PMIDs, institution names, href, target and rel.</li>
+<li>Per-field missing, pending, stale-source and approved overlay cases; English fallback without exposing candidate Spanish prose.</li>
+<li>Hydration loading/error/success fixtures with no live API or database writes, preserving its Development-only visibility.</li>
+<li>Desktop/mobile sheet scrolling, long titles, detail expansion, keyboard focus, close controls and external-link accessible names.</li>
+<li>Existing localization guard, client/server compilation, safety typecheck and exact approved release fingerprint.
+No fingerprint refreshes or suppressed diagnostics.</li>
+</ul>
+
+<h2>7. Investigation outcome</h2>
+<p><strong>No application changes were made for this request.</strong> The medical panel, evidence API, source JSON,
+clinical registry and review manifests were read only and remain unchanged. No clinical translations were drafted or activated.
+No database was queried, no customer data changed, no paid translation/AI provider was called, and nothing was published.</p>
+<p>Evidence came from source parsing, import/caller searches, existing localization inventory and review-manifest comparison.
+No signed-in browser verification or new build/type-test result is claimed for this read-only recommendation.</p>
+<p class="notice"><strong>Separate work paused:</strong> the preceding shared-builder / General Nutrition localization
+edits remain unfinished and unverified. An initial localization guard found five new connection/review items.
+They have not been resolved or represented as passing here. This investigation did not expand or certify that batch.</p>
+<p class="muted">Source pointers: MedicalSourcesInfo.tsx; server/routes/hydration.ts; research/sources.json;
+diabetesEducation.ts; i18n/useConsumerCopy.ts; i18n/index.ts; docs/localization/clinical-registry.json;
+docs/localization/clinical-review/es.review.json; scripts/i18n-phase0-validate.ts;
+docs/localization/application-inventory/inventory.md.</p>
+</main></body></html>

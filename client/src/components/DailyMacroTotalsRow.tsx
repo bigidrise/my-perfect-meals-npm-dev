@@ -1,4 +1,4 @@
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import { formatBuilderMacro, type BuilderMacroKey } from "@/lib/builderMacroCalculation";
 import { resolveDisplayCarbTargets } from "@/lib/macroResolver";
 
@@ -139,18 +139,18 @@ export function DailyMacroTotalsRow({ totals, prescription, activeDayISO, fallba
                 ? "bg-white/10 text-white/80" : macroColor(
                   value ?? 0, target ?? 0, key === "carbs" || key === "starchyCarbs" || key === "fibrousCarbs",
                 )}`}>
-              {label} {unknown ? "—" : formatBuilderMacro(value, incomplete)}
+              {t(label)} {unknown ? "—" : formatBuilderMacro(value, incomplete)}
               {target !== undefined ? ` / ${formatBuilderMacro(target)}` : " / —"}{key === "calories" ? " cal" : "g"}
-              {over && ` (${incomplete ? "≥ " : ""}+${formatBuilderMacro(value! - target!)}${key === "calories" ? " cal" : "g"} over)`}
+              {over && ` (${incomplete ? "≥ " : ""}+${formatBuilderMacro(value! - target!)}${key === "calories" ? " cal" : "g"} ${t("over")})`}
             </span>
           );
         })}
       </div>
       {(totals.estimated || totals.issues?.length || (totals.unclassifiedCarbs ?? 0) > 0.01) && (
         <p className="text-[10px] text-white/60">
-          {totals.estimated && "Carb split estimated. "}
-          {(totals.unclassifiedCarbs ?? 0) > 0.01 && `${Math.round(totals.unclassifiedCarbs!)}g other/unclassified carbs. `}
-          {totals.issues?.join(". ")}{totals.uncertainFields?.length ? " · Totals incomplete (≥ known amounts)." : ""}
+          {totals.estimated && t("Carb split estimated. ")}
+          {(totals.unclassifiedCarbs ?? 0) > 0.01 && t("{{grams}}g other/unclassified carbs. ", { grams: Math.round(totals.unclassifiedCarbs!) })}
+          {totals.issues?.join(". ")}{totals.uncertainFields?.length ? t(" · Totals incomplete (≥ known amounts).") : ""}
         </p>
       )}
     </div>

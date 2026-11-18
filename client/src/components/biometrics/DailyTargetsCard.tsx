@@ -3,6 +3,7 @@ import { Zap } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import { resolveDisplayCarbTargets } from "@/lib/macroResolver";
 import { useAuth } from "@/contexts/AuthContext";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 interface DailyTargetsCardProps {
   userId?: string;
@@ -26,6 +27,7 @@ export function DailyTargetsCard({
   targetsOverride,
   isLoading = false,
 }: DailyTargetsCardProps) {
+  const { t } = useConsumerCopy();
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -50,29 +52,29 @@ export function DailyTargetsCard({
     recovery: "Recovery", off: "Rest",
   };
   const isPerformanceActive = !!(user?.performanceModeEnabled && user?.weeklyTrainingSchedule);
-  const todayLabel = isPerformanceActive && todaySession ? (SESSION_LABELS[todaySession] ?? todaySession) : null;
+  const todayLabel = isPerformanceActive && todaySession ? (SESSION_LABELS[todaySession] ? t(`pro.gnbEntry.sessions.${todaySession}`) : todaySession) : null;
 
   return (
     <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-lg p-4 mb-4">
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-white/60 uppercase tracking-wide">Daily Targets</span>
+            <span className="text-xs font-medium text-white/60 uppercase tracking-wide">{t("Daily Targets")}</span>
             {isPerformanceActive && (
               <span className="flex items-center gap-1 text-[9px] font-bold text-orange-400 bg-orange-600/20 border border-orange-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-wide">
                 <Zap className="w-2.5 h-2.5" />
-                {todayLabel ? `${todayLabel} Day` : "Performance"}
+                {todayLabel ? t("{{session}} Day", { session: todayLabel }) : t("Performance")}
               </span>
             )}
           </div>
           {showQuickAddButton && onQuickAddClick && (
             <div className="flex items-center gap-2">
-              <span className="text-[9px] font-semibold text-white/70 uppercase tracking-wide">QUICK</span>
+              <span className="text-[9px] font-semibold text-white/70 uppercase tracking-wide">{t("QUICK")}</span>
               <PillButton
                 onClick={onQuickAddClick}
                 data-testid="button-quick-add-macros"
               >
-                Add
+                {t("Add")}
               </PillButton>
             </div>
           )}
@@ -82,7 +84,7 @@ export function DailyTargetsCard({
             {["Protein", "Total Carbs", "Starchy", "Fibrous", "Fat"].map((label) => (
               <div key={label} className="text-center">
                 <div className="animate-pulse h-6 w-10 mx-auto rounded bg-white/10 mb-1" />
-                <div className="text-xs text-white/60">{label}</div>
+                <div className="text-xs text-white/60">{t(label)}</div>
               </div>
             ))}
           </div>
@@ -90,23 +92,23 @@ export function DailyTargetsCard({
           <div className="grid grid-cols-5 gap-2">
             <div className="text-center">
               <div className="text-lg font-bold text-white">{Math.round(resolved.protein_g || 0)}g</div>
-              <div className="text-xs text-white/60">Protein</div>
+              <div className="text-xs text-white/60">{t("Protein")}</div>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-white">{Math.round(resolved.carbs_g || 0)}g</div>
-              <div className="text-xs text-white/60">Total Carbs</div>
+              <div className="text-xs text-white/60">{t("Total Carbs")}</div>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-white">{Math.round(starchyCarbs)}g</div>
-              <div className="text-xs text-white/60">Starchy</div>
+              <div className="text-xs text-white/60">{t("Starchy")}</div>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-white">{Math.round(fibrousCarbs)}g</div>
-              <div className="text-xs text-white/60">Fibrous</div>
+              <div className="text-xs text-white/60">{t("Fibrous")}</div>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-white">{Math.round(resolved.fat_g || 0)}g</div>
-              <div className="text-xs text-white/60">Fat</div>
+              <div className="text-xs text-white/60">{t("Fat")}</div>
             </div>
           </div>
         )}
