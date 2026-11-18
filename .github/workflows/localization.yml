@@ -9,10 +9,25 @@ on:
       - "client/src/**/*.ts"
       - "scripts/i18n-*.ts"
       - "scripts/pseudo-locale-gen.ts"
+      - "scripts/localization-check/**"
+      - "docs/localization/new-interface-text.json"
+      - "shared/**"
+      - "server/**"
+      - ".github/workflows/localization.yml"
+      - "package.json"
   push:
     branches: [dev, production]
     paths:
       - "client/src/i18n/**"
+      - "client/src/**/*.tsx"
+      - "client/src/**/*.ts"
+      - "scripts/localization-check/**"
+      - "scripts/i18n-*.ts"
+      - "docs/localization/new-interface-text.json"
+      - "shared/**"
+      - "server/**"
+      - ".github/workflows/localization.yml"
+      - "package.json"
 
 jobs:
   localization-gates:
@@ -23,6 +38,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -51,7 +68,10 @@ jobs:
           if-no-files-found: ignore
           retention-days: 3
 
-      - name: GATE_02 + GATE_03 + GATE_07 + GATE_08 — Phase 0 Validate
+      - name: Test incremental interface-text guard
+        run: npm run test:i18n:new
+
+      - name: GATE_02 + GATE_03 + GATE_07 + GATE_08 + GATE_09 — Phase 0 Validate
         run: ./node_modules/.bin/tsx scripts/i18n-phase0-validate.ts --ci
 
       - name: Generate clinical registry (verify it builds)

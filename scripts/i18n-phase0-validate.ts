@@ -427,6 +427,15 @@ if (!fs.existsSync(PERFILE_BASELINE_FILE)) {
   }
 }
 
+// Additive incremental guard. Keep all existing gates/baselines above intact.
+section("GATE_09 — Newly Introduced Interface Text (EN/ES)");
+try {
+  execSync("node scripts/localization-check/cli.cjs", { stdio: "inherit" });
+  pass("Incremental interface-copy check passed within its documented source scope");
+} catch {
+  fail("Incremental interface-copy check failed or could not compare history; run npm run validate:i18n:new");
+}
+
 // ── Summary ────────────────────────────────────────────────────────────────
 console.log("\n═══════════════════════════════════════════════════════════");
 console.log(`  PHASE 0 VALIDATION COMPLETE`);
