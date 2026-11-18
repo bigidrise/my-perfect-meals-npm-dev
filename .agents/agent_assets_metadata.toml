@@ -1335,3 +1335,17 @@ mtime_ms = 1795023206394
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/9d0bcab8-4288-469b-a07f-68f65792e1f8/5b5b5990-cbe2-47ac-9a85-0d00d8280b83"
 storage_version_token = "1795023207455384"
 content_type = "text/html"
+
+[[outputs]]
+id = "fKgarMoWCZpSEeycpWsOu"
+uri = "file://generated-artifacts/spanish-messages-startup-evidence.html"
+type = "html"
+title = "Spanish Messages and startup flash — evidence"
+description = "Root-cause trace, exact corrections, 102-test results and public desktop/mobile first-visible-heading evidence, with authenticated verification limits stated."
+logical_id = "4b6ba5fc-c05d-4342-a5c9-d9a2fd4c39d9"
+content_hash = "sha256:06e767a90b06da4c93025af70e7d17e64d07ef104da5a192c9e84db2ff692141"
+size = 81620
+mtime_ms = 1795024662042
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/4b6ba5fc-c05d-4342-a5c9-d9a2fd4c39d9/438c0b1c-f7ad-4bf9-b6b2-82a6cdad547d"
+storage_version_token = "1795024662821035"
+content_type = "text/html"

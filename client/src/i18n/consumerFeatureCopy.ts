@@ -383,4 +383,5 @@ export const consumerFeatureSpanish: Record<string, string> = {
   "Focus on meeting your daily protein target more consistently.": "Céntrate en alcanzar tu objetivo diario de proteínas con más constancia.",
   "Use My Perfect Meals more consistently when making food decisions.": "Usa My Perfect Meals con más constancia al tomar decisiones sobre tu alimentación.",
   "Keep building on your consistent nutrition habits.": "Sigue reforzando tus hábitos de alimentación constantes.",
+  "Messages": "Mensajes",
 };

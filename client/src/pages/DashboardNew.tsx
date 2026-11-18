@@ -1258,7 +1258,7 @@ export default function DashboardNew() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-semibold text-white">
-                      {developmentClientMessagingEnabled ? "Messages" : t("myMessages")}
+                      {developmentClientMessagingEnabled ? t("Messages") : t("myMessages")}
                     </h3>
                     <p className={`text-xs ${tabletHasUnread ? "text-orange-400 font-medium" : "text-white/70"}`}>
                       {tabletHasUnread ? t("newCoachMsg") : t("viewCoach")}
