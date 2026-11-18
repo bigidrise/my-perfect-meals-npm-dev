@@ -102,7 +102,7 @@ export function AddOwnMealButton({ slot, onSave, onImageReady, variant = "icon",
         >
           <>
             <Plus className="h-4 w-4 mr-2" />
-            Describe What You Ate
+            {t("Describe What You Ate")}
           </>
         </Button>
 

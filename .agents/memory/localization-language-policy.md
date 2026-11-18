@@ -126,3 +126,15 @@ authoritative source records and clinical behavior.
 retain canonical citations alongside any approved display title, preserve link
 behavior, and never assume external websites will display Spanish or control
 the user's browser translation.
+
+Structured builder localization proceeds in bounded groups: shared components
+and General Nutrition first, then verification and a report before any
+additional builder's page-specific localization.
+
+**Why:** The founder ended one-screen-at-a-time fixes but explicitly required
+approval before expansion; shared-component inheritance alone does not
+authorize another builder's page-owned copy.
+
+**How to apply:** Reuse the completed inventory and EN/ES architecture, finish
+the current group's checks, identify remaining English/protected wording and
+stop for approval. Keep Medical Resources implementation separate.

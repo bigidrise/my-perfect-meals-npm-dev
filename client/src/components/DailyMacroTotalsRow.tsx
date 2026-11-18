@@ -117,12 +117,12 @@ export function DailyMacroTotalsRow({ totals, prescription, activeDayISO, fallba
     ? { ...targetSnapshot, ...resolveDisplayCarbTargets(targetSnapshot) }
     : null;
   const indicators: { key: BuilderMacroKey; label: string; target: number | undefined }[] = [
-    { key: "calories", label: "Calories", target: targets?.calories_kcal },
-    { key: "protein", label: "Protein", target: targets?.protein_g },
-    { key: "carbs", label: "Total Carbs", target: targets?.carbs_g },
-    { key: "starchyCarbs", label: "Starchy Carbs", target: targets?.starchyCarbs_g },
-    { key: "fibrousCarbs", label: "Fibrous Carbs", target: targets?.fibrousCarbs_g },
-    { key: "fat", label: "Fat", target: targets?.fat_g },
+    { key: "calories", label: t("Calories"), target: targets?.calories_kcal },
+    { key: "protein", label: t("Protein"), target: targets?.protein_g },
+    { key: "carbs", label: t("Total Carbs"), target: targets?.carbs_g },
+    { key: "starchyCarbs", label: t("Starchy Carbs"), target: targets?.starchyCarbs_g },
+    { key: "fibrousCarbs", label: t("Fibrous Carbs"), target: targets?.fibrousCarbs_g },
+    { key: "fat", label: t("Fat"), target: targets?.fat_g },
   ];
   return (
     <div className="space-y-1 px-1" data-testid="builder-today-macros">
@@ -139,9 +139,9 @@ export function DailyMacroTotalsRow({ totals, prescription, activeDayISO, fallba
                 ? "bg-white/10 text-white/80" : macroColor(
                   value ?? 0, target ?? 0, key === "carbs" || key === "starchyCarbs" || key === "fibrousCarbs",
                 )}`}>
-              {t(label)} {unknown ? "—" : formatBuilderMacro(value, incomplete)}
+              {label} {unknown ? "—" : formatBuilderMacro(value, incomplete)}
               {target !== undefined ? ` / ${formatBuilderMacro(target)}` : " / —"}{key === "calories" ? " cal" : "g"}
-              {over && ` (${incomplete ? "≥ " : ""}+${formatBuilderMacro(value! - target!)}${key === "calories" ? " cal" : "g"} ${t("over")})`}
+              {over && t(" ({{bound}}+{{amount}}{{unit}} over)", { bound: incomplete ? "≥ " : "", amount: formatBuilderMacro(value! - target!), unit: key === "calories" ? " cal" : "g" })}
             </span>
           );
         })}

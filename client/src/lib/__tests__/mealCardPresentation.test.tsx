@@ -19,7 +19,8 @@ jest.mock("@/lib/mealShoppingApi", () => ({ withShoppingProvenance: (meal: any) 
 jest.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: { id: "synthetic-visual-fixture" } }) }));
 jest.mock("@/lib/subscriptionCheck", () => ({ hasActivePaidSubscription: () => true }));
 jest.mock("@/contexts/UpgradeModalContext", () => ({ useUpgradeModal: () => ({ requestUpgrade: jest.fn() }) }));
-jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) =>
+  ({ "common.cancel": "Cancel", "common.delete": "Delete" } as Record<string, string>)[key] ?? key }) }));
 afterEach(() => { cleanup(); jest.clearAllMocks(); });
 
 test("meal-card trash is red by default with a compact outline and a separate 44px touch target", () => {
@@ -77,7 +78,7 @@ function actualCreateDishHeader() {
     "setMealOptions", "clearOptionsCache", "updateDishInput", "setSubstitutedStarchTerms", "clearStarchAlert"]
     .map(name => [name, jest.fn()]));
   const meal = { id: "synthetic-header", name: "A very long salmon recipe title that must wrap naturally without overlapping Favorites or Create New controls", servings: 2 };
-  const scope = { React, FavoriteButton, ChefHat, meal, servings: 2, ...reset };
+  const scope = { React, FavoriteButton, ChefHat, meal, servings: 2, t: (key: string) => key, ...reset };
   return { element: new Function("scope", `with(scope) { ${compiled} }`)(scope), meal, reset };
 }
 test("actual Create a Dish header puts independent controls before the full wrapping title", () => {
