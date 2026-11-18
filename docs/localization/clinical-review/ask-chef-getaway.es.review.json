@@ -2,6 +2,12 @@
   "_meta": {
     "locale": "es",
     "status": "pending",
+    "founderWordingReview": {
+      "decision": "accepted",
+      "passages": [1, 2, 3, 4, 5, 6, 7],
+      "revisions": "none",
+      "scope": "Founder wording review only. Not clinical certification, qualified medical translation approval, or authorization to activate or integrate. All seven entries remain pending qualified review. Development only."
+    },
     "description": "Supplement to the existing controlled clinical-language review. Candidates only, not runtime resources or approvals. Existing registry and es.review.json decisions are unchanged. A qualified clinical reviewer must approve wording before engineering registers and connects it through the existing controlled workflow."
   },
   "entries": [
@@ -11,6 +17,7 @@
       "sourceText": "Illustrative meal ideas — not verified menu offerings. Restaurants, dishes, ingredients, preparation, availability and nutrition have not been verified. Confirm with venue staff, especially for allergies or clinical requirements.",
       "proposedTranslation": "Ideas de comidas orientativas, no platos de un menú verificado. No se han verificado los restaurantes, los platos, los ingredientes, la preparación, la disponibilidad ni la información nutricional. Confírmalo con el personal del establecimiento, especialmente si tienes alergias o requisitos clínicos.",
       "category": "allergy_safety",
+      "founderWordingStatus": "accepted",
       "status": "pending",
       "reviewer": null,
       "reviewedAt": null,
@@ -22,6 +29,7 @@
       "sourceText": "These are suggestions to help you make an informed choice right now. If you're working with a coach, dietitian, or physician, please follow their guidance and check with them about concerns or changes to your nutrition or health plan.",
       "proposedTranslation": "Estas sugerencias te ayudan a tomar una decisión informada en este momento. Si trabajas con un entrenador, dietista o médico, sigue sus indicaciones y consulta con ese profesional cualquier inquietud o cambio en tu plan de nutrición o salud.",
       "category": "general_clinical",
+      "founderWordingStatus": "accepted",
       "status": "pending",
       "reviewer": null,
       "reviewedAt": null,
@@ -33,6 +41,7 @@
       "sourceText": "Get picks matched to your health profile, goals, and any medical protocols",
       "proposedTranslation": "Recibe opciones adaptadas a tu perfil de salud, tus objetivos y los protocolos médicos que sigas",
       "category": "general_clinical",
+      "founderWordingStatus": "accepted",
       "status": "pending",
       "reviewer": null,
       "reviewedAt": null,
@@ -44,6 +53,7 @@
       "sourceText": "Enter the restaurant or dining concept you intend to visit. Its presence and current menu are not independently verified. Your saved nutrition profile applies.",
       "proposedTranslation": "Introduce el restaurante o tipo de establecimiento que piensas visitar. Su presencia y su menú actual no se han verificado de forma independiente. Se aplica tu perfil de nutrición guardado.",
       "category": "general_clinical",
+      "founderWordingStatus": "accepted",
       "status": "pending",
       "reviewer": null,
       "reviewedAt": null,
@@ -55,6 +65,7 @@
       "sourceText": "Menu items were found. Complete ingredients and clinical nutrient compliance remain unverified.",
       "proposedTranslation": "Se encontraron platos del menú. Los ingredientes completos y el cumplimiento de los requisitos clínicos de nutrientes siguen sin verificarse.",
       "category": "general_clinical",
+      "founderWordingStatus": "accepted",
       "status": "pending",
       "reviewer": null,
       "reviewedAt": null,
@@ -66,6 +77,7 @@
       "sourceText": "Cuisine-based meal suggestions, not a confirmed current menu.",
       "proposedTranslation": "Sugerencias de comidas basadas en el tipo de cocina, no en un menú actual confirmado.",
       "category": "general_clinical",
+      "founderWordingStatus": "accepted",
       "status": "pending",
       "reviewer": null,
       "reviewedAt": null,
@@ -77,6 +89,7 @@
       "sourceText": "Nutrition refers to one serving; estimates are labeled on the cards. Confirm availability and preparation with the venue.",
       "proposedTranslation": "La información nutricional corresponde a una porción; las estimaciones se indican en las tarjetas. Confirma la disponibilidad y la preparación con el establecimiento.",
       "category": "general_clinical",
+      "founderWordingStatus": "accepted",
       "status": "pending",
       "reviewer": null,
       "reviewedAt": null,
