@@ -137,7 +137,10 @@ authorize another builder's page-owned copy.
 
 **How to apply:** Reuse the completed inventory and EN/ES architecture, finish
 the current group's checks, identify remaining English/protected wording and
-stop for approval. Keep Medical Resources implementation separate.
+stop for approval. Keep Medical Resources implementation separate. Builder
+coverage includes selection/entry screens and open shared modals, not only
+meal boards; report those states explicitly rather than treating shared-card
+translation as full-builder completion.
 
 The long-term requirement is a plug-and-play multilingual architecture across
 consumer features, builders, creators, meal cards, modals, Academy, ProCare,

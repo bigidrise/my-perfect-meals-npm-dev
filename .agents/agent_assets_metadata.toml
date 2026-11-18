@@ -1391,3 +1391,17 @@ mtime_ms = 1795027452890
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/662853fc-790a-478a-b79d-1301666c23cf/688a2a0a-bdcd-47d0-a6fa-e9da5be8ef72"
 storage_version_token = "1795027453747910"
 content_type = "text/html"
+
+[[outputs]]
+id = "Hiz4S91d0eh86ECAxhfXA"
+uri = "file://generated-artifacts/spanish-builder-entry/verification-report.html"
+type = "html"
+title = "Builder entry screens and Chef modal — Development report"
+description = "Exact coverage and remaining protected English, 269 passing tests, 56 passive responsive cases, screenshots and unchanged release baseline."
+logical_id = "ee0ce817-49df-41d9-8196-ab4bc333b161"
+content_hash = "sha256:4ee42f79b3dfe3b0848efcbae7febee5f4662e2a984e5166efe7d6096221cd23"
+size = 219049
+mtime_ms = 1795029256915
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/ee0ce817-49df-41d9-8196-ab4bc333b161/ab3d7cd6-e0ee-4938-8cf7-c293f0373e99"
+storage_version_token = "1795029257861596"
+content_type = "text/html"

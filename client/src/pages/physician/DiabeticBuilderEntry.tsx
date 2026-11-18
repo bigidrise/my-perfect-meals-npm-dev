@@ -5,8 +5,10 @@ import { ChevronRight, Dumbbell, CalendarDays, Activity } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/apiRequest";
 import { isClinicalOrAbove } from "@/lib/subscriptionCheck";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 export default function DiabeticBuilderEntry() {
+  const { t } = useConsumerCopy("pro");
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
   const canAccessTrainingNutrition = isClinicalOrAbove(user);
@@ -20,13 +22,13 @@ export default function DiabeticBuilderEntry() {
   const todaySession = schedule?.[todayKey];
 
   const SESSION_LABELS: Record<string, string> = {
-    strength: "Strength Day",
-    power: "Power Day",
-    endurance: "Endurance Day",
-    sport_practice: "Sport Practice Day",
-    competition: "Competition Day",
-    recovery: "Recovery Day",
-    off: "Rest Day",
+    strength: t("Strength Day"),
+    power: t("Power Day"),
+    endurance: t("Endurance Day"),
+    sport_practice: t("Sport Practice Day"),
+    competition: t("Competition Day"),
+    recovery: t("Recovery Day"),
+    off: t("Rest Day"),
   };
   const todayLabel = todaySession ? (SESSION_LABELS[todaySession] ?? todaySession) : null;
 
@@ -65,7 +67,7 @@ export default function DiabeticBuilderEntry() {
             Diabetic Menu Builder
           </p>
           <h1 className="text-white font-bold text-2xl leading-tight mb-2">
-            Where would you like to start?
+            {t("gnbEntry.title")}
           </h1>
           <p className="text-white text-sm leading-relaxed">
             Build today’s meals with your diabetic nutrition protocol, or use your training schedule to adapt targets around workouts.
@@ -82,10 +84,10 @@ export default function DiabeticBuilderEntry() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white font-semibold text-base leading-tight mb-0.5">
-              Build today’s meals
+              {t("Build today’s meals")}
             </p>
             <p className="text-white text-sm leading-relaxed">
-              Generate meals using your diabetic profile and baseline macro targets.
+              {t("Generate meals using your diabetic profile and baseline macro targets.")}
             </p>
           </div>
           <ChevronRight className="w-5 h-5 text-rose-400/60 group-hover:text-rose-400 transition-colors flex-shrink-0" />
@@ -94,7 +96,7 @@ export default function DiabeticBuilderEntry() {
         {/* Section Header */}
         <div className="mt-6 mb-4" hidden={!canAccessTrainingNutrition}>
           <div className="h-px bg-white/10 mb-4" />
-          <p className="text-white font-semibold text-base mb-1">Want training-aware macros?</p>
+          <p className="text-white font-semibold text-base mb-1">{t("gnbEntry.trainTitle")}</p>
           <p className="text-white text-sm leading-relaxed">
             Set up a training schedule to automatically adjust your daily macro targets around your weekly workouts while honoring your diabetic nutrition protocol.
           </p>
@@ -110,32 +112,32 @@ export default function DiabeticBuilderEntry() {
             <Dumbbell className="w-5 h-5 text-orange-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
+            <div className="flex flex-wrap items-center gap-2 mb-0.5">
               <p className="text-white font-semibold text-base leading-tight">
-                Training Nutrition Schedule
+                {t("gnbEntry.scheduleTitle")}
               </p>
               <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-300 bg-orange-600/20 border border-orange-500/30 px-2 py-0.5 rounded-full flex-shrink-0">
                 Clinical
               </span>
               {performanceModeEnabled && hasSchedule && (
                 <span className="text-xs font-semibold text-orange-400 bg-orange-600/20 border border-orange-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
-                  Active
+                  {t("gnbEntry.activeLabel")}
                 </span>
               )}
             </div>
             <p className="text-white text-sm leading-relaxed mb-2">
-              Set your weekly training type and get macro targets tailored to each day.
+              {t("gnbEntry.scheduleDesc")}
             </p>
             {performanceModeEnabled && hasSchedule && todayLabel && (
               <div className="flex items-center gap-2 mt-2">
                 <CalendarDays className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
-                <span className="text-orange-300 text-xs font-semibold">Today: {todayLabel}</span>
+                <span className="text-orange-300 text-xs font-semibold">{t("gnbEntry.today", { label: todayLabel })}</span>
                 <span className="text-white/60 text-xs">·</span>
-                <span className="text-white text-xs">Training adjustments active</span>
+                <span className="text-white text-xs">{t("Training adjustments active")}</span>
               </div>
             )}
             <p className="text-orange-400 text-sm font-semibold mt-2">
-              {hasSchedule ? "Edit schedule →" : "Set up training schedule →"}
+              {hasSchedule ? t("gnbEntry.editSchedule") : t("gnbEntry.setupSchedule")} →
             </p>
           </div>
         </button>

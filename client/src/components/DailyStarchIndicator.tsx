@@ -11,6 +11,7 @@
 
 import { getDayStarchStatus } from '@/utils/starchMealClassifier';
 import type { DailyNutritionPrescription } from '../../../shared/dailyNutritionPrescription';
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 interface Meal {
   name?: string;
@@ -35,6 +36,7 @@ export function DailyStarchIndicator({
   strategyOverride,
   bodyFatSlotDelta = 0,
 }: DailyStarchIndicatorProps) {
+  const { t } = useConsumerCopy();
   // ── Derive slot count ──────────────────────────────────────────────────────
   let maxSlots: number;
   if (prescription) {
@@ -45,6 +47,12 @@ export function DailyStarchIndicator({
   }
 
   const status = getDayStarchStatus(meals, maxSlots);
+  const statusLabels: Record<string, string> = {
+    Used: t("Used"), Available: t("Available"), "Both Used": t("Both Used"),
+    [`${maxSlots} Available`]: t("{{count}} Available", { count: maxSlots }),
+    [`${status.slotsRemaining} Remaining`]: t("{{count}} Remaining", { count: status.slotsRemaining }),
+  };
+  const statusLabel = statusLabels[status.label] ?? status.label;
 
   // ── Adaptive gram guidance (only available from prescription) ─────────────
   const showGramGuidance =
@@ -66,7 +74,7 @@ export function DailyStarchIndicator({
   if (prescription?.isZeroStarchDay && !compact) {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
-        <span className="font-medium text-white/70">Starch Meals:</span>
+        <span className="font-medium text-white/70">{t("Starch Meals:")}</span>
         <span className="flex items-center gap-1 font-semibold text-blue-400">
           🔵 Rest Day — Zero Starch
         </span>
@@ -78,10 +86,10 @@ export function DailyStarchIndicator({
     return (
       <div className="flex items-center gap-1 text-xs">
         <span>{emoji}</span>
-        <span className={colorClass}>{status.label}</span>
+        <span className={colorClass}>{statusLabel}</span>
         {showGramGuidance && (
           <span className="text-white/40 ml-1">
-            ~{prescription!.gramsPerRemainingStarchMeal}g ea
+            {t("~{{grams}}g ea", { grams: prescription!.gramsPerRemainingStarchMeal })}
           </span>
         )}
       </div>
@@ -90,16 +98,16 @@ export function DailyStarchIndicator({
 
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
-      <span className="font-medium text-white/70">Starch Meals:</span>
+      <span className="font-medium text-white/70">{t("Starch Meals:")}</span>
       <span className={`flex items-center gap-1 font-semibold ${colorClass}`}>
-        {emoji} {status.label}
+        {emoji} {statusLabel}
       </span>
       {isOver && (
-        <span className="text-red-400 text-[10px]">(over limit)</span>
+        <span className="text-red-400 text-[10px]">{t("(over limit)")}</span>
       )}
       {showGramGuidance && !isOver && (
         <span className="text-white/50 text-[10px] ml-1">
-          ~{prescription!.gramsPerRemainingStarchMeal}g / remaining meal
+          {t("~{{grams}}g / remaining meal", { grams: prescription!.gramsPerRemainingStarchMeal })}
         </span>
       )}
     </div>
