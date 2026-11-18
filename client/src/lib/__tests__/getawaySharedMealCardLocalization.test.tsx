@@ -30,7 +30,7 @@ test.each(["en", "es"])("%s shared meal card localizes chrome without translatin
   const before = JSON.stringify(rec);
   render(<AwayFromHomeMealCard recommendation={rec} />);
   expect(screen.getByText("HISTORICAL_MEAL")).toBeVisible();
-  expect(screen.getByText("PROTECTED_WAITER_SCRIPT")).toBeVisible();
+  expect(screen.getByText('"PROTECTED_WAITER_SCRIPT"')).toBeVisible();
   expect(screen.getByText(language === "es" ? "Cómo pedir" : "How to order")).toBeVisible();
   expect(screen.getByText(language === "es" ? "Pide: AUTHORED_ORDER" : "Ask for: AUTHORED_ORDER")).toBeVisible();
   expect(screen.getByRole("button", { name: language === "es" ? "Registrar o añadir al plan" : "Log or Add to Plan" })).toBeEnabled();

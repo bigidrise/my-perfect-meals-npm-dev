@@ -101,7 +101,6 @@ export const consumerFeatureSpanish: Record<string, string> = {
   "Select your terminal or zone for even more precise recommendations": "Selecciona tu terminal o zona para obtener recomendaciones más precisas",
   "Your Getaway Coach is on it…": "Tu asistente de viaje está trabajando…",
   "Checking what's available and what fits your profile": "Consultando las opciones disponibles y lo que encaja con tu perfil",
-  "Something went wrong": "Algo salió mal",
   "Could not reach the Getaway Coach. Try again.": "No se pudo contactar con el asistente de viaje. Vuelve a intentarlo.",
   "Earlier destination context — not meal recommendations for the selected dining venue. The personalized meal cards above are your current meal choices.": "Contexto del destino anterior, no recomendaciones para el establecimiento seleccionado. Las tarjetas personalizadas de arriba son tus opciones de comida actuales.",
   "Ideas To Ask About — Menu Unverified": "Ideas por las que preguntar: menú sin verificar",
