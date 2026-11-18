@@ -2,7 +2,7 @@
 
 **Batch 1 is not approved as complete. Batch 2 has not started.**
 
-Passive browser review subsequently found two remaining mobile clipping issues: the Spanish carb-preference Save label and the sick-day guide heading. They are not yet corrected. The founder's newer Grocery Coach mobile-composer request took priority; this Batch 1 review remains open.
+Passive browser review found two mobile clipping issues: the Spanish carb-preference Save label and the sick-day guide heading. Their wrapping styles were corrected in the November 18 screenshot follow-up. Authenticated visual acceptance and protected-wording approval remain open.
 
 This report supersedes the earlier `.local/reports/spanish-batch-one-review.md`, which overstated readiness and classified ordinary labels too broadly as protected wording. Passing tests alone is not visual acceptance.
 
@@ -88,4 +88,4 @@ No Training task, Batch 2 implementation, release, merge or Production action wa
 
 All protected authored English is explicitly listed in the inactive draft. Original records, medication names, unit symbols and unknown service details remain original by design. Adjacent Training English is explicitly enumerated rather than presented as Batch 1 coverage.
 
-The protected wording draft is prepared, but ordinary-UI visual correction is still open because of the two clipping findings above. **This is not final international clinical readiness or approval of Batch 1.** Founder visual review and qualified approval of protected wording are still required before activation or any next batch.
+The protected wording draft is prepared, and the two reported clipping styles have been corrected. **This is not final international clinical readiness or approval of Batch 1.** Authenticated visual acceptance and qualified approval of protected wording are still required before activation or any next batch. The separate screenshot-follow-up review accounts for the later journal and Nutrition Life Plan screenshots and the nine specific passages presented for approval.

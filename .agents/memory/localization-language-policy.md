@@ -165,3 +165,14 @@ localization infrastructure. Broad architectural coverage is a long-term
 requirement, not authorization to localize more features or activate languages.
 Preserve authored/history content and distinguish interface translation from
 AI-generated recipe language.
+
+Server-supplied, application-authored display labels and cached built-in quotes
+are still interface localization work, not automatically exempt original records.
+
+**Why:** The founder found English in the Nutrition Life Plan's protocol/cuisine/
+goal/priority labels and journal interface after earlier localization corrections.
+
+**How to apply:** Reconcile every visible phrase in supplied screenshots. Use
+closed, source-owned display maps for system labels; preserve actual journal
+prose, medication records and unknown professional wording. State remaining
+clinical/legal holds explicitly rather than claiming a fully Spanish screen.

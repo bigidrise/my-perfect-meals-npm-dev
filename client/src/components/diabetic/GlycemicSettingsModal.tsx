@@ -208,7 +208,7 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
           <Button
             onClick={handleSave}
             disabled={isSaving}
-            className="w-full bg-orange-600 hover:bg-orange-500 text-white font-semibold py-3 rounded-xl"
+            className="h-auto min-h-10 w-full whitespace-normal bg-orange-600 hover:bg-orange-500 text-white font-semibold py-3 rounded-xl"
           >
             {isSaving ? t("Saving...") : t("Save Glucose Carb Preferences")}
           </Button>
