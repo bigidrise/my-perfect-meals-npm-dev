@@ -128,7 +128,8 @@ test("the additive EN/ES namespace has parity and other languages use normal Eng
   for (const [key, value] of Object.entries(consumerSpanish)) {
     expect(value.trim()).not.toBe("");
     expect(consumerEnglish[key]).toBe(key);
-    expect(value.match(/\{\{[^}]+\}\}/g) ?? []).toEqual(key.match(/\{\{[^}]+\}\}/g) ?? []);
+    // Spanish may reorder variables grammatically; retain exact names and multiplicities.
+    expect((value.match(/\{\{[^}]+\}\}/g) ?? []).sort()).toEqual((key.match(/\{\{[^}]+\}\}/g) ?? []).sort());
   }
   function Example() {
     const { t } = useConsumerCopy("dashboard");

@@ -86,3 +86,17 @@ Once the founder authorizes an existing localization sequence, implement that se
 **Why:** The founder explicitly directed, “Proceed with implementation, not another planning cycle.”
 
 **How to apply:** Execute the authorized prerequisites and scope directly. A narrowly required approval or a genuine verification blocker is not permission to redesign the sequence or expand its scope.
+
+Anonymous welcome/login screens must retain the non-sensitive local UI language
+choice; only a verified account supplies a replacement account preference.
+
+**Why:** The targeted founder-reported correction demonstrated that anonymous
+startup reset explicit Spanish to Auto, making translated public screens revert
+to English on an English/default-English browser. This was not missing welcome
+or login resources. The founder required explicit Spanish across public screens
+and Auto to remain a stored intent.
+
+**How to apply:** Preserve language hint storage independently of authentication
+status, without treating the hint as identity or permission. Keep verified
+account switching authoritative, fresh Spanish-device detection intact, and
+Auto distinct from its resolved EN/ES display language.

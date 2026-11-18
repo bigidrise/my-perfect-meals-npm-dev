@@ -56,6 +56,7 @@ function VerificationState() {
 }
 
 beforeEach(() => {
+  i18n.language = "en";
   mockCachedUser = null;
   mockDevelopmentPublicPaths = [];
   localStorage.clear();
@@ -148,12 +149,16 @@ test("Auto uses the device language without PATCHing an explicit preference", as
   device.mockRestore();
 });
 
-test("a verified anonymous session clears a previous account's language hint", async () => {
-  localStorage.setItem(LANGUAGE_PREFERENCE_KEY, "es");
+test.each(["es", "en", "auto", null])("anonymous startup preserves the non-sensitive language choice %s", async preference => {
+  const device = jest.spyOn(navigator, "language", "get").mockReturnValue("en-US");
+  if (preference !== null) localStorage.setItem(LANGUAGE_PREFERENCE_KEY, preference);
+  i18n.language = preference === "es" ? "es" : "en";
   (fetch as jest.Mock).mockResolvedValue({ ok: false, status: 401 });
   render(<AuthProvider><Identity /></AuthProvider>);
   await screen.findByText("anonymous");
-  expect(localStorage.getItem(LANGUAGE_PREFERENCE_KEY)).toBe("auto");
+  expect(localStorage.getItem(LANGUAGE_PREFERENCE_KEY)).toBe(preference);
+  expect(i18n.changeLanguage).not.toHaveBeenCalled();
+  device.mockRestore();
 });
 
 test("login, account changes and logout synchronize the UI hint without altering identity rules", async () => {
@@ -174,7 +179,7 @@ test("login, account changes and logout synchronize the UI hint without altering
   await act(async () => { changeIdentity({ id: "synthetic-english-login", preferredLanguage: "en" } as any); });
   expect(localStorage.getItem(LANGUAGE_PREFERENCE_KEY)).toBe("en");
   await act(async () => { changeIdentity(null); });
-  expect(localStorage.getItem(LANGUAGE_PREFERENCE_KEY)).toBe("auto");
+  expect(localStorage.getItem(LANGUAGE_PREFERENCE_KEY)).toBe("en");
   expect(screen.getByText("anonymous")).toBeTruthy();
   expect(fetch).toHaveBeenCalledTimes(1);
 });

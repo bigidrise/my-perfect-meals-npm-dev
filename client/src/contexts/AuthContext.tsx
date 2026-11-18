@@ -285,9 +285,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [refreshUser]);
 
   // Resolve before paint; never expose a new account in the prior account's locale.
-  // While verification is pending/unavailable, keep only the non-sensitive startup hint.
+  // Anonymous screens retain the non-sensitive startup choice; only a verified user replaces it.
   useLayoutEffect(() => {
-    if (!user && (loading || initializationError)) return;
+    if (!user) return;
     const preference = user?.preferredLanguage || "auto";
     storeLanguagePreference(preference);
     const lang = resolveI18nLang(preference);
