@@ -1237,3 +1237,17 @@ mtime_ms = 1794971679157
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/09b37630-0fbf-4c34-810a-433b7a385121/fe7ff349-cd72-438c-8e72-7bab0bf8cd3c"
 storage_version_token = "1794971712303050"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "G5azt4y7Kln5PZQM7fkHA"
+uri = "file://.local/tasks/spanish-next-phase-overview.md"
+type = "text"
+title = "Next Spanish Development phase — prioritized plan"
+description = "Task boundaries, sequencing, verification requirements, remaining risks and the findings on deleting voice secrets."
+logical_id = "7d42b106-7a61-4502-a656-3d60c1e22856"
+content_hash = "sha256:ceb0b3ca1a4466d8add93f9189cc61deab447dd93d7aa7a550b0e96f7fe006f0"
+size = 7875
+mtime_ms = 1794973272388
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7d42b106-7a61-4502-a656-3d60c1e22856/2db367bf-aba2-4010-a902-d3e809e4d017"
+storage_version_token = "1794973308023164"
+content_type = "text/markdown"

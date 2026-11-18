@@ -74,3 +74,9 @@ After reviewing the completed inventory, the founder selected a Development-only
 **Why:** The founder wants shared-first reuse and prevention of newly introduced English interface text, not another broad inventory or a separate Spanish application.
 
 **How to apply:** Use the existing EN/ES architecture, preserve English, verify desktop/mobile and report protected content for separate approval. Keep clinical/legal wording, server messages, measurement repairs and broader Business Center/ProCare expansion separate; never weaken existing release checks.
+
+Copilot and voice-service removal require a reviewed dependency audit and explicit approval; localization work alone does not authorize disconnecting narration.
+
+**Why:** The founder requested the smallest safe way to remove unnecessary ElevenLabs narration while preserving essential text features and accessibility, and explicitly required review before removal.
+
+**How to apply:** Distinguish narration, microphone input, transcription, browser speech, recorded media and text-based Copilot functionality. Propose a bounded shutdown separately; do not treat deleting a voice secret as an approved implementation.
