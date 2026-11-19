@@ -9,6 +9,19 @@ import SavedGroceriesSheet, { type SavedGroceryItem } from "@/components/shoppin
 import { get, post, apiJSON } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
+import i18n from "@/i18n";
+import { act } from "@testing-library/react";
+import { savedGroceriesSpanish } from "@/i18n/savedGroceriesCopy";
+import { consumerEnglish, consumerSpanish } from "@/i18n/consumerJourney";
+
+test("saved-grocery interface resources retain English keys and interpolation variables", () => {
+  const variables = (value: string) => value.match(/\{\{\w+\}\}/g) ?? [];
+  for (const source of Object.keys(savedGroceriesSpanish)) {
+    expect(consumerEnglish[source]).toBe(source);
+    expect(consumerSpanish[source]).toBeTruthy();
+    expect(variables(consumerSpanish[source])).toEqual(variables(source));
+  }
+});
 
 jest.mock("@/contexts/AuthContext", () => ({ useAuth: jest.fn() }));
 jest.mock("@/lib/api", () => ({ get: jest.fn(), post: jest.fn(), apiJSON: jest.fn() }));
@@ -51,7 +64,8 @@ const addSelected = (count = 0) => screen.getByRole("button", {
 const props = () => ({ open: true, onOpenChange: jest.fn(), onVerifyProduct: jest.fn() });
 async function loaded() { await screen.findByRole("textbox", { name: "Search saved groceries" }); }
 
-beforeEach(() => {
+beforeEach(async () => {
+  await i18n.changeLanguage("en");
   jest.clearAllMocks();
   owner = "synthetic-owner-a";
   rows = [];
@@ -68,6 +82,76 @@ beforeEach(() => {
   });
 });
 afterEach(cleanup);
+
+test.each([0, 1, 4])("Spanish saved-grocery count handles %i items without translating product names", async count => {
+  await i18n.changeLanguage("es");
+  const productNames = ["Grana Padano", "Pecorino Romano", "Asiago", "KIND Protein Bars"];
+  rows = productNames.slice(0, count).map((productName, index) =>
+    fixture(String(index), { productName, brand: null }));
+  const before = JSON.stringify(rows);
+  render(<SavedGroceriesSheet {...props()} />);
+  if (count) await screen.findByRole("textbox", { name: "Buscar productos guardados" });
+  else await screen.findByText("Todavía no hay productos guardados");
+  expect(screen.getByText("Productos guardados")).toBeInTheDocument();
+  expect(screen.getByText(count === 1
+    ? "1 producto guardado · se conserva entre sesiones"
+    : `${count} productos guardados · se conservan entre sesiones`)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Cerrar productos guardados" })).toBeEnabled();
+  for (const name of productNames.slice(0, count)) {
+    expect(screen.getByText(name)).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: `Seleccionar ${name}` })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: `Ver análisis: ${name}` })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: `Quitar ${name} de los productos guardados` })).toHaveTextContent("Eliminar");
+  }
+  expect(JSON.stringify(rows)).toBe(before);
+});
+
+test("switching to Spanish retains filtered selections and submits the original product IDs", async () => {
+  rows = [fixture("a"), fixture("b")];
+  render(<SavedGroceriesSheet {...props()} />);
+  await loaded();
+  fireEvent.click(select("a"));
+  fireEvent.change(screen.getByRole("textbox", { name: "Search saved groceries" }), { target: { value: "Product b" } });
+  await act(async () => { await i18n.changeLanguage("es"); });
+  expect(screen.getByRole("textbox", { name: "Buscar productos guardados" })).toHaveValue("Product b");
+  expect(screen.getByText("Visibles: 1 · Seleccionados: 1")).toBeInTheDocument();
+  expect(screen.queryByText("Ningún producto guardado coincide con tu búsqueda.")).not.toBeInTheDocument();
+  expect(get).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole("button", { name: "Añadir seleccionados a la lista de compras (1)" }));
+  await waitFor(() => expect(post).toHaveBeenCalledWith("/api/saved-groceries/add-to-list", { ids: ["a"] }));
+  await waitFor(() => expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
+    title: "Añadido a la lista", description: "Añadidos: 1",
+  })));
+  expect(screen.getByText("Visibles: 1 · Seleccionados: 0")).toBeInTheDocument();
+  fireEvent.change(screen.getByRole("textbox", { name: "Buscar productos guardados" }), { target: { value: "no-match-fixture" } });
+  expect(screen.getByText("Ningún producto guardado coincide con tu búsqueda.")).toBeInTheDocument();
+});
+
+test("Spanish analysis and delete controls preserve their original product identity and actions", async () => {
+  await i18n.changeLanguage("es");
+  rows = [fixture("a")];
+  render(<SavedGroceriesSheet {...props()} />);
+  await screen.findByRole("textbox", { name: "Buscar productos guardados" });
+  fireEvent.click(screen.getByRole("button", { name: "Ver análisis: Fixture Brand Product a" }));
+  expect(await screen.findByRole("dialog", { name: "Saved analysis" })).toHaveTextContent("Fixture Brand Product a");
+  fireEvent.click(screen.getByRole("button", { name: "Close analysis" }));
+  fireEvent.click(screen.getByRole("button", { name: "Quitar Fixture Brand Product a de los productos guardados" }));
+  await waitFor(() => expect(apiJSON).toHaveBeenCalledWith("/api/saved-groceries/a", { method: "DELETE" }));
+  await screen.findByText("Todavía no hay productos guardados");
+  expect(mockToast).toHaveBeenCalledWith({
+    title: "Eliminado", description: "Se ha quitado Product a de los productos guardados.",
+  });
+});
+
+test("Spanish load errors are translated without exposing raw exceptions or submitting mutations", async () => {
+  await i18n.changeLanguage("es");
+  (get as jest.Mock).mockRejectedValueOnce(new Error("PRIVATE-SYNTHETIC-FAILURE"));
+  render(<SavedGroceriesSheet {...props()} />);
+  await screen.findByText("No se pudieron cargar tus productos guardados. Desliza hacia abajo para actualizar.");
+  expect(screen.queryByText("PRIVATE-SYNTHETIC-FAILURE")).not.toBeInTheDocument();
+  expect(post).not.toHaveBeenCalled();
+  expect(apiJSON).not.toHaveBeenCalled();
+});
 
 test("shopping-page updates do not remount Saved Groceries or restart its loading cycle", async () => {
   const page = fs.readFileSync(path.join(process.cwd(), "client/src/pages/ShoppingListMasterView.tsx"), "utf8");

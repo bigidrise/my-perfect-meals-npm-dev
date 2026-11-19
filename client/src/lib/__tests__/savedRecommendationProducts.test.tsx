@@ -34,7 +34,9 @@ jest.mock("react-i18next", () => ({ useTranslation: () => ({
       "ingredientSheet.grade.c": "Some Considerations",
       "ingredientSheet.incomplete.title": "Analysis incomplete",
     };
-    return labels[key] ?? values?.defaultValue ?? key;
+    const copy = labels[key] ?? values?.defaultValue ?? key;
+    return copy.replace(/\{\{(\w+)\}\}/g, (match: string, name: string) =>
+      values?.[name] == null ? match : String(values[name]));
   },
 }) }));
 
@@ -332,7 +334,7 @@ test("saved recommendations retain identity, brand, package and criteria without
   expect(screen.getByText("Saved from Grocery Coach")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "More Analysis Details" }));
   expect(screen.getAllByText("RXBAR Protein Bar").length).toBeGreaterThan(0);
-  expect(screen.getByText("Package: 12 bars")).toBeInTheDocument();
+  expect(screen.getByText(/^Package:/)).toHaveTextContent("Package: 12 bars");
   expect(screen.getAllByText("The bar's original reason").length).toBeGreaterThan(0);
   expect(screen.getAllByText("The bar's original criteria").length).toBeGreaterThan(0);
   expect(screen.getByText("Saved recommendation note")).toBeInTheDocument();
