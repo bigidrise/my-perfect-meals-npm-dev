@@ -1435,7 +1435,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
             <p className="text-white font-bold text-2xl leading-none mb-0.5">
               {pCtx.trainingType === "other"
                 ? (pCtx.customSportName ?? "Custom Sport")
-                : (TYPE_LABELS[pCtx.trainingType] ?? pCtx.trainingType)}
+                : (TYPE_LABELS[pCtx.trainingType] ? trainingLabel(TYPE_LABELS[pCtx.trainingType]) : pCtx.trainingType)}
             </p>
             <p className="text-orange-300 text-sm font-medium mb-3">
               {GOAL_LABELS[pCtx.primaryGoal] ? trainingLabel(GOAL_LABELS[pCtx.primaryGoal]) : pCtx.primaryGoal}
@@ -1594,7 +1594,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                               <span className="w-5 h-5 rounded-full bg-orange-600/30 border border-orange-500/40 flex items-center justify-center flex-shrink-0">
                                 <span className="text-orange-300 font-bold" style={{ fontSize: "10px" }}>{i + 1}</span>
                               </span>
-                              <p className="text-white font-semibold text-sm">{priority}</p>
+                              <p className="text-white font-semibold text-sm">{trainingLabel(priority)}</p>
                             </div>
                             {PRIORITY_RATIONALES[priority] && (
                               <p className="text-white/70 text-xs leading-relaxed pl-7">{PRIORITY_RATIONALES[priority]}</p>
@@ -1605,7 +1605,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                             <span className="w-6 h-6 rounded-full bg-orange-600/30 border border-orange-500/40 flex items-center justify-center flex-shrink-0">
                               <span className="text-orange-300 font-bold text-xs">{i + 1}</span>
                             </span>
-                            <p className="text-white/80 text-sm">{priority}</p>
+                            <p className="text-white/80 text-sm">{trainingLabel(priority)}</p>
                           </>
                         )}
                       </div>

@@ -10,6 +10,7 @@ import { PageTitleProvider, useCurrentPageTitle } from "@/contexts/PageTitleCont
 import { setPerfSelectedDate } from "@/lib/macroResolver";
 import fs from "node:fs";
 import ts from "typescript";
+import { computeDemandProfile } from "@shared/performanceDemandEngine";
 
 const mockNavigate = jest.fn();
 const mockUser: any = {
@@ -116,6 +117,39 @@ test("ordinary resources preserve variables and every shared builder launch labe
   await i18n.changeLanguage("es");
   expect(i18n.t("Launch GLP-1 Meal Builder", { ns: "consumerJourney", keySeparator: false }))
     .toBe("Abrir el creador de comidas de GLP-1");
+});
+
+test.each(["en", "es"])("%s localizes the sport heading and every computed priority without changing their order", async language => {
+  await i18n.changeLanguage(language);
+  const expectedPriorities = computeDemandProfile(mockUser.performanceContext).nutritionPriorities;
+  const before = JSON.stringify(mockUser);
+  openPage();
+  await screen.findByText(language === "es" ? "Entrenamiento de potencia" : "Power Training");
+  const profile = screen.getByText(language === "es" ? "Protocolo deportivo activo" : "Athletic Protocol Active")
+    .parentElement!.parentElement!;
+  expect(profile.querySelector("p.text-2xl")).toHaveTextContent(language === "es" ? /^fuerza$/i : /^Strength$/);
+  const heading = screen.getByText(language === "es" ? "Prioridades nutricionales" : "Nutrition Priorities");
+  const card = heading.parentElement!;
+  const labels = expectedPriorities.map(priority => language === "es"
+    ? consumerSpanish[priority] : priority);
+  for (const label of labels) expect(card).toHaveTextContent(label);
+  const displayed = card.textContent!;
+  const offsets = labels.map(label => displayed.indexOf(label));
+  expect(offsets).toEqual([...offsets].sort((a, b) => a - b));
+  expect(JSON.stringify(mockUser)).toBe(before);
+});
+
+test("a custom sport name is preserved even when it resembles a translated system label", async () => {
+  await i18n.changeLanguage("es");
+  const previous = mockUser.performanceContext;
+  mockUser.performanceContext = { ...previous, trainingType: "other", customSportName: "Strength" };
+  try {
+    openPage();
+    await screen.findByText("Entrenamiento de potencia");
+    expect(screen.getByText("Strength")).toBeInTheDocument();
+  } finally {
+    mockUser.performanceContext = previous;
+  }
 });
 
 test("protected nutrition explanations are unchanged and are not registered for translation", () => {
