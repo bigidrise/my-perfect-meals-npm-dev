@@ -1531,3 +1531,31 @@ mtime_ms = 1795109935502
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d00d765a-e58d-44eb-b647-28212bf6abd1/461c7703-fdd6-4f42-9a90-228925643cfa"
 storage_version_token = "1795109995487359"
 content_type = "text/csv"
+
+[[outputs]]
+id = "0CarpsQUjyYDsmldt-LJL"
+uri = "file://.local/reports/pr478-final-clinical-localization-review.html"
+type = "html"
+title = "PR #478 — final clinical and localization review"
+description = "Six-row table with exact wording, Production comparisons, approval evidence, category totals, source-specific gate recommendations and all 568 expandable findings."
+logical_id = "30d8cab9-6a27-4ee2-b614-b01f94fbb2f7"
+content_hash = "sha256:5947662d9e1ff6ba89206db7d89a763f8e300053b73a479342fcb9bd3f85613b"
+size = 1318776
+mtime_ms = 1795111407962
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/30d8cab9-6a27-4ee2-b614-b01f94fbb2f7/8638d82e-ac10-45fe-8a44-2c9cef91493d"
+storage_version_token = "1795111464856809"
+content_type = "text/html"
+
+[[outputs]]
+id = "op6r20wCjMK8l69vtemzG"
+uri = "file://.local/reports/pr478-final-evidence-classification.csv"
+type = "table"
+title = "PR #478 — all 568 findings classified with evidence"
+description = "Preserves every original finding and source location; adds evidence category, exact values, source hashes, approval limits and proposed disposition."
+logical_id = "d7603312-fec4-479d-9586-418ab81dee9e"
+content_hash = "sha256:e38a552a6cd0665f1edb58a8f8351be1c3ef1c5be26a4e185606de5915c61a50"
+size = 1074818
+mtime_ms = 1795111407926
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d7603312-fec4-479d-9586-418ab81dee9e/4b3278b2-a2dd-404d-b4b9-dd414b3ec1ec"
+storage_version_token = "1795111466107583"
+content_type = "text/csv"
