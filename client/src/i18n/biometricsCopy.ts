@@ -1,5 +1,7 @@
 /** Biometrics presentation only: field keys, calculations and recorded values stay canonical. */
 export const biometricsSpanish: Record<string, string> = {
+  "Today": "Hoy",
+  "{{count}} Days": "{{count}} días",
   "Close": "Cerrar",
   "Set by": "Establecidos por",
   "Please try again.": "Inténtalo de nuevo.",

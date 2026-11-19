@@ -33,7 +33,8 @@ jest.mock("@/components/ui/dialog", () => ({
 const i18n = createInstance();
 const fetchMock = jest.fn();
 const context = {
-  peptides: [], hormones: [], therapies: [], recoveryGoals: [],
+  peptides: [], therapies: [], recoveryGoals: [],
+  hormones: [{ type: "testosterone-cypionate", dose: 200, unit: "mg/week" }],
   medications: [
     { type: "metformin", dose: 500, unit: "mg/day" },
     { type: "custom-fixture", label: "My custom medication", dose: 2.75, unit: "mg/day", custom: true },
@@ -57,6 +58,53 @@ beforeEach(async () => {
 });
 afterEach(cleanup);
 
+function pageDisplayExpressions(predicate: (expression: string) => boolean): string[] {
+  const source = fs.readFileSync("client/src/pages/my-biometrics.tsx", "utf8");
+  const ast = ts.createSourceFile("biometrics.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const expressions: string[] = [];
+  function visit(node: ts.Node) {
+    if (ts.isJsxExpression(node) && node.expression && ts.isJsxElement(node.parent)) {
+      const expression = node.expression.getText(ast);
+      if (predicate(expression)) expressions.push(expression);
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(ast);
+  return expressions;
+}
+
+test("both actual progress-label paths translate display text without changing data keys", () => {
+  const expressions = pageDisplayExpressions(expression => /^(?:t\()?row\.(key|label)\)?$/.test(expression));
+  expect(expressions).toHaveLength(2);
+  for (const language of ["en", "es"]) {
+    const t = i18n.getFixedT(language, "consumerJourney");
+    for (const expression of expressions) {
+      // Evaluate only these bounded, local display expressions, not the page or its data hooks.
+      const label = new Function("t", "row", `return (${expression});`);
+      for (const key of ["Protein", "Starchy Carbs", "Fibrous Carbs", "Carbs", "Fat", "Calories"]) {
+        const row = Object.freeze({ key, label: key, used: 0, target: 129, unit: "g" });
+        expect(label(t, row)).toBe(language === "es" ? consumerSpanish[key] : key);
+        expect(row).toEqual({ key, label: key, used: 0, target: 129, unit: "g" });
+      }
+    }
+  }
+});
+
+test("actual Add and Save button bindings translate idle and saving states", () => {
+  const expressions = pageDisplayExpressions(expression =>
+    /\b(?:macroSaving|logWeightSaving|goalBFSaving)\b/.test(expression) && !expression.includes("=>"));
+  expect(expressions).toHaveLength(4);
+  for (const expression of expressions) {
+    const label = new Function("t", "macroSaving", "logWeightSaving", "goalBFSaving", `return (${expression});`);
+    expect(label(i18n.getFixedT("es", "consumerJourney"), false, false, false))
+      .toBe(expression.includes("macroSaving") ? "Añadir" : "Guardar");
+    expect(label(i18n.getFixedT("es", "consumerJourney"), true, true, true))
+      .toBe(expression.includes("goalBFSaving") ? "..." : "Guardando…");
+    expect(label(i18n.getFixedT("en", "consumerJourney"), false, false, false))
+      .toBe(expression.includes("macroSaving") ? "Add" : "Save");
+  }
+});
+
 test("the pictured medication section is Spanish, including examples and custom frequency controls", async () => {
   render(<TherapeuticNutritionCard />);
   await screen.findByText("Metformina");
@@ -72,6 +120,20 @@ test("the pictured medication section is Spanish, including examples and custom 
   expect(screen.getByText("por")).toBeInTheDocument();
   expect(screen.queryByText("Day")).not.toBeInTheDocument();
   expect(screen.queryByText("Week")).not.toBeInTheDocument();
+});
+
+test("the hormone rows translate names, examples and frequencies while retaining the recorded dose", async () => {
+  render(<TherapeuticNutritionCard />);
+  await screen.findByText("Cipionato de testosterona (TRT)");
+  expect(screen.getByText("Enantato de testosterona")).toBeInTheDocument();
+  expect(screen.getByText("Estradiol (estrógeno)")).toBeInTheDocument();
+  expect(screen.getByText("Progesterona")).toBeInTheDocument();
+  expect(screen.getByText("Hormona del crecimiento (HGH)")).toBeInTheDocument();
+  expect(screen.getByText("T3 (liotironina)")).toBeInTheDocument();
+  expect(screen.getByDisplayValue("200")).toBeInTheDocument();
+  expect(screen.getAllByPlaceholderText("p. ej., 200")).toHaveLength(3);
+  expect(screen.queryByText("Testosterone Cypionate (TRT)")).not.toBeInTheDocument();
+  expect(screen.queryByText("mg/week")).not.toBeInTheDocument();
 });
 
 test("changing language preserves entered names and doses; weekly selection saves canonical units", async () => {
