@@ -1,3 +1,4 @@
+import { ClinicalSupportLabel } from "@/components/ClinicalSupportLabel";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useEffectiveClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
 import { isClinicalIndicatorActive } from "@shared/clinicalProtocolIdentity";
@@ -987,7 +988,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             {scConditions.length > 0 && (
               <div className="flex justify-center">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
-                  <span className="font-medium text-white/70">Active Clinical Supports:</span>
+                  <span className="font-medium text-white/70"><ClinicalSupportLabel label="Active Clinical Supports:" /></span>
                   {[
                     { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: scConditions.includes('anti-inflammatory') || scConditions.includes('anti_inflammatory'),                                                                         activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
                     { key: "cardiac",           label: "Cardiac Health",    isActive: scConditions.includes('cardiac') || scConditions.includes('heart-disease') || scConditions.includes('hypertension') || scConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
@@ -1000,7 +1001,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                   ].map(indicator => ({ ...indicator, isActive: isClinicalIndicatorActive(indicator.key, scConditions) })).map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
                     <span key={key} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
                       <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
-                      {label}
+                      <ClinicalSupportLabel label={label} />
                     </span>
                   ))}
                 </div>
@@ -1011,7 +1012,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             {scConditions.length > 0 && (
               <div className="flex justify-center">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
-                  <span className="font-medium text-white/70">Hormonal & Metabolic:</span>
+                  <span className="font-medium text-white/70"><ClinicalSupportLabel label="Hormonal & Metabolic:" /></span>
                   {[
                     { key: "hashimotos",         label: "Hashimoto's",        activeColor: "text-teal-300",   dotColor: "bg-teal-300",   dotGlow: "shadow-[0_0_4px_rgba(94,234,212,0.9)]"  },
                     { key: "hypothyroid",        label: "Hypothyroid",        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
@@ -1022,7 +1023,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                   ].map(({ key, label, activeColor, dotColor, dotGlow }) => (
                     <span key={key} className={`flex items-center gap-1 ${scConditions.includes(key) ? `${activeColor} font-semibold` : "text-white/25"}`}>
                       <span className={`inline-block w-1.5 h-1.5 rounded-full ${scConditions.includes(key) ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
-                      {label}
+                      <ClinicalSupportLabel label={label} />
                     </span>
                   ))}
                 </div>

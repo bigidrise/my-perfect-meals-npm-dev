@@ -1,3 +1,4 @@
+import { ClinicalSupportLabel } from "@/components/ClinicalSupportLabel";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useEffectiveClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
 import { isClinicalIndicatorActive } from "@shared/clinicalProtocolIdentity";
@@ -1334,7 +1335,7 @@ export default function AntiInflammatoryMenuBuilder() {
             {/* ROW 4.5: Active Protocol Indicator */}
             <div className="flex justify-center">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
-                <span className="font-medium text-white/70">Active Protocol:</span>
+                <span className="font-medium text-white/70"><ClinicalSupportLabel label="Active Protocol:" /></span>
                 {[
                   { key: "heart-failure",    label: "Cardiac Health",   activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]" },
                   { key: "kidney-disease",   label: "Kidney Disease",   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"  },
@@ -1360,7 +1361,7 @@ export default function AntiInflammatoryMenuBuilder() {
                           isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"
                         }`}
                       />
-                      {label}
+                      <ClinicalSupportLabel label={label} />
                     </span>
                   );
                 })}
@@ -1370,7 +1371,7 @@ export default function AntiInflammatoryMenuBuilder() {
             {/* ROW 4.6: Hormonal & Metabolic Protocols */}
             <div className="flex justify-center">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
-                <span className="font-medium text-white/70">Hormonal & Metabolic:</span>
+                <span className="font-medium text-white/70"><ClinicalSupportLabel label="Hormonal & Metabolic:" /></span>
                 {[
                   { key: "hashimotos",         label: "Hashimoto's",       activeColor: "text-teal-300",   dotColor: "bg-teal-300",   dotGlow: "shadow-[0_0_4px_rgba(94,234,212,0.9)]"  },
                   { key: "hypothyroid",        label: "Hypothyroid",       activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
@@ -1381,7 +1382,7 @@ export default function AntiInflammatoryMenuBuilder() {
                 ].map(({ key, label, activeColor, dotColor, dotGlow }) => (
                   <span key={key} className={`flex items-center gap-1 ${scConditions.includes(key) ? `${activeColor} font-semibold` : "text-white/25"}`}>
                     <span className={`inline-block w-1.5 h-1.5 rounded-full ${scConditions.includes(key) ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
-                    {label}
+                    <ClinicalSupportLabel label={label} />
                   </span>
                 ))}
               </div>

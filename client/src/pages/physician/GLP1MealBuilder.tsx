@@ -1,3 +1,4 @@
+import { ClinicalSupportLabel } from "@/components/ClinicalSupportLabel";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useEffectiveClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
 import { isClinicalIndicatorActive } from "@shared/clinicalProtocolIdentity";
@@ -1151,7 +1152,7 @@ export default function GLP1MealBuilder() {
               {(() => {
                 const flags = nutritionTargets.flags;
                 return [
-                  { key: "anti-inflammatory", label: t("metabolicBuilder.clinicalAntiInflam") + (personalAntiSupport.enabled ? " (optional)" : ""), isActive: personalAntiSupport.enabled || !!flags?.antiInflammatory, activeColor: "text-green-400", dotColor: "bg-green-400", dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]" },
+                  { key: "anti-inflammatory", label: personalAntiSupport.enabled ? "Anti-Inflammatory (optional)" : "Anti-Inflammatory", isActive: personalAntiSupport.enabled || !!flags?.antiInflammatory, activeColor: "text-green-400", dotColor: "bg-green-400", dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]" },
                   { key: "cardiac",            label: t("metabolicBuilder.clinicalCardiac"),    isActive: !!flags?.cardiac           || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
                   { key: "kidney-disease",     label: t("metabolicBuilder.clinicalKidney"),     isActive: !!flags?.renal             || labDerivedConditions.includes('kidney-disease'),   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
                   { key: "liver-support",      label: t("metabolicBuilder.clinicalLiverSupport"),isActive: !!flags?.liverSupport      || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
@@ -1162,7 +1163,7 @@ export default function GLP1MealBuilder() {
                   ].map(indicator => ({ ...indicator, isActive: isClinicalIndicatorActive(indicator.key, scConditions) })).map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
                   <span key={key} title={key === "anti-inflammatory" && personalAntiSupport.enabled ? "Optional personal nutrition support — not a clinical diagnosis" : undefined} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
                     <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
-                    {label}
+                    <ClinicalSupportLabel label={label} />
                   </span>
                 ));
               })()}
@@ -1183,7 +1184,7 @@ export default function GLP1MealBuilder() {
               ].map(({ key, label, activeColor, dotColor, dotGlow }) => (
                 <span key={key} className={`flex items-center gap-1 ${scConditions.includes(key) ? `${activeColor} font-semibold` : "text-white/25"}`}>
                   <span className={`inline-block w-1.5 h-1.5 rounded-full ${scConditions.includes(key) ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
-                  {label}
+                  <ClinicalSupportLabel label={label} />
                 </span>
               ))}
             </div>
