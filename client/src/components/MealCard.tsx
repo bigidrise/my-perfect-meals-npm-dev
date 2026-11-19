@@ -13,6 +13,7 @@ import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 import { builderMealMacros, formatBuilderMacro, type BuilderMacroKey } from "@/lib/builderMacroCalculation";
 import TrashButton from "@/components/ui/TrashButton";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
 import MealCardActions, { MealCardAction } from "@/components/MealCardActions";
 import { StarchMealBadge } from "@/components/StarchMealBadge";
@@ -479,7 +480,7 @@ export function MealCard({
                   return (
                     <li key={i} className="flex items-start">
                       <span className="text-green-400 mr-1">•</span>
-                      <span>{ing}</span>
+                      <span><IngredientDisplay ingredient={ing} legacyText={ing} /></span>
                     </li>
                   );
                 }
@@ -497,7 +498,7 @@ export function MealCard({
                 return (
                   <li key={i} className="flex items-start">
                     <span className="text-green-400 mr-1">•</span>
-                    <span>{ingDisplayText}</span>
+                    <span><IngredientDisplay ingredient={{ quantity: qty, unit, name }} legacyText={ingDisplayText} /></span>
                   </li>
                 );
               })}

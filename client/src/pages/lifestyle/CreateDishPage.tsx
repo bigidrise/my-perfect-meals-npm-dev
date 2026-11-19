@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import { motion } from "framer-motion";
@@ -2144,19 +2145,19 @@ export default function CreateDishPage() {
 
                                 if (ingredient.displayText) {
                                   return (
-                                    <li key={i}>{ingredient.displayText}</li>
+                                    <li key={i}><IngredientDisplay ingredient={ingredient} legacyText={ingredient.displayText} /></li>
                                   );
                                 }
 
                                 if (amount && unit) {
                                   return (
                                     <li key={i}>
-                                      {formatAmount(amount)} {unit} {name}
+                                      <IngredientDisplay ingredient={ingredient} legacyText={<>{formatAmount(amount)} {unit} {name}</>} />
                                     </li>
                                   );
                                 }
 
-                                return <li key={i}>{name}</li>;
+                                return <li key={i}><IngredientDisplay ingredient={ingredient} legacyText={name} /></li>;
                               },
                             )}
                           </ul>

@@ -1,4 +1,5 @@
 import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import BeverageChoiceCards, { readBeverageChoiceResponse, useBeverageChoices } from "@/components/beverage/BeverageChoiceCards";
@@ -1004,8 +1005,8 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                         {generatedBeverage.ingredients.map(
                           (ing: any, i: number) => (
                             <li key={i}>
-                              {ing.displayText ||
-                                `${ing.amount || ""} ${ing.unit || ""} ${ing.name || ing.item}`}
+                              <IngredientDisplay ingredient={ing} legacyText={ing.displayText ||
+                                `${ing.amount || ""} ${ing.unit || ""} ${ing.name || ing.item}`} />
                             </li>
                           ),
                         )}

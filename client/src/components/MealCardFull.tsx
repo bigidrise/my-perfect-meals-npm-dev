@@ -5,6 +5,7 @@ import TrashButton from "@/components/ui/TrashButton";
 import { useState } from "react";
 import MealRefinementSheet from "@/components/MealRefinementSheet";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
 import { useTranslation } from "react-i18next";
 import { useTranslatedMeal } from "@/hooks/useTranslatedMeal";
@@ -389,7 +390,7 @@ export default function MealCardFull({
               <li key={i} className="flex items-start gap-2">
                 <span className="w-2 h-2 bg-slate-400 rounded-full shrink-0 mt-2"></span>
                 <span>
-                  {formatIngredientWithGrams(ingredient.amount, ingredient.unit, ingredient.item, measurementSystem)}
+                  <IngredientDisplay ingredient={ingredient} legacyText={formatIngredientWithGrams(ingredient.amount, ingredient.unit, ingredient.item, measurementSystem)} />
                   {ingredient.notes && (
                     <span className="text-slate-500 dark:text-slate-400">
                       {" "}— {ingredient.notes}

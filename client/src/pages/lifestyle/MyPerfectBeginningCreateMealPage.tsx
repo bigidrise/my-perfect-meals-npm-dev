@@ -1,5 +1,6 @@
 import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect } from "react";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { resolvePediatricRecipeImage, pediatricImageForSave, createPediatricImageRestorer } from "@/lib/pediatricRecipeImage";
 import { isFallbackMealImage } from "@shared/pediatricMealImage";
 import type { PediatricImageGeneration } from "@shared/pediatricMealImage";
@@ -1093,7 +1094,7 @@ function RecipeCard({
                     <li key={i} className="flex items-start gap-2">
                       <span className="text-green-400 mt-0.5 flex-shrink-0">•</span>
                       <span>
-                        {ing.quantity}{ing.unit ? ` ${ing.unit}` : ""} <strong>{ing.name}</strong>
+                        <IngredientDisplay ingredient={ing} legacyText={<>{ing.quantity}{ing.unit ? ` ${ing.unit}` : ""} <strong>{ing.name}</strong></>} />
                         {ing.prepNote && (
                           <span className="block text-xs text-white/70 mt-0.5">{ing.prepNote}</span>
                         )}
@@ -3049,7 +3050,7 @@ function SideRecipeSheet({
                         <li key={i} className="flex items-start gap-2 text-sm text-white">
                           <span className="text-emerald-400 mt-0.5 flex-shrink-0">•</span>
                           <span>
-                            {ing.quantity}{ing.unit ? ` ${ing.unit}` : ""} <strong>{ing.name}</strong>
+                            <IngredientDisplay ingredient={ing} legacyText={<>{ing.quantity}{ing.unit ? ` ${ing.unit}` : ""} <strong>{ing.name}</strong></>} />
                             {ing.prepNote && (
                               <span className="block text-xs text-white/60 mt-0.5">{ing.prepNote}</span>
                             )}

@@ -3,6 +3,7 @@ import { apiUrl } from '@/lib/resolveApiBase';
 import { InformationModal } from "@/components/ui/universal-modal";
 import { Button } from '@/components/ui/button';
 import { formatIngredientWithGrams } from '@/utils/unitConversions';
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 
 export default function CookingInstructionsModal({ 
   meal, 
@@ -50,9 +51,9 @@ export default function CookingInstructionsModal({
             <ul className="list-disc ml-5 text-sm space-y-1">
               {(hydrated?.ingredients || meal.ingredients || []).map((i: any, idx: number) => (
                 <li key={idx} className="text-zinc-200">
-                  {i.amount && i.unit && i.name 
+                  <IngredientDisplay ingredient={i} legacyText={i.amount && i.unit && i.name
                     ? formatIngredientWithGrams(i.amount, i.unit, i.name)
-                    : `${i.amount ?? '—'} — ${i.name}`}
+                    : `${i.amount ?? '—'} — ${i.name}`} />
                 </li>
               ))}
             </ul>

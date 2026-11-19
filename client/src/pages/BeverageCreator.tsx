@@ -1,5 +1,6 @@
 import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect, useMemo, useRef } from "react";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
@@ -1124,8 +1125,8 @@ export default function BeverageCreator() {
                         {generatedBeverage.ingredients.map(
                           (ing: any, i: number) => (
                             <li key={i}>
-                              {ing.displayText ||
-                                `${ing.amount || ""} ${ing.unit || ""} ${ing.name || ing.item}`}
+                              <IngredientDisplay ingredient={ing} legacyText={ing.displayText ||
+                                `${ing.amount || ""} ${ing.unit || ""} ${ing.name || ing.item}`} />
                             </li>
                           ),
                         )}

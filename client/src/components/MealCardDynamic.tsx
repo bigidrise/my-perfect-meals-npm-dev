@@ -5,6 +5,7 @@ import { CheckCircle, AlertTriangle, RotateCcw, Plus, Clock, Users, Eye } from "
 import { EngineMeal, UserProfile } from "@/services/mealEngineService";
 import TrashButton from "@/components/ui/TrashButton";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 
@@ -266,7 +267,7 @@ const MealCardDynamic: React.FC<MealCardDynamicProps> = ({
         <ul className="list-disc pl-6 space-y-1">
           {meal.ingredients && meal.ingredients.slice(0, showFullIngredients ? meal.ingredients.length : 5).map((ingredient, index) => (
             <li key={index} className="text-sm text-slate-700 dark:text-slate-300">
-              {formatIngredientWithGrams(ingredient.amount, ingredient.unit, ingredient.item, measurementSystem)}
+              <IngredientDisplay ingredient={ingredient} legacyText={formatIngredientWithGrams(ingredient.amount, ingredient.unit, ingredient.item, measurementSystem)} />
               {ingredient.notes && <span className="text-slate-500"> — {ingredient.notes}</span>}
             </li>
           ))}
