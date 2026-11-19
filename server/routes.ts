@@ -182,6 +182,8 @@ import { scaleIngredientQuantity } from "./services/servingScaling";
 import foodsIEnjoyRouter, { householdFoodsIEnjoyRouter } from "./routes/foodsIEnjoy";
 import nutritionPrioritiesRouter from "./routes/nutritionPriorities";
 import myPerfectMenuRouter from "./routes/myPerfectMenu";
+import { developmentMenuOccasionEnabled } from "./services/myPerfectMenu/occasionSuitability";
+import { menuCompletionMealType } from "@shared/myPerfectMenuCompletion";
 import oneTouchCreateRouter from "./routes/oneTouchCreate";
 
 function normalizeFitnessGoal(value?: string | null): string | null {
@@ -1323,11 +1325,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         effectiveGenerationContext = [
           "My Perfect Menu Performance selection. Preserve the signed dish and cuisine identity.",
           `Signed concept: ${verifiedPerformanceAuthority.concept.title}`,
+          ...(developmentMenuOccasionEnabled() ? [
+            `Original intended eating occasion: ${verifiedPerformanceAuthority.concept.ideaType}. Destination is placement only, never permission to change this dish.`,
+            verifiedPerformanceAuthority.concept.snackType
+              ? `Selected snack family: ${verifiedPerformanceAuthority.concept.snackType}. Preserve it; never replace a dessert with a savory meal.`
+              : "",
+            `Signed food identity: ${JSON.stringify(verifiedPerformanceAuthority.concept.foodIdentity ?? null)}`,
+            `Signed culinary structure: ${JSON.stringify(verifiedPerformanceAuthority.concept.culinaryIdentity ?? null)}`,
+          ] : []),
           `Destination: ${verifiedPerformanceAuthority.destinationDate} · ${verifiedPerformanceAuthority.mealSlot}`,
         ].join("\n");
-        mealType = verifiedPerformanceAuthority.mealSlot === "snacks"
-          ? "snack"
-          : verifiedPerformanceAuthority.mealSlot;
+        mealType = menuCompletionMealType(
+          verifiedPerformanceAuthority.concept.ideaType,
+          verifiedPerformanceAuthority.mealSlot,
+          developmentMenuOccasionEnabled(),
+        );
         dietType = "performance";
         builderMode = "hybrid";
       }

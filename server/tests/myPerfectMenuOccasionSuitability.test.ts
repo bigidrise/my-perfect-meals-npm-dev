@@ -189,6 +189,8 @@ describe("Development-only menu occasion suitability", () => {
     expect(page).toContain("Original intended eating occasion: ${conceptToGenerate.ideaType}");
     expect(route).toContain("validateMenuOccasionBatch(concept.ideaType");
     expect(route).toContain("completedSnackMatchesConcept(concept, completed)");
-    expect(route).toContain("developmentMenuOccasionEnabled() && parsed.data.completedMeal");
+    expect(route).toContain("const developmentReview = developmentMenuOccasionEnabled()");
+    expect(route).toContain("if (developmentReview && completedRecipe)");
+    expect(route).toContain("!canIndependentlyReviewSnack(concept, completed)");
   });
 });

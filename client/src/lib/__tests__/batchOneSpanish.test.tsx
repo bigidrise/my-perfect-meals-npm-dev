@@ -25,6 +25,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 const mockNavigate = jest.fn(), mockToast = jest.fn(), mockSavePreferences = jest.fn();
 const mockCreate = jest.fn(), mockUpdate = jest.fn(), mockDelete = jest.fn(), mockWater = jest.fn();
 const mockCancel = jest.fn(), mockGenerate = jest.fn(), mockHouseholdSwitch = jest.fn(), mockHydration = jest.fn();
+const mockGenerateSnack = jest.fn();
 const mockGlucose = jest.fn();
 let mockGlp1Active = false;
 let mockDevelopmentRuntime = false;
@@ -82,7 +83,7 @@ jest.mock("@/hooks/useQuickTour", () => ({ useQuickTour: () => ({ isOpen: false,
 jest.mock("@/hooks/useGLP1CurrentUse", () => ({ useGLP1CurrentUse: () => ({ data: { effectiveActive: mockGlp1Active }, isError: false, isLoading: false }) }));
 jest.mock("@/lib/subscriptionCheck", () => ({ isClinicalOrAbove: () => false }));
 jest.mock("@/hooks/useCreateWithChefRequest", () => ({ useCreateWithChefRequest: () => ({ generateMeal: mockGenerate, cancel: mockCancel }) }));
-jest.mock("@/hooks/useSnackCreatorRequest", () => ({ useSnackCreatorRequest: () => ({ generateSnack: mockGenerate, cancel: mockCancel }) }));
+jest.mock("@/hooks/useSnackCreatorRequest", () => ({ useSnackCreatorRequest: () => ({ generateSnack: mockGenerateSnack, cancel: mockCancel }) }));
 jest.mock("@/components/layout/MobileHeaderGuard", () => ({ __esModule: true, default: ({ children }: any) => children }));
 jest.mock("@/components/copilot/CopilotBrain", () => ({ CopilotBrain: () => null }));
 jest.mock("@/components/ui/HowThisWorksLink", () => ({ HowThisWorksLink: ({ label }: any) => <span>{label}</span> }));
@@ -263,6 +264,69 @@ test("Menu keeps original generated ideas while localizing category and replacem
   expect(screen.getByText("ORIGINAL_IDEA_0")).toBeVisible();
   const posted = (global.fetch as jest.Mock).mock.calls.find(([url, init]) => String(url).endsWith("/concepts") && init?.method === "POST");
   expect(JSON.parse(posted![1].body).ideaType).toBe("breakfast");
+  expect(mockGenerate).not.toHaveBeenCalled();
+});
+
+test.each([
+  ["Meal 1", "breakfast", true],
+  ["Meal 6", "meal6", true],
+  ["Meal 2", "lunch", false],
+])("Menu dessert completion uses the snack generator for %s and saves only after identity verification", async (label, slot, identityPasses) => {
+  const concept = { id: "offline-mousse", ideaType: "snack", snackType: "dessert",
+    title: "Mousse de Coco con Frutas Tropicales", description: "Una mousse ligera de coco con mango.",
+    primaryIngredients: ["coconut", "mango"],
+    foodIdentity: { foodRole: "dessert", polarity: "sweet", formatFamily: "pudding_custard" } };
+  const meal = { id: "offline-completed", name: concept.title, description: concept.description,
+    ingredients: [{ name: "coconut milk", quantity: "1", unit: "cup" }, { name: "mango", quantity: "1", unit: "cup" }],
+    instructions: ["Whip the coconut mixture.", "Chill and serve with mango."],
+    calories: 220, protein: 5, carbs: 15, fat: 16 };
+  mockGenerateSnack.mockResolvedValue(meal);
+  const builder = { ...mockBuilder, route: "/general-nutrition-builder", dietType: "general-nutrition" };
+  const fallbackFetch = global.fetch;
+  global.fetch = jest.fn(async (url: any, init: any = {}) => {
+    const path = String(url), body = init.body ? JSON.parse(init.body) : {};
+    const ok = (data: any) => ({ ok: true, status: 200, json: async () => data });
+    if (path.endsWith("/concepts") && init.method === "POST") return ok({ builder, concepts: [concept], categories: { snack: [concept] } });
+    if (path.endsWith("/validate-selection")) {
+      if (body.completedMeal && !identityPasses) return { ok: false, status: 422, json: async () => ({
+        code: "MY_PERFECT_MENU_SNACK_IDENTITY_CHANGED",
+        error: "The finished recipe doesn't match your selected snack idea. Please choose it again.",
+      }) };
+      return ok({ valid: true, builder, concept, occasionSuitabilityRequired: true });
+    }
+    if (path.endsWith("/finalize")) {
+      expect(body.mealType).toBe("snack");
+      return ok({ meal });
+    }
+    if (path.endsWith("/weekly-board/add-meal")) return ok({ slot: body.slot, dateISO: body.dateISO });
+    return fallbackFetch(url, init);
+  }) as any;
+  render(<MyPerfectMenu />);
+  await waitFor(() => expect(screen.queryByText("Restoring your saved menu ideas…")).not.toBeInTheDocument());
+  fireEvent.click(screen.getByRole("button", { name: /Snack Ideas/ }));
+  fireEvent.click(await screen.findByRole("button", { name: /Dessert Snack/ }));
+  fireEvent.click((await screen.findAllByRole("button", { name: "Choose This" }))[0]);
+  await waitFor(() => expect(screen.getByRole("button", { name: new RegExp(label) })).toBeEnabled());
+  fireEvent.click(screen.getByRole("button", { name: new RegExp(label) }));
+  const calls = () => (global.fetch as jest.Mock).mock.calls;
+  if (identityPasses) {
+    await waitFor(() => expect(calls().some(([url]) => String(url).endsWith("/weekly-board/add-meal"))).toBe(true));
+    const added = calls().find(([url]) => String(url).endsWith("/weekly-board/add-meal"))!;
+    expect(JSON.parse(added[1].body)).toMatchObject({ slot, mpmBuilderKey: builder.key, meal: { name: concept.title } });
+    const reviewed = calls().find(([url, init]) => String(url).endsWith("/validate-selection") && JSON.parse(init.body).completedMeal)!;
+    expect(JSON.parse(reviewed[1].body)).toMatchObject({ ideaType: "snack", snackType: "dessert", mealSlot: slot });
+    expect(calls().indexOf(reviewed)).toBeLessThan(calls().indexOf(added));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining(builder.route)));
+  } else {
+    expect(await screen.findByRole("alert")).toHaveTextContent("doesn't match your selected snack idea");
+    await act(async () => { await i18n.changeLanguage("es"); });
+    expect(screen.getByRole("alert")).toHaveTextContent("La receta terminada no coincide con la idea de refrigerio");
+    expect(calls().some(([url]) => String(url).endsWith("/weekly-board/add-meal"))).toBe(false);
+    expect(mockNavigate).not.toHaveBeenCalled();
+  }
+  expect(mockGenerateSnack).toHaveBeenCalledTimes(1);
+  expect(mockGenerateSnack.mock.calls[0][1]).toBe("general-nutrition");
+  expect(mockGenerateSnack.mock.calls[0][9]).toContain('"foodRole":"dessert"');
   expect(mockGenerate).not.toHaveBeenCalled();
 });
 
