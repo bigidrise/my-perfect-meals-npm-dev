@@ -2,6 +2,7 @@
 // Ensures API fetches include credentials while allowing third-party fetches to work normally.
 import { Capacitor } from "@capacitor/core";
 import { resolveApiBase } from "@/lib/resolveApiBase";
+import { readLanguagePreference, resolveLanguagePreference } from "@/i18n/languagePreference";
 
 const AUTH_TOKEN_STORAGE_KEY = "mpm_auth_token";
 
@@ -148,6 +149,9 @@ export function patchFetchForCredentials() {
         }
       })();
       if (isApiRequest) {
+        // Presentation metadata only. Never persist a resolved Auto preference,
+        // and never attach account/device metadata to third-party requests.
+        headers.set("x-mpm-ui-language", resolveLanguagePreference(readLanguagePreference()));
         headers.set("x-requested-with", "XMLHttpRequest");
         // A browser session is authoritative. Strip tokens left by older
         // builds or legacy callers so an expired bearer cannot override it.

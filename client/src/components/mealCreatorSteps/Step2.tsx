@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import React, { useState } from "react";
 import { Box, Typography, TextField, Button, Grid } from "@mui/material";
 
@@ -47,7 +48,7 @@ const Step2: React.FC<Step2Props> = ({ nextStep, prevStep }) => {
       </Grid>
 
       <Box mt={3} display="flex" justifyContent="space-between">
-        <Button onClick={prevStep}>Back</Button>
+        <Button onClick={prevStep}><BackNavigationLabel /></Button>
         <Button variant="contained" color="primary" onClick={handleContinue}>
           Continue
         </Button>

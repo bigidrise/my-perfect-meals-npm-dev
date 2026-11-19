@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Sparkles, X } from "lucide-react";
 import { WHATS_NEW_RELEASES, DISMISS_KEY } from "@/config/whatsNew";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 export function WhatsNewCard() {
+  const { t } = useConsumerCopy();
   const [dismissed, setDismissed] = useState<boolean>(() => {
     try {
       return localStorage.getItem(DISMISS_KEY) === "true";
@@ -58,7 +60,7 @@ export function WhatsNewCard() {
         onClick={dismiss}
         className="w-full py-2.5 border-t border-white/8 text-[11px] font-semibold text-orange-400 active:bg-white/5 transition-colors"
       >
-        Got it
+        {t("Got it")}
       </button>
     </div>
   );

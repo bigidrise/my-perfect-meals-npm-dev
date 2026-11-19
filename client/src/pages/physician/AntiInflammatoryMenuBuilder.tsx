@@ -1,3 +1,4 @@
+import { ClinicalSupportLabel } from "@/components/ClinicalSupportLabel";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useEffectiveClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
 import { isClinicalIndicatorActive } from "@shared/clinicalProtocolIdentity";
@@ -130,7 +131,7 @@ import type { ProtocolBadge } from "@shared/clinical/clinicalModeResolver";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiRequest } from "@/lib/apiRequest";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import { isClinicalOrAbove } from "@/lib/subscriptionCheck";
 
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
@@ -157,7 +158,7 @@ export default function AntiInflammatoryMenuBuilder() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const canAccessTrainingNutrition = isClinicalOrAbove(user);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   usePageTitle(t("antiInflammatoryBuilder.pageTitle"));
 
   const ANTI_INFLAMMATORY_TOUR_STEPS = useMemo<TourStep[]>(() => [
@@ -539,7 +540,7 @@ export default function AntiInflammatoryMenuBuilder() {
         });
       }
     },
-    [board, planningMode, activeDayISO, saveBoard, weekStartISO, toast],
+    [board, planningMode, activeDayISO, saveBoard, weekStartISO, toast, t],
   );
 
   // Handler for premade meal selection
@@ -606,6 +607,7 @@ export default function AntiInflammatoryMenuBuilder() {
       saveBoard,
       weekStartISO,
       toast,
+      t,
     ],
   );
 
@@ -831,7 +833,7 @@ export default function AntiInflammatoryMenuBuilder() {
         toast({ title: t("metabolicBuilder.failedToDuplicate"), description: t("metabolicBuilder.tryAgain"), variant: "destructive" });
       }
     },
-    [board, activeDayISO, weekStartISO, saveBoard, toast],
+    [board, activeDayISO, weekStartISO, saveBoard, toast, t],
   );
 
 
@@ -903,10 +905,10 @@ export default function AntiInflammatoryMenuBuilder() {
 
       toast({
         title: t("metabolicBuilder.aiMealCreated"),
-        description: `${generatedMeal.name} saved to your ${slot}`,
+        description: t("metabolicBuilder.aiMealCreatedDesc", { name: generatedMeal.name, slot }),
       });
     },
-    [board, activeDayISO, toast, saveBoard, weekStartISO],
+    [board, activeDayISO, toast, saveBoard, weekStartISO, t],
   );
 
   const profile = useOnboardingProfile();
@@ -1197,7 +1199,7 @@ export default function AntiInflammatoryMenuBuilder() {
 
       toast({
         title: t("metabolicBuilder.allMealsLoggedTitle"),
-        description: `Successfully logged ${successCount} meal(s) to your macros.`,
+        description: t("metabolicBuilder.allMealsLoggedDesc", { count: successCount }),
       });
     } catch (error) {
       toast({
@@ -1205,13 +1207,13 @@ export default function AntiInflammatoryMenuBuilder() {
         variant: "destructive",
       });
     }
-  }, [board, toast, queryClient]);
+  }, [board, toast, queryClient, t]);
 
   if (loading || !board)
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pt-20">
         <div className="text-white/80 p-6 text-center">
-          Loading meal board...
+          {t("metabolicBuilder.loadingBoard")}
         </div>
       </div>
     );
@@ -1260,12 +1262,12 @@ export default function AntiInflammatoryMenuBuilder() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-semibold text-sm text-white leading-tight">Training Nutrition Schedule</p>
+              <p className="font-semibold text-sm text-white leading-tight">{t("Training Nutrition Schedule")}</p>
               <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-300 bg-orange-600/20 border border-orange-500/30 px-2 py-0.5 rounded-full flex-shrink-0">
                 Clinical
               </span>
             </div>
-            <p className="text-white/40 text-xs mt-0.5">Adjust daily macro targets based on your workout schedule</p>
+            <p className="text-white/40 text-xs mt-0.5">{t("Adjust daily macro targets based on your workout schedule")}</p>
           </div>
           <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-orange-400 transition-colors flex-shrink-0" />
         </button>
@@ -1286,7 +1288,7 @@ export default function AntiInflammatoryMenuBuilder() {
                 </button>
 
                 <div className="text-sm font-medium text-white/90">
-                  {weekStartISO ? formatWeekLabel(weekStartISO) : "Loading…"}
+                  {weekStartISO ? formatWeekLabel(weekStartISO, undefined, i18n.resolvedLanguage === "es" ? "es" : "en") : t("Loading…")}
                 </div>
 
                 <button
@@ -1333,7 +1335,7 @@ export default function AntiInflammatoryMenuBuilder() {
             {/* ROW 4.5: Active Protocol Indicator */}
             <div className="flex justify-center">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
-                <span className="font-medium text-white/70">Active Protocol:</span>
+                <span className="font-medium text-white/70"><ClinicalSupportLabel label="Active Protocol:" /></span>
                 {[
                   { key: "heart-failure",    label: "Cardiac Health",   activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]" },
                   { key: "kidney-disease",   label: "Kidney Disease",   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"  },
@@ -1359,7 +1361,7 @@ export default function AntiInflammatoryMenuBuilder() {
                           isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"
                         }`}
                       />
-                      {label}
+                      <ClinicalSupportLabel label={label} />
                     </span>
                   );
                 })}
@@ -1369,7 +1371,7 @@ export default function AntiInflammatoryMenuBuilder() {
             {/* ROW 4.6: Hormonal & Metabolic Protocols */}
             <div className="flex justify-center">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
-                <span className="font-medium text-white/70">Hormonal & Metabolic:</span>
+                <span className="font-medium text-white/70"><ClinicalSupportLabel label="Hormonal & Metabolic:" /></span>
                 {[
                   { key: "hashimotos",         label: "Hashimoto's",       activeColor: "text-teal-300",   dotColor: "bg-teal-300",   dotGlow: "shadow-[0_0_4px_rgba(94,234,212,0.9)]"  },
                   { key: "hypothyroid",        label: "Hypothyroid",       activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
@@ -1380,7 +1382,7 @@ export default function AntiInflammatoryMenuBuilder() {
                 ].map(({ key, label, activeColor, dotColor, dotGlow }) => (
                   <span key={key} className={`flex items-center gap-1 ${scConditions.includes(key) ? `${activeColor} font-semibold` : "text-white/25"}`}>
                     <span className={`inline-block w-1.5 h-1.5 rounded-full ${scConditions.includes(key) ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
-                    {label}
+                    <ClinicalSupportLabel label={label} />
                   </span>
                 ))}
               </div>
@@ -1501,7 +1503,7 @@ export default function AntiInflammatoryMenuBuilder() {
                     {/* Snack Creator Section */}
                     <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4 col-span-full">
                       <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-white/90 text-lg font-medium">Snacks</h2>
+                        <h2 className="text-white/90 text-lg font-medium">{t("metabolicBuilder.snacks")}</h2>
                         <GlobalMealActionBar
                           slot="snacks"
                           onCreateWithAI={() => {}}
@@ -1667,7 +1669,7 @@ export default function AntiInflammatoryMenuBuilder() {
                         });
                         toast({
                           title: t("metabolicBuilder.daySaved"),
-                          description: `${formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
+                          description: t("{{date}} has been locked.", { date: formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' }, undefined, i18n.resolvedLanguage === "es" ? "es" : "en") }),
                         });
                         setLocation('/my-biometrics');
                       }

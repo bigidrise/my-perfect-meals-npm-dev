@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import { motion } from "framer-motion";
 import { formatAmount } from "@/utils/formatAmount";
 import { useMealImages, lookupHydratedImageUrl } from "@/hooks/useMealImages";
@@ -273,6 +274,14 @@ const expansionOptionKey: Record<ExpansionDimension, keyof ExpandIngredientRespo
 export default function CreateDishPage() {
   useCopilotPageExplanation();
   const { t } = useTranslation();
+  // Display-only: original English option values remain authoritative in requests.
+  const methodLabels: Record<string, string> = {
+    Stovetop: t("Stovetop"), Oven: t("Oven"), "Air Fryer": t("Air Fryer"),
+    "Slow Cooker": t("Slow Cooker"), Grill: t("Grill"), "No-Bake": t("No-Bake"), Any: t("Any"),
+  };
+  const dimensionLabels: Record<ExpansionDimension, string> = {
+    form: t("Form / Cut"), method: t("Method"), texture: t("Texture"), flavor: t("Flavor"), cuisine: t("Cuisine"),
+  };
   const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
   const { toast } = useToast();
@@ -636,8 +645,8 @@ export default function CreateDishPage() {
       setOneTouchOpen(false);
     } catch (error: any) {
       toast({
-        title: "Couldn't create your ideas",
-        description: error?.message || "Please try again.",
+        title: t("Couldn't create your ideas"),
+        description: error?.message || t("Please try again."),
         variant: "destructive",
       });
     } finally {
@@ -657,7 +666,7 @@ export default function CreateDishPage() {
       addRecentMeal(meal.name);
       saveDishCache({ generatedMeal: meal, servings, generatedAtISO: new Date().toISOString() });
     } catch (error: any) {
-      toast({ title: "Couldn't complete this idea", description: error?.message || "Please try again.", variant: "destructive" });
+      toast({ title: t("Couldn't complete this idea"), description: error?.message || t("Please try again."), variant: "destructive" });
     } finally {
       setIsPlatingMeal(false);
     }
@@ -732,8 +741,8 @@ export default function CreateDishPage() {
     if (sourceText !== dishInput) updateDishInput(sourceText);
     if (sourceText.length < 3) {
       toast({
-        title: "Tell us what you want to make",
-        description: "Enter a food or dish, then tap Continue.",
+        title: t("Tell us what you want to make"),
+        description: t("Enter a food or dish, then tap Continue."),
         variant: "destructive",
       });
       return;
@@ -810,8 +819,8 @@ export default function CreateDishPage() {
       const selectedTexture = ingredientExpansion?.options.textures.find((option) => option.id === id);
       if (!isTextureCompatibleWithCookMethod(selectedTexture)) {
         toast({
-          title: "That texture doesn't match your cooking method",
-          description: `Choose a different texture or change the ${cookMethod} cooking method.`,
+          title: t("That texture doesn't match your cooking method"),
+          description: t("Choose a different texture or change the {{method}} cooking method.", { method: methodLabels[cookMethod] || cookMethod }),
           variant: "warning",
         });
         return;
@@ -846,8 +855,8 @@ export default function CreateDishPage() {
     ) {
       setExpansionSelections((current) => ({ ...current, texture: null }));
       toast({
-        title: "Texture choice cleared",
-        description: `${selectedTexture.label} doesn't match the ${nextMethod} cooking method.`,
+        title: t("Texture choice cleared"),
+        description: t("{{texture}} doesn't match the {{method}} cooking method.", { texture: selectedTexture.label, method: methodLabels[nextMethod] || nextMethod }),
         variant: "warning",
       });
     }
@@ -932,10 +941,10 @@ export default function CreateDishPage() {
         );
       }
       toast({
-        title: compatibleTexture ? "Compatible texture selected" : "Texture choice cleared",
+        title: compatibleTexture ? t("Compatible texture selected") : t("Texture choice cleared"),
         description: compatibleTexture
-          ? `${compatibleTexture.label} works with the ${cookMethod} cooking method.`
-          : `The ${cookMethod} cooking method will stay in control without a conflicting texture.`,
+          ? t("{{texture}} works with the {{method}} cooking method.", { texture: compatibleTexture.label, method: methodLabels[cookMethod] || cookMethod })
+          : t("The {{method}} cooking method will stay in control without a conflicting texture.", { method: methodLabels[cookMethod] || cookMethod }),
         variant: "warning",
       });
     }
@@ -1138,7 +1147,7 @@ export default function CreateDishPage() {
           stopProgressTicker();
           setIsGenerating(false);
           toast({
-            title: "Couldn't create this dish",
+            title: t("Couldn't create this dish"),
             description: safeServerMessage,
             variant: "warning",
             duration: 10000,
@@ -1204,7 +1213,7 @@ export default function CreateDishPage() {
 
       toast({
         title: t("createDish.successTitle"),
-        description: `${meal.name} is ready for you.`,
+        description: t("{{name}} is ready for you.", { name: meal.name }),
       });
     } catch (error: any) {
       if (
@@ -1217,8 +1226,8 @@ export default function CreateDishPage() {
       const errorMsg = error.message || "";
       if (errorMsg === "CREATE_DISH_CHOICES_INVALID") {
         toast({
-          title: "Review your preparation choices",
-          description: "Those choices don't work together. Change one choice or use Surprise Me.",
+          title: t("Review your preparation choices"),
+          description: t("Those choices don't work together. Change one choice or use Surprise Me."),
           variant: "warning",
         });
       } else if (isAllergyRelatedError(errorMsg)) {
@@ -1282,14 +1291,14 @@ export default function CreateDishPage() {
               className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="text-sm font-medium">Back</span>
+              <span className="text-sm font-medium">{t("Back")}</span>
             </button>
           )}
 
           {/* Hub Intro — matches Pairings Hub pattern */}
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-white mb-2">Custom Cooking</h2>
-            <p className="text-sm text-white/70">Describe what you want to eat and AI builds the perfect recipe for your health profile.</p>
+            <h2 className="text-2xl font-bold text-white mb-2">{t("Custom Cooking")}</h2>
+            <p className="text-sm text-white/70">{t("Describe what you want to eat and AI builds the perfect recipe for your health profile.")}</p>
           </div>
 
           {/* Kitchen context banner */}
@@ -1299,8 +1308,8 @@ export default function CreateDishPage() {
                 <ChefHat className="h-3.5 w-3.5 text-orange-400 flex-shrink-0" />
                 <span className="text-xs text-orange-200 truncate">
                   {activeKitchenName ? (
-                    <><span className="font-semibold">{activeKitchenName}</span> style — your dietary rules always apply</>
-                  ) : "Kitchen style active"}
+                    <><span className="font-semibold">{activeKitchenName}</span> {t("style — your dietary rules always apply")}</>
+                  ) : t("Kitchen style active")}
                 </span>
               </div>
               <button
@@ -1308,7 +1317,7 @@ export default function CreateDishPage() {
                 onClick={() => { setActiveKitchenSlug(null); setActiveKitchenName(null); }}
                 className="text-[10px] text-white/40 hover:text-white/60 flex-shrink-0 px-1"
               >
-                Clear
+                {t("Clear")}
               </button>
             </div>
           )}
@@ -1322,7 +1331,7 @@ export default function CreateDishPage() {
                     <div className="flex-grow" />
                     <HowThisWorksLink
                       featureKey="createDish"
-                      label="How It Works"
+            label={t("How It Works")}
                     />
                   </CardTitle>
                 </CardHeader>
@@ -1339,7 +1348,7 @@ export default function CreateDishPage() {
                           disabled={isGenerating}
                           className="w-full border border-orange-300/30 bg-orange-600/20 text-orange-100"
                         >
-                          ✨ Create a Dish Menu
+                    {t("✨ Create a Dish Menu")}
                         </GlassButton>
                       )}
                     </div>
@@ -1362,26 +1371,27 @@ export default function CreateDishPage() {
                         className="w-full px-3 py-2 pr-10 bg-black text-white placeholder:text-white/40 border border-orange-400/20 rounded-lg h-20 resize-none text-sm"
                         maxLength={300}
                       />
-                      {dishInput && !classificationComplete && (
-                        <TrashButton
-                          onClick={() => updateDishInput("")}
-                          size="sm"
-                          ariaLabel="Clear dish input"
-                          title="Clear dish input"
-                          className="absolute top-2 right-2"
-                        />
-                      )}
                     </div>
                     {!classificationComplete && (
-                      <VoiceInputButton
-                        value={dishInput}
-                        onChange={updateDishInput}
-                        mode="append"
-                        separator=" "
-                        maxLength={300}
-                        label="Add dish description by voice"
-                        className="mt-2"
-                      />
+                      <div className="mt-2 flex items-center justify-between gap-3" data-testid="dish-input-actions">
+                        <VoiceInputButton
+                          value={dishInput}
+                          onChange={updateDishInput}
+                          mode="append"
+                          separator=" "
+                          maxLength={300}
+                          label={t("Add dish description by voice")}
+                        />
+                        {dishInput && (
+                          <TrashButton
+                            onClick={() => updateDishInput("")}
+                            size="sm"
+                            ariaLabel={t("Clear dish input")}
+                            title={t("Clear dish input")}
+                            className="ml-auto shrink-0"
+                          />
+                        )}
+                      </div>
                     )}
                     <p className="text-xs text-white/50 mt-1 text-right">
                       {dishInput.length}/300
@@ -1395,7 +1405,7 @@ export default function CreateDishPage() {
                       disabled={expansionBusy}
                       className="w-full bg-lime-600 flex items-center justify-center"
                     >
-                      {expansionBusy ? "Understanding your dish…" : "Continue"}
+                      {expansionBusy ? t("Understanding your dish…") : t("Continue")}
                     </GlassButton>
                   )}
 
@@ -1405,18 +1415,18 @@ export default function CreateDishPage() {
                       onClick={editDishInput}
                       className="text-xs font-medium text-orange-200 underline underline-offset-4"
                     >
-                      Change food
+                        {t("Change food")}
                     </button>
                   )}
 
                   {expansionFallback && (
                     <p className="rounded-lg border border-orange-300/20 bg-orange-950/30 px-3 py-2 text-xs leading-relaxed text-orange-100/80">
-                      We couldn't load preparation ideas right now. You can still create your dish.
+                        {t("We couldn't load preparation ideas right now. You can still create your dish.")}
                     </p>
                   )}
 
                   {expansionBusy && (
-                    <div className="h-12 animate-pulse rounded-lg border border-white/10 bg-white/5" aria-label="Understanding your dish" />
+                    <div className="h-12 animate-pulse rounded-lg border border-white/10 bg-white/5" aria-label={t("Understanding your dish")} />
                   )}
 
                   {!classificationComplete && ingredientExpansion &&
@@ -1424,7 +1434,7 @@ export default function CreateDishPage() {
                       ingredientExpansion.ingredient.status === "clarification_required") && (
                     <div className="rounded-xl border border-orange-300/25 bg-orange-950/30 p-3">
                       <p className="text-sm font-medium text-orange-50">
-                        We need a little more information. What food or dish did you mean?
+                        {t("We need a little more information. What food or dish did you mean?")}
                       </p>
                       {ingredientExpansion.ingredient.clarification?.choices.length ? (
                         <div className="mt-3 flex flex-wrap gap-2">
@@ -1462,8 +1472,8 @@ export default function CreateDishPage() {
                     <div className="space-y-3 rounded-xl border border-orange-400/20 bg-black/25 p-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
-                          <p className="text-sm font-medium text-white">A little more direction?</p>
-                          <p className="text-xs text-white/55">We understood the idea. Tune it, or let the chef choose.</p>
+                          <p className="text-sm font-medium text-white">{t("A little more direction?")}</p>
+                          <p className="text-xs text-white/55">{t("We understood the idea. Tune it, or let the chef choose.")}</p>
                         </div>
                          <PillButton
                            type="button"
@@ -1473,7 +1483,7 @@ export default function CreateDishPage() {
                            aria-pressed={EXPANSION_DIMENSIONS.every((dimension) => delegatedDimensions.includes(dimension))}
                            className="normal-case tracking-normal text-[11px]"
                          >
-                          Surprise Me
+                          {t("Surprise Me")}
                          </PillButton>
                       </div>
 
@@ -1509,7 +1519,7 @@ export default function CreateDishPage() {
                             <div key={dimension} className="min-w-0">
                               <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
                                 <span className="text-xs font-semibold text-white/80">
-                                  {EXPANSION_DIMENSION_LABELS[dimension]}
+                                  {dimensionLabels[dimension]}
                                 </span>
                                 <PillButton
                                   type="button"
@@ -1519,7 +1529,7 @@ export default function CreateDishPage() {
                                   aria-pressed={delegatedDimensions.includes(dimension)}
                                   className="normal-case tracking-normal text-[10px]"
                                 >
-                                  Surprise Me
+                                  {t("Surprise Me")}
                                 </PillButton>
                               </div>
                               <div className="flex max-w-full flex-wrap gap-2">
@@ -1535,7 +1545,7 @@ export default function CreateDishPage() {
                                       active={expansionSelections[dimension] === option.id}
                                       variant="amber"
                                       aria-pressed={expansionSelections[dimension] === option.id}
-                                      title={incompatible ? `${option.label} is not compatible with ${cookMethod}` : undefined}
+                                      title={incompatible ? t("{{option}} is not compatible with {{method}}", { option: option.label, method: methodLabels[cookMethod] || cookMethod }) : undefined}
                                       onClick={() => toggleExpansionSelection(dimension, option.id)}
                                       className={`max-w-full normal-case tracking-normal text-[11px] leading-snug ${
                                         incompatible ? "cursor-not-allowed opacity-40 line-through" : ""
@@ -1581,8 +1591,8 @@ export default function CreateDishPage() {
                           (n) => (
                             <SelectItem key={n} value={n.toString()}>
                               {n === 1
-                                ? "1 serving (just me)"
-                                : `${n} servings`}
+                                ? t("1 serving (just me)")
+                                : t("{{count}} servings", { count: n })}
                             </SelectItem>
                           ),
                         )}
@@ -1599,7 +1609,7 @@ export default function CreateDishPage() {
                         <IconPillOption
                           key={m.label}
                           icon={m.emoji}
-                          label={m.label}
+                          label={methodLabels[m.label] || m.label}
                           active={cookMethod === m.label}
                           onClick={() => selectCookMethod(m.label)}
                         />
@@ -1624,7 +1634,7 @@ export default function CreateDishPage() {
                       mode="append"
                       separator=" "
                       maxLength={250}
-                      label="Add dish notes by voice"
+                        label={t("Add dish notes by voice")}
                       className="mt-2"
                     />
                     <p className="text-xs text-white/50 mt-1 text-right">
@@ -1653,8 +1663,8 @@ export default function CreateDishPage() {
                         setPendingGeneration(true);
                       } else {
                         toast({
-                          title: "Could not continue",
-                          description: "Please review the recommendation again and retry.",
+                          title: t("Could not continue"),
+                          description: t("Please review the recommendation again and retry."),
                           variant: "destructive",
                         });
                       }
@@ -1719,7 +1729,7 @@ export default function CreateDishPage() {
 
                   <div className="mt-2 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
                     <span className="text-xs text-white/60 block mb-2">
-                      Flavor Profile
+                      {t("Flavor Profile")}
                     </span>
                     <FlavorToggle
                       flavorPersonal={flavorPersonal}
@@ -1731,7 +1741,7 @@ export default function CreateDishPage() {
                   {/* Keep It Simple Section */}
                   <div className="mt-2 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
                     <span className="text-xs text-white/60 block mb-2">
-                      Ingredient Control
+                      {t("Ingredient Control")}
                     </span>
                     <KeepItSimpleToggle
                       keepItSimple={keepItSimple}
@@ -1740,8 +1750,8 @@ export default function CreateDishPage() {
                     />
                     <p className="text-xs text-white/40 mt-1">
                       {keepItSimple
-                        ? "AI will use only what you listed — nothing added"
-                        : "AI may add complementary ingredients"}
+                        ? t("AI will use only what you listed — nothing added")
+                        : t("AI may add complementary ingredients")}
                     </p>
                   </div>
 
@@ -1763,7 +1773,7 @@ export default function CreateDishPage() {
                         className="w-full bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
                       >
                         <ChefHat className="h-4 w-4" />
-                        {"Create My Dish"}
+                        {t("Create My Dish")}
                       </GlassButton>
                     </>
                   ) : null}
@@ -1778,7 +1788,7 @@ export default function CreateDishPage() {
             <CreatorMenuRestorationProgress />
           )}
           {oneTouchBusy && (
-            <div className="mt-8 flex justify-center py-10" role="status" aria-label="Creating your Dish Menu">
+            <div className="mt-8 flex justify-center py-10" role="status" aria-label={t("Creating your Dish Menu")}>
               <MealGenerationProgress active context="create-dish" mode="options" />
             </div>
           )}
@@ -1797,10 +1807,10 @@ export default function CreateDishPage() {
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-orange-400" />
                 <h3 className="text-lg font-bold text-white">
-                  Pick your favorite
+                  {t("Pick your favorite")}
                 </h3>
                 <span className="text-sm text-white/60">
-                  {mealOptions.length} options created for you
+                  {mealOptions.length} {t("options created for you")}
                 </span>
               </div>
               {mealOptions.map((option) => (
@@ -1826,14 +1836,14 @@ export default function CreateDishPage() {
                             {option.nutrition?.calories ??
                               option.calories ??
                               "—"}{" "}
-                            cal
+                            {t("cal")}
                           </span>
                           <span>
                             {option.nutrition?.protein ?? option.protein ?? "—"}
-                            g protein
+                            {t("g protein")}
                           </span>
                           <span>
-                            {option.nutrition?.fat ?? option.fat ?? "—"}g fat
+                            {option.nutrition?.fat ?? option.fat ?? "—"}{t("g fat")}
                           </span>
                           {option.cookingTime && (
                             <span>{option.cookingTime}</span>
@@ -1844,7 +1854,7 @@ export default function CreateDishPage() {
                         onClick={() => handleSelectMeal(option.id)}
                         className="shrink-0 bg-lime-600 active:scale-95 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all"
                       >
-                        Pick This
+                        {t("Pick This")}
                       </button>
                     </div>
                   </CardContent>
@@ -1857,7 +1867,7 @@ export default function CreateDishPage() {
                   onClick={() => void handleOneTouchCreate(oneTouchLastRequest)}
                   className="w-full min-h-11 rounded-xl border border-orange-400/40 bg-orange-400/10 px-4 text-sm font-bold text-orange-100 disabled:opacity-50"
                 >
-                  {oneTouchBusy ? "Creating more ideas…" : "Try 3 More"}
+                  {oneTouchBusy ? t("Creating more ideas…") : t("Try 3 More")}
                 </button>
               )}
               <button
@@ -1869,7 +1879,7 @@ export default function CreateDishPage() {
                 }}
                 className="w-full text-sm text-white/50 hover:text-white/80 py-2 transition-colors"
               >
-                Start over with a different dish
+                {t("Start over with a different dish")}
               </button>
             </div>
           )}
@@ -1901,7 +1911,7 @@ export default function CreateDishPage() {
                             }}
                             className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
                           >
-                            Create New
+                            {t("Create New")}
                           </button>
                         </div>
                         <div className="mt-3 flex min-w-0 items-start gap-2">
@@ -1945,13 +1955,13 @@ export default function CreateDishPage() {
                       ) : (
                         <div className="mb-6 p-4 rounded-xl bg-black/40 border border-orange-400/30 text-center">
                           <p className="text-white/70 text-sm mb-3">
-                            This result was saved in an older session before images were stored. Generate a fresh dish to get your image.
+                            {t("This result was saved in an older session before images were stored. Generate a fresh dish to get your image.")}
                           </p>
                           <button
                             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
                             className="px-4 py-2 rounded-full bg-orange-600 text-white text-sm font-medium"
                           >
-                            Scroll up to regenerate
+                            {t("Scroll up to regenerate")}
                           </button>
                         </div>
                       )}
@@ -1960,9 +1970,9 @@ export default function CreateDishPage() {
                         <div className="flex items-center gap-2 text-sm text-white">
                           <Users className="h-4 w-4" />
                           <span className="font-medium">
-                            Serving Size:
+                            {t("Serving Size:")}
                           </span>{" "}
-                          {meal.servingSize || "1 serving"}
+                          {meal.servingSize || t("1 serving")}
                         </div>
                       </div>
 
@@ -1976,52 +1986,52 @@ export default function CreateDishPage() {
                         <div className="mb-3 p-2 bg-black/40 backdrop-blur-md rounded-lg border border-white/20">
                           <div className="text-xs text-white text-center">
                             <strong>
-                              Recipe makes {meal.servings ?? servings} servings. Nutrition below is for one serving.
+                              {t("Recipe makes {{count}} servings. Nutrition below is for one serving.", { count: meal.servings ?? servings })}
                             </strong>
                             <br />
-                            Per serving:{" "}
+                            {t("Per serving:")}{" "}
                             {Math.round(
                               (meal.nutrition?.calories || meal.calories || 0) /
                                 servings,
                             )}{" "}
-                            cal |{" "}
+                            {t("cal |")}{" "}
                             {Math.round(
                               (meal.nutrition?.protein || meal.protein || 0) /
                                 servings,
                             )}
-                            g protein |{" "}
+                            {t("g protein |")}{" "}
                             {Math.round(
                               (meal.nutrition?.carbs || meal.carbs || 0) /
                                 servings,
                             )}
-                            g carbs |{" "}
+                            {t("g carbs |")}{" "}
                             {Math.round(
                               (meal.nutrition?.fat || meal.fat || 0) / servings,
                             )}
-                            g fat
+                            {t("g fat")}
                           </div>
                         </div>
                       )}
 
-                      <p className="text-xs text-white/60 text-center mb-2">Nutrition per serving</p>
+                      <p className="text-xs text-white/60 text-center mb-2">{t("Nutrition per serving")}</p>
                       <div className="grid grid-cols-4 gap-4 mb-4 text-center">
                         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
                           <div className="text-lg font-bold text-white">
                             {Math.round(getMealNutrition(meal, servings).calories)}
                           </div>
-                          <div className="text-xs text-white">Calories</div>
+                          <div className="text-xs text-white">{t("Calories")}</div>
                         </div>
                         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
                           <div className="text-lg font-bold text-white">
                             {Math.round(getMealNutrition(meal, servings).protein_g)}g
                           </div>
-                          <div className="text-xs text-white">Protein</div>
+                          <div className="text-xs text-white">{t("Protein")}</div>
                         </div>
                         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
                           <div className="text-lg font-bold text-white">
                             {Math.round(getMealNutrition(meal, servings).carbs_g)}g
                           </div>
-                          <div className="text-xs text-white">Carbs</div>
+                          <div className="text-xs text-white">{t("Carbs")}</div>
                           {(() => {
                             const oneServing = getMealNutrition(meal, servings);
                             const totalCarbs = oneServing.carbs_g;
@@ -2044,7 +2054,7 @@ export default function CreateDishPage() {
                           <div className="text-lg font-bold text-white">
                             {Math.round(getMealNutrition(meal, servings).fat_g)}g
                           </div>
-                          <div className="text-xs text-white">Fat</div>
+                          <div className="text-xs text-white">{t("Fat")}</div>
                         </div>
                       </div>
 
@@ -2107,8 +2117,8 @@ export default function CreateDishPage() {
                               <TrashButton
                                 size="sm"
                                 appearance="meal-card"
-                                ariaLabel="Remove meal"
-                                title="Remove meal"
+                                ariaLabel={t("Remove meal")}
+                                title={t("Remove meal")}
                                 confirm={true}
                                 confirmMessage="Remove this meal?"
                                 onClick={() => {
@@ -2123,7 +2133,7 @@ export default function CreateDishPage() {
                       {meal.ingredients && meal.ingredients.length > 0 && (
                         <div className="mb-4">
                           <h4 className="font-semibold mb-2 text-white">
-                            Ingredients:
+                            {t("Ingredients:")}
                           </h4>
                           <ul className="text-sm text-white/80 space-y-1">
                             {meal.ingredients.map(
@@ -2135,19 +2145,19 @@ export default function CreateDishPage() {
 
                                 if (ingredient.displayText) {
                                   return (
-                                    <li key={i}>{ingredient.displayText}</li>
+                                    <li key={i}><IngredientDisplay ingredient={ingredient} legacyText={ingredient.displayText} /></li>
                                   );
                                 }
 
                                 if (amount && unit) {
                                   return (
                                     <li key={i}>
-                                      {formatAmount(amount)} {unit} {name}
+                                      <IngredientDisplay ingredient={ingredient} legacyText={<>{formatAmount(amount)} {unit} {name}</>} />
                                     </li>
                                   );
                                 }
 
-                                return <li key={i}>{name}</li>;
+                                return <li key={i}><IngredientDisplay ingredient={ingredient} legacyText={name} /></li>;
                               },
                             )}
                           </ul>
@@ -2164,7 +2174,7 @@ export default function CreateDishPage() {
                         return (
                           <div className="mb-4">
                             <h4 className="font-semibold mb-2 text-white">
-                              Instructions:
+                              {t("Instructions:")}
                             </h4>
                             <div className="space-y-2">
                               {visibleSteps.map((step, index) => (
@@ -2204,8 +2214,8 @@ export default function CreateDishPage() {
                                 }}
                               >
                                 {expanded
-                                  ? "Show less"
-                                  : `Show all ${steps.length} steps`}
+                                  ? t("Show less")
+                                  : t("Show all {{count}} steps", { count: steps.length })}
                               </button>
                             )}
                           </div>
@@ -2216,7 +2226,7 @@ export default function CreateDishPage() {
                         <div className="mb-4">
                           <h4 className="font-semibold mb-2 flex items-center gap-2 text-white">
                             <Brain className="h-4 w-4" />
-                            Why This Works For You:
+                            {t("Why This Works For You:")}
                           </h4>
                           <p className="text-sm text-white/80">
                             {meal.reasoning}
@@ -2245,7 +2255,7 @@ export default function CreateDishPage() {
                           }}
                           className="w-full bg-gradient-to-r from-zinc-900 via-zinc-800 to-black hover:from-zinc-800 hover:via-zinc-700 hover:to-zinc-900 text-white flex items-center justify-center border border-white/30"
                         >
-                          Add to Macros
+                          {t("Add to Macros")}
                         </GlassButton></MealCardAction>
 
                         <div className="grid grid-cols-2 gap-2">
@@ -2305,7 +2315,7 @@ export default function CreateDishPage() {
                             }}
                             className="flex-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                           >
-                            Guided Cooking
+                            {t("Guided Cooking")}
                           </GlassButton></MealCardAction>
                           <MealCardAction kind="share"><ShareRecipeButton
                             recipe={{
@@ -2336,7 +2346,7 @@ export default function CreateDishPage() {
                   <div className="flex items-center gap-2 pt-4 border-t border-white/10">
                     <Sparkles className="h-4 w-4 text-orange-400/60" />
                     <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wide">
-                      Generated Alternatives
+                      {t("Generated Alternatives")}
                     </h3>
                   </div>
                   {alternativeMeals
@@ -2356,10 +2366,10 @@ export default function CreateDishPage() {
                               </p>
                               <div className="flex gap-3 text-xs text-white/50 flex-wrap">
                                 <span>
-                                  {option.nutrition?.calories ?? option.calories ?? "—"} cal
+                                  {option.nutrition?.calories ?? option.calories ?? "—"} {t("cal")}
                                 </span>
                                 <span>
-                                  {option.nutrition?.protein ?? option.protein ?? "—"}g protein
+                                  {option.nutrition?.protein ?? option.protein ?? "—"}{t("g protein")}
                                 </span>
                                 {option.cookingTime && <span>{option.cookingTime}</span>}
                               </div>
@@ -2368,7 +2378,7 @@ export default function CreateDishPage() {
                               onClick={() => handleSelectMeal(option.id)}
                               className="shrink-0 bg-lime-700 active:scale-95 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all"
                             >
-                              Pick This
+                              {t("Pick This")}
                             </button>
                           </div>
                         </CardContent>
@@ -2383,7 +2393,7 @@ export default function CreateDishPage() {
                     }}
                     className="w-full text-xs text-white/40 hover:text-white/70 py-2 transition-colors"
                   >
-                    Start over with a different dish
+                    {t("Start over with a different dish")}
                   </button>
                 </div>
               )}

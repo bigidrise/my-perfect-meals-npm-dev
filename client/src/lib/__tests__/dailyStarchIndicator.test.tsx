@@ -11,8 +11,10 @@
 import React from 'react';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import i18n from '@/i18n';
 import { DailyStarchIndicator } from '@/components/DailyStarchIndicator';
 import type { DailyNutritionPrescription } from '../../../../shared/dailyNutritionPrescription';
+beforeEach(async () => { await i18n.changeLanguage('en'); });
 
 // ── Minimal prescription factory ──────────────────────────────────────────────
 

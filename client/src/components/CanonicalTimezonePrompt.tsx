@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
@@ -120,7 +121,7 @@ export function CanonicalTimezonePrompt() {
               onClick={() => setChoosingAnother(false)}
               disabled={saving}
             >
-              Back
+              <BackNavigationLabel />
             </Button>
             <Button
               type="button"

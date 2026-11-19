@@ -1,7 +1,7 @@
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ChefHat } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import { isChefConversationEnabled } from "@/lib/chefCornerExperience";
 import { chefMemberText } from "@/lib/chefMemberBranding";
 
@@ -54,7 +54,7 @@ export default function CoachCornerCard() {
             <div className="min-w-0 flex-1">
               <span className="mb-1 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-orange-300/80">
                 <ChefHat aria-hidden="true" className="h-3.5 w-3.5" />
-                Your food &amp; platform guide
+                {t("Your food & platform guide")}
               </span>
               <h3 className="font-bold leading-none tracking-tight text-white">
                 <img
@@ -66,10 +66,10 @@ export default function CoachCornerCard() {
                 />
               </h3>
               <p className="mt-1 text-xs font-medium text-orange-200/80 sm:text-sm">
-                Platform Concierge
+                {t("Platform Concierge")}
               </p>
               <p className="mt-2 text-xs leading-relaxed text-orange-50/65 sm:text-sm">
-                Ask about food, explore meal ideas, or find your way around My Perfect Meals.
+                {t("Ask about food, explore meal ideas, or find your way around My Perfect Meals.")}
               </p>
             </div>
           </div>
@@ -79,7 +79,7 @@ export default function CoachCornerCard() {
               onClick={() => setLocation(destination)}
               className="w-full rounded-xl border border-orange-200/80 bg-gradient-to-r from-[#9a3412] via-[#c64f08] to-[#9a3412] px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-[#FFFFFF] shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_2px_5px_rgba(0,0,0,0.22)] transition-all hover:border-orange-100 hover:from-[#7c2d12] hover:via-[#b84609] hover:to-[#7c2d12] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_3px_8px_rgba(0,0,0,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#17110d] active:from-[#7c2d12] active:via-[#9a3412] active:to-[#7c2d12] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.28)]"
             >
-              Open Ask Chef
+              {t("Open Ask Chef")}
             </button>
           </div>
         </div>

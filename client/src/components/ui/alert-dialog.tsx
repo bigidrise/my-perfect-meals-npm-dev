@@ -1,4 +1,6 @@
 import * as React from "react"
+import { useTranslation } from "react-i18next"
+import { translateSharedLabel } from "@/i18n/sharedLabels"
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
 import { cn } from "@/lib/utils"
@@ -98,31 +100,44 @@ AlertDialogDescription.displayName =
 
 const AlertDialogAction = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Action>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action> & { disableHover?: boolean }
+>(({ className, children, disableHover = false, ...props }, ref) => {
+  const { t } = useTranslation()
+  return (
   <AlertDialogPrimitive.Action
     ref={ref}
-    className={cn(buttonVariants(), className)}
+    className={alertButtonClasses(cn(buttonVariants(), className), disableHover)}
     {...props}
-  />
-))
+  >{translateSharedLabel(children, t)}</AlertDialogPrimitive.Action>
+  )
+})
 AlertDialogAction.displayName = AlertDialogPrimitive.Action.displayName
 
 const AlertDialogCancel = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Cancel>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Cancel>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Cancel> & { disableHover?: boolean }
+>(({ className, children, disableHover = false, ...props }, ref) => {
+  const { t } = useTranslation()
+  return (
   <AlertDialogPrimitive.Cancel
     ref={ref}
-    className={cn(
+    className={alertButtonClasses(cn(
       buttonVariants({ variant: "outline" }),
       "mt-2 sm:mt-0",
       className
-    )}
+    ), disableHover)}
     {...props}
-  />
-))
+  >{translateSharedLabel(children, t)}</AlertDialogPrimitive.Cancel>
+  )
+})
 AlertDialogCancel.displayName = AlertDialogPrimitive.Cancel.displayName
+
+// Opt-in for touch-first dialogs; retain keyboard focus and disabled styles.
+function alertButtonClasses(classes: string, disableHover: boolean): string {
+  return disableHover
+    ? classes.split(/\s+/).filter(token => !token.includes("hover:")).join(" ")
+    : classes
+}
 
 export {
   AlertDialog,

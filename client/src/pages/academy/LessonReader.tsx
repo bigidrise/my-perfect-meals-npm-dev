@@ -1,3 +1,5 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import {
@@ -508,6 +510,7 @@ function QuizComponent({
 // ── Main LessonReader ─────────────────────────────────────────────────────────
 
 export default function LessonReader() {
+  const { t: navigationCopy } = useConsumerCopy();
   const [, setLocation] = useLocation();
   const params = useParams<{ lessonId: string }>();
   const lessonId = params.lessonId ?? "";
@@ -664,7 +667,7 @@ export default function LessonReader() {
               <button
                 onClick={() => setLocation(`/academy/platform-mastery/lesson/${prevId}`)}
                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/6 text-white/50 text-xs font-medium active:scale-[0.95] transition-transform hover:text-white/70 flex-shrink-0"
-                title={`Back to Lesson ${prevLesson.lessonNumber}: ${prevLesson.title}`}
+                title={navigationCopy("Back to Lesson {{number}}: {{title}}", { number: prevLesson.lessonNumber, title: prevLesson.title })}
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
                 <span>L{prevLesson.lessonNumber}</span>
@@ -972,7 +975,7 @@ export default function LessonReader() {
                   onClick={() => setLocation("/academy/platform-mastery")}
                   className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-transform"
                 >
-                  Back to Dashboard
+                  <BackNavigationLabel label="Back to Dashboard" />
                   <ChevronRight className="h-4 w-4" />
                 </button>
               );
@@ -1042,7 +1045,7 @@ export default function LessonReader() {
             onClick={() => setLocation("/academy")}
             className="w-full text-center text-xs text-white/30 py-2 active:text-white/50 transition-colors"
           >
-            Back to Academy
+            <BackNavigationLabel label="Back to Academy" />
           </button>
         </motion.div>
       </div>

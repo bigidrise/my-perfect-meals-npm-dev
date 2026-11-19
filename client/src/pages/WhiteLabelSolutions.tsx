@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft } from "lucide-react";
@@ -476,7 +477,7 @@ export default function WhiteLabelSolutions() {
                 onClick={goBack}
                 className="text-white/50 text-xs underline underline-offset-2 whitespace-nowrap"
               >
-                ← Back
+                ← <BackNavigationLabel />
               </button>
             )}
             <button
@@ -484,7 +485,7 @@ export default function WhiteLabelSolutions() {
               className="flex items-center gap-1 text-orange-400 text-xs font-medium whitespace-nowrap"
             >
               <ArrowLeft className="h-3 w-3 flex-shrink-0" />
-              Partner Programs
+              <BackNavigationLabel label="Partner Programs" />
             </button>
           </div>
         </div>

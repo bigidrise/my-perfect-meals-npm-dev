@@ -13,7 +13,7 @@ import { validateHumanFoodResult } from "../humanFoodContext/validateHumanFoodRe
 import type { HumanFoodContext } from "../../../shared/humanFoodContext";
 import { validateDietaryRestriction, type DietaryMode } from "../guardrails/validators/dietaryRestrictionValidator";
 import { scanGeneratedOutput, type UserProtocolEnvelope } from "../protocolEnvelope";
-import { hasConcreteSelectedIngredients } from "./selectedIngredientEvidence";
+import { hasConcreteDishIngredients } from "./selectedIngredientEvidence";
 
 export interface DirectionGenerationAttempt {
   requestedCount: number;
@@ -59,6 +59,9 @@ export async function generateOneTouchDirections(
     input.cravingFeel && input.cravingFeel !== "surprise"
       ? `Craving Feel: ${input.cravingFeel}. This describes culinary character only; light/hearty impose no calorie or portion target. Sweet does not imply Dessert; salty does not imply Food.`
       : "",
+    input.menuShape === "dish"
+      ? 'CONCRETE PRIMARY INGREDIENTS: Every primaryIngredients entry must name a specific food in the output language, not an unspecified group such as "mixed vegetables", "verduras mixtas", "spices", "especias", or "fresh herbs". Choose the actual vegetables, herbs and spices before presenting the idea and list each advertised food separately. The finished recipe must preserve these exact food promises under all resolved protections. Naming ingredients is culinary identity, not proof of safety or nutrition.'
+      : "",
   ].filter(Boolean);
   const result = await generateCulinaryConcepts({
     occasion: input.occasion,
@@ -103,7 +106,7 @@ export async function generateOneTouchDirections(
 export function validateDishConcept(direction: OneTouchDirection): string[] {
   const form = direction.culinaryIdentity.dishForm.toLowerCase().trim();
   const title = direction.title.toLowerCase().trim();
-  if (!hasConcreteSelectedIngredients(direction.primaryIngredients)) {
+  if (!hasConcreteDishIngredients(direction.primaryIngredients)) {
     return ["culinary_shape:abstract_primary_ingredient"];
   }
   if (/^(plate|platter|composed plate|protein plate|meal plate|protein with sides)$/.test(form) ||

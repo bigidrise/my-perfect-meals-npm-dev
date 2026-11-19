@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useLocation } from "wouter";
 import { ArrowLeft, Baby, Utensils, BookOpen, Apple, Brain, ShoppingBag, Sparkles, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ export default function MyPerfectBeginning() {
             className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="text-sm font-medium">Back</span>
+            <span className="text-sm font-medium"><BackNavigationLabel /></span>
           </button>
         )}
         {/* Hub Intro — matches Pairings Hub pattern */}

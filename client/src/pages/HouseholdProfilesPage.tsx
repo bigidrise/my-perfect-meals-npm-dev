@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -313,7 +314,7 @@ export default function HouseholdProfilesPage() {
               className="bg-black/20 text-white rounded-xl border border-white/10 flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="text-xs font-medium">Back</span>
+              <span className="text-xs font-medium"><BackNavigationLabel /></span>
             </Button>
             <div className="flex items-center gap-2 flex-1">
               <Users className="h-5 w-5 text-orange-400" />

@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 
 import React, { useState } from "react";
 import { useLocation } from "wouter";
@@ -49,7 +50,7 @@ export default function DiabetesSupportPage() {
           onClick={() => setLocation("/diabetic-hub")}
           className="flex items-center gap-2 text-white bg-black/20 backdrop-blur-sm border border-white/30 hover:bg-black/30 transition-all duration-200 font-medium rounded-2xl shadow-2xl"
         >
-          <ArrowLeft className="h-4 w-4 text-white" />
+          <ArrowLeft className="h-4 w-4 text-white" /><span className="sr-only"><BackNavigationLabel /></span>
           
         </Button>
       </div>

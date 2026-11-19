@@ -4,17 +4,19 @@ interface QuickTourButtonProps {
   onClick: () => void;
   className?: string;
   asPillButton?: boolean;
+  label?: string;
+  ariaLabel?: string;
 }
 
-export function QuickTourButton({ onClick, className = "", asPillButton = false }: QuickTourButtonProps) {
+export function QuickTourButton({ onClick, className = "", asPillButton = false, label = "Guide", ariaLabel = "How to use this page" }: QuickTourButtonProps) {
   if (asPillButton) {
     return (
       <PillButton
         onClick={onClick}
         className={className}
-        aria-label="How to use this page"
+        aria-label={ariaLabel}
       >
-        Guide
+        {label}
       </PillButton>
     );
   }
@@ -23,9 +25,9 @@ export function QuickTourButton({ onClick, className = "", asPillButton = false 
     <PillButton
       onClick={onClick}
       className={className}
-      aria-label="How to use this page"
+      aria-label={ariaLabel}
     >
-      Guide
+      {label}
     </PillButton>
   );
 }

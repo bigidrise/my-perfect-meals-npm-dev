@@ -228,7 +228,8 @@ describe("Development-only verified partial My Perfect Menu choices", () => {
     const page = readFileSync("client/src/pages/MyPerfectMenu.tsx", "utf8");
     expect(route.match(/developmentMenuPreferencesSchema : myPerfectMenuPreferencesSchema/g)).toHaveLength(2);
     expect(route.match(/partialChoicesEnabled: true/g)).toHaveLength(2);
-    expect(page).toContain("We could verify only {concepts.length} of three ideas");
+    expect(page).toContain("We could verify only {{count}} of three ideas");
+    expect(page).toContain("{ count: concepts.length }");
     expect(page).toContain("No unverified ideas are shown");
     expect(page).toContain('availability === "unavailable"');
   });

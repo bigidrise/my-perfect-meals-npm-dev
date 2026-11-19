@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -72,11 +73,12 @@ function MacroTargetSyncMount() {
 // The designated Development account uses the original provider tree and pages;
 // all authorization and the server-side live-data restriction remain in place.
 function DemoOperatingShell({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const { user, loading, initializationError, retryInitialization } = useAuth();
   if (initializationError) return <SessionVerificationRecovery onRetry={retryInitialization} />;
   // Do not mount a consumer shell (and its stateful global widgets) temporarily
   // while a cookie-backed professional's operating status is still unresolved.
-  if (loading) return <div role="status" className="flex min-h-[100dvh] items-center justify-center bg-black text-white">Loading your account…</div>;
+  if (loading) return <div role="status" className="flex min-h-[100dvh] items-center justify-center bg-black text-white">{t("common.loading")}</div>;
   const originalDevelopmentStudio = import.meta.env.DEV &&
     user?.developmentPhysicianStudioInterface === "original";
   if (user?.operatingStatus !== "demo_only" || originalDevelopmentStudio) return <>{children}</>;

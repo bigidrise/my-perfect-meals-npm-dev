@@ -75,3 +75,16 @@ those two navigation controls; it does not request disabling voice or chat.
 
 **How to apply:** Keep these navigation buttons independent of Copilot opening
 and explanation timers; preserve the destination page's existing access checks.
+
+App Library Learn READ and LISTEN controls must be hidden on every educational
+card, not deleted. Preserve their components, handlers and narration functionality
+for future reactivation, and preserve educational content, expansion, formatting
+and accessibility.
+
+**Why:** The founder repeatedly clarified that this is reversible hiding, not
+removal of educational or voice functionality.
+
+**How to apply:** Keep this narrow Learn visibility policy separate from any
+broader narration shutdown. Do not delete integrations or secrets, or disable
+Copilot text, while auditing paid narration; broader shutdown needs explicit
+approval after the dependency audit.

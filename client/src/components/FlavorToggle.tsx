@@ -1,5 +1,6 @@
 import { Utensils } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 interface FlavorToggleProps {
   flavorPersonal: boolean;
@@ -14,6 +15,7 @@ export function FlavorToggle({
   disabled = false,
   className = "",
 }: FlavorToggleProps) {
+  const { t } = useConsumerCopy();
   const handleClick = () => {
     if (disabled) return;
     onFlavorChange(!flavorPersonal);
@@ -32,7 +34,7 @@ export function FlavorToggle({
     >
       <Utensils className="w-4 h-4" />
       <span className="text-xs font-medium">
-        Flavor: {flavorPersonal ? "Personal" : "Neutral"}
+        {t("Flavor:")} {flavorPersonal ? t("Personal") : t("Neutral")}
       </span>
     </PillButton>
   );

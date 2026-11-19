@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
@@ -1216,7 +1217,7 @@ export default function AdminDashboard() {
             onClick={() => setLocation("/")}
             className="text-sm text-white/40 hover:text-white/70 transition"
           >
-            ← Back to app
+            ← <BackNavigationLabel label="Back to app" />
           </button>
         </div>
 
@@ -1368,7 +1369,7 @@ export default function AdminDashboard() {
               onClick={() => setSelected(null)}
               className="text-xs text-white/40 hover:text-white/70 transition"
             >
-              ← Back to results
+              ← <BackNavigationLabel label="Back to results" />
             </button>
             <UserDetail key={selected.id} user={selected} onAction={() => {}} />
           </div>

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, ShieldCheck, FileCheck, Loader2 } from "lucide-react";
@@ -16,6 +17,7 @@ import { isCanonicalPractitionerRole } from "@shared/professionalRoles";
 import ProfessionalRequestReview from "./ProfessionalRequestReview";
 import { useProfessionalOnboarding } from "@/hooks/useProfessionalOnboarding";
 import { professionalRequestsEnabled } from "@/lib/professionalOnboarding";
+import { professionalAgreementsAreCurrent } from "@/lib/professionalLegalStatus";
 
 type ProfessionalCategory = "certified" | "experienced" | "non_certified";
 
@@ -45,7 +47,7 @@ export default function ProCareAttestation() {
     if (requestStatus.data?.request) return <ProfessionalRequestReview />;
   }
   return established
-    ? <EstablishedProfessionalLegalContinuation />
+    ? <EstablishedProfessionalLegalContinuation key={user?.id} />
     : <ProfessionalRequestReview />;
 }
 
@@ -63,7 +65,9 @@ function EstablishedProfessionalLegalContinuation() {
   const [showProfessionalModal, setShowProfessionalModal] = useState(false);
 
   const isLoggedIn = !!user;
-  const recovery = readProfessionalLegalRecovery(search);
+  const recovery = readProfessionalLegalRecovery(search, user?.id);
+  const active = useRef(true);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
   const isExistingProfessionalRecovery =
     !!user?.isProCare &&
     !!user?.professionalRole &&
@@ -88,14 +92,21 @@ function EstablishedProfessionalLegalContinuation() {
         ? user?.professionalCategory
         : localStorage.getItem("procare_category") || user?.professionalCategory
     ) as ProfessionalCategory | null;
-    if (!stored) {
-      setLocation("/procare-identity");
-      return;
-    }
-    setCategory(stored);
+    setCategory(stored && Object.hasOwn(CATEGORY_LABELS, stored) ? stored : null);
+    setAccepted(false);
   }, [setLocation, user?.professionalCategory, isExistingProfessionalRecovery]);
 
-  if (!category) return null;
+  if (!category) return <div className="mx-auto max-w-lg p-6 text-white">
+    <label htmlFor="professional-legal-category">Choose your professional category to review the attestation</label>
+    <select id="professional-legal-category" value="" className="mt-3 block w-full rounded border border-white/30 bg-zinc-900 p-3"
+      onChange={event => {
+        const selected = event.target.value;
+        if (Object.hasOwn(CATEGORY_LABELS, selected)) { setAccepted(false); setCategory(selected as ProfessionalCategory); }
+      }}>
+      <option value="" disabled>Select a category</option>
+      {Object.entries(CATEGORY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+    </select>
+  </div>;
 
   const attestationText = ATTESTATION_V1[category];
 
@@ -107,6 +118,7 @@ function EstablishedProfessionalLegalContinuation() {
       body: JSON.stringify({
         documentType: "professional_attestation",
         version: LEGAL_DOCUMENTS.attestation[0].version,
+        expectedUserId: user?.id,
       }),
     });
     if (!res.ok) {
@@ -126,7 +138,12 @@ function EstablishedProfessionalLegalContinuation() {
   };
 
   const finishExistingRecovery = async () => {
+    if (!(await professionalAgreementsAreCurrent(professionalRole))) {
+      throw new Error("The required agreements are not current. Please review them again.");
+    }
+    if (!active.current) return;
     await refreshUser();
+    if (!active.current) return;
     const returnTo = recovery?.returnTo ||
       (professionalRole === "physician" ? "/care-team/physician" : "/care-team/trainer");
     clearProfessionalLegalRecovery();
@@ -162,8 +179,8 @@ function EstablishedProfessionalLegalContinuation() {
   };
 
   const handleProfessionalDocsAccepted = async () => {
-    setShowProfessionalModal(false);
     await finishExistingRecovery();
+    if (active.current) setShowProfessionalModal(false);
   };
 
   return (
@@ -175,7 +192,7 @@ function EstablishedProfessionalLegalContinuation() {
             className="flex items-center gap-1 text-white/60 text-sm mb-4 active:scale-[0.98]"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back
+            <BackNavigationLabel />
           </button>
 
           <div className="text-center mb-6">
@@ -187,7 +204,7 @@ function EstablishedProfessionalLegalContinuation() {
             <h1 className="text-2xl font-bold mb-2">Professional Acknowledgment</h1>
             <p className="text-white/60 text-sm max-w-sm mx-auto">
               {isLoggedIn
-                ? "Please review and accept the following to upgrade your account to ProCare."
+                ? "Please review and accept the required professional agreements to continue."
                 : "Please review and accept the following before creating your professional account."}
             </p>
           </div>
@@ -204,7 +221,7 @@ function EstablishedProfessionalLegalContinuation() {
         {isLoggedIn && (
           <div className="mb-6 p-4 rounded-xl border border-emerald-400/20 bg-emerald-900/10">
             <p className="text-sm text-emerald-300">
-              Signed in as <span className="font-semibold">{user.email}</span>. Your existing account will be upgraded to ProCare.
+                Signed in as <span className="font-semibold">{user.email}</span>.
             </p>
           </div>
         )}

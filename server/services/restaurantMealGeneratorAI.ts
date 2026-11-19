@@ -4,6 +4,7 @@
 import { type User } from "@shared/schema";
 import type { DailyNutritionState } from "../../shared/dailyNutritionPrescription";
 import OpenAI from 'openai';
+import { resolveRequestLanguagePreference } from "../utils/languageInstruction";
 import { bindRestaurantServing, currentRestaurantServing, RESTAURANT_SERVING_INSTRUCTIONS, servingSafetyText, type RestaurantServing } from "../../shared/restaurantServing";
 import { z } from "zod";
 import { requiresVerifiedIngredientEvidence } from "./foodCompositionEvidence";
@@ -596,7 +597,7 @@ Make the meals sound like something you would genuinely see on the menu at ${res
               hi: "Hindi", ru: "Russian", vi: "Vietnamese", tl: "Filipino (Tagalog)",
             };
             const rawLang = (request.user as any)?.preferredLanguage || "auto";
-            const baseLang = rawLang !== "auto" ? rawLang.split("-")[0].toLowerCase() : "en";
+            const baseLang = resolveRequestLanguagePreference(rawLang);
             const langInstr = baseLang !== "en" && langNames[baseLang]
               ? cuisineContext
                 ? ` LANGUAGE REQUIREMENT: Generate human-readable content in ${langNames[baseLang]}. Keep JSON keys and the structured cuisine field's required value unchanged. Language does not select cuisine.`

@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { PerformanceMenuAuthority } from "./performanceContext";
+import type { MyPerfectMenuConcept } from "@shared/myPerfectMenu";
 
 export interface PerformanceAuthorityTokenPayload {
   actorUserId: string;
@@ -15,6 +16,9 @@ export interface PerformanceAuthorityTokenPayload {
     description: string;
     signature?: string;
     primaryIngredients?: string[];
+    snackType?: MyPerfectMenuConcept["snackType"];
+    foodIdentity?: MyPerfectMenuConcept["foodIdentity"];
+    culinaryIdentity?: MyPerfectMenuConcept["culinaryIdentity"];
   };
   authority: PerformanceMenuAuthority;
   expiresAt: number;

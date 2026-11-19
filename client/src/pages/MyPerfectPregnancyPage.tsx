@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
 import { PREGNANCY_PAGE_VISIBLE, PREGNANCY_COACH_VISIBLE } from "@shared/familyFeatureVisibility";
 import ComingSoonPresentation from "@/components/coming-soon/ComingSoonPresentation";
@@ -160,7 +161,7 @@ export default function MyPerfectPregnancyPage() {
       <div className="mx-auto max-w-xl p-6">
         <h1 className="text-2xl font-semibold">My Perfect Pregnancy — Coming Soon</h1>
         <p className="mt-4">{PREGNANCY_PAUSE_MESSAGE}</p>
-        <Link className="mt-6 inline-block underline" href="/lifestyle">Back to Lifestyle</Link>
+        <Link className="mt-6 inline-block underline" href="/lifestyle"><BackNavigationLabel label="Back to Lifestyle" /></Link>
       </div>
     </section>
   );
@@ -415,7 +416,7 @@ function PregnancyPageContent() {
         <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl border-b border-orange-500/20">
           <div className="flex items-center justify-between px-4 py-3">
             <button onClick={() => setLocation("/lifestyle")} className="p-1">
-              <ArrowLeft className="w-5 h-5 text-white/70" />
+              <ArrowLeft className="w-5 h-5 text-white/70" /><span className="sr-only"><BackNavigationLabel /></span>
             </button>
             <div className="flex items-center gap-2">
               <span className="text-base">🩷</span>
@@ -486,7 +487,7 @@ function PregnancyPageContent() {
             className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="text-sm font-medium">Back</span>
+            <span className="text-sm font-medium"><BackNavigationLabel /></span>
           </button>
         )}
 

@@ -1,3 +1,4 @@
+import { ClinicalSupportLabel } from "@/components/ClinicalSupportLabel";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useEffectiveClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
 import { isClinicalIndicatorActive } from "@shared/clinicalProtocolIdentity";
@@ -125,14 +126,14 @@ import { PillButton } from "@/components/ui/pill-button";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { getBuilderProtocolBadges } from "@/lib/nutritionPersonalization";
 
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
 // Using noon UTC anchor pattern to prevent day-shift bugs
 
 export default function DiabeticMenuBuilder() {
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const DIABETIC_BUILDER_TOUR_STEPS = useMemo<TourStep[]>(() => [
     { icon: "1", title: t("diabeticBuilder.tour1Title"), description: t("diabeticBuilder.tour1Desc") },
@@ -466,7 +467,7 @@ export default function DiabeticMenuBuilder() {
         });
       }
     },
-    [board, planningMode, activeDayISO, saveBoard, weekStartISO, toast],
+    [board, planningMode, activeDayISO, saveBoard, weekStartISO, toast, t],
   );
 
   // Handler for premade meal selection
@@ -536,6 +537,7 @@ export default function DiabeticMenuBuilder() {
       saveBoard,
       weekStartISO,
       toast,
+      t,
     ],
   );
 
@@ -765,7 +767,7 @@ export default function DiabeticMenuBuilder() {
         });
       }
     },
-    [board, activeDayISO, weekStartISO, saveBoard, toast],
+    [board, activeDayISO, weekStartISO, saveBoard, toast, t],
   );
 
 
@@ -836,10 +838,10 @@ export default function DiabeticMenuBuilder() {
 
       toast({
         title: t("metabolicBuilder.aiMealCreated"),
-        description: `${generatedMeal.name} saved to your ${slot}`,
+        description: t("metabolicBuilder.aiMealCreatedDesc", { name: generatedMeal.name, slot }),
       });
     },
-    [board, activeDayISO, toast, saveBoard, weekStartISO],
+    [board, activeDayISO, toast, saveBoard, weekStartISO, t],
   );
 
   const profile = useOnboardingProfile();
@@ -1115,22 +1117,22 @@ export default function DiabeticMenuBuilder() {
 
       toast({
         title: t("metabolicBuilder.allMealsLoggedTitle"),
-        description: `Successfully logged ${successCount} meal(s) to your macros.`,
+        description: t("metabolicBuilder.allMealsLoggedDesc", { count: successCount }),
       });
     } catch (error) {
       toast({
-        title: "Error",
+        title: t("Error"),
         description: t("metabolicBuilder.errorLogMeals"),
         variant: "destructive",
       });
     }
-  }, [board, toast, queryClient]);
+  }, [board, toast, queryClient, t]);
 
   if (loading || !board)
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pt-20">
         <div className="text-white/80 p-6 text-center">
-          Loading meal board...
+          {t("metabolicBuilder.loadingBoard")}
         </div>
       </div>
     );
@@ -1159,7 +1161,7 @@ export default function DiabeticMenuBuilder() {
             className="flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="text-sm font-medium">Diabetes Hub</span>
+            <span className="text-sm font-medium">{t("diabeticBuilder.backLabel")}</span>
           </button>
         )}
         {/* NutritionBudgetBanner hidden — low value vs Remaining Today footer; restore when reactivity is fixed */}
@@ -1180,7 +1182,7 @@ export default function DiabeticMenuBuilder() {
                 </button>
 
                 <div className="text-sm font-medium text-white/90">
-                  {weekStartISO ? formatWeekLabel(weekStartISO) : "Loading…"}
+                  {weekStartISO ? formatWeekLabel(weekStartISO, undefined, i18n.resolvedLanguage === "es" ? "es" : "en") : t("Loading…")}
                 </div>
 
                 <button
@@ -1228,7 +1230,7 @@ export default function DiabeticMenuBuilder() {
             {/* ROW 4.5: Active Clinical Supports */}
             <div className="flex justify-center">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
-                <span className="font-medium text-white/70">Active Clinical Supports:</span>
+                <span className="font-medium text-white/70"><ClinicalSupportLabel label="Active Clinical Supports:" /></span>
                 {(() => {
                   const flags = nutritionTargets.flags;
                   return [
@@ -1243,7 +1245,7 @@ export default function DiabeticMenuBuilder() {
                   ].map(indicator => ({ ...indicator, isActive: isClinicalIndicatorActive(indicator.key, scConditions) })).map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
                     <span key={key} title={key === "anti-inflammatory" && personalAntiSupport.enabled ? "Optional personal nutrition support — not a clinical diagnosis" : undefined} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
                       <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
-                      {label}
+                      <ClinicalSupportLabel label={label} />
                     </span>
                   ));
                 })()}
@@ -1253,7 +1255,7 @@ export default function DiabeticMenuBuilder() {
             {/* ROW 4.6: Hormonal & Metabolic Protocols */}
             <div className="flex justify-center">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
-                <span className="font-medium text-white/70">Hormonal & Metabolic:</span>
+                <span className="font-medium text-white/70"><ClinicalSupportLabel label="Hormonal & Metabolic:" /></span>
                 {[
                   { key: "hashimotos",         label: "Hashimoto's",       activeColor: "text-teal-300",   dotColor: "bg-teal-300",   dotGlow: "shadow-[0_0_4px_rgba(94,234,212,0.9)]"  },
                   { key: "hypothyroid",        label: "Hypothyroid",       activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
@@ -1264,7 +1266,7 @@ export default function DiabeticMenuBuilder() {
                 ].map(({ key, label, activeColor, dotColor, dotGlow }) => (
                   <span key={key} className={`flex items-center gap-1 ${scConditions.includes(key) ? `${activeColor} font-semibold` : "text-white/25"}`}>
                     <span className={`inline-block w-1.5 h-1.5 rounded-full ${scConditions.includes(key) ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
-                    {label}
+                    <ClinicalSupportLabel label={label} />
                   </span>
                 ))}
               </div>
@@ -1412,7 +1414,7 @@ export default function DiabeticMenuBuilder() {
                   {/* Snack Creator Section */}
                   <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur p-4 col-span-full">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-white/90 text-lg font-medium">Snacks</h2>
+                      <h2 className="text-white/90 text-lg font-medium">{t("metabolicBuilder.snacks")}</h2>
                       <GlobalMealActionBar
                         slot="snacks"
                         onCreateWithAI={() => {}}
@@ -1605,7 +1607,7 @@ export default function DiabeticMenuBuilder() {
                       });
                       toast({
                         title: t("metabolicBuilder.daySaved"),
-                        description: `${formatDateDisplay(activeDayISO, { weekday: "long", month: "short", day: "numeric" })} has been locked.`,
+                        description: t("{{date}} has been locked.", { date: formatDateDisplay(activeDayISO, { weekday: "long", month: "short", day: "numeric" }, undefined, i18n.resolvedLanguage === "es" ? "es" : "en") }),
                       });
                       setLocation("/my-biometrics");
                     }

@@ -94,7 +94,7 @@ export function DevelopmentStudioGuard({ component: Component }: { component: Co
       const accepted = attestation?.allAccepted === true && professional?.allAccepted === true;
       update("agreements", accepted ? "passed" : "denied");
       timing?.finish("agreements", accepted ? "verified" : "denied");
-      if (!accepted) navigate(createProfessionalLegalRecoveryUrl(location, "professional-workspace"));
+      if (!accepted) navigate(createProfessionalLegalRecoveryUrl(location, "professional-workspace", user.id));
     }).catch(() => {
       if (!active) return;
       // A failed check is not agreement acceptance. Protected content stays hidden.
@@ -107,7 +107,7 @@ export function DevelopmentStudioGuard({ component: Component }: { component: Co
     let active = true;
     update("certification", "checking");
     timing?.start("certification"); // Includes the wait for authoritative Org policy.
-    if (!user?.id || authLoading || orgLoading) return () => { active = false; };
+    if (!user?.id || authLoading || orgLoading || checks.scope !== scope || checks.agreements !== "passed") return () => { active = false; };
     const notRequired = user.isAdmin || !user.professionalRole || user.professionalRole === "business" || !requireAcademy;
     if (notRequired) {
       update("certification", "passed"); timing?.finish("certification", "not-required");
@@ -129,7 +129,7 @@ export function DevelopmentStudioGuard({ component: Component }: { component: Co
     verify(true);
     const interval = setInterval(() => verify(false), 5 * 60 * 1000);
     return () => { active = false; clearInterval(interval); };
-  }, [scope, authLoading, orgLoading]);
+  }, [scope, authLoading, orgLoading, checks.agreements]);
 
   useEffect(() => {
     const handler = () => requestUpgrade({ requiredTier: "pro", featureName: "ProCare Studio" });

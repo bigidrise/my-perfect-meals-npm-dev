@@ -9,7 +9,7 @@ import TranslateToggle from "@/components/TranslateToggle";
 import { isFeatureEnabled } from "@/lib/productionGates";
 import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { PillButton } from "@/components/ui/pill-button";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 
 export type MealCardActionKind = "macros" | "plan" | "prepare" | "save" | "share" | "extra";
 
@@ -207,7 +207,7 @@ export default function MealCardActions({
       disabled={!hasInstructions}
       title={!hasInstructions ? "No cooking instructions available" : undefined}
     >
-      <ChefHat className="h-4 w-4" />Guided Cooking
+      <ChefHat className="h-4 w-4" />{t("Guided Cooking")}
     </Button> });
   }
   // One DOM order for saved cards and creators, not merely a visual CSS order:

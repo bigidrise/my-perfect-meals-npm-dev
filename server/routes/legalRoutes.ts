@@ -10,7 +10,13 @@ const router = Router();
 router.post("/accept", requireAuth, async (req: any, res) => {
   try {
     const userId = req.authUser.id;
-    const { documentType, version } = req.body;
+    const { documentType, version, expectedUserId } = req.body;
+
+    // A modal opened by account A must not record consent for account B if
+    // authentication changes while sequential accept requests are in flight.
+    if (expectedUserId !== undefined && expectedUserId !== userId) {
+      return res.status(409).json({ code: "LEGAL_ACCOUNT_CHANGED", error: "Your account changed. Review the agreements again." });
+    }
 
     if (!documentType || !version) {
       return res.status(400).json({ error: "documentType and version are required" });

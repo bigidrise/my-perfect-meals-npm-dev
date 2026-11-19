@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useRef, useState } from "react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { usePageTitle } from "@/contexts/PageTitleContext";
@@ -358,7 +359,7 @@ export default function DogProfileSetup() {
               onClick={() => step > 1 && step < 5 ? setStep((s) => s - 1) : setLocation("/companion/dogs")}
               className="p-1 flex-shrink-0"
             >
-              <ArrowLeft className="w-5 h-5 text-white/70" />
+              <ArrowLeft className="w-5 h-5 text-white/70" /><span className="sr-only"><BackNavigationLabel /></span>
             </button>
             <div className="flex-1 min-w-0">
               <h1 className="text-sm font-bold text-white truncate">
@@ -392,7 +393,7 @@ export default function DogProfileSetup() {
               className="flex items-center gap-1.5 text-orange-400 text-sm hover:text-orange-300 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span>Back to My Perfect Dog</span>
+              <span><BackNavigationLabel label="Back to My Perfect Dog" /></span>
             </button>
           </div>
         )}
@@ -670,7 +671,7 @@ export default function DogProfileSetup() {
           ) : step > 1 ? (
             <>
               <PillButton onClick={() => setStep((s) => s - 1)} className="flex-1">
-                <ArrowLeft className="h-3 w-3" /> Back
+                <ArrowLeft className="h-3 w-3" /> <BackNavigationLabel />
               </PillButton>
               {step < TOTAL_STEPS - 1 ? (
                 <PillButton

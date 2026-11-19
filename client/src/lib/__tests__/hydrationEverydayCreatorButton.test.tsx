@@ -6,6 +6,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import HydrationEverydayCreatorButton from "@/components/HydrationEverydayCreatorButton";
 import { createHydrationHandoff } from "@/lib/hydrationApi";
+import i18n from "@/i18n";
 
 const mockToast = jest.fn();
 jest.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
@@ -13,7 +14,8 @@ jest.mock("@/lib/hydrationApi", () => ({ createHydrationHandoff: jest.fn() }));
 const handoff = createHydrationHandoff as jest.Mock;
 const navigate = jest.fn();
 
-beforeEach(() => {
+beforeEach(async () => {
+  await i18n.changeLanguage("en");
   jest.clearAllMocks();
   handoff.mockReset().mockResolvedValue({ token: "signed-everyday-token" });
 });
@@ -69,11 +71,10 @@ test("navigation failure is visible instead of silent", async () => {
   expect(await screen.findByRole("alert")).toHaveTextContent("Navigation unavailable.");
 });
 
-// Integration contracts for the page, whose DEV timing instrumentation uses
-// import.meta.env and is intentionally not imported into CommonJS Jest.
+// Source contracts supplement the real-page locale checks in batchOneSpanish.
 test("options section always mounts the drink action outside barrier-dependent cards", () => {
   const source = readFileSync(join(process.cwd(), "client/src/pages/HydrationCenter.tsx"), "utf8");
-  const section = source.slice(source.indexOf("<h2 className=\"font-semibold text-white\">Help Me Get It In"), source.indexOf("<HydrationInterventionCards") + 27);
+  const section = source.slice(source.indexOf('{t("Help Me Get It In")}'), source.indexOf("<HydrationInterventionCards") + 27);
   expect(section).toContain('<HydrationEverydayCreatorButton navigate={navigate} testId="hydration-options-creator"');
   expect(section).toContain("You can create a drink with any barrier—or without choosing one.");
   expect(section).not.toMatch(/selectedBarriers.*&&.*HydrationEverydayCreatorButton/);
@@ -90,7 +91,7 @@ test("setup and options own distinct pending states; saving setup never requests
   expect(help).toContain("createHydrationHelp(");
   expect(setup).toContain("setPendingAction(null)");
   expect(help).toContain("setPendingAction(null)");
-  expect(source).toContain('pendingAction === "setup" ? "Saving setup…" : "Save setup"');
-  expect(source).toContain('pendingAction === "options" ? "Getting options…" : "Get options"');
+  expect(source).toContain('pendingAction === "setup" ? t("Saving setup…") : t("Save setup")');
+  expect(source).toContain('pendingAction === "options" ? t("Getting options…") : t("Get options")');
   expect(source).toContain("Get options will be available when saving finishes.");
 });

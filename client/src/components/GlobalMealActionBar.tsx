@@ -5,6 +5,7 @@ import { SnackCreatorButton } from "@/components/SnackCreatorButton";
 import { PillButton } from "@/components/ui/pill-button";
 import { AddOwnMealButton } from "@/components/pickers/AddOwnMealButton";
 import { FEATURES } from "@/featureFlags";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 type MealSlot = "breakfast" | "lunch" | "dinner" | "snacks" | "meal4" | "meal5" | "meal6";
 
@@ -37,6 +38,7 @@ export function GlobalMealActionBar({
   showSnackCreator = true,
   showLogSnack = false,
 }: GlobalMealActionBarProps) {
+  const { t } = useConsumerCopy();
   const isSnackSlot = slot === "snacks";
   const isMealSlot = slot === "breakfast" || slot === "lunch" || slot === "dinner" || slot === "meal4" || slot === "meal5" || slot === "meal6";
 
@@ -52,7 +54,7 @@ export function GlobalMealActionBar({
           data-wt="wmb-create-ai-button"
         >
           <Sparkles className="h-3 w-3" />
-          Create with AI
+          {t("Create with AI")}
         </Button>
       )}
 
@@ -75,14 +77,14 @@ export function GlobalMealActionBar({
           <PillButton
             onClick={onFavorites}
             disabled={disabled}
-            title="Pick from My Favorites"
+            title={t("Pick from My Favorites")}
             active={true}
             variant="rose"
             className="px-3"
           >
             <Star className="h-3 w-3 fill-white text-white" />
           </PillButton>
-          <span className="text-xs font-semibold text-white/70 tracking-wide whitespace-nowrap">Favorites</span>
+          <span className="text-xs font-semibold text-white/70 tracking-wide whitespace-nowrap">{t("Favorites")}</span>
         </div>
       )}
 
@@ -102,7 +104,7 @@ export function GlobalMealActionBar({
           onClick={onLogSnack}
           disabled={disabled}
         >
-          📸 Log Snack
+          {t("📸 Log Snack")}
         </Button>
       )}
     </div>

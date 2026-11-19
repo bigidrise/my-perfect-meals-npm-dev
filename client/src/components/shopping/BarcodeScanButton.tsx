@@ -4,8 +4,10 @@ import { Camera, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useConsumerCopy } from '@/i18n/useConsumerCopy';
 
 export default function BarcodeScanButton({ onScan }: { onScan: (upc: string) => void }) {
+  const { t } = useConsumerCopy();
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -27,7 +29,7 @@ export default function BarcodeScanButton({ onScan }: { onScan: (upc: string) =>
       setScanning(true);
     } catch (err) {
       console.error('Camera error:', err);
-      setError('Camera access denied. Please enable camera permissions.');
+      setError(t("Camera access denied. Please enable camera permissions."));
     }
   };
 
@@ -41,12 +43,12 @@ export default function BarcodeScanButton({ onScan }: { onScan: (upc: string) =>
   };
 
   const handleManualEntry = () => {
-    const barcode = prompt('Enter barcode number:');
+    const barcode = prompt(t("Enter barcode number:"));
     if (barcode) {
       onScan(barcode);
       toast({
-        title: 'Barcode entered',
-        description: `Looking up product: ${barcode}`,
+        title: t("Barcode entered"),
+        description: t("Looking up product: {{barcode}}", { barcode }),
       });
     }
   };
@@ -59,14 +61,14 @@ export default function BarcodeScanButton({ onScan }: { onScan: (upc: string) =>
           className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl"
         >
           <Camera className="h-4 w-4 mr-2" />
-          📷 Scan Barcode
+          {t("📷 Scan Barcode")}
         </Button>
         <Button
           onClick={handleManualEntry}
           variant="outline"
           className="rounded-xl"
         >
-          Manual Entry
+          {t("Manual Entry")}
         </Button>
       </div>
     );
@@ -79,12 +81,13 @@ export default function BarcodeScanButton({ onScan }: { onScan: (upc: string) =>
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl text-white flex items-center gap-2">
               <Camera className="h-6 w-6" />
-              Scan Barcode
+              {t("Scan Barcode")}
             </CardTitle>
             <Button
               variant="ghost"
               size="sm"
               onClick={stopScanning}
+              aria-label={t("Close")}
               className="text-white hover:bg-white/10"
             >
               <X className="h-5 w-5" />
@@ -108,8 +111,8 @@ export default function BarcodeScanButton({ onScan }: { onScan: (upc: string) =>
           )}
 
           <div className="text-center text-sm text-white/70">
-            <p>Position the barcode in the camera view</p>
-            <p className="text-xs mt-2">Tap below to enter barcode manually if scanner doesn't work</p>
+            <p>{t("Position the barcode in the camera view")}</p>
+            <p className="text-xs mt-2">{t("Tap below to enter barcode manually if scanner doesn't work")}</p>
           </div>
 
           <Button
@@ -117,7 +120,7 @@ export default function BarcodeScanButton({ onScan }: { onScan: (upc: string) =>
             variant="outline"
             className="w-full border-white/20 text-white hover:bg-white/10"
           >
-            Enter Barcode Manually
+            {t("Enter Barcode Manually")}
           </Button>
         </CardContent>
       </Card>

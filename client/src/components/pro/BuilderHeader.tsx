@@ -1,7 +1,9 @@
+import { BackNavigationLabel, useBackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useProClient } from "@/contexts/ProClientContext";
 import { useLocation, useSearch } from "wouter";
 import { User2, LogOut, ChevronLeft } from "lucide-react";
 import { sanitizeMyPerfectMenuReturnTarget } from "@/lib/myPerfectMenuReturn";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 export interface ProtocolBadge {
   label: string;
@@ -18,6 +20,8 @@ interface BuilderHeaderProps {
 }
 
 export function BuilderHeader({ title, onOpenTour, clientId, protocols, backTo, backLabel }: BuilderHeaderProps) {
+  const { t } = useConsumerCopy();
+  const navigationLabel = useBackNavigationLabel();
   const { client, isProCareMode } = useProClient();
   const [, setLocation] = useLocation();
   const search = useSearch();
@@ -25,7 +29,7 @@ export function BuilderHeader({ title, onOpenTour, clientId, protocols, backTo, 
     new URLSearchParams(search).get("returnTo"),
   );
   const effectiveBackTo = myPerfectMenuReturn ?? backTo;
-  const effectiveBackLabel = myPerfectMenuReturn ? "My Perfect Menu" : backLabel;
+  const effectiveBackLabel = myPerfectMenuReturn ? t("My Perfect Menu") : backLabel;
 
   const isInStudioClientContext = isProCareMode && !!client && !!clientId;
 
@@ -40,10 +44,10 @@ export function BuilderHeader({ title, onOpenTour, clientId, protocols, backTo, 
             <button
               onClick={() => setLocation(effectiveBackTo)}
               className="flex items-center gap-1 text-white/80 active:text-white transition-colors flex-shrink-0 -ml-1 pr-1"
-              aria-label={`Back to ${effectiveBackLabel ?? "Hub"}`}
+              aria-label={t("Back to {{name}}", { name: navigationLabel(effectiveBackLabel ?? "Hub") })}
             >
               <ChevronLeft className="w-5 h-5" />
-              <span className="text-sm font-medium">{effectiveBackLabel ?? "Hub"}</span>
+              <span className="text-sm font-medium"><BackNavigationLabel label={effectiveBackLabel ?? "Hub"} /></span>
             </button>
           )}
           <h1 className="text-lg font-bold text-white flex-1 min-w-0 break-words leading-tight">
@@ -56,7 +60,7 @@ export function BuilderHeader({ title, onOpenTour, clientId, protocols, backTo, 
             <div className="flex items-center gap-2 min-w-0">
               <User2 className="h-4 w-4 text-white flex-shrink-0" />
               <span className="text-sm font-semibold text-white truncate">
-                Working with: {client.name}
+                {t("Working with: {{name}}", { name: client.name })}
               </span>
             </div>
             <button
@@ -64,7 +68,7 @@ export function BuilderHeader({ title, onOpenTour, clientId, protocols, backTo, 
               className="flex items-center gap-1 text-xs text-white/90 bg-black/20 rounded-lg px-2.5 py-1.5 flex-shrink-0 active:scale-[0.98] transition-transform"
             >
               <LogOut className="h-3.5 w-3.5" />
-              <span>Exit Client</span>
+              <span>{t("Exit Client")}</span>
             </button>
           </div>
         )}

@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { formatAmount } from "@/utils/formatAmount";
@@ -604,7 +605,7 @@ export default function ChefsKitchenPage() {
               className="flex items-center justify-center text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
               data-testid="button-back-to-lifestyle"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" /><span className="sr-only"><BackNavigationLabel /></span>
             </button>
             <h1 className="text-lg font-bold text-white truncate">{t("title")}</h1>
             <img
@@ -1149,7 +1150,7 @@ export default function ChefsKitchenPage() {
                     onClick={() => setMode("studio")}
                     className="text-sm text-white/70 hover:text-white"
                   >
-                    <ArrowLeft className="h-4 w-4" />
+                    <ArrowLeft className="h-4 w-4" /><span className="sr-only"><BackNavigationLabel /></span>
                   </button>
                 </div>
 
@@ -1248,7 +1249,7 @@ export default function ChefsKitchenPage() {
                                 try { localStorage.removeItem("mpm_chefs_kitchen_prep"); } catch {}
                               }}
                             >
-                              Back to Meal Card
+                              <BackNavigationLabel label="Back to Meal Card" />
                             </button>
                             <button
                               className="flex-1 py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm"
@@ -1379,7 +1380,7 @@ export default function ChefsKitchenPage() {
                             setMode("studio");
                           }}
                         >
-                          Back to Meal Card
+                          <BackNavigationLabel label="Back to Meal Card" />
                         </button>
                       </div>
                     );

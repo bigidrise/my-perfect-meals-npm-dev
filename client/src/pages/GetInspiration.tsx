@@ -6,6 +6,8 @@ import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { useConsumerNotice } from "@/i18n/ConsumerNotice";
 
 const MOTIVATION_QUOTES = [
   "The secret to change? Start before you're ready.",
@@ -65,12 +67,23 @@ interface JournalEntry {
 export default function GetInspiration() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { t, i18n } = useConsumerCopy();
+  const notice = useConsumerNotice();
+  const locale = i18n?.resolvedLanguage || i18n?.language || "en";
   const [quote, setQuote] = useState("");
   const [currentEntry, setCurrentEntry] = useState("");
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isListening, setIsListening] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
   const isListeningRef = useRef(false);
+  const displayEntryDate = (entry: JournalEntry) => {
+    const timestamp = new Date(entry.timestamp);
+    return Number.isFinite(entry.timestamp) && !Number.isNaN(timestamp.getTime())
+      ? timestamp.toLocaleDateString(locale, {
+          month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit",
+        })
+      : entry.date;
+  };
 
   // Load daily quote
   useEffect(() => {
@@ -150,9 +163,9 @@ export default function GetInspiration() {
           setIsListening(false);
           isListeningRef.current = false;
           toast({
-            title: "Microphone access denied",
+            title: notice("Microphone access denied"),
             description:
-              "Please allow microphone access in your browser settings.",
+              notice("Please allow microphone access in your browser settings."),
             variant: "destructive",
           });
         } else if (event.error === "no-speech") {
@@ -213,9 +226,9 @@ export default function GetInspiration() {
   const toggleListening = () => {
     if (!recognition) {
       toast({
-        title: "Voice input not supported",
+        title: notice("Voice input not supported"),
         description:
-          "Your browser doesn't support voice input. Please type your entry.",
+          notice("Your browser doesn't support voice input. Please type your entry."),
         variant: "destructive",
         duration: 10000,
       });
@@ -232,15 +245,15 @@ export default function GetInspiration() {
         setIsListening(true);
         isListeningRef.current = true;
         toast({
-          title: "Listening...",
+          title: notice("Listening..."),
           description:
-            "Speak your thoughts and they'll appear in the text area.",
+            notice("Speak your thoughts and they'll appear in the text area."),
         });
       } catch (e) {
         console.error("Failed to start recognition:", e);
         toast({
-          title: "Could not start voice input",
-          description: "Please try again.",
+          title: notice("Could not start voice input"),
+          description: notice("Please try again."),
           variant: "destructive",
         });
       }
@@ -250,8 +263,8 @@ export default function GetInspiration() {
   const saveEntry = () => {
     if (!currentEntry.trim()) {
       toast({
-        title: "Empty entry",
-        description: "Please write something before saving.",
+        title: notice("Empty entry"),
+        description: notice("Please write something before saving."),
         variant: "destructive",
       });
       return;
@@ -276,8 +289,8 @@ export default function GetInspiration() {
     setCurrentEntry("");
 
     toast({
-      title: "Entry saved!",
-      description: "Your journal entry has been saved successfully.",
+      title: notice("Entry saved!"),
+      description: notice("Your journal entry has been saved successfully."),
     });
 
     // Dispatch "completed" event after journal entry saved
@@ -295,16 +308,16 @@ export default function GetInspiration() {
     localStorage.setItem("dailyJournalEntries", JSON.stringify(updatedEntries));
 
     toast({
-      title: "Entry deleted",
-      description: "Your journal entry has been removed.",
+      title: notice("Entry deleted"),
+      description: notice("Your journal entry has been removed."),
     });
   };
 
   const exportJournal = () => {
     if (entries.length === 0) {
       toast({
-        title: "No entries to export",
-        description: "Save some journal entries first!",
+        title: notice("No entries to export"),
+        description: notice("Save some journal entries first!"),
         variant: "destructive",
       });
       return;
@@ -325,8 +338,8 @@ export default function GetInspiration() {
     URL.revokeObjectURL(url);
 
     toast({
-      title: "Journal exported!",
-      description: "Your journal has been downloaded as a text file.",
+      title: notice("Journal exported!"),
+      description: notice("Your journal has been downloaded as a text file."),
     });
   };
 
@@ -346,7 +359,7 @@ export default function GetInspiration() {
         <div className="px-8 py-3 flex items-center gap-3">
           {/* Title */}
           <h1 className="text-lg font-bold text-white flex items-center gap-2">
-            <span>Daily Journal & Inspiration</span>
+            <span>{t("Daily Journal & Inspiration")}</span>
           </h1>
 
           <div className="ml-auto" />
@@ -364,7 +377,7 @@ export default function GetInspiration() {
         </div>
         <div
           role="note"
-          aria-label="Journal privacy notice"
+          aria-label={t("Journal privacy notice")}
           data-testid="journal-privacy-notice"
           className="mb-6 rounded-2xl border border-emerald-300/30 bg-emerald-950/70 p-4 text-white shadow-xl backdrop-blur-xl"
         >
@@ -393,7 +406,7 @@ export default function GetInspiration() {
         >
           <div className="text-center mb-4">
             <p className="text-lg text-semi-bold text-white">
-              Inspirational Quotes to start your day
+              {t("Inspirational Quotes to start your day")}
             </p>
           </div>
 
@@ -403,7 +416,7 @@ export default function GetInspiration() {
             className="bg-black/20 backdrop-blur-sm border border-white/30 rounded-xl p-6 mb-4 hover:bg-black/30 hover:border-orange-400/50 transition-all duration-300"
           >
             <p className="italic text-md text-white font-medium leading-relaxed text-center">
-              "{quote}"
+              "{MOTIVATION_QUOTES.includes(quote) ? t(quote) : quote}"
             </p>
           </div>
 
@@ -415,10 +428,10 @@ export default function GetInspiration() {
           >
             <div className="flex items-center justify-center gap-2 mb-1">
               <span className="text-2xl">🔄</span>
-              <h3 className="font-semibold text-md">Get New Inspiration</h3>
+              <h3 className="font-semibold text-md">{t("Get New Inspiration")}</h3>
             </div>
             <p className="text-xs opacity-90">
-              Fresh motivation when you need it
+              {t("Fresh motivation when you need it")}
             </p>
           </button>
         </motion.div>
@@ -433,10 +446,10 @@ export default function GetInspiration() {
           <div className="text-center mb-6">
             <div className="text-2xl mb-3">🧠</div>
             <h2 className="text-lg font-bold text-white mb-2">
-              Daily Health Journal
+              {t("Daily Health Journal")}
             </h2>
             <p className="text-white/90 italic text-sm">
-              "Free your mind, and the rest will follow."
+              "{t("Free your mind, and the rest will follow.")}"
             </p>
           </div>
 
@@ -445,7 +458,7 @@ export default function GetInspiration() {
             data-testid="inspire-journal-input"
             value={currentEntry}
             onChange={(e) => setCurrentEntry(e.target.value)}
-            placeholder="Speak or type your thoughts..."
+            placeholder={t("Speak or type your thoughts...")}
             className="w-full h-48 bg-black/40 text-white rounded-xl border border-white/20 p-4 resize-none focus:outline-none focus:border-orange-400/50 focus:ring-2 focus:ring-orange-400/20 transition-all mb-4"
           />
 
@@ -466,7 +479,7 @@ export default function GetInspiration() {
               <Mic
                 className={`w-5 h-5 mr-2 ${isListening ? "animate-pulse" : ""}`}
               />
-              {isListening ? "Stop Recording" : "Voice Input"}
+              {isListening ? t("Stop Recording") : t("Voice Input")}
             </Button>
 
             <Button
@@ -475,7 +488,7 @@ export default function GetInspiration() {
               className="flex-1 bg-gradient-to-br from-black/90 via-orange-600 to-black/90 text-white border-2 border-orange-300/40 hover:border-orange-300/90 transition-all"
             >
               <Save className="w-5 h-5 mr-2" />
-              Save Entry
+              {t("Save Entry")}
             </Button>
           </div>
 
@@ -487,7 +500,7 @@ export default function GetInspiration() {
               data-testid="button-export-journal"
             >
               <Download className="w-5 h-5 mr-2" />
-              Export Journal as Text File
+              {t("Export Journal as Text File")}
             </Button>
           )}
         </motion.div>
@@ -501,7 +514,7 @@ export default function GetInspiration() {
             className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl p-6"
           >
             <h2 className="text-xl font-semibold text-white mb-4">
-              Past Entries
+              {t("Past Entries")}
             </h2>
             <div data-testid="inspire-entries-list" className="space-y-4">
               {entries.map((entry) => (
@@ -511,10 +524,11 @@ export default function GetInspiration() {
                 >
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-orange-400 text-sm font-medium">
-                      {entry.date}
+                      {displayEntryDate(entry)}
                     </span>
                     <Button
                       onClick={() => deleteEntry(entry.id)}
+                      aria-label={t("Delete journal entry")}
                       variant="ghost"
                       size="sm"
                       className="text-red-400 hover:text-red-300 hover:bg-red-500/10"

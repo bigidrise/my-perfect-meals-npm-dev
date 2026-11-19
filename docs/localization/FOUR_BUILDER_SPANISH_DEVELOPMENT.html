@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Four-builder EN/ES Development localization report</title>
+<style>
+body{margin:0;background:#edf1f7;color:#182439;font:16px/1.6 system-ui,sans-serif}
+main{max-width:1060px;margin:28px auto;background:white;border:1px solid #d6dfea;border-radius:14px;padding:clamp(20px,4vw,44px)}
+h1{font-size:clamp(26px,4vw,36px);line-height:1.2}h2{font-size:23px;margin-top:32px}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:10px;border:1px solid #d6dfea;text-align:left;vertical-align:top}
+th{background:#edf3ff}code{font-size:.85em;overflow-wrap:anywhere}.notice{border-left:4px solid #365bd6;padding:14px 18px;background:#eef3ff}
+.muted{color:#58677c}li{margin:7px 0}.scroll{overflow:auto}figure{margin:20px 0}img{max-width:100%;height:auto;border-radius:8px}
+figcaption{font-size:14px;color:#58677c}
+</style></head><body><main>
+<p class="muted">Development only · November 18, 2026 · Anti-Inflammatory, Diabetic, GLP-1 and Performance</p>
+<h1>Four-builder ordinary-interface localization</h1>
+<p class="notice">This batch reused the existing shared components and centralized English/Spanish resources.
+It did not create Spanish-only pages, duplicate meal cards, add page-level language switches or activate languages.
+Production and the protected clinical-review process were not changed.</p>
+
+<h2>1. Architecture confirmed before implementation</h2>
+<p>All four builders already rendered the same <code>MealCard</code>, <code>DayChips</code>,
+<code>DailyTargetsCard</code>, <code>DailyMacroTotalsRow</code>, <code>RemainingMacrosFooter</code>,
+<code>GlobalMealActionBar</code>, <code>DuplicateDayModal</code>, <code>WeeklyOverviewModal</code>,
+<code>BuilderHeader</code> and <code>BuilderGuidanceTour</code>. Their titles, meal-slot lists and much of their
+ordinary interface already used the central i18next catalogs.</p>
+<p>The four owners now call the existing <code>useConsumerCopy</code> adapter. Existing catalog keys retain their original
+namespace, and source-phrase keys resolve through the same central <code>consumerJourney</code> namespace used by
+the accepted shared-component batch. Eight missing ordinary phrases were added to <code>consumerFeatureCopy</code>.
+No translation engine or resource-loader change was required.</p>
+<p>The platform-wide plug-and-play requirement is recorded: consumer features, builders, creators, meal cards, modals,
+Academy, ProCare, professional studios, Business Center and shared navigation should receive future languages through
+central resources and validation. This batch confirms that pattern in these four owners; it does not claim that
+every remaining platform screen has already been connected.</p>
+
+<h2>2. Exact builder-specific coverage</h2>
+<div class="scroll"><table>
+<tr><th>Owner</th><th>Newly connected ordinary interface</th><th>Existing connections retained</th></tr>
+<tr><td>Anti-Inflammatory</td><td>Initial board loading; training-nutrition schedule title and ordinary description;
+week-range locale and loading placeholder; snack heading; created-meal notice; logged-meal count; date-formatted lock confirmation.</td>
+<td>Builder title/back label, meal-slot headings, calendar arrow labels, duplicate-day outcomes, synchronization notices, save and overview controls.</td></tr>
+<tr><td>Diabetic</td><td>Initial board loading; week-range locale and loading placeholder; snack heading;
+created-meal notice; logged-meal count; generic Error title; date-formatted lock confirmation.</td>
+<td>Builder title/header back label, meal-slot headings, calendar arrow labels, duplication, save/synchronization and ordinary empty states.</td></tr>
+<tr><td>GLP-1 / Metabolic</td><td>Header's Metabolic Hub display label; previous/next week accessibility labels;
+week-range locale/loading placeholder; all duplicate-result branches and failure message; date-formatted lock confirmation.</td>
+<td>Builder title, body hub-navigation label, initial loading, meal-slot headings, created-meal/logging/synchronization notices and save controls.</td></tr>
+<tr><td>Performance / Competition</td><td>AI-meal-added title and interpolated description; snack-added title and failure title;
+successful snack description; week-range locale; Create with AI / Create with Chef labels; date-formatted lock confirmation.</td>
+<td>Builder title/back label, meal-slot headings, calendar accessibility labels, duplicate outcomes, coaching-target notices and ordinary save controls.</td></tr>
+</table></div>
+<p>Translated notifications preserve the original recipe/snack name and supplied slot label or identifier.
+No authored text is translated by interpolation. Labels used for display do not rewrite the machine identifiers used for storage.</p>
+<p>Translation-aware callback dependencies were also corrected in these four owners. A dedicated regression switches a mounted
+source-owned duplicate callback from English to Spanish without remounting or changing its board, proving that its next notice uses
+the current language rather than a stale closure. This changes no write destination, permission, lock check or calculation.</p>
+
+<h2>3. Central resource additions</h2>
+<div class="scroll"><table>
+<tr><th>English source phrase</th><th>Spanish</th></tr>
+<tr><td>Error</td><td>Error</td></tr>
+<tr><td>Create with Chef</td><td>Crear con Chef</td></tr>
+<tr><td>Loading…</td><td>Cargando…</td></tr>
+<tr><td>Metabolic Hub</td><td>Centro metabólico</td></tr>
+<tr><td>AI Meal Added!</td><td>¡Comida con IA añadida!</td></tr>
+<tr><td>{{name}} added to {{slot}}</td><td>{{name}} se añadió a {{slot}}</td></tr>
+<tr><td>Snack Added!</td><td>¡Refrigerio añadido!</td></tr>
+<tr><td>Failed to add snack</td><td>No se pudo añadir el refrigerio</td></tr>
+</table></div>
+<p>All other new connections reuse existing keys, including the shared training text, date-lock notice,
+meal/logging descriptions, duplicate outcomes and loading labels. Existing English phrases were preserved rather
+than replaced with longer or differently worded generic messages.</p>
+
+<h2>4. Verification</h2>
+<ul>
+<li><strong>227 focused tests passed in one final run across 12 suites.</strong> The new four-builder suite contains
+33 tests; the accepted shared-builder and related calculation/shopping/prescription/language suites contribute 194.</li>
+<li><strong>English, Spanish and Auto:</strong> explicit EN on a Spanish device, explicit ES on an English device,
+Auto on Spanish and English devices, stored intent retained, same macro values/ISO dates/slot identifiers/authored text.</li>
+<li><strong>Notification behavior:</strong> all GLP-1 duplication branches, unchanged counts and target dates,
+all four callbacks after an in-place language change, original generated/snack names and slot labels retained.</li>
+<li><strong>Localization guard:</strong> passed with no new unresolved findings. No checker changes, exemptions or baseline refreshes.</li>
+<li><strong>Guard regression tests:</strong> 27 passed.</li>
+<li><strong>Client compilation:</strong> passed after the final callback changes. Existing bundle-size warnings remain visible.</li>
+<li><strong>Server compilation:</strong> passed; no server source was changed and the generated bundle was not executed.</li>
+<li><strong>Safety types:</strong> passed after the final application changes.</li>
+<li><strong>Canonical release fingerprint:</strong> exact approved 109 diagnostics, SHA-256
+<code>e8dadf605ccc7c3c6dec1285551bfa2a37871bee3a9fa1993444c871565813a7</code>.
+Generated build-version state restored; the approved baseline was not refreshed.</li>
+<li><strong>Integrity:</strong> registry, both clinical-review manifests and approved release baseline unchanged.
+The four pages retain the same 188 safety/protocol-related literal occurrences in a targeted before/after comparison.</li>
+<li><strong>Whitespace:</strong> passed.</li>
+</ul>
+<p>Build/test/type processes ran in sanitized child environments without inherited database or paid-provider credentials.
+Component tests reject unexpected fetches. The Development server was restarted using its existing safe-start command;
+startup explicitly confirmed migrations, seeding, recovery and automatic maintenance were suppressed.</p>
+
+<h2>5. Desktop and mobile evidence</h2>
+<p><strong>32/32 passive rendering cases passed:</strong> four builders × English, Spanish, Auto→English and Auto→Spanish ×
+390×844 mobile and 1280×800 desktop. Each fixture uses real shared-component markup, actual page-owned display expressions and
+compiled application CSS with synthetic macro data. No horizontal overflow, clipped/off-screen text or fixed-header overlap
+was found. Auto rendered the same text as its resolved language in every owner.</p>
+<p>Minimum header clearance was 36px in mobile Spanish Performance, whose title wraps to three lines.
+The original synthetic authored recipe text remained unchanged. All fixtures were loaded into an about:blank document,
+contained no executable scripts or remote assets, and made no application API calls. Existing Vite private-file restrictions
+were preserved; no preview server, new route, sign-in or account was created.</p>
+<p><strong>Limits:</strong> these are composed static component fixtures, not the full authenticated pages.
+Clinical panels, runtime eligibility and real persistence were not browser-tested. Button callbacks were checked in Jest, not
+through clicks on passive HTML. A passing structural fixture review is not certification of a signed-in end-to-end builder journey.</p>
+<p><strong>Minor retained findings:</strong> the existing narrow daily-target column wraps “Carbohidratos totales” mid-word
+on some mobile fixtures; it remains readable and unclipped. The existing Spanish catalog uses the loanword “Snacks.”
+Neither a shared-layout redesign nor a legacy catalog rewording was added to this bounded page-specific batch.</p>
+<!-- SCREENSHOT_EVIDENCE -->
+
+<h2>6. Protected and authored content</h2>
+<ul>
+<li>Clinical protocols, medical safety rules, allergies, physician precedence, permissions, day locks, macro arithmetic,
+nutrition-target resolution, canonical dates, stored identifiers and request payloads were not changed.</li>
+<li>Clinical-support names, hormonal/metabolic condition labels, starch-status explanations, condition-specific progress,
+protocol-authority guide prose and medical-reference content retain their existing review gates.</li>
+<li>The separate Diabetic body-navigation text “Diabetes Hub” remains unchanged because it is explicitly in the protected registry,
+even though the existing separately localized shared-header back label remains active.</li>
+<li>User-entered recipes, historical meals, generated titles/descriptions/instructions and server-authored clinical evidence remain
+original content. Translating the surrounding interface does not establish that AI-generated recipes are translated.</li>
+<li>No clinical approval was changed, no new language activated, and no customer data or Production state was changed.</li>
+</ul>
+
+<h2>7. Scope and evidence</h2>
+<p>Application edits are limited to the four approved builder owners and the central ordinary-copy resource.
+The new tests are in <code>client/src/lib/__tests__/fourBuilderSpanish.test.tsx</code>.
+No shared meal-card implementation or other feature was changed in this batch.</p>
+<p>Verification logs: <code>.local/reports/spanish-four-builders-*</code>.
+Responsive report, 32-row matrix and text/geometry audit:
+<code>generated-artifacts/spanish-four-builders/</code>.
+The exact root diagnostics are captured in <code>.local/reports/spanish-next-types-current.json</code>.
+Generated bundles, browser fixtures and review outputs remain ignored artifacts.</p>
+<p class="notice"><strong>Stopped at the approved boundary.</strong> No other feature or builder batch,
+Medical Resources implementation, Production publication, paid AI request, clinical approval change,
+language activation or baseline refresh was performed.</p>
+</main></body></html>

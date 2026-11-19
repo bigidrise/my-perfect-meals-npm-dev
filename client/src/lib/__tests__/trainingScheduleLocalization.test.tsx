@@ -1,0 +1,246 @@
+/** @jest-environment jsdom */
+import React from "react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import "@testing-library/jest-dom";
+import i18n from "@/i18n";
+import { trainingScheduleSpanish } from "@/i18n/trainingScheduleCopy";
+import { approvedTrainingExplanationSpanish } from "@/i18n/approvedTrainingExplanations";
+import { consumerEnglish, consumerSpanish } from "@/i18n/consumerJourney";
+import GeneralNutritionTrainingPage from "@/pages/GeneralNutritionTrainingPage";
+import { PageTitleProvider, useCurrentPageTitle } from "@/contexts/PageTitleContext";
+import { setPerfSelectedDate } from "@/lib/macroResolver";
+import fs from "node:fs";
+import ts from "typescript";
+import { computeDemandProfile } from "@shared/performanceDemandEngine";
+
+const mockNavigate = jest.fn();
+let mockTrainingExplanationsEnabled = true;
+jest.mock("@/lib/trainingExplanationDevelopmentGate", () => ({
+  get approvedTrainingExplanationsEnabled() { return mockTrainingExplanationsEnabled; },
+}));
+const mockUser: any = {
+  id: "offline-training-fixture", timezone: "UTC", entitlements: ["FULL_ACCESS"],
+  activeProtocolTrack: "athletic",
+  performanceContext: {
+    trainingType: "strength", primaryGoal: "maintenance", trainingPhase: "off_season",
+    trainingFrequency: 3, cardioFocus: "none", twoADays: false,
+  },
+  weeklyTrainingSchedule: {
+    sunday: "off", monday: "power", tuesday: "strength", wednesday: "off",
+    thursday: "power", friday: "strength", saturday: "endurance",
+  },
+};
+const targets = { calories: 2100, protein_g: 140, carbs_g: 240, fat_g: 70,
+  starchy_carbs_g: 150, fibrous_carbs_g: 90 };
+jest.mock("wouter", () => ({ useLocation: () => ["/general-nutrition/training", mockNavigate] }));
+jest.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: mockUser }) }));
+jest.mock("@tanstack/react-query", () => ({ useQueryClient: () => ({ invalidateQueries: jest.fn() }) }));
+jest.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: jest.fn() }) }));
+jest.mock("@/hooks/useIsDesktop", () => ({ useIsDesktop: () => true }));
+jest.mock("@/lib/resolveApiBase", () => ({ apiUrl: (value: string) => value }));
+jest.mock("@/lib/auth", () => ({ getAuthHeaders: () => ({}) }));
+jest.mock("@/lib/macroResolver", () => ({
+  getResolvedTargets: () => targets, setPerfSelectedDate: jest.fn(),
+}));
+jest.mock("@/components/ui/HowThisWorksLink", () => ({ HowThisWorksLink: () => null }));
+jest.mock("framer-motion", () => ({
+  motion: { div: ({ children, initial, animate, transition, ...props }: any) => <div {...props}>{children}</div> },
+}));
+
+function CurrentTitle() { return <div data-testid="page-title">{useCurrentPageTitle()}</div>; }
+const openPage = () => render(<PageTitleProvider><CurrentTitle /><GeneralNutritionTrainingPage /></PageTitleProvider>);
+
+beforeEach(() => {
+  mockTrainingExplanationsEnabled = true;
+  jest.useFakeTimers().setSystemTime(new Date("2026-11-16T12:00:00Z"));
+  window.history.replaceState({}, "", "/general-nutrition/training");
+  localStorage.clear();
+  mockNavigate.mockClear();
+  jest.mocked(setPerfSelectedDate).mockClear();
+  global.fetch = jest.fn(async (url, options) => {
+    if (options?.method && options.method !== "GET") throw Error("Mutation forbidden in offline localization tests");
+    if (String(url).startsWith("/api/performance/today")) {
+      return { ok: true, json: async () => ({
+        configured: true, sessionType: "power", sessionLabel: "Power Training",
+        trainingPhase: "off_season", calories: 2100, proteinG: 140, carbsG: 240,
+        fatG: 70, starchyCarbsG: 150, fibrousCarbsG: 90,
+        logged: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, starchyCarbsG: 0, fibrousCarbsG: 0 },
+      }) } as Response;
+    }
+    if (url === "/api/performance/carb-cycle") return { ok: false } as Response;
+    throw Error(`Unexpected request in offline test: ${url}`);
+  }) as jest.MockedFunction<typeof fetch>;
+});
+afterEach(() => { cleanup(); jest.useRealTimers(); });
+
+test.each(["en", "es"])("%s translates the screenshot's headings, controls, weekdays and server-owned session label", async language => {
+  await i18n.changeLanguage(language);
+  const before = JSON.stringify(mockUser);
+  openPage();
+  const spanish = language === "es";
+  await screen.findByText(spanish ? "Entrenamiento de potencia" : "Power Training");
+  expect(screen.getByTestId("page-title")).toHaveTextContent(spanish
+    ? "Calendario de nutrición para entrenamientos" : "Training Nutrition Schedule");
+  expect(screen.getByText(spanish ? "Calendario semanal de entrenamiento" : "Weekly Coaching Schedule")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: spanish ? "Actualizar configuración" : "Update Setup" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: spanish ? "Editar calendario" : "Edit Schedule" })).toBeEnabled();
+  expect(screen.getAllByRole("button", { name: spanish
+    ? /Abrir el creador de nutrición general/ : /Launch General Nutrition Builder/ }).length).toBeGreaterThan(0);
+  expect(screen.getByRole("button", { name: spanish ? /lun.*Potencia/i : /Mon.*Power/i })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: spanish ? /dom.*Día de descanso/i : /Sun.*Rest Day/i })).toBeInTheDocument();
+  expect(screen.getAllByText((2100).toLocaleString(spanish ? "es-US" : "en-US")).length).toBeGreaterThan(0);
+  expect(screen.getAllByText("140").length).toBeGreaterThan(0);
+  expect(JSON.stringify(mockUser)).toBe(before);
+});
+
+test("mounted controls change language immediately and retain setup, launch and selected-date behavior", async () => {
+  await i18n.changeLanguage("en");
+  openPage();
+  await screen.findByText("Power Training");
+  await act(async () => { await i18n.changeLanguage("es"); });
+  expect(screen.queryByText("Weekly Coaching Schedule")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Actualizar configuración" }));
+  fireEvent.click(screen.getByRole("button", { name: "Editar calendario" }));
+  expect(mockNavigate.mock.calls.slice(0, 2)).toEqual([
+    ["/performance/setup?returnTo=%2Fgeneral-nutrition%2Ftraining"],
+    ["/performance/setup?returnTo=%2Fgeneral-nutrition%2Ftraining"],
+  ]);
+  fireEvent.click(screen.getAllByRole("button", { name: /Abrir el creador de nutrición general/ })[0]);
+  expect(mockNavigate).toHaveBeenLastCalledWith("/general-nutrition-builder/build");
+  fireEvent.click(screen.getByRole("button", { name: /mar.*fuerza/i }));
+  expect(setPerfSelectedDate).toHaveBeenCalledWith("2026-11-17");
+  await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/performance/today?date=2026-11-17", expect.anything()));
+  expect(screen.getByText("martes")).toBeInTheDocument();
+});
+
+test("ordinary resources preserve variables and every shared builder launch label", async () => {
+  const variables = (value: string) => value.match(/\{\{\w+\}\}/g) ?? [];
+  for (const source of Object.keys(trainingScheduleSpanish)) {
+    expect(consumerEnglish[source]).toBe(source);
+    expect(consumerSpanish[source]).toBeTruthy();
+    expect(variables(consumerSpanish[source])).toEqual(variables(source));
+  }
+  await i18n.changeLanguage("es");
+  expect(i18n.t("Launch GLP-1 Meal Builder", { ns: "consumerJourney", keySeparator: false }))
+    .toBe("Abrir el creador de comidas de GLP-1");
+});
+
+test.each(["en", "es"])("%s localizes the sport heading and every computed priority without changing their order", async language => {
+  await i18n.changeLanguage(language);
+  const expectedPriorities = computeDemandProfile(mockUser.performanceContext).nutritionPriorities;
+  const before = JSON.stringify(mockUser);
+  openPage();
+  await screen.findByText(language === "es" ? "Entrenamiento de potencia" : "Power Training");
+  const profile = screen.getByText(language === "es" ? "Protocolo deportivo activo" : "Athletic Protocol Active")
+    .parentElement!.parentElement!;
+  expect(profile.querySelector("p.text-2xl")).toHaveTextContent(language === "es" ? /^fuerza$/i : /^Strength$/);
+  const heading = screen.getByText(language === "es" ? "Prioridades nutricionales" : "Nutrition Priorities");
+  const card = heading.parentElement!;
+  const labels = expectedPriorities.map(priority => language === "es"
+    ? consumerSpanish[priority] : priority);
+  for (const label of labels) expect(card).toHaveTextContent(label);
+  const displayed = card.textContent!;
+  const offsets = labels.map(label => displayed.indexOf(label));
+  expect(offsets).toEqual([...offsets].sort((a, b) => a - b));
+  expect(JSON.stringify(mockUser)).toBe(before);
+});
+
+test("a custom sport name is preserved even when it resembles a translated system label", async () => {
+  await i18n.changeLanguage("es");
+  const previous = mockUser.performanceContext;
+  mockUser.performanceContext = { ...previous, trainingType: "other", customSportName: "Strength" };
+  try {
+    openPage();
+    await screen.findByText("Entrenamiento de potencia");
+    expect(screen.getByText("Strength")).toBeInTheDocument();
+  } finally {
+    mockUser.performanceContext = previous;
+  }
+});
+
+test("canonical explanations stay unchanged and separate from ordinary interface copy", () => {
+  const file = "client/src/pages/TrainingNutritionHub.tsx";
+  const source = ts.createSourceFile(file, fs.readFileSync(file, "utf8"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let count = 0;
+  function visit(node: ts.Node) {
+    if (ts.isVariableDeclaration(node) && node.name.getText(source) === "PERF_SESSION_WHY") {
+      function collect(child: ts.Node) {
+        if (ts.isStringLiteral(child)) {
+          count++;
+          expect(trainingScheduleSpanish).not.toHaveProperty(child.text);
+        }
+        ts.forEachChild(child, collect);
+      }
+      collect(node.initializer!);
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(source);
+  expect(count).toBe(21);
+});
+
+test.each(["en", "es"])("%s displays exactly the six approved explanations without changing the selected demand or account", async language => {
+  await i18n.changeLanguage(language);
+  const previous = mockUser.performanceContext;
+  mockUser.performanceContext = {
+    ...previous, trainingFrequency: "1-2", trainingPhase: "in_season",
+    recoveryStatus: "good", adaptationTargets: ["speed"],
+  };
+  const before = JSON.stringify(mockUser);
+  try {
+    const demandBefore = computeDemandProfile(mockUser.performanceContext);
+    expect(demandBefore).toMatchObject({
+      fuelDemand: "low", recoveryDemand: "high", adaptationDemand: "power_focused",
+    });
+    openPage();
+    await screen.findByText(language === "es" ? "Entrenamiento de potencia" : "Power Training");
+    expect(Object.keys(approvedTrainingExplanationSpanish)).toHaveLength(6);
+    for (const [english, spanish] of Object.entries(approvedTrainingExplanationSpanish)) {
+      expect(screen.getByText(language === "es" ? spanish : english)).toBeInTheDocument();
+      expect(screen.queryByText(language === "es" ? english : spanish)).not.toBeInTheDocument();
+      expect(consumerEnglish[english]).toBe(english);
+      expect(consumerSpanish[english]).toBe(spanish);
+    }
+    expect(JSON.stringify(mockUser)).toBe(before);
+    expect(computeDemandProfile(mockUser.performanceContext)).toEqual(demandBefore);
+  } finally {
+    mockUser.performanceContext = previous;
+  }
+});
+
+test("a Spanish interface leaves explanation text English when the Development gate is disabled", async () => {
+  mockTrainingExplanationsEnabled = false;
+  await i18n.changeLanguage("es");
+  const previous = mockUser.performanceContext;
+  mockUser.performanceContext = {
+    ...previous, trainingFrequency: "1-2", trainingPhase: "in_season",
+    recoveryStatus: "good", adaptationTargets: ["speed"],
+  };
+  try {
+    openPage();
+    await screen.findByText("Entrenamiento de potencia");
+    for (const [english, spanish] of Object.entries(approvedTrainingExplanationSpanish)) {
+      expect(screen.getByText(english)).toBeInTheDocument();
+      expect(screen.queryByText(spanish)).not.toBeInTheDocument();
+    }
+    expect(screen.getByText("Calendario semanal de entrenamiento")).toBeInTheDocument();
+  } finally {
+    mockUser.performanceContext = previous;
+  }
+});
+
+test("unapproved explanations retain their original wording even in Spanish Development", async () => {
+  await i18n.changeLanguage("es");
+  const previous = mockUser.performanceContext;
+  mockUser.performanceContext = { ...previous, recoveryStatus: "average" };
+  try {
+    expect(computeDemandProfile(mockUser.performanceContext).recoveryDemand).toBe("moderate");
+    openPage();
+    await screen.findByText("Entrenamiento de potencia");
+    const unapproved = "Anti-inflammatory ingredients are incorporated where possible — omega-3 sources, colorful vegetables, turmeric, and ginger — to support your training recovery.";
+    expect(approvedTrainingExplanationSpanish).not.toHaveProperty(unapproved);
+    expect(screen.getByText(unapproved)).toBeInTheDocument();
+  } finally {
+    mockUser.performanceContext = previous;
+  }
+});

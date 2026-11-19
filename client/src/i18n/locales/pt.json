@@ -1,4 +1,13 @@
 {
+  "localeFoundation": {
+    "wakingUp": "Preparando seu mecanismo de refeições…",
+    "startupHint": "O primeiro carregamento leva alguns segundos a mais. Só um instante!",
+    "sessionUnavailable": "Não foi possível verificar sua sessão. Verifique sua conexão e tente novamente.",
+    "sessionRetry": "Verificar a sessão novamente",
+    "required": "Obrigatório",
+    "invalidEmail": "E-mail inválido",
+    "preferencesNote": "Auto segue o idioma deste dispositivo. Um idioma escolhido explicitamente é salvo na sua conta. Algumas funções ainda estão sendo traduzidas."
+  },
   "shoppingTransfer": {
     "addedTitle": "Adicionado à lista de compras",
     "savedTitle": "Salvo na lista de compras",

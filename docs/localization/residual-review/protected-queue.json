@@ -1,0 +1,325 @@
+{
+  "registryOccurrenceCount": 474,
+  "uniqueRegistryKeys": 446,
+  "spanishManifestEntries": 118,
+  "manifestStatusCounts": {
+    "pending": 118
+  },
+  "sourceIntegrityMethod": "Same read-only substring-presence rule as existing GATE_07, no registry/manifests regenerated or approvals changed",
+  "existingSourceIntegrityBlockers": [
+    {
+      "file": "client/src/pages/AcademyLandingPage.tsx",
+      "line": 551,
+      "text": "Clinical Deep Dives",
+      "category": "general_clinical",
+      "proposedKey": "academylandingpage.clinical_deep_dives",
+      "currentOwnerSha256": "9f8efb97144168360374bb3496de0e9ed0168b0d41143b8b25c4862858b86e96",
+      "status": "existing-source-integrity-blocker-not-approved"
+    },
+    {
+      "file": "client/src/pages/AcademyLandingPage.tsx",
+      "line": 565,
+      "text": "Diabetes Nutrition",
+      "category": "diabetes_glp1",
+      "proposedKey": "academylandingpage.diabetes_nutrition",
+      "currentOwnerSha256": "9f8efb97144168360374bb3496de0e9ed0168b0d41143b8b25c4862858b86e96",
+      "status": "existing-source-integrity-blocker-not-approved"
+    },
+    {
+      "file": "client/src/pages/AcademyLandingPage.tsx",
+      "line": 566,
+      "text": "GLP-1 Support",
+      "category": "diabetes_glp1",
+      "proposedKey": "academylandingpage.glp1_support",
+      "currentOwnerSha256": "9f8efb97144168360374bb3496de0e9ed0168b0d41143b8b25c4862858b86e96",
+      "status": "existing-source-integrity-blocker-not-approved"
+    },
+    {
+      "file": "client/src/pages/Learn.tsx",
+      "line": 1363,
+      "text": "Real-time diabetic meal adjustment",
+      "category": "diabetes_glp1",
+      "proposedKey": "learn.realtime_diabetic_meal_adjustment",
+      "currentOwnerSha256": "fe3a30eb09886113fba58e2630f2cfb40270a7a3d7df2bbb1641bea6baeaa26f",
+      "status": "existing-source-integrity-blocker-not-approved"
+    },
+    {
+      "file": "client/src/pages/Learn.tsx",
+      "line": 1369,
+      "text": "GlucoseGuard is for diabetics only. It reads your actual blood glucose level (mg/dL) from the Diabetic Hub and adjusts meal generation based on your current glucose state.",
+      "category": "diabetes_glp1",
+      "proposedKey": "learn.glucoseguard_is_for_diabetics",
+      "currentOwnerSha256": "fe3a30eb09886113fba58e2630f2cfb40270a7a3d7df2bbb1641bea6baeaa26f",
+      "status": "existing-source-integrity-blocker-not-approved"
+    },
+    {
+      "file": "client/src/pages/Learn.tsx",
+      "line": 1382,
+      "text": "Starch Guard is about weight management and limiting high-glycemic carbs. GlucoseGuard is about real-time glucose monitoring for diabetics. Most users don",
+      "category": "diabetes_glp1",
+      "proposedKey": "learn.starch_guard_is_about",
+      "currentOwnerSha256": "fe3a30eb09886113fba58e2630f2cfb40270a7a3d7df2bbb1641bea6baeaa26f",
+      "status": "existing-source-integrity-blocker-not-approved"
+    },
+    {
+      "file": "client/src/pages/academy/AcademyHome.tsx",
+      "line": 39,
+      "text": "Diabetes Nutrition",
+      "category": "diabetes_glp1",
+      "proposedKey": "academyhome.diabetes_nutrition",
+      "currentOwnerSha256": "78d51b92575422d6affc8d6c7127cdd017f2c142e5f45b83678ada0ade5e4582",
+      "status": "existing-source-integrity-blocker-not-approved"
+    },
+    {
+      "file": "client/src/pages/academy/AcademyHome.tsx",
+      "line": 40,
+      "text": "GLP-1 Support",
+      "category": "diabetes_glp1",
+      "proposedKey": "academyhome.glp1_support",
+      "currentOwnerSha256": "78d51b92575422d6affc8d6c7127cdd017f2c142e5f45b83678ada0ade5e4582",
+      "status": "existing-source-integrity-blocker-not-approved"
+    },
+    {
+      "file": "client/src/pages/profile/EditProfilePage.tsx",
+      "line": 1165,
+      "text": "Protocol Controlled by Your Physician",
+      "category": "general_clinical",
+      "proposedKey": "editprofilepage.protocol_controlled_by_your_2",
+      "currentOwnerSha256": "9338d02a3d965e2c287759410d4c3c26148aec5841a2b8e052e50b0b718c8abc",
+      "status": "existing-source-integrity-blocker-not-approved"
+    },
+    {
+      "file": "client/src/pages/profile/EditProfilePage.tsx",
+      "line": 1339,
+      "text": "Metabolic Medication Support — Nutritional Guidance Only",
+      "category": "medication",
+      "proposedKey": "editprofilepage.metabolic_medication_support_nutritional",
+      "currentOwnerSha256": "9338d02a3d965e2c287759410d4c3c26148aec5841a2b8e052e50b0b718c8abc",
+      "status": "existing-source-integrity-blocker-not-approved"
+    },
+    {
+      "file": "client/src/pages/profile/EditProfilePage.tsx",
+      "line": 1341,
+      "text": "not a substitute for your prescribing doctor's guidance",
+      "category": "general_clinical",
+      "proposedKey": "editprofilepage.not_a_substitute_for_4",
+      "currentOwnerSha256": "9338d02a3d965e2c287759410d4c3c26148aec5841a2b8e052e50b0b718c8abc",
+      "status": "existing-source-integrity-blocker-not-approved"
+    }
+  ],
+  "sourceReviewedProtectedOwners": [
+    {
+      "id": "L14",
+      "owner": "client/src/pages/ConsumerWelcome.tsx",
+      "state": "32 approved sections / both required checkboxes / narration",
+      "routes": [
+        "/consumer-welcome"
+      ],
+      "classification": "protected-held",
+      "namespace": "consumerJourney",
+      "key": "MEDICAL DISCLAIMER",
+      "english": "MEDICAL DISCLAIMER",
+      "spanish": "DESCARGO DE RESPONSABILIDAD MÉDICA",
+      "currentSourceSha256": "00e8e2d215e1192f74aa68ec9e382dffbffe05ff05d5f620b24776267337c9ab",
+      "sourceUnchangedSinceInventory": true,
+      "exactHistoricalSourceExcerpt": "107:           <h2 className=\"text-lg font-bold text-red-400 mb-3\">\n108:             {t(\"MEDICAL DISCLAIMER\")}\n109:           </h2>\n110:           <p className=\"text-sm text-white/70 leading-relaxed mb-4\">",
+      "remainingWork": "Source hash and reviewed ownership reconciled; original evidence limits remain. This is not a fresh browser claim.",
+      "nextTask": "#1889",
+      "evidence": "Current source/resource reconciliation; prior browser evidence only where explicitly cited in the delivery report"
+    },
+    {
+      "id": "L16",
+      "owner": "client/src/pages/OnboardingV3.tsx",
+      "state": "medical-condition selections / recommended builder",
+      "routes": [
+        "/onboarding",
+        "/onboarding-v2"
+      ],
+      "classification": "protected-held",
+      "namespace": "none / not applicable",
+      "key": null,
+      "currentSourceSha256": "f9aeddb459c2df2758f130522f585bd9d51f3bc541c0bbb9ac1c81b634b131c0",
+      "sourceUnchangedSinceInventory": false,
+      "exactHistoricalSourceExcerpt": "780:             <div className=\"text-center space-y-2\">\n781:               <h1 className=\"text-2xl font-bold text-white\">Any relevant medical conditions?</h1>\n782:             </div>\n783:             <div className=\"flex flex-wrap gap-2 max-w-sm mx-auto\">",
+      "remainingWork": "Source hash and reviewed ownership reconciled; original evidence limits remain. This is not a fresh browser claim.",
+      "nextTask": "#1889",
+      "evidence": "Current source/resource reconciliation; prior browser evidence only where explicitly cited in the delivery report"
+    },
+    {
+      "id": "L23",
+      "owner": "client/src/components/OncologySymptomDialog.tsx",
+      "state": "symptom dialog / read-only / error / review summary",
+      "routes": [
+        "/onboarding",
+        "/onboarding-v2",
+        "/profile"
+      ],
+      "classification": "protected-held",
+      "namespace": "none / not applicable",
+      "key": null,
+      "currentSourceSha256": "97a4572bce250d29ad8d48abfa9ec0b26dc402027247250a40fc118bce0dd81d",
+      "sourceUnchangedSinceInventory": true,
+      "exactHistoricalSourceExcerpt": "28:       title=\"What are you currently experiencing?\"\n29:       description=\"Cancer Support — select all that apply, or choose None currently.\"\n30:       className=\"w-[calc(100vw-2rem)] max-w-sm max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-1.5rem)] rounded-2xl border border-rose-200/20 bg-[#251c25] text-rose-50 shadow-[0_24px_80px_rgba(16,8,18,0.48)]\"\n31:       footer={",
+      "remainingWork": "Source hash and reviewed ownership reconciled; original evidence limits remain. This is not a fresh browser claim.",
+      "nextTask": "#1889",
+      "evidence": "Current source/resource reconciliation; prior browser evidence only where explicitly cited in the delivery report"
+    },
+    {
+      "id": "L24",
+      "owner": "client/src/components/OncologySymptomSelector.tsx",
+      "state": "symptom checkbox legend / none / error",
+      "routes": [
+        "/onboarding",
+        "/onboarding-v2",
+        "/profile"
+      ],
+      "classification": "protected-held",
+      "namespace": "none / not applicable",
+      "key": null,
+      "currentSourceSha256": "e8c530f6f64fbd209d506170390ee15ae9d7699bd2f2a72f08ab48fd99770a16",
+      "sourceUnchangedSinceInventory": true,
+      "exactHistoricalSourceExcerpt": "40:         <input type=\"checkbox\" disabled={readOnly} checked={symptoms.length === 0} onChange={() => onChange([])} />\n41:         None currently\n42:       </label>\n43:     </div>",
+      "remainingWork": "Source hash and reviewed ownership reconciled; original evidence limits remain. This is not a fresh browser claim.",
+      "nextTask": "#1889",
+      "evidence": "Current source/resource reconciliation; prior browser evidence only where explicitly cited in the delivery report"
+    },
+    {
+      "id": "L25",
+      "owner": "client/src/components/pro/ClinicalAdvisoryDrawer.tsx",
+      "state": "advisory drawer / condition explanations",
+      "routes": [
+        "/pro/clients/:id",
+        "/pro/clients/:id/clinician",
+        "/pro-client-dashboard"
+      ],
+      "classification": "protected-held",
+      "namespace": "none / not applicable",
+      "key": null,
+      "currentSourceSha256": "a013e999b03579326bb68f26269e5de5cf9b0fb5bb72df9f87cb2be7a169d130",
+      "sourceUnchangedSinceInventory": true,
+      "exactHistoricalSourceExcerpt": "150:     });\n151:     console.log('📋 Clinical Advisory Applied:', auditEntry);\n152:     \n153:     onApplySuggestions(aggregated);",
+      "remainingWork": "Source hash and reviewed ownership reconciled; original evidence limits remain. This is not a fresh browser claim.",
+      "nextTask": "#1889",
+      "evidence": "Current source/resource reconciliation; prior browser evidence only where explicitly cited in the delivery report"
+    },
+    {
+      "id": "L26",
+      "owner": "client/src/pages/MacroCalculator.tsx",
+      "state": "waist explanation / help / result / validation",
+      "routes": [
+        "/macro-counter"
+      ],
+      "classification": "protected-held",
+      "namespace": "none / not applicable",
+      "key": null,
+      "currentSourceSha256": "82c477f88a17a8b57895b4337ae3c6f338ad862aa2e8dcf5432f377371ba3504",
+      "sourceUnchangedSinceInventory": false,
+      "exactHistoricalSourceExcerpt": "189:       <p className=\"text-xs text-white/50\">\n190:         Healthy guideline: your waist should be less than half your height.\n191:       </p>\n192: ",
+      "remainingWork": "Source hash and reviewed ownership reconciled; original evidence limits remain. This is not a fresh browser claim.",
+      "nextTask": "#1889",
+      "evidence": "Current source/resource reconciliation; prior browser evidence only where explicitly cited in the delivery report"
+    },
+    {
+      "id": "L39",
+      "owner": "client/src/pages/TermsOfService.tsx",
+      "state": "terms document / consent links",
+      "routes": [
+        "/terms"
+      ],
+      "classification": "protected-held",
+      "namespace": "none / not applicable",
+      "key": null,
+      "currentSourceSha256": "eed7c090285498c762922c34a506c5baf4b582b8562c5732a0d9f6d27ee769ca",
+      "sourceUnchangedSinceInventory": true,
+      "exactHistoricalSourceExcerpt": "33:           </Button>\n34:           <h1 className=\"text-lg font-bold text-white\">Terms of Service</h1>\n35:         </div>\n36:       </div>",
+      "remainingWork": "Source hash and reviewed ownership reconciled; original evidence limits remain. This is not a fresh browser claim.",
+      "nextTask": "#1889",
+      "evidence": "Current source/resource reconciliation; prior browser evidence only where explicitly cited in the delivery report"
+    },
+    {
+      "id": "L40",
+      "owner": "client/src/pages/Learn.tsx",
+      "state": "education content / clinical terminology",
+      "routes": [
+        "/learn"
+      ],
+      "classification": "mixed-education/protected-held",
+      "namespace": "none / not applicable",
+      "key": null,
+      "currentSourceSha256": "fe3a30eb09886113fba58e2630f2cfb40270a7a3d7df2bbb1641bea6baeaa26f",
+      "sourceUnchangedSinceInventory": false,
+      "exactHistoricalSourceExcerpt": "107:             \"Recipes were generic and not personalized\",\n108:             \"Medical conditions like diabetes were rarely considered\",\n109:             \"Liver issues, inflammation, and allergies were ignored\",\n110:             \"Users were left to figure everything out themselves\",",
+      "remainingWork": "All READ/LISTEN controls hidden reversibly in shared LibraryItem; content stays English and intact. Clinical education needs separate wording approval, not silent deletion.",
+      "nextTask": "#1890 / #1889",
+      "evidence": "Current source/resource reconciliation; prior browser evidence only where explicitly cited in the delivery report"
+    },
+    {
+      "id": "L43",
+      "owner": "server/routes/groceryCoach.ts",
+      "state": "clinical context unavailable / generation or swap rejection",
+      "routes": [
+        "/shopping-list-v2 (Grocery Coach sheet)"
+      ],
+      "classification": "protected-held",
+      "namespace": "none / not applicable",
+      "key": null,
+      "currentSourceSha256": "cdfaa32b891198697bbbbf1cc5abcfa223f2ef22a9a46358a242bd8ea4fe2239",
+      "sourceUnchangedSinceInventory": true,
+      "exactHistoricalSourceExcerpt": "97:     if (_ctx.glp1Failed) {\n98:       return res.status(503).json({ error: \"Clinical guidance temporarily unavailable. Please try again.\", retryable: true });\n99:     }\n100:     if (_ctx.glp1Active && !_ctx.glp1Targets) {",
+      "remainingWork": "Source hash and reviewed ownership reconciled; original evidence limits remain. This is not a fresh browser claim.",
+      "nextTask": "#1889",
+      "evidence": "Current source/resource reconciliation; prior browser evidence only where explicitly cited in the delivery report"
+    },
+    {
+      "id": "L44",
+      "owner": "server/services/ingredientScanService.ts",
+      "state": "unreadable image / fallback verdict / educational footer",
+      "routes": [
+        "Ingredient Intelligence scanner callers; exact endpoint mount not runtime verified"
+      ],
+      "classification": "protected-held",
+      "namespace": "none / not applicable",
+      "key": null,
+      "currentSourceSha256": "dbb1071d6c77aa2cc26e154c30d9a2696a01a2709ffb3b08f6879d3a63ab6240",
+      "sourceUnchangedSinceInventory": true,
+      "exactHistoricalSourceExcerpt": "627:   overallSummary:\n628:     \"We couldn't clearly read this image. Make sure the full ingredients panel is visible, in focus, and well-lit — then try again. You can also type or speak the product name for a Quick Analysis.\",\n629:   verdict: \"Scan not readable — retake the photo or type the product name to continue.\",\n630:   verdictLevel: 'caution',",
+      "remainingWork": "Source hash and reviewed ownership reconciled; original evidence limits remain. This is not a fresh browser claim.",
+      "nextTask": "#1889",
+      "evidence": "Current source/resource reconciliation; prior browser evidence only where explicitly cited in the delivery report"
+    },
+    {
+      "id": "L52",
+      "owner": "client/src/components/pro/ProfessionalLegalModal.tsx",
+      "state": "agreement acceptance / current attestation",
+      "routes": [
+        "/procare-attestation"
+      ],
+      "classification": "protected-held",
+      "namespace": "none / not applicable",
+      "key": null,
+      "currentSourceSha256": "5a0d1990984bf69e65ae1a79a0bd015aa014fe7313220558e3065a7a3a1bec94",
+      "sourceUnchangedSinceInventory": true,
+      "exactHistoricalSourceExcerpt": "91:               </h2>\n92:               <p className=\"text-sm text-white/60\">Please review and accept each document to continue.</p>\n93:             </div>\n94:           </div>",
+      "remainingWork": "Source hash and reviewed ownership reconciled; original evidence limits remain. This is not a fresh browser claim.",
+      "nextTask": "#1889",
+      "evidence": "Current source/resource reconciliation; prior browser evidence only where explicitly cited in the delivery report"
+    }
+  ],
+  "sharedFoodHeldWordingReference": "docs/localization/FOOD_WORKFLOWS_REVIEW.md#english-deliberately-retained",
+  "approvedConsumerConsent": {
+    "pairs": 32,
+    "status": "previously-approved implementation preserved; source owners unchanged since reviewed inventory; two acknowledgments remain independent",
+    "scope": "ConsumerWelcome only, not broader onboarding, clinical education or professional agreements"
+  },
+  "requiredApprovalFields": [
+    "exact English text",
+    "faithful Spanish candidate",
+    "source owner and current hash",
+    "rule/reason identity if applicable",
+    "qualified review required",
+    "founder wording approval",
+    "activation and action/consent verification"
+  ],
+  "automaticApproval": false,
+  "clinicalCertificationClaimed": false
+}

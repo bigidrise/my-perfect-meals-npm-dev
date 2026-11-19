@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect, type ReactNode } from "react";
 import { useLocation, useRoute } from "wouter";
 import { motion } from "framer-motion";
@@ -294,7 +295,7 @@ export default function SignatureKitchenPage() {
       <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4 px-4">
         <ChefHat className="h-12 w-12 text-white/20" />
         <p className="text-white/40 text-sm text-center">This kitchen isn't available yet.</p>
-        <PillButton onClick={() => setLocation("/lifestyle")}>Back to Lifestyle</PillButton>
+        <PillButton onClick={() => setLocation("/lifestyle")}><BackNavigationLabel label="Back to Lifestyle" /></PillButton>
       </div>
     );
   }
@@ -329,7 +330,7 @@ export default function SignatureKitchenPage() {
           onClick={() => setLocation("/lifestyle")}
           className="p-2 rounded-full bg-black/60 backdrop-blur border border-white/10 text-white/60 active:scale-95 transition-transform"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" /><span className="sr-only"><BackNavigationLabel /></span>
         </button>
       </div>
 

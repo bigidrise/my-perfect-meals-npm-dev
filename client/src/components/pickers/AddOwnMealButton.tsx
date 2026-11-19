@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { createPortal } from "react-dom";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ function slotToMealType(s: MealSlot): string {
 }
 
 export function AddOwnMealButton({ slot, onSave, onImageReady, variant = "icon", disabled = false }: AddOwnMealButtonProps) {
+  const { t } = useConsumerCopy();
   const [phase, setPhase] = useState<Phase>("idle");
   const [pendingMacros, setPendingMacros] = useState<MacroEstimate | null>(null);
 
@@ -100,7 +102,7 @@ export function AddOwnMealButton({ slot, onSave, onImageReady, variant = "icon",
         >
           <>
             <Plus className="h-4 w-4 mr-2" />
-            Describe What You Ate
+            {t("Describe What You Ate")}
           </>
         </Button>
 
@@ -128,7 +130,7 @@ export function AddOwnMealButton({ slot, onSave, onImageReady, variant = "icon",
         >
           <Plus className="h-3 w-3" />
         </PillButton>
-        <span className="text-xs font-semibold text-white/70 tracking-wide whitespace-nowrap">Describe It</span>
+        <span className="text-xs font-semibold text-white/70 tracking-wide whitespace-nowrap">{t("Describe It")}</span>
       </div>
 
       <Overlays

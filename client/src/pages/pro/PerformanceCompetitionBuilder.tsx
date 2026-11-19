@@ -1,3 +1,4 @@
+import { ClinicalSupportLabel } from "@/components/ClinicalSupportLabel";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useEffectiveClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
 import { isClinicalIndicatorActive } from "@shared/clinicalProtocolIdentity";
@@ -116,7 +117,7 @@ import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { useDailyNutritionState } from "@/hooks/useDailyNutritionState";
 import { prescriptionToTargetsOverride } from "@/lib/prescriptionAdapter";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 
 
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
@@ -128,7 +129,7 @@ interface AthleteBoardProps {
 }
 
 export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   usePageTitle(t("performanceCompetitionBuilder.pageTitle"));
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -624,7 +625,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         toast({ title: t("metabolicBuilder.failedToDuplicate"), description: t("metabolicBuilder.tryAgain"), variant: "destructive" });
       }
     },
-    [board, activeDayISO, weekStartISO, saveBoard, toast],
+    [board, activeDayISO, weekStartISO, saveBoard, toast, t],
   );
 
 
@@ -682,8 +683,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           });
         }
         toast({
-          title: "AI Meal Added!",
-          description: `${generatedMeal.name} added to ${lists.find((l) => l[0] === slot)?.[1]}`,
+          title: t("AI Meal Added!"),
+          description: t("{{name}} added to {{slot}}", { name: generatedMeal.name, slot: lists.find((l) => l[0] === slot)?.[1] }),
         });
 
         try {
@@ -693,7 +694,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         }
       }
     },
-    [activeDayISO, board, saveBoard, toast],
+    [activeDayISO, board, saveBoard, toast, t],
   );
 
   // Handler for snack selection from AI Snack Creator
@@ -734,8 +735,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         }
 
         toast({
-          title: "Snack Added!",
-          description: `${snack.title} added successfully`,
+          title: t("Snack Added!"),
+          description: t("generalNutritionBuilder.mealAddedDesc", { name: snack.title }),
         });
 
         if (!snack.imageUrl) {
@@ -752,13 +753,13 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       } catch (error) {
         console.error("Failed to add snack:", error);
         toast({
-          title: "Failed to add snack",
+          title: t("Failed to add snack"),
           description: t("metabolicBuilder.tryAgain"),
           variant: "destructive",
         });
       }
     },
-    [board, planningMode, activeDayISO, saveBoard, toast],
+    [board, planningMode, activeDayISO, saveBoard, toast, t],
   );
 
   // Week navigation - just update weekStartISO, the useWeeklyBoard hook handles fetching with cache fallback
@@ -865,7 +866,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
     setLocation(
       "/my-biometrics?from=performance-competition-builder&view=macros",
     );
-  }, [coachMacroTargets, effectiveUserId, toast, setLocation]);
+  }, [coachMacroTargets, effectiveUserId, toast, setLocation, t]);
 
   // Silent error handling - Facebook-style: no UI for transient network events
   React.useEffect(() => {
@@ -936,7 +937,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                 </button>
 
                 <div className="text-sm font-medium text-white/90">
-                  {formatWeekLabel(weekStartISO)}
+                  {formatWeekLabel(weekStartISO, undefined, i18n.resolvedLanguage === "es" ? "es" : "en")}
                 </div>
 
                 <button
@@ -987,7 +988,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             {scConditions.length > 0 && (
               <div className="flex justify-center">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
-                  <span className="font-medium text-white/70">Active Clinical Supports:</span>
+                  <span className="font-medium text-white/70"><ClinicalSupportLabel label="Active Clinical Supports:" /></span>
                   {[
                     { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: scConditions.includes('anti-inflammatory') || scConditions.includes('anti_inflammatory'),                                                                         activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
                     { key: "cardiac",           label: "Cardiac Health",    isActive: scConditions.includes('cardiac') || scConditions.includes('heart-disease') || scConditions.includes('hypertension') || scConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
@@ -1000,7 +1001,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                   ].map(indicator => ({ ...indicator, isActive: isClinicalIndicatorActive(indicator.key, scConditions) })).map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
                     <span key={key} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
                       <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
-                      {label}
+                      <ClinicalSupportLabel label={label} />
                     </span>
                   ))}
                 </div>
@@ -1011,7 +1012,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             {scConditions.length > 0 && (
               <div className="flex justify-center">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
-                  <span className="font-medium text-white/70">Hormonal & Metabolic:</span>
+                  <span className="font-medium text-white/70"><ClinicalSupportLabel label="Hormonal & Metabolic:" /></span>
                   {[
                     { key: "hashimotos",         label: "Hashimoto's",        activeColor: "text-teal-300",   dotColor: "bg-teal-300",   dotGlow: "shadow-[0_0_4px_rgba(94,234,212,0.9)]"  },
                     { key: "hypothyroid",        label: "Hypothyroid",        activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
@@ -1022,7 +1023,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                   ].map(({ key, label, activeColor, dotColor, dotGlow }) => (
                     <span key={key} className={`flex items-center gap-1 ${scConditions.includes(key) ? `${activeColor} font-semibold` : "text-white/25"}`}>
                       <span className={`inline-block w-1.5 h-1.5 rounded-full ${scConditions.includes(key) ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
-                      {label}
+                      <ClinicalSupportLabel label={label} />
                     </span>
                   ))}
                 </div>
@@ -1319,7 +1320,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                           }}
                         >
                           <Sparkles className="h-3 w-3" />
-                          Create with AI
+                  {t("Create with AI")}
                         </Button>
                       )}
 
@@ -1336,7 +1337,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         }}
                       >
                         <ChefHat className="h-3 w-3" />
-                        Create with Chef
+                  {t("Create with Chef")}
                       </Button>
 
                       <AddOwnMealButton
@@ -1496,7 +1497,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         window.dispatchEvent(new Event("macros:updated"));
                         toast({
                           title: t("performanceCompetitionBuilder.daySavedCoach"),
-                          description: `${formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
+                          description: t("{{date}} has been locked.", { date: formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' }, undefined, i18n.resolvedLanguage === "es" ? "es" : "en") }),
                         });
                         setLocation(`/pro/clients/${clientId}/dashboard?tab=targets`);
                       }

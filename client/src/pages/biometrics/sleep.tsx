@@ -1,3 +1,4 @@
+import { useBackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -160,6 +161,7 @@ async function saveSleep(userId: string, session: SleepSession) {
 }
 
 export default function SleepPage() {
+  const navigationLabel = useBackNavigationLabel();
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
   const { user } = useAuth();
@@ -205,7 +207,7 @@ export default function SleepPage() {
         <Button
           onClick={() => setLocation("/my-biometrics")}
           className="bg-black/10 blur-none border border-white/20 text-white hover:bg-black/20 rounded-2xl w-10 h-10 p-0"
-          aria-label="Back to Biometrics"
+          aria-label={navigationLabel("Back to Biometrics")}
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>

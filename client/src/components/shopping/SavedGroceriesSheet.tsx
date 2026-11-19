@@ -33,6 +33,8 @@ import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { PillButton } from "@/components/ui/pill-button";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { SavedProductAnalysisAction } from "./SavedProductAnalysisAction";
+import { ProductLabelQuantity } from "@/components/ProductLabelQuantity";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 interface SavedGroceryItemMeta extends SavedRecommendationMetadata {
   [key: string]: any;
@@ -127,6 +129,7 @@ function itemPackageSize(item: SavedGroceryItem): string {
 }
 
 export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduct }: Props) {
+  const { t } = useConsumerCopy();
   const { user } = useAuth();
   const owner = user?.id ?? null;
   const session = useRef({ owner });
@@ -242,23 +245,23 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
       const alreadyOnList = data.alreadyOnListCount ?? 0;
       const blocked = data.blockedCount ?? 0;
       const details = [
-        added > 0 ? `${added} added` : "",
-        restored > 0 ? `${restored} restored` : "",
-        alreadyOnList > 0 ? `${alreadyOnList} already on list` : "",
-        blocked > 0 ? `${blocked} not added` : "",
+        added > 0 ? t("{{count}} added", { count: added }) : "",
+        restored > 0 ? t("{{count}} restored", { count: restored }) : "",
+        alreadyOnList > 0 ? t("{{count}} already on list", { count: alreadyOnList }) : "",
+        blocked > 0 ? t("{{count}} not added", { count: blocked }) : "",
       ].filter(Boolean).join(" · ");
       const rejected = (data.items ?? []).filter(item => item.status === "blocked");
       const rejectionDetails = rejected.map(result => {
         const product = items.find(item => item.id === result.id);
-        return `${product ? itemDisplayName(product) : "Selected product"}: ${result.reason || "The current server rules did not allow this addition."}`;
+        return `${product ? itemDisplayName(product) : t("Selected product")}: ${result.reason || t("The current server rules did not allow this addition.")}`;
       }).join(" ");
       toast({
         title: blocked > 0
-          ? "Some products were not added"
+          ? t("Some products were not added")
           : uniqueIds.length === 1
-            ? "Added to list"
-            : "Saved groceries updated",
-        description: [details, rejectionDetails].filter(Boolean).join(". ") || "Your shopping list is up to date.",
+            ? t("Added to list")
+            : t("Saved groceries updated"),
+        description: [details, rejectionDetails].filter(Boolean).join(". ") || t("Your shopping list is up to date."),
         variant: blocked > 0 && added + restored + alreadyOnList === 0
           ? "destructive"
           : undefined,
@@ -266,14 +269,14 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
     } catch {
       if (started !== session.current) return;
       toast({
-        title: "Couldn't add to list",
-        description: "Please try again.",
+        title: t("Couldn't add to list"),
+        description: t("Please try again."),
         variant: "destructive",
       });
     } finally {
       if (started === session.current) setBulkAdding(false);
     }
-  }, [hydrate, toast, items, loadedOwner, owner, bulkAdding]);
+  }, [hydrate, toast, items, loadedOwner, owner, bulkAdding, t]);
 
   const handleAddToList = useCallback(async (item: SavedGroceryItem) => {
     const started = session.current;
@@ -287,23 +290,23 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
       if (started !== session.current) return false;
       if (data.status === "blocked") {
         toast({
-          title: "Saved, but not added",
-          description: data.reason ?? "This product does not fit your current profile.",
+          title: t("Saved, but not added"),
+          description: data.reason ?? t("This product does not fit your current profile."),
           variant: "destructive",
         });
         return false;
       }
       await hydrate();
       toast({
-        title: data.status === "already_on_list" ? "Already on list" : "Added to list!",
+        title: t(data.status === "already_on_list" ? "Already on list" : "Added to list!"),
         description: data.name ?? itemDisplayName(item),
       });
       return true;
     } catch {
-      toast({ title: "Couldn't add to list", description: "Please try again.", variant: "destructive" });
+      toast({ title: t("Couldn't add to list"), description: t("Please try again."), variant: "destructive" });
       return false;
     }
-  }, [hydrate, toast]);
+  }, [hydrate, toast, t]);
 
   const handleRemove = useCallback(async (item: SavedGroceryItem) => {
     const started = session.current;
@@ -318,14 +321,14 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
         return next;
       });
       queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
-      toast({ title: "Removed", description: `${item.productName} removed from saved groceries.` });
+      toast({ title: t("Removed"), description: t("{{name}} removed from saved groceries.", { name: item.productName }) });
     } catch {
       if (started !== session.current) return;
-      toast({ title: "Couldn't remove item", description: "Please try again.", variant: "destructive" });
+      toast({ title: t("Couldn't remove item"), description: t("Please try again."), variant: "destructive" });
     } finally {
       if (started === session.current) setRemovingId(null);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   if (!open) return null;
 
@@ -379,13 +382,16 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <Bookmark style={{ width: 20, height: 20, color: "#f97316" }} />
                 <div>
-                  <div style={{ color: "white", fontWeight: 700, fontSize: 17 }}>Saved Groceries</div>
+                  <div style={{ color: "white", fontWeight: 700, fontSize: 17 }}>{t("Saved Groceries")}</div>
                   <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12 }}>
-                    {items.length} saved {items.length === 1 ? "item" : "items"} · remembered across sessions
+                    {t(items.length === 1
+                      ? "{{count}} saved item · remembered across sessions"
+                      : "{{count}} saved items · remembered across sessions", { count: items.length })}
                   </div>
                 </div>
               </div>
               <button
+                aria-label={t("Close saved groceries")}
                 onClick={() => onOpenChange(false)}
                 style={{ background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 8, padding: 8, cursor: "pointer" }}
               >
@@ -410,8 +416,8 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
                     <input
                       value={searchTerm}
                       onChange={(event) => setSearchTerm(event.target.value)}
-                      placeholder="Search saved groceries"
-                      aria-label="Search saved groceries"
+                      placeholder={t("Search saved groceries")}
+                      aria-label={t("Search saved groceries")}
                       style={{
                         width: "100%", background: "transparent", border: "none", outline: "none",
                         color: "white", fontSize: 13,
@@ -422,10 +428,10 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
                     <div>
                       <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 12 }}>
-                        {visibleItems.length} shown · {selectedIds.size} selected
+                        {t("{{shown}} shown · {{selected}} selected", { shown: visibleItems.length, selected: selectedIds.size })}
                       </div>
                       <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, marginTop: 2 }}>
-                        Choose the products you want to buy. Selections stay selected when you search.
+                        {t("Choose the products you want to buy. Selections stay selected when you search.")}
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -436,7 +442,9 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
                         disabled={selectedIds.size === 0 || bulkAdding}
                         onClick={() => handleAddMany(Array.from(selectedIds))}
                       >
-                        {bulkAdding ? "Adding…" : `Add Selected to Shopping List${selectedIds.size ? ` (${selectedIds.size})` : ""}`}
+                        {bulkAdding ? t("Adding…") : selectedIds.size
+                          ? t("Add Selected to Shopping List ({{count}})", { count: selectedIds.size })
+                          : t("Add Selected to Shopping List")}
                       </PillButton>
                     </div>
                   </div>
@@ -446,7 +454,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
               {loading && (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "40px 0", color: "rgba(255,255,255,0.5)" }}>
                   <Loader2 style={{ width: 20, height: 20, animation: "spin 1s linear infinite" }} />
-                  Loading saved groceries…
+                  {t("Loading saved groceries…")}
                 </div>
               )}
 
@@ -457,7 +465,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
                   borderRadius: 10, padding: "12px 16px", color: "#ef4444",
                 }}>
                   <AlertTriangle style={{ width: 16, height: 16, flexShrink: 0 }} />
-                  {error}
+                  {t(error)}
                 </div>
               )}
 
@@ -465,18 +473,18 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
                 <div style={{ textAlign: "center", padding: "40px 20px" }}>
                   <Bookmark style={{ width: 36, height: 36, color: "rgba(255,255,255,0.2)", margin: "0 auto 12px" }} />
                   <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 15, marginBottom: 8 }}>
-                    No saved groceries yet
+                    {t("No saved groceries yet")}
                   </div>
                   <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 13, lineHeight: 1.5 }}>
-                    When Grocery Coach recommends a brand you like,<br />
-                    tap the bookmark icon to save it here.
+                    {t("When Grocery Coach recommends a brand you like,")}<br />
+                    {t("tap the bookmark icon to save it here.")}
                   </div>
                 </div>
               )}
 
               {!loading && !error && items.length > 0 && visibleItems.length === 0 && (
                 <div style={{ textAlign: "center", padding: "28px 20px", color: "rgba(255,255,255,0.5)", fontSize: 13 }}>
-                  No saved groceries match your search.
+                  {t("No saved groceries match your search.")}
                 </div>
               )}
 
@@ -499,7 +507,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
                             }}
                           >
                               <label style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, flexShrink: 0, cursor: "pointer" }}>
-                                <input type="checkbox" aria-label={`Select ${itemDisplayName(item)}${itemPackageSize(item) ? ` (${itemPackageSize(item)})` : ""}`}
+                                <input type="checkbox" aria-label={t("Select {{name}}", { name: `${itemDisplayName(item)}${itemPackageSize(item) ? ` (${itemPackageSize(item)})` : ""}` })}
                                   style={{ width: 22, height: 22, accentColor: "#38bdf8", cursor: "pointer" }}
                                   checked={isSelected} disabled={bulkAdding}
                                   onChange={() => toggleSelected(item.id)} />
@@ -524,7 +532,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
                             <button
                               type="button"
                               onClick={() => { setHistoryIndex(-1); setAnalysisItem(item); }}
-                              aria-label={`View Analysis: ${itemDisplayName(item)}`}
+                              aria-label={t("View Analysis: {{name}}", { name: itemDisplayName(item) })}
                               className="hover:brightness-125 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
                               style={{
                                 color: "#7dd3fc", background: "rgba(56,189,248,0.12)",
@@ -533,7 +541,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
                                 padding: "0 4px", minWidth: 52, height: 44, flexShrink: 0, cursor: "pointer",
                               }}
                             >
-                              Analysis
+                              {t("Analysis")}
                             </button>
 
                             {/* Unsave */}
@@ -541,8 +549,8 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
                               type="button"
                               onClick={() => handleRemove(item)}
                               disabled={isRemoving}
-                              aria-label={`Remove ${itemDisplayName(item)} from saved groceries`}
-                              title="Remove from saved groceries"
+                              aria-label={t("Remove {{name}} from saved groceries", { name: itemDisplayName(item) })}
+                              title={t("Remove from saved groceries")}
                               style={{
                                 display: "flex", alignItems: "center", justifyContent: "center",
                                 gap: 4, minWidth: 44, height: 44, padding: "0 6px", borderRadius: 8,
@@ -554,7 +562,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
                                 ? <Loader2 style={{ width: 13, height: 13, color: "#ef4444", animation: "spin 1s linear infinite" }} />
                                 : <Trash2 style={{ width: 13, height: 13, color: "rgba(239,68,68,0.7)" }} />
                               }
-                              Delete
+                              {t("Delete")}
                             </button>
                           </div>
                         );
@@ -600,7 +608,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
       result={buildResultFromSavedItem(displayedItem!)}
       savedContext={<section className="rounded-xl border border-white/20 p-3 my-3 text-sm space-y-2">
         <p>{savedAnalysisKind(displayedItem!) === "full" ? "Analysis saved" : savedAnalysisKind(displayedItem!) === "recommendation" ? "Recommendation saved" : "Saved product — original analysis may be unavailable"}</p>
-        {itemPackageSize(displayedItem!) && <p>Package: {itemPackageSize(displayedItem!)}</p>}
+        {itemPackageSize(displayedItem!) && <p>Package: <ProductLabelQuantity label={itemPackageSize(displayedItem!)} /></p>}
         <p>{savedProductStatus(analysisItem)}</p>
         {analysisItem.compliance.reason && <p>{analysisItem.compliance.reason}</p>}
         <p>Saving analysis does not verify the current label. Historical analysis is not current safety approval.</p>

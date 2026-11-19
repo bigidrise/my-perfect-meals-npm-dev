@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -293,7 +294,7 @@ export default function MyPerfectBeginningPage() {
             className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="text-sm font-medium">Back</span>
+            <span className="text-sm font-medium"><BackNavigationLabel /></span>
           </button>
         )}
         {/* Hub Intro — matches Pairings Hub pattern */}

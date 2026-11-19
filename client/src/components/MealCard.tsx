@@ -13,6 +13,8 @@ import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 import { builderMealMacros, formatBuilderMacro, type BuilderMacroKey } from "@/lib/builderMacroCalculation";
 import TrashButton from "@/components/ui/TrashButton";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
+import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
 import MealCardActions, { MealCardAction } from "@/components/MealCardActions";
 import { StarchMealBadge } from "@/components/StarchMealBadge";
 import DietStyleBadge from "@/components/DietStyleBadge";
@@ -31,7 +33,7 @@ import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import MealRefinementSheet from "@/components/MealRefinementSheet";
 import { MealRefinementPanel } from "@/components/MealRefinementPanel";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import type { DiabeticMemoryContext } from "@/lib/diabeticMemory";
 import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
 import { GroceryCoachCarbStatus } from "@/components/shopping/GroceryCoachMacroTiles";
@@ -166,6 +168,7 @@ export function MealCard({
   onRefined?:   () => void;
 }) {
   const { t } = useTranslation("mealCard");
+  const measurementSystem = useMeasurementSystem();
   const storedDiabeticMemory = meal.diabeticMemory ?? diabeticMemoryContext;
   const { toast } = useToast();
   const { user } = useAuth();
@@ -255,7 +258,7 @@ export function MealCard({
 
   const handleLogMacros = async () => {
     if (builderSnapshot?.uncertainFields.length) {
-      toast({ title: "Review meal nutrition", description: builderSnapshot.issues.join(". "), variant: "destructive" });
+      toast({ title: t("Review meal nutrition"), description: builderSnapshot.issues.join(". "), variant: "destructive" });
       return;
     }
     try {
@@ -477,7 +480,7 @@ export function MealCard({
                   return (
                     <li key={i} className="flex items-start">
                       <span className="text-green-400 mr-1">•</span>
-                      <span>{ing}</span>
+                      <span><IngredientDisplay ingredient={ing} legacyText={ing} /></span>
                     </li>
                   );
                 }
@@ -487,7 +490,7 @@ export function MealCard({
                 
                 // Use formatIngredientWithGrams for proper display
                 const ingDisplayText = (qty && unit)
-                  ? formatIngredientWithGrams(qty, unit, name)
+                  ? formatIngredientWithGrams(qty, unit, name, measurementSystem)
                   : qty
                     ? `${qty} ${name}`.trim()
                     : name;
@@ -495,7 +498,7 @@ export function MealCard({
                 return (
                   <li key={i} className="flex items-start">
                     <span className="text-green-400 mr-1">•</span>
-                    <span>{ingDisplayText}</span>
+                    <span><IngredientDisplay ingredient={{ quantity: qty, unit, name }} legacyText={ingDisplayText} /></span>
                   </li>
                 );
               })}
@@ -596,9 +599,9 @@ export function MealCard({
           {builderSnapshot && (builderSnapshot.estimated || builderSnapshot.issues.length > 0 ||
             builderSnapshot.unclassifiedCarbs > 0.01) && (
             <p className="text-[10px] text-white/60">
-              {builderSnapshot.estimated && "Carb split estimated. "}
+              {builderSnapshot.estimated && t("Carb split estimated. ")}
               {builderSnapshot.unclassifiedCarbs > 0.01 &&
-                `${Math.round(builderSnapshot.unclassifiedCarbs)}g other/unclassified carbs. `}
+                t("{{grams}}g other/unclassified carbs. ", { grams: Math.round(builderSnapshot.unclassifiedCarbs) })}
               {builderSnapshot.issues.join(". ")}
             </p>
           )}
@@ -639,7 +642,7 @@ export function MealCard({
               )}
             </MealCardAction>
             {date !== "board" && !!builderSnapshot?.uncertainFields.length && (
-              <p className="text-xs text-amber-300">Review incomplete nutrition before logging.</p>
+              <p className="text-xs text-amber-300">{t("Review incomplete nutrition before logging.")}</p>
             )}
             <MealCardAction kind="plan">
               <AddToMealPlanButton meal={{ ...meal, builderType: builderType ?? meal.builderType }} />

@@ -8,7 +8,7 @@ import { DailyMacroTotalsRow } from "@/components/DailyMacroTotalsRow";
 import { RemainingMacrosFooter } from "@/components/biometrics/RemainingMacrosFooter";
 
 jest.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (key: string) => ({
+  useTranslation: () => ({ t: (key: string, options?: Record<string, unknown>) => (({
     "common.today": "Today",
     "remainingMacros.remainingToday": "Remaining Today",
     "remainingMacros.protein": "Protein",
@@ -17,7 +17,7 @@ jest.mock("react-i18next", () => ({
     "remainingMacros.fat": "Fat",
     "remainingMacros.overLimit": "Over limit",
     "remainingMacros.limit": "Limit",
-  } as Record<string, string>)[key] ?? key }),
+  } as Record<string, string>)[key] ?? key).replace(/\{\{(\w+)\}\}/g, (_match, name) => String(options?.[name] ?? `{{${name}}}`)) }),
 }));
 jest.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: { id: "offline-only" } }) }));
 jest.mock("@/hooks/useTodayMacros", () => ({ useTodayMacros: () => ({

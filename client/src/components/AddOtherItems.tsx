@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 const QUICK_SUGGESTIONS = [
   "Paper Towels",
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export default function AddOtherItems({ prefillName, onPrefillConsumed }: Props) {
+  const { t } = useConsumerCopy();
   const { toast } = useToast();
   const { addItem } = useShoppingListStore();
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -64,7 +66,7 @@ export default function AddOtherItems({ prefillName, onPrefillConsumed }: Props)
       ? `${brand.trim()} ${name.trim()}`
       : name.trim();
     addItem({ name: displayName, quantity: parseFloat(qty) || 1, unit: unit.trim() || "unit", category: "Other" });
-    toast({ title: "Added to your list", description: displayName });
+    toast({ title: t("Added to your list"), description: displayName });
     resetForm();
     setShowSuggestions(false);
   }
@@ -82,20 +84,20 @@ export default function AddOtherItems({ prefillName, onPrefillConsumed }: Props)
     <div id="add-other-items" className="rounded-2xl border border-white/20 bg-black/60 text-white p-4 sm:p-6">
       <div className="flex items-center gap-3 mb-4">
         <Package className="h-5 w-5 text-blue-400" />
-        <h3 className="text-lg font-semibold">Add Other Items</h3>
+        <h3 className="text-lg font-semibold">{t("Add Other Items")}</h3>
       </div>
 
       <p className="text-xs text-white/60 mb-4">
-        Add household items, scanned products, or anything else. These appear in your list under Other.
+        {t("Add household items, scanned products, or anything else. These appear in your list under Other.")}
       </p>
 
       <div className="space-y-3 mb-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="relative">
-            <Label className="text-white/80 text-sm mb-1 block">Item Name</Label>
+            <Label className="text-white/80 text-sm mb-1 block">{t("Item Name")}</Label>
             <Input
               ref={nameInputRef}
-              placeholder="e.g., Paper Towels, Rao's Marinara"
+              placeholder={t("e.g., Paper Towels, Rao's Marinara")}
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
@@ -124,9 +126,9 @@ export default function AddOtherItems({ prefillName, onPrefillConsumed }: Props)
           </div>
 
           <div>
-            <Label className="text-white/80 text-sm mb-1 block">Brand (optional)</Label>
+            <Label className="text-white/80 text-sm mb-1 block">{t("Brand (optional)")}</Label>
             <Input
-              placeholder="e.g., Bounty, Purina, Rao's"
+              placeholder={t("e.g., Bounty, Purina, Rao's")}
               value={brand}
               onChange={(e) => setBrand(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
@@ -138,7 +140,7 @@ export default function AddOtherItems({ prefillName, onPrefillConsumed }: Props)
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label className="text-white/80 text-sm mb-1 block">Qty</Label>
+            <Label className="text-white/80 text-sm mb-1 block">{t("Qty")}</Label>
             <Input
               type="number"
               min="1"
@@ -151,9 +153,9 @@ export default function AddOtherItems({ prefillName, onPrefillConsumed }: Props)
             />
           </div>
           <div>
-            <Label className="text-white/80 text-sm mb-1 block">Unit</Label>
+            <Label className="text-white/80 text-sm mb-1 block">{t("Unit")}</Label>
             <Input
-              placeholder="pack, bottle, bag"
+              placeholder={t("pack, bottle, bag")}
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
@@ -170,7 +172,7 @@ export default function AddOtherItems({ prefillName, onPrefillConsumed }: Props)
           data-testid="button-add-other-item"
         >
           <Plus className="h-4 w-4 mr-2" />
-          Add to List
+          {t("Add to List")}
         </Button>
       </div>
     </div>

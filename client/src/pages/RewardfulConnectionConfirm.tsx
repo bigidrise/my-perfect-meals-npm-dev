@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 
@@ -42,7 +43,7 @@ export default function RewardfulConnectionConfirm() {
             onClick={() => setLocation(state === "success" ? "/business-center/affiliate/dashboard" : "/")}
             className="mt-6 w-full rounded-xl bg-orange-600 px-4 py-3 text-sm font-bold text-white"
           >
-            {state === "success" ? "Return to Partner & Revenue" : "Return to My Perfect Meals"}
+            <BackNavigationLabel label={state === "success" ? "Return to Partner & Revenue" : "Return to My Perfect Meals"} />
           </button>
         )}
         <p className="mt-5 text-[11px] leading-relaxed text-white/40">

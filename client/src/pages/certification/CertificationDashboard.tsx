@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { CheckCircle2, Circle, Clock, Lock, Award, X, PlayCircle, Building2 } from "lucide-react";
@@ -195,7 +196,7 @@ export default function CertificationDashboard() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
           >
             <Building2 className="h-4 w-4" />
-            Business Suite
+            <BackNavigationLabel label="Business Suite" />
           </button>
         </div>
       </div>

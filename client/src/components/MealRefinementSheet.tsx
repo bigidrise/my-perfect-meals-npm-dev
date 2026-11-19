@@ -8,6 +8,7 @@
  */
 
 import { useState, useRef, useCallback } from "react";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -759,7 +760,7 @@ export default function MealRefinementSheet({
                                   >
                                     <span style={{ color: "#a78bfa" }}>•</span>
                                     <span>
-                                      {qty ? `${qty} ${name}` : name}
+                                      <IngredientDisplay ingredient={ing} legacyText={qty ? `${qty} ${name}` : name} />
                                     </span>
                                   </li>
                                 );

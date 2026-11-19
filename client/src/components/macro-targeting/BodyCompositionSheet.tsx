@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import { useMacroCalculatorCopy as useTranslation } from "@/i18n/useMacroCalculatorCopy";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -33,7 +33,7 @@ export default function BodyCompositionSheet({
   onOpenChange,
   onSaved,
 }: BodyCompositionSheetProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const [method, setMethod] = useState<ScanMethod>("DEXA");
   const [date, setDate] = useState<string>("");
@@ -138,8 +138,9 @@ export default function BodyCompositionSheet({
 
         <div className="space-y-5 pb-8">
           <div className="space-y-2">
-            <label className="text-sm text-white/85 font-medium">{t("bodyComposition.bodyFatPct")}</label>
+            <label htmlFor="macro-body-fat" className="text-sm text-white/85 font-medium">{t("bodyComposition.bodyFatPct")}</label>
             <Input
+              id="macro-body-fat"
               type="number"
               inputMode="decimal"
               placeholder={t("bodyComposition.bodyFatPlaceholder")}
@@ -150,8 +151,9 @@ export default function BodyCompositionSheet({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-white/85 font-medium">{t("bodyComposition.goalBodyFatPct")}</label>
+            <label htmlFor="macro-goal-body-fat" className="text-sm text-white/85 font-medium">{t("bodyComposition.goalBodyFatPct")}</label>
             <Input
+              id="macro-goal-body-fat"
               type="number"
               inputMode="decimal"
               placeholder={t("bodyComposition.goalBodyFatPlaceholder")}
@@ -170,7 +172,7 @@ export default function BodyCompositionSheet({
               <SelectContent className="bg-zinc-900 text-white border border-white/20">
                 {["DEXA", "BodPod", "Calipers", "Smart Scale", "Other"].map((m) => (
                   <SelectItem key={m} value={m}>
-                    {m}
+                    {t(m)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -178,10 +180,12 @@ export default function BodyCompositionSheet({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-white/85 font-medium">{t("bodyComposition.date")}</label>
+            <label htmlFor="macro-body-fat-date" className="text-sm text-white/85 font-medium">{t("bodyComposition.date")}</label>
             <div className="flex items-center gap-2">
               <CalIcon className="h-4 w-4 text-white/60" />
               <Input
+                id="macro-body-fat-date"
+                lang={i18n.resolvedLanguage || i18n.language}
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}

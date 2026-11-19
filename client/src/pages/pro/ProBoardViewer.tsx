@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
@@ -177,7 +178,7 @@ export default function ProBoardViewer() {
             className="flex items-center gap-1 text-white p-2 rounded-lg flex-shrink-0 active:scale-[0.98] transition-all"
           >
             <ArrowLeft className="h-5 w-5" />
-            <span className="text-sm font-medium">Back</span>
+            <span className="text-sm font-medium"><BackNavigationLabel /></span>
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-white truncate">

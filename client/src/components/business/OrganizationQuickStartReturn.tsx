@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
@@ -59,7 +60,7 @@ export function OrganizationQuickStartReturn() {
       data-testid="organization-quick-start-return"
     >
       <ArrowLeft className="h-4 w-4" />
-      Return to Organization Quick Start
+      <BackNavigationLabel label="Return to Organization Quick Start" />
     </button>
   );
 }

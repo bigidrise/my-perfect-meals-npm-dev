@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import BreathingOrb from "@/components/BreathingOrb";
 import MealGenerationProgress from "@/components/MealGenerationProgress";
 import { UniversalDialog } from "@/components/ui/universal-modal";
@@ -82,6 +82,10 @@ export function CreateWithChefModal({
   proClientId,
 }: CreateWithChefModalProps) {
   const { t } = useTranslation();
+  const mealTypeLabels = {
+    breakfast: t("breakfast"), lunch: t("lunch"), dinner: t("dinner"),
+    meal4: t("meal4"), meal5: t("meal5"), meal6: t("meal6"),
+  };
   const [description, setDescription] = useState("");
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
@@ -508,7 +512,7 @@ export function CreateWithChefModal({
             {t("createWithChef.title")}
           </DialogTitle>
           <DialogDescription className="text-white/60">
-            {t("createWithChef.subtitle", { mealType })}
+            {t("createWithChef.subtitle", { mealType: mealTypeLabels[mealType] ?? mealType })}
           </DialogDescription>
         </DialogHeader>
 
@@ -626,7 +630,7 @@ export function CreateWithChefModal({
                   value={description}
                   onChange={setDescription}
                   disabled={isProcessing}
-                  label={t("createWithChef.voiceInput", { defaultValue: "Use voice input to describe your meal" })}
+                  label={t("Use voice input to describe your meal")}
                   className="shrink-0"
                 />
                 </div>

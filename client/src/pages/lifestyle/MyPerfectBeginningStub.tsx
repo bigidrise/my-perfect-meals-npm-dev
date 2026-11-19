@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import React from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Baby, Sprout } from "lucide-react";
@@ -86,7 +87,7 @@ export default function MyPerfectBeginningStub() {
               className="flex items-center gap-1.5 text-emerald-400 text-sm"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span>My Perfect Beginnings</span>
+              <span><BackNavigationLabel label="My Perfect Beginnings" /></span>
             </button>
           </div>
         </div>
@@ -107,7 +108,7 @@ export default function MyPerfectBeginningStub() {
               className="flex items-center gap-1.5 text-emerald-400 text-sm"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span>Back to My Perfect Beginnings</span>
+              <span><BackNavigationLabel label="Back to My Perfect Beginnings" /></span>
             </button>
           </div>
         )}
@@ -129,7 +130,7 @@ export default function MyPerfectBeginningStub() {
             className="mt-8 flex items-center gap-2 text-emerald-400 text-sm"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to My Perfect Beginning
+            <BackNavigationLabel label="Back to My Perfect Beginning" />
           </button>
         </div>
       </div>

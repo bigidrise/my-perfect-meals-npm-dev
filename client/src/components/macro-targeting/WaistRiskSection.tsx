@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useMacroCalculatorCopy as useConsumerCopy } from "@/i18n/useMacroCalculatorCopy";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -58,6 +59,7 @@ export default function WaistRiskSection({
   onApplyAdjustments,
   onClearAdjustments,
 }: WaistRiskSectionProps) {
+  const { t } = useConsumerCopy();
   const [isOpen, setIsOpen] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [adjustmentApplied, setAdjustmentApplied] = useState(false);
@@ -117,19 +119,17 @@ export default function WaistRiskSection({
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Ruler className="h-5 w-5 text-orange-400" />
-                  Waist-to-Height Risk
-                  {hasMeasurements && (
+                  <Ruler className="h-5 w-5 text-orange-400" />{t("Waist-to-Height Risk")}{hasMeasurements && (
                     <span className={`text-xs px-2 py-0.5 rounded-full ml-2 ${colors.badge}`}>
-                      {risk.label}
+                      {t(risk.label)}
                     </span>
                   )}
                 </h3>
                 {!isOpen && (
                   <span className="text-sm text-orange-300/80 ml-7 mt-1">
                     {hasMeasurements
-                      ? `Ratio: ${ratio} — Tap to review`
-                      : "Enter waist & height to calculate"}
+                      ? t("Ratio: {{value1}} — Tap to review", { value1: ratio })
+                      : t("Enter waist & height to calculate")}
                   </span>
                 )}
               </div>
@@ -147,13 +147,8 @@ export default function WaistRiskSection({
             {!hasMeasurements ? (
               <div className="p-4 bg-black/40 rounded-lg border border-white/10 text-center">
                 <Ruler className="h-10 w-10 text-white/30 mx-auto mb-3" />
-                <p className="text-white/70 text-sm mb-2">
-                  No measurements available
-                </p>
-                <p className="text-white/50 text-xs">
-                  Enter your waist circumference and height above to see your
-                  waist-to-height risk assessment.
-                </p>
+                <p className="text-white/70 text-sm mb-2">{t("No measurements available")}</p>
+                <p className="text-white/50 text-xs">{t("Enter your waist circumference and height above to see your waist-to-height risk assessment.")}</p>
               </div>
             ) : (
               <>
@@ -163,35 +158,28 @@ export default function WaistRiskSection({
                       <div className={`text-3xl font-bold ${colors.text}`}>
                         {ratio}
                       </div>
-                      <div className="text-xs text-white/60 mt-1">
-                        Waist-to-Height Ratio
-                      </div>
+                      <div className="text-xs text-white/60 mt-1">{t("Waist-to-Height Ratio")}</div>
                     </div>
                     <div className="text-right text-sm text-white/70">
-                      <div>Waist: {waistCm} cm</div>
-                      <div>Height: {heightCm} cm</div>
+                      <div>{t("Waist:")}{" "}{waistCm}{" "}{t("cm")}</div>
+                      <div>{t("Height:")}{" "}{heightCm}{" "}{t("cm")}</div>
                     </div>
                   </div>
                   <div className={`text-sm font-medium ${colors.text} mb-1`}>
-                    {risk.label}
+                    {t(risk.label)}
                   </div>
-                  <p className="text-xs text-white/70">{risk.description}</p>
+                  <p className="text-xs text-white/70">{t(risk.description)}</p>
                 </div>
 
                 {hasDeltas && (
                   <div className="p-4 bg-black/40 rounded-lg border border-white/10">
-                    <div className="text-xs font-medium text-white/80 mb-2">
-                      Suggested macro adjustments:
-                    </div>
+                    <div className="text-xs font-medium text-white/80 mb-2">{t("Suggested macro adjustments:")}</div>
                     <div className="flex gap-4 text-sm mb-3">
-                      <span className={deltaColor(deltas.protein)}>
-                        Protein: {formatDelta(deltas.protein)}
+                      <span className={deltaColor(deltas.protein)}>{t("Protein:")}{" "}{formatDelta(deltas.protein)}
                       </span>
-                      <span className={deltaColor(deltas.carbs)}>
-                        Carbs: {formatDelta(deltas.carbs)}
+                      <span className={deltaColor(deltas.carbs)}>{t("Carbs:")}{" "}{formatDelta(deltas.carbs)}
                       </span>
-                      <span className={deltaColor(deltas.fat)}>
-                        Fat: {formatDelta(deltas.fat)}
+                      <span className={deltaColor(deltas.fat)}>{t("Fat:")}{" "}{formatDelta(deltas.fat)}
                       </span>
                     </div>
 
@@ -199,23 +187,19 @@ export default function WaistRiskSection({
                       <Button
                         onClick={handlePreviewChanges}
                         className="w-full bg-lime-600 border border-2 border-lime-400 text-white"
-                      >
-                        Preview Changes
-                      </Button>
+                      >{t("Preview Changes")}</Button>
                     ) : (
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 text-sm text-green-400">
                           <Check className="h-4 w-4" />
-                          <span>Adjustment applied to your macros</span>
+                          <span>{t("Adjustment applied to your macros")}</span>
                         </div>
                         <Button
                           variant="outline"
                           onClick={handleClear}
                           className="w-full bg-black border-white/20 text-white hover:bg-white/10"
                         >
-                          <X className="h-4 w-4 mr-2" />
-                          Clear Adjustment
-                        </Button>
+                          <X className="h-4 w-4 mr-2" />{t("Clear Adjustment")}</Button>
                       </div>
                     )}
                   </div>
@@ -224,7 +208,7 @@ export default function WaistRiskSection({
                 {!hasDeltas && hasMeasurements && (
                   <div className="flex items-center gap-2 text-sm text-green-400 p-3">
                     <Check className="h-4 w-4" />
-                    <span>No macro adjustments needed</span>
+                    <span>{t("No macro adjustments needed")}</span>
                   </div>
                 )}
               </>
@@ -239,15 +223,10 @@ export default function WaistRiskSection({
             <CardContent className="p-6">
               <div className="flex items-center gap-2 mb-4">
                 <AlertCircle className="h-5 w-5 text-orange-400" />
-                <h3 className="text-lg font-semibold text-white">
-                  Apply Waist Risk Adjustment?
-                </h3>
+                <h3 className="text-lg font-semibold text-white">{t("Apply Waist Risk Adjustment?")}</h3>
               </div>
 
-              <p className="text-sm text-white/80 mb-4">
-                Based on your waist-to-height ratio ({ratio} — {risk.label}),
-                these adjustments will be applied to your macro targets:
-              </p>
+              <p className="text-sm text-white/80 mb-4">{t("Based on your waist-to-height ratio (")}{ratio} — {t(risk.label)}{t("), these adjustments will be applied to your macro targets:")}</p>
 
               <div className="p-4 bg-black/30 rounded-lg mb-2">
                 <div className="grid grid-cols-3 gap-4 text-center">
@@ -255,25 +234,25 @@ export default function WaistRiskSection({
                     <div className={`text-lg font-bold ${deltaColor(deltas.protein)}`}>
                       {formatDelta(deltas.protein)}
                     </div>
-                    <div className="text-xs text-white/60">Protein</div>
+                    <div className="text-xs text-white/60">{t("Protein")}</div>
                   </div>
                   <div>
                     <div className={`text-lg font-bold ${deltaColor(deltas.carbs)}`}>
                       {formatDelta(deltas.carbs)}
                     </div>
-                    <div className="text-xs text-white/60">Carbs</div>
+                    <div className="text-xs text-white/60">{t("Carbs")}</div>
                   </div>
                   <div>
                     <div className={`text-lg font-bold ${deltaColor(deltas.fat)}`}>
                       {formatDelta(deltas.fat)}
                     </div>
-                    <div className="text-xs text-white/60">Fat</div>
+                    <div className="text-xs text-white/60">{t("Fat")}</div>
                   </div>
                 </div>
               </div>
 
               <p className="text-xs text-white/60 italic mb-4">
-                {risk.description}
+                {t(risk.description)}
               </p>
 
               <div className="flex gap-3">
@@ -282,16 +261,12 @@ export default function WaistRiskSection({
                   onClick={handleCancelApply}
                   className="flex-1 bg-black border-white/20 text-white"
                 >
-                  <X className="h-4 w-4 mr-2" />
-                  Cancel
-                </Button>
+                  <X className="h-4 w-4 mr-2" />{t("Cancel")}</Button>
                 <Button
                   onClick={handleConfirmApply}
                   className="flex-1 bg-lime-600 text-white"
                 >
-                  <Check className="h-4 w-4 mr-2" />
-                  Apply
-                </Button>
+                  <Check className="h-4 w-4 mr-2" />{t("Apply")}</Button>
               </div>
             </CardContent>
           </Card>

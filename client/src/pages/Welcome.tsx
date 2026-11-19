@@ -47,7 +47,10 @@ const slides = [
 
 type ModalStep = "choose" | "account-type" | "pro-type";
 
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+
 export default function Welcome() {
+  const { t } = useConsumerCopy();
   const [, setLocation] = useLocation();
   const [showModal, setShowModal] = useState(false);
   const [modalStep, setModalStep] = useState<ModalStep>("choose");
@@ -231,7 +234,7 @@ export default function Welcome() {
                 <button
                   onClick={closeModal}
                   className="absolute top-4 right-4 p-1.5 rounded-full bg-white/10 active:scale-[0.98] transition-transform"
-                  aria-label="Close"
+                  aria-label={t("Close")}
                 >
                   <X className="h-4 w-4 text-white/60" />
                 </button>
@@ -241,7 +244,7 @@ export default function Welcome() {
                 <button
                   onClick={() => setModalStep(modalStep === "pro-type" ? "account-type" : "choose")}
                   className="absolute top-4 left-4 p-1.5 rounded-full bg-white/10 active:scale-[0.98] transition-transform"
-                  aria-label="Back"
+                  aria-label={t("Back")}
                 >
                   <ArrowLeft className="h-4 w-4 text-white/60" />
                 </button>
@@ -251,7 +254,7 @@ export default function Welcome() {
                 <button
                   onClick={closeModal}
                   className="absolute top-4 right-4 p-1.5 rounded-full bg-white/10 active:scale-[0.98] transition-transform"
-                  aria-label="Close"
+                  aria-label={t("Close")}
                 >
                   <X className="h-4 w-4 text-white/60" />
                 </button>
@@ -260,8 +263,8 @@ export default function Welcome() {
               {modalStep === "choose" && (
                 <div className="space-y-5 pt-2">
                   <div className="text-center">
-                    <h2 className="text-xl font-bold text-white mb-1">Welcome</h2>
-                    <p className="text-white/50 text-sm">How would you like to start?</p>
+                    <h2 className="text-xl font-bold text-white mb-1">{t("Welcome")}</h2>
+                    <p className="text-white/50 text-sm">{t("How would you like to start?")}</p>
                   </div>
 
                   <button
@@ -273,8 +276,8 @@ export default function Welcome() {
                         <LogIn className="h-5 w-5 text-orange-400" />
                       </div>
                       <div>
-                        <h3 className="text-white font-semibold text-base">Sign In</h3>
-                        <p className="text-white/50 text-sm mt-0.5">I already have an account</p>
+                        <h3 className="text-white font-semibold text-base">{t("Sign In")}</h3>
+                        <p className="text-white/50 text-sm mt-0.5">{t("I already have an account")}</p>
                       </div>
                     </div>
                   </button>
@@ -288,8 +291,8 @@ export default function Welcome() {
                         <UserPlus className="h-5 w-5 text-emerald-400" />
                       </div>
                       <div>
-                        <h3 className="text-white font-semibold text-base">Create Account</h3>
-                        <p className="text-white/50 text-sm mt-0.5">I'm new here</p>
+                        <h3 className="text-white font-semibold text-base">{t("Create Account")}</h3>
+                        <p className="text-white/50 text-sm mt-0.5">{t("I'm new here")}</p>
                       </div>
                     </div>
                   </button>
@@ -299,8 +302,8 @@ export default function Welcome() {
               {modalStep === "account-type" && (
                 <div className="space-y-5 pt-2">
                   <div className="text-center">
-                    <h2 className="text-xl font-bold text-white mb-1">Create Account</h2>
-                    <p className="text-white/50 text-sm">What kind of account?</p>
+                    <h2 className="text-xl font-bold text-white mb-1">{t("Create Account")}</h2>
+                    <p className="text-white/50 text-sm">{t("What kind of account?")}</p>
                   </div>
 
                   <button
@@ -312,8 +315,8 @@ export default function Welcome() {
                         <User className="h-5 w-5 text-lime-400" />
                       </div>
                       <div>
-                        <h3 className="text-white font-semibold text-base">Personal Account</h3>
-                        <p className="text-white/50 text-sm mt-0.5">Meal planning for yourself</p>
+                        <h3 className="text-white font-semibold text-base">{t("Personal Account")}</h3>
+                        <p className="text-white/50 text-sm mt-0.5">{t("Meal planning for yourself")}</p>
                       </div>
                     </div>
                   </button>
@@ -327,8 +330,8 @@ export default function Welcome() {
                         <Stethoscope className="h-5 w-5 text-blue-400" />
                       </div>
                       <div>
-                        <h3 className="text-white font-semibold text-base">Professional Account</h3>
-                        <p className="text-white/50 text-sm mt-0.5">Trainer, coach, or physician</p>
+                        <h3 className="text-white font-semibold text-base">{t("Professional Account")}</h3>
+                        <p className="text-white/50 text-sm mt-0.5">{t("Trainer, coach, or physician")}</p>
                       </div>
                     </div>
                   </button>
@@ -338,8 +341,8 @@ export default function Welcome() {
               {modalStep === "pro-type" && (
                 <div className="space-y-5 pt-2">
                   <div className="text-center">
-                    <h2 className="text-xl font-bold text-white mb-1">Professional Account</h2>
-                    <p className="text-white/50 text-sm">What kind of professional?</p>
+                    <h2 className="text-xl font-bold text-white mb-1">{t("Professional Account")}</h2>
+                    <p className="text-white/50 text-sm">{t("What kind of professional?")}</p>
                   </div>
 
                   <button
@@ -351,8 +354,8 @@ export default function Welcome() {
                         <Dumbbell className="h-5 w-5 text-emerald-400" />
                       </div>
                       <div>
-                        <h3 className="text-white font-semibold text-base">Trainer / Coach</h3>
-                        <p className="text-white/50 text-sm mt-0.5">Fitness and nutrition coaching</p>
+                        <h3 className="text-white font-semibold text-base">{t("Trainer / Coach")}</h3>
+                        <p className="text-white/50 text-sm mt-0.5">{t("Fitness and nutrition coaching")}</p>
                       </div>
                     </div>
                   </button>
@@ -366,8 +369,8 @@ export default function Welcome() {
                         <Stethoscope className="h-5 w-5 text-blue-400" />
                       </div>
                       <div>
-                        <h3 className="text-white font-semibold text-base">Physician / Medical</h3>
-                        <p className="text-white/50 text-sm mt-0.5">Clinical and medical professional</p>
+                        <h3 className="text-white font-semibold text-base">{t("Physician / Medical")}</h3>
+                        <p className="text-white/50 text-sm mt-0.5">{t("Clinical and medical professional")}</p>
                       </div>
                     </div>
                   </button>
@@ -381,8 +384,8 @@ export default function Welcome() {
                         <Building2 className="h-5 w-5 text-orange-400" />
                       </div>
                       <div>
-                        <h3 className="text-white font-semibold text-base">Business / Organization</h3>
-                        <p className="text-white/50 text-sm mt-0.5">Clinic, partner, affiliate, or white label</p>
+                        <h3 className="text-white font-semibold text-base">{t("Business / Organization")}</h3>
+                        <p className="text-white/50 text-sm mt-0.5">{t("Clinic, partner, affiliate, or white label")}</p>
                       </div>
                     </div>
                   </button>
@@ -413,24 +416,24 @@ export default function Welcome() {
         </h1>
 
         <p className="text-md md:text-xl text-white/80 text-center mb-1 max-w-md">
-          Adaptive AI Nutrition Platform
+          {t("Adaptive AI Nutrition Platform")}
         </p>
 
         <p className="text-base text-white/60 text-center mb-6 max-w-md tracking-wide">
-          Coach in your pocket.™
+          {t("Coach in your pocket.™")}
         </p>
 
         <div className="mb-12 flex flex-col items-center gap-2">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-black via-orange-600 to-black rounded-2xl border border-orange-400/30 shadow-lg">
             <div className="w-2 h-2 bg-orange-400 rounded-2xl animate-pulse"></div>
             <span className="text-white font-semibold text-sm">
-              Powered by Emotion AI™
+              {t("Powered by Emotion AI™")}
             </span>
           </div>
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-black via-cyan-700/80 to-black rounded-2xl border border-cyan-400/30 shadow-lg">
             <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
             <span className="text-cyan-200 font-semibold text-sm">
-              Powered by Behavioral AI™
+              {t("Powered by Behavioral AI™")}
             </span>
           </div>
         </div>
@@ -445,7 +448,7 @@ export default function Welcome() {
                      transition-all duration-200 flex items-center justify-center gap-2"
           >
             <LogIn className="h-5 w-5" />
-            Sign In / Create Account
+            {t("Sign In / Create Account")}
           </Button>
 
         </div>
@@ -518,7 +521,7 @@ export default function Welcome() {
           ))}
 
           <button
-            aria-label="Previous slide"
+            aria-label={t("Previous slide")}
             onClick={prev}
             className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 backdrop-blur px-2 py-2 rounded-full border border-white/10 active:scale-[0.98] transition-transform"
           >
@@ -565,7 +568,7 @@ export default function Welcome() {
           onClick={openModal}
           className="h-12 text-base font-semibold rounded-xl border-white/80 bg-white/5 text-white active:scale-[0.98] transition-transform"
         >
-          Sign In
+          {t("Sign In")}
         </Button>
       </div>
 

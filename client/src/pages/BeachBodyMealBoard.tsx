@@ -1,3 +1,4 @@
+import { BackNavigationLabel, useBackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useEffectiveClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
 import { isClinicalIndicatorActive } from "@shared/clinicalProtocolIdentity";
@@ -200,6 +201,7 @@ const lists: Array<["breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal
 ];
 
 export default function BeachBodyMealBoard() {
+  const navigationLabel = useBackNavigationLabel();
   usePageTitle("Performance Nutrition Builder");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -1214,7 +1216,7 @@ export default function BeachBodyMealBoard() {
             className="flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="text-sm font-medium">Performance Hub</span>
+            <span className="text-sm font-medium"><BackNavigationLabel label="Performance Hub" /></span>
           </button>
         )}
         {/* NutritionBudgetBanner hidden — restore when reactivity is fixed */}
@@ -1312,7 +1314,7 @@ export default function BeachBodyMealBoard() {
                   type="button"
                   onClick={onPrevWeek}
                   className="rounded-md px-2 py-1 border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
-                  aria-label="Previous week"
+                  aria-label={navigationLabel("Previous week")}
                   data-testid="button-prev-week"
                 >
                   ‹

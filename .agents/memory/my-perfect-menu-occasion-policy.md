@@ -15,6 +15,12 @@ Mocked classifier tests alone do not establish culinary suitability or recipe id
 
 **How to apply:** Keep culinary completeness separate from nutritional completeness and occasion fit separate from recipe identity. Verify compatible ingredient adaptations as well as genuine dish changes before promoting reviewer changes.
 
+Equivalent translations are not changes of dish identity. Keep this judgment specific to Menu's selected concept and full recipe, rather than imposing English-name overlap or changing shared food rules. Name-vocabulary misses need meaningful ingredients and preparation evidence plus an independent preserved-identity judgment; clear format changes, uncertainty and unavailable review remain blocking.
+
+**Why:** Research found equivalent English/Spanish recipe names could fail deterministic matching before the independent review. The approved repair must retain identity verification, not disable it.
+
+**How to apply:** Preserve canonical Food Snack versus Dessert Snack and specific dessert structure alongside every existing food safeguard; never treat review eligibility alone as approval.
+
 This repair is approved for Development only. Report files, tests, results, and limitations before any GitHub push; do not promote or activate it in Production without separate authorization.
 
 **Why:** The user's written repair requirements explicitly set that release boundary.
