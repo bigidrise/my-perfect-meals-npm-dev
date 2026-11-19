@@ -1,6 +1,8 @@
 import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { trainingScheduleSpanish } from "@/i18n/trainingScheduleCopy";
+import { approvedTrainingExplanationSpanish } from "@/i18n/approvedTrainingExplanations";
+import { approvedTrainingExplanationsEnabled } from "@/lib/trainingExplanationDevelopmentGate";
 import { PREGNANCY_CUSTOMER_AVAILABLE } from "@shared/pregnancyAvailability";
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -448,6 +450,9 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
   const displayLocale = i18n.resolvedLanguage?.startsWith("es") ? "es-US" : "en-US";
   const trainingLabel = (value: string) =>
     Object.prototype.hasOwnProperty.call(trainingScheduleSpanish, value) ? t(value) : value;
+  const explanationLabel = (value: string) =>
+    approvedTrainingExplanationsEnabled &&
+    Object.prototype.hasOwnProperty.call(approvedTrainingExplanationSpanish, value) ? t(value) : value;
   usePageTitle(t(pageTitle ?? "Performance Hub"));
   const resolvedTutorialKey = tutorialKey ?? (continueTo ? "trainingGeneral" : "performanceHub");
   const [, setLocation] = useLocation();
@@ -1289,7 +1294,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                     {bullets.map((line, i) => (
                       <p key={i} className="text-white/70 text-xs leading-relaxed flex gap-1.5">
                         <span className="text-orange-400 mt-0.5 flex-shrink-0">·</span>
-                        {line}
+                        {explanationLabel(line)}
                       </p>
                     ))}
                   </div>
@@ -1643,7 +1648,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                     <p className="text-white font-bold text-sm mb-3">{t("How This Influences Your Meals")}</p>
                     <div className="space-y-2">
                       {influenceLines.map((line, i) => (
-                        <p key={i} className="text-white/70 text-sm leading-relaxed">{line}</p>
+                        <p key={i} className="text-white/70 text-sm leading-relaxed">{explanationLabel(line)}</p>
                       ))}
                     </div>
                   </div>

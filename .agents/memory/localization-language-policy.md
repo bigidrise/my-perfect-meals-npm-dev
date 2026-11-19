@@ -182,3 +182,13 @@ goal/priority labels and journal interface after earlier localization correction
 closed, source-owned display maps for system labels; preserve actual journal
 prose, medication records and unknown professional wording. State remaining
 clinical/legal holds explicitly rather than claiming a fully Spanish screen.
+
+The founder approved exactly six Training Schedule explanation translations for
+Development: the three Power Training bullets, plus low-fuel, high-recovery and
+power-adaptation meal-influence paragraphs. Other explanatory branches remain held.
+
+**Why:** The founder explicitly selected “Approve for Development” after reviewing
+the complete six-paragraph Spanish proposal.
+
+**How to apply:** Preserve that exact wording and the Development-only boundary;
+do not infer approval for other advice, nutrition changes or Production activation.
