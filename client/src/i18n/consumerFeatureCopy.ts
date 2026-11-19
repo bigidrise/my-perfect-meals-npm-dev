@@ -2,6 +2,9 @@ import { trainingScheduleSpanish } from "./trainingScheduleCopy";
 
 /** Ordinary display copy only. Never translate saved records, unknown API errors or safety evidence here. */
 export const consumerFeatureSpanish: Record<string, string> = {
+  "Active Protocol:": "Protocolo activo:",
+  "Anti-Inflammatory (optional)": "Antiinflamatorio (opcional)",
+  "Alpha-gal Syndrome": "Síndrome de alfa-gal",
   ...trainingScheduleSpanish,
   "Return to Demo Studio": "Volver al estudio de demostración",
   "Weekly Meal Board": "Plan semanal de comidas",

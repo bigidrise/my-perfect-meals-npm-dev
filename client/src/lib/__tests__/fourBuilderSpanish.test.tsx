@@ -264,8 +264,8 @@ test("all four owners retain shared cards, clinical indicators and centralized l
   }
   // Ordinary back navigation is authorized for platform-wide localization.
   expect(sources[1].getFullText()).toContain('{t("diabeticBuilder.backLabel")}');
-  // Clinical explanations and support wording remain review-gated.
-  expect(sources[0].getFullText()).toContain(">Active Protocol:</span>");
-  for (const index of [1, 3]) expect(sources[index].getFullText()).toContain(">Active Clinical Supports:</span>");
+  // Support-strip labels are now explicitly in scope; clinical explanations remain review-gated.
+  expect(sources[0].getFullText()).toContain('<ClinicalSupportLabel label="Active Protocol:"');
+  for (const index of [1, 3]) expect(sources[index].getFullText()).toContain('<ClinicalSupportLabel label="Active Clinical Supports:"');
   for (const source of sources) expect(source.getFullText()).toContain('"Alpha-gal Syndrome"');
 });

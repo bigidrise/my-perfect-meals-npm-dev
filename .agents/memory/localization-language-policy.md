@@ -192,3 +192,12 @@ the complete six-paragraph Spanish proposal.
 
 **How to apply:** Preserve that exact wording and the Development-only boundary;
 do not infer approval for other advice, nutrition changes or Production activation.
+
+Support-strip headings and condition display names are explicitly in localization
+scope across all meal builders, including Clinical Supports and Hormonal & Metabolic.
+
+**Why:** The founder identified these same English sections across the builders
+and requested that all of them be translated, not just the example page.
+
+**How to apply:** Localize display names without altering canonical condition keys,
+activation, indicator colors or clinical rules. This does not approve advice prose.
