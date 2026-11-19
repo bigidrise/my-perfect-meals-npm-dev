@@ -1573,3 +1573,17 @@ mtime_ms = 1795112042441
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d189d44b-8117-4432-ae56-00e4899195b8/512780b1-335f-4c1a-999f-5b7f2caa4fc4"
 storage_version_token = "1795112382252730"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "MXUEpz3z6Y8lCyRZx8kVY"
+uri = "file://.local/shopping-product-options-1897/generated-artifacts/shopping-product-options/browser/02-product-options-dialog.png"
+type = "image"
+title = "Product options preview"
+description = "Development browser preview using clearly labeled synthetic test products, not live catalog results."
+logical_id = "1174b5ad-1473-42a4-89d7-a26b3e70c882"
+content_hash = "sha256:33cd21604158f8da14b9bd90a1a3372e448e76163177eaddc9f2f362b051e152"
+size = 133095
+mtime_ms = 1795132079904
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/1174b5ad-1473-42a4-89d7-a26b3e70c882/5fee9ba7-8205-48d3-8552-3ebe7f22f772"
+storage_version_token = "1795132347259747"
+content_type = "image/png"
