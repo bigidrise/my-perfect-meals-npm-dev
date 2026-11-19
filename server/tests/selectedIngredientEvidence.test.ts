@@ -1,4 +1,5 @@
 import {
+  hasConcreteDishIngredients,
   hasConcreteSelectedIngredients,
   missingSelectedIngredientPositions,
 } from "../services/oneTouch/selectedIngredientEvidence";
@@ -16,6 +17,31 @@ describe("selected Menu ingredient evidence", () => {
     expect(hasConcreteSelectedIngredients(["collard greens", "onions", "spices"])).toBe(false);
     expect(missingSelectedIngredientPositions(["spices"], ["turmeric", "ginger"])).toEqual([0]);
     expect(hasConcreteSelectedIngredients(["collard greens", "red onion", "turmeric"])).toBe(true);
+  });
+
+  it.each([
+    "mixed vegetables", "assorted vegetables", "frozen mixed vegetables", "fresh herbs",
+    "mix of vegetables", "vegetable blend",
+    "verduras mixtas", "vegetales mixtos", "verduras variadas", "verduras congeladas",
+    "mezcla de verduras", "hierbas frescas", "especias", "condimentos", "proteínas",
+  ])("does not promise the unspecified ingredient group %s", name => {
+    expect(hasConcreteDishIngredients(["chicken", name])).toBe(false);
+    expect(missingSelectedIngredientPositions([name], ["chicken", "carrot", "cabbage"])).toEqual([0]);
+  });
+
+  it("keeps concrete Spanish soup ingredients and named prepared foods valid", () => {
+    const names = ["pollo", "fideos de arroz", "jengibre", "cebollino", "caldo de pollo", "zanahoria", "col"];
+    expect(hasConcreteDishIngredients(names)).toBe(true);
+    expect(missingSelectedIngredientPositions(names, names)).toEqual([]);
+    expect(hasConcreteDishIngredients([
+      "vegetable oil", "vegetable stock", "green curry paste", "herbes de Provence",
+      "mixed berry jam", "salsa de soya", "caldo de verduras",
+    ])).toBe(true);
+  });
+
+  it("does not change the existing Craving ingredient matching contract", () => {
+    expect(hasConcreteSelectedIngredients(["mixed vegetables"])).toBe(true);
+    expect(missingSelectedIngredientPositions(["mixed vegetables"], ["frozen mixed vegetables"])).toEqual([]);
   });
 
   it("requires the actual selected food, not a flavored product or unauthorized substitute", () => {
