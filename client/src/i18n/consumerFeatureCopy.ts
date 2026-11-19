@@ -6,6 +6,11 @@ import { biometricsClinicalSpanish } from "./biometricsClinicalCopy";
 
 /** Ordinary display copy only. Never translate saved records, unknown API errors or safety evidence here. */
 export const consumerFeatureSpanish: Record<string, string> = {
+  "The finished recipe doesn't match your selected snack idea. Please choose it again.": "La receta terminada no coincide con la idea de refrigerio que seleccionaste. Vuelve a elegirla.",
+  "The finished recipe no longer matches your selected idea and meal type. It was not added to your plan. Please choose the idea again.": "La receta terminada ya no coincide con la idea y el tipo de comida que seleccionaste. No se añadió a tu plan. Vuelve a elegir la idea.",
+  "We couldn't verify the finished recipe's meal type. It was not added to your plan. Please try again.": "No pudimos verificar el tipo de comida de la receta terminada. No se añadió a tu plan. Inténtalo de nuevo.",
+  "The finished recipe did not match your selected idea.": "La receta terminada no coincide con la idea que seleccionaste.",
+  "The finished snack did not match your selected idea.": "El refrigerio terminado no coincide con la idea que seleccionaste.",
   "Built using": "Basado en",
   "How This Was Built For You": "Cómo se elaboró para ti",
   "Protocols Applied": "Protocolos aplicados",

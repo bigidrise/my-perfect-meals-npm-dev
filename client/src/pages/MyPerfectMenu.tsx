@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { menuFailureMessage } from "@shared/menuFailureMessage";
+import { menuCompletionMealType } from "@shared/myPerfectMenuCompletion";
 import { useLocation, useSearch } from "wouter";
 import {
   Activity,
@@ -50,7 +51,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import PerformanceNutritionSetupForm from "@/components/performance/PerformanceNutritionSetupForm";
 import { getTodayISOSafe } from "@/utils/midnight";
 import { BouncingDots } from "@/components/ui/bouncing-dots";
-import type { MyPerfectMenuSnackType } from "@shared/myPerfectMenu";
+import type { MyPerfectMenuConcept, MyPerfectMenuSnackType } from "@shared/myPerfectMenu";
 import { getMyPerfectMenuSlotGuidance } from "@/lib/myPerfectMenuSlotGuidance";
 import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { useMenuDisplayCopy } from "@/i18n/useMenuDisplayCopy";
@@ -63,6 +64,8 @@ interface MenuConcept {
   id: string;
   ideaType: IdeaType;
   snackType?: MyPerfectMenuSnackType;
+  foodIdentity?: MyPerfectMenuConcept["foodIdentity"];
+  culinaryIdentity?: MyPerfectMenuConcept["culinaryIdentity"];
   title: string;
   description: string;
   primaryIngredients?: string[];
@@ -764,6 +767,12 @@ export default function MyPerfectMenu() {
           : "",
         `Resolved builder: ${resolvedBuilder.key}. Use its established generation contract.`,
         `Title: ${conceptToGenerate.title}`,
+        validationPayload.occasionSuitabilityRequired && conceptToGenerate.foodIdentity
+          ? `Selected food identity (culinary intent, never a safety override): ${JSON.stringify(conceptToGenerate.foodIdentity)}`
+          : "",
+        validationPayload.occasionSuitabilityRequired && conceptToGenerate.culinaryIdentity
+          ? `Selected culinary structure: ${JSON.stringify(conceptToGenerate.culinaryIdentity)}`
+          : "",
         conceptToGenerate.snackType === "dessert"
           ? "Selected snack identity: a recognizable dessert. Preserve its dessert format; do not substitute a food-style snack."
           : conceptToGenerate.snackType === "food"
@@ -795,7 +804,12 @@ export default function MyPerfectMenu() {
         starchyCarbs_g: performance.nutrition.targets.starchyCarbs,
         fibrousCarbs_g: performance.nutrition.targets.fibrousCarbs,
       } : undefined;
-      const meal = destination.slot === "snacks" && !performance
+      // The server opts Development into occasion-preserving completion.
+      // Performance retains its signed generation/prescription contract.
+      const completionMealType = menuCompletionMealType(
+        conceptToGenerate.ideaType, destination.slot, validationPayload.occasionSuitabilityRequired === true,
+      );
+      const meal = completionMealType === "snack" && !performance
         ? await generateSnack(
             `${conceptToGenerate.title}. ${conceptToGenerate.description}`,
             resolvedBuilder.dietType,
@@ -810,7 +824,7 @@ export default function MyPerfectMenu() {
           )
         : await generateMeal(
             `${conceptToGenerate.title}. ${conceptToGenerate.description}`,
-            destination.slot === "snacks" ? "snack" : destination.slot,
+            completionMealType,
             resolvedBuilder.dietType,
             undefined,
             performanceStarchContext ?? ({ dateISO: destination.dateISO } as any),
@@ -831,7 +845,7 @@ export default function MyPerfectMenu() {
           );
       if (!meal) throw new Error(t("We couldn't finish this meal. Please choose it again."));
       if (subjectRef.current !== requestedSubject) throw new Error(t("The active food profile changed. Please choose the meal again."));
-      const finalMeal = await finalizeMeal(meal, destination.slot === "snacks" ? "snack" : destination.slot);
+      const finalMeal = await finalizeMeal(meal, completionMealType);
       if (subjectRef.current !== requestedSubject) throw new Error(t("The active food profile changed. Please choose the meal again."));
       if (validationPayload.occasionSuitabilityRequired || conceptToGenerate.ideaType === "snack") {
         const identityResponse = await fetch(apiUrl("/api/my-perfect-menu/validate-selection"), {

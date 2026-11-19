@@ -28,6 +28,11 @@ const errorKeys = [
   "We couldn't check today's GLP-1 status.",
   "We couldn't save your blood glucose reading.",
   "The meal couldn't be added to your plan.",
+  "The finished recipe doesn't match your selected snack idea. Please choose it again.",
+  "The finished recipe no longer matches your selected idea and meal type. It was not added to your plan. Please choose the idea again.",
+  "We couldn't verify the finished recipe's meal type. It was not added to your plan. Please try again.",
+  "The finished recipe did not match your selected idea.",
+  "The finished snack did not match your selected idea.",
 ];
 
 export function useBatchOneErrorCopy() {

@@ -55,7 +55,7 @@ import {
 import {
   developmentMenuOccasionEnabled, MENU_OCCASION_GUIDANCE, validateMenuOccasionBatch,
 } from "../services/myPerfectMenu/occasionSuitability";
-import { completedSnackMatchesConcept, matchesSnackType } from "../services/myPerfectMenu/snackIdentity";
+import { completedSnackMatchesConcept, canIndependentlyReviewSnack, matchesSnackType } from "../services/myPerfectMenu/snackIdentity";
 import {
   resolveMyPerfectMenuBuilderForActor,
   MyPerfectMenuBuilderError,
@@ -576,17 +576,21 @@ router.post("/validate-selection", requireAuth, async (req, res) => {
   if (!isMyPerfectMenuContextStampFresh(preferences.contextStamps[parsed.data.ideaType], stamp)) {
     return res.status(409).json({ error: "These menu ideas are based on an older food context. Please refresh them.", code: "MY_PERFECT_MENU_CONTEXT_STALE" });
   }
-  if (parsed.data.completedSnack && !completedSnackMatchesConcept(concept, parsed.data.completedSnack)) {
+   const developmentReview = developmentMenuOccasionEnabled();
+   const completedRecipe = parsed.data.completedMeal ?? parsed.data.completedSnack;
+   if (parsed.data.completedSnack && !completedSnackMatchesConcept(concept, parsed.data.completedSnack) &&
+       !(developmentReview && canIndependentlyReviewSnack(concept, parsed.data.completedSnack))) {
     return res.status(422).json({
       code: "MY_PERFECT_MENU_SNACK_IDENTITY_CHANGED",
       error: "The finished recipe doesn't match your selected snack idea. Please choose it again.",
     });
   }
-  if (developmentMenuOccasionEnabled() && parsed.data.completedMeal) {
-    const completed = parsed.data.completedMeal;
-    // Keep the existing deterministic snack-family check in addition to the
-    // independent occasion/dish review. Never use the destination slot as intent.
-    if (concept.ideaType === "snack" && !completedSnackMatchesConcept(concept, completed)) {
+   if (developmentReview && completedRecipe) {
+     const completed = completedRecipe;
+     // Retain known form/family rejections. Name-vocabulary misses may only be
+     // resolved by the mandatory, fail-closed full-recipe review below.
+     if (concept.ideaType === "snack" && !completedSnackMatchesConcept(concept, completed) &&
+         !canIndependentlyReviewSnack(concept, completed)) {
       return res.status(422).json({
         code: "MY_PERFECT_MENU_SNACK_IDENTITY_CHANGED",
         error: "The finished recipe doesn't match your selected snack idea. Please choose it again.",
@@ -608,6 +612,7 @@ router.post("/validate-selection", requireAuth, async (req, res) => {
         preparationMethod: concept.preparationMethod,
         culinaryIdentity: concept.culinaryIdentity,
         snackType: concept.snackType,
+         foodIdentity: concept.foodIdentity,
       } });
       if (issues.length) {
         return res.status(422).json({
@@ -640,6 +645,11 @@ router.post("/validate-selection", requireAuth, async (req, res) => {
           description: concept.validationDescription ?? concept.description,
           signature: concept.signature,
           primaryIngredients: concept.primaryIngredients,
+          ...(developmentReview ? {
+            snackType: concept.snackType,
+            foodIdentity: concept.foodIdentity,
+            culinaryIdentity: concept.culinaryIdentity,
+          } : {}),
         },
         authority: performance,
       })
