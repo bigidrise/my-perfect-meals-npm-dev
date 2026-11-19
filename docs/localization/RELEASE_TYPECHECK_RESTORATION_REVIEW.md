@@ -1,9 +1,10 @@
-# Release typecheck restoration — exact comparison awaiting approval
+# Release typecheck restoration — exact fingerprint approved
 
 ## Status
 
-**Investigation complete; the current canonical gate is still correctly
-blocking. No baseline change is authorized or applied.**
+**The founder explicitly approved the exact fingerprint update after receiving
+the complete semantic comparison. Only that stored fingerprint was changed;
+the unchanged canonical gate then passed with the same 109 diagnostics.**
 
 The current 109 diagnostics are the same full diagnostic set as the approved
 109: **92 unchanged, 17 line-position-only movements, zero added, zero removed,
@@ -12,25 +13,31 @@ multiline messages and diagnosed source lines match. This conclusion comes
 from independent source-diff mapping, not matching counts or sorted pairing.
 
 No application correction is indicated by this comparison. No application,
-compiler, dependency, gate, exclusion, suppression or runtime configuration
+compiler, dependency, checker, exclusion, suppression or runtime configuration
 was changed. No translation, account/data operation, provider request,
 publication or application restart was performed.
 
-## Exact decision requested
+## Exact approval received
 
-Approve only the following replacement in
+The founder approved only the following replacement in
 `scripts/release-typecheck-baseline.json`:
 
 - Diagnostic count: **109 → 109**, unchanged.
-- Approved fingerprint:
+- Previously approved fingerprint:
   `e8dadf605ccc7c3c6dec1285551bfa2a37871bee3a9fa1993444c871565813a7`.
-- Proposed current fingerprint:
+- Newly approved current fingerprint:
   `9baf1a0a477bef598b2c7b9afaba2624c41cae19a7705ee30f43ceeeab873ef3`.
 
-Approval would accept the observed line movements only. It would not erase
+Approval accepts the observed line movements only. It does not erase
 existing debt, exempt future changes, relax the checker, certify all release
-gates or authorize publication. After approval, update only that fingerprint
-and run the unchanged canonical gate to verify the current workspace passes.
+gates or authorize publication. Only that fingerprint was updated; the
+unchanged canonical gate passed on the current workspace.
+
+The post-approval run exited **0**, produced the exact approved fingerprint
+and retained compiler stdout/stderr **byte-identical** to the pre-approval
+capture. All captured compiler inputs other than the explicitly approved
+baseline file were unchanged. The generated build-version file was restored
+byte-for-byte and the exclusive workspace lock was removed.
 
 ## Reproduction and baseline provenance
 
@@ -45,8 +52,8 @@ module, exclusive workspace lock and restoration logic. An observation-only
 printed its truncated failure preview. No subprocess arguments or results
 were changed. Root checks ran sequentially without an external short timeout.
 
-The current run returned compiler status 2, **109 diagnostics**, proposed
-fingerprint above, and canonical-gate exit 1. The original ignored build-version
+The pre-approval current run returned compiler status 2, **109 diagnostics**,
+the newly approved fingerprint above, and canonical-gate exit 1. The original ignored build-version
 file was restored byte-for-byte, with before/after SHA-256
 `2f0bc4e1a375f168584e2d03838f2e829cfef1ebe8a3e7c5d52dc152bf9ca00d`.
 
@@ -135,7 +142,9 @@ restoration records, comparison data and check logs are under the ignored
 historical run remains in `reviewed-initial/` and
 `reviewed-initial-gate.log`; it was not silently replaced by the passing
 reconstruction. The final historical run is in `reviewed/`; the untouched
-current run is in `current/`. CSV evidence is delivered separately for review.
+pre-approval current run is in `current/`. The passing post-approval run,
+including complete output, provenance and restoration records, is in
+`approved/` and `approved-gate.log`. CSV evidence is delivered separately for review.
 
 ## Other verification and remaining blocker
 
@@ -148,8 +157,9 @@ current run is in `current/`. CSV evidence is delivered separately for review.
   This inherited guard limitation is not a type diagnostic and was neither
   exempted nor bypassed. It remains separate from the proposed type-fingerprint
   approval and belongs to the already queued localization reconciliation.
-- The canonical current root gate **has not passed**. It correctly retains the
-  previous fingerprint until explicit approval.
+- Approved current root gate: **passed**, exit 0, exact approved fingerprint
+  and 109 diagnostics. Compiler output was unchanged; generated-file
+  restoration and lock cleanup were independently confirmed.
 
 No full release/pre-push script, browser test, client rebuild, schema
 migration or deployed-app check was needed or run for this offline comparison.
