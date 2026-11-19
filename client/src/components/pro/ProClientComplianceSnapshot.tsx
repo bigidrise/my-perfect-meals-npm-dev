@@ -1,3 +1,4 @@
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/apiRequest";
 import { Loader2, CheckCircle2, AlertTriangle, Target } from "lucide-react";
@@ -74,6 +75,7 @@ function BehaviorRow({
 }
 
 export default function ProClientComplianceSnapshot({ clientId }: ProClientComplianceSnapshotProps) {
+  const { t } = useConsumerCopy();
   const { data, isLoading, isError } = useQuery<ActivitySummary | null>({
     queryKey: ["proClientCompliance", clientId],
     queryFn: async () => {
@@ -91,7 +93,7 @@ export default function ProClientComplianceSnapshot({ clientId }: ProClientCompl
   if (isLoading) {
     return (
       <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-        <h4 className="text-xs font-medium text-white/60 mb-2">Nutrition Activity</h4>
+        <h4 className="text-xs font-medium text-white/60 mb-2">{t("Nutrition Activity")}</h4>
         <div className="flex items-center justify-center py-3">
           <Loader2 className="w-4 h-4 animate-spin text-white/40" />
         </div>
@@ -102,7 +104,7 @@ export default function ProClientComplianceSnapshot({ clientId }: ProClientCompl
   if (isError || !data) {
     return (
       <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-        <h4 className="text-xs font-medium text-white/60 mb-1">Nutrition Activity</h4>
+        <h4 className="text-xs font-medium text-white/60 mb-1">{t("Nutrition Activity")}</h4>
         <p className="text-[10px] text-white/30 italic">
           Not available — client account not linked
         </p>
@@ -122,7 +124,7 @@ export default function ProClientComplianceSnapshot({ clientId }: ProClientCompl
 
       {/* Header + score */}
       <div className="flex items-center justify-between">
-        <h4 className="text-xs font-medium text-white/60">Nutrition Activity</h4>
+        <h4 className="text-xs font-medium text-white/60">{t("Nutrition Activity")}</h4>
         <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${getScoreBg(score)}`}>
           <Target className={`w-3 h-3 ${getScoreColor(score)}`} />
           <span className={`text-xs font-bold ${getScoreColor(score)}`}>{score}%</span>

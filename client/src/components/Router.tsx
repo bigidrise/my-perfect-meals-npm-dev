@@ -1,4 +1,5 @@
 import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import ChefConversationEntry from "./coaching/ChefConversationEntry";
@@ -243,6 +244,7 @@ function ProCareStudioGuard({ component }: { component: React.ComponentType }) {
 }
 
 function LegacyProCareStudioGuard({ component: Component }: { component: React.ComponentType }) {
+  const { t } = useConsumerCopy();
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
   const [studioAccess, setStudioAccess] = useState<"checking" | "available" | "disconnected" | "denied" | "error">("checking");
@@ -406,9 +408,9 @@ function LegacyProCareStudioGuard({ component: Component }: { component: React.C
     return () => clearInterval(intervalId);
   }, [user?.id, verifyCert]);
 
-  if (studioAccess === "error") return <p role="alert">Studio access could not be verified. Please refresh and try again.</p>;
-  if (legalError) return <div role="alert">Professional agreements could not be verified. <button onClick={() => setLegalRetry(value => value + 1)}>Retry</button></div>;
-  if (studioAccess === "denied") return <p role="alert">Studio access is not authorized or ready. Recognizing a workspace does not grant patient access.</p>;
+  if (studioAccess === "error") return <p role="alert">{t("Studio access could not be verified. Please refresh and try again.")}</p>;
+  if (legalError) return <div role="alert">{t("Professional agreements could not be verified.")} <button onClick={() => setLegalRetry(value => value + 1)}>{t("Retry")}</button></div>;
+  if (studioAccess === "denied") return <p role="alert">{t("Studio access is not authorized or ready. Recognizing a workspace does not grant patient access.")}</p>;
   if (studioAccess !== "available" || !certChecked || !legalChecked) return null;
   if (!certified || !legalAccepted) return null;
   return <Component />;
@@ -485,6 +487,7 @@ import TutorialHub from "@/pages/TutorialHub";
 import MyBiometrics from "@/pages/my-biometrics";
 const LazyHydrationCenter = lazy(() => import("@/pages/HydrationCenter"));
 const HydrationCenter = () => {
+  const { t } = useConsumerCopy();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { requestUpgrade } = useUpgradeModal();
@@ -492,7 +495,7 @@ const HydrationCenter = () => {
   const requestHydrationUpgrade = useCallback(() => {
     requestUpgrade({
       requiredTier: "pro",
-      featureName: "My Perfect Hydration Center",
+      featureName: t("My Perfect Hydration Center"),
       valueMessage: "Build hydration support around your activity, nutrition context, preferences, barriers, and verified professional guidance—without relying on a generic one-size-fits-all water target.",
     });
   }, [requestUpgrade]);
@@ -506,8 +509,8 @@ const HydrationCenter = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-sky-950 to-slate-950 px-4 py-10 text-white">
         <div className="mx-auto max-w-lg rounded-2xl border border-white/15 bg-black/35 p-6 text-center shadow-2xl backdrop-blur-xl">
-          <p className="text-xs font-semibold uppercase tracking-[.2em] text-sky-200">Pro feature</p>
-          <h1 className="mt-2 text-2xl font-bold">My Perfect Hydration Center</h1>
+          <p className="text-xs font-semibold uppercase tracking-[.2em] text-sky-200">{t("Pro feature")}</p>
+          <h1 className="mt-2 text-2xl font-bold">{t("My Perfect Hydration Center")}</h1>
           <p className="mt-3 text-sm leading-relaxed text-white/80">
             Basic fluid tracking remains available in Biometrics. Pro unlocks personalized hydration support for activity, nutrition context, barriers, and verified professional guidance.
           </p>
@@ -537,11 +540,11 @@ const HydrationCenter = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-sky-950 to-slate-950 px-4 py-8 text-white">
         <div className="mx-auto max-w-5xl space-y-4">
           <div>
-            <h1 className="text-xl font-semibold">My Perfect Hydration Center</h1>
-            <p className="mt-1 text-sm text-white/70">Track fluids, solve barriers, see what helps</p>
+            <h1 className="text-xl font-semibold">{t("My Perfect Hydration Center")}</h1>
+            <p className="mt-1 text-sm text-white/70">{t("Track fluids, solve barriers, see what helps")}</p>
           </div>
           <div className="rounded-2xl border border-white/15 bg-slate-950/55 p-5">
-            <p className="text-xs uppercase tracking-[.2em] text-white/70">Choose a Hydration door</p>
+            <p className="text-xs uppercase tracking-[.2em] text-white/70">{t("Choose a Hydration door")}</p>
             <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {["Everyday Hydration", "Athletic Hydration", "Sick-Day Hydration", "Liquid Nutrition Support"].map((title) => (
                 <div key={title} className="rounded-xl border border-white/15 bg-white/[.04] p-3">
@@ -912,6 +915,7 @@ function LegacyProCareTrainingRedirect() {
 }
 
 export default function Router() {
+  const { t } = useConsumerCopy();
   const [location, setLocation] = useLocation();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -1141,7 +1145,7 @@ export default function Router() {
     if (hasActivePaidSubscription(user) && !user.onboardingCompletedAt) {
       guardRedirectedRef.current = true;
       toast({
-        title: "Almost there!",
+        title: t("Almost there!"),
         description: "Let's finish setting up your safety profile first.",
       });
       setLocation("/onboarding");
@@ -1162,8 +1166,8 @@ export default function Router() {
     if (!hasMacroProfile && !hasLocalMacroSettings) {
       guardRedirectedRef.current = true;
       toast({
-        title: "One more step",
-        description: "We need your macro profile to generate accurate meals.",
+        title: t("One more step"),
+        description: t("We need your macro profile to generate accurate meals."),
       });
       setLocation("/macro-counter?from=onboarding");
       setTimeout(() => { guardRedirectedRef.current = false; }, 1000);
@@ -1183,17 +1187,17 @@ export default function Router() {
     (!founderProbe || founderProbe.accountId !== user.id)
   ) {
     if (isStudioTransitionRoute(location)) {
-      return <StudioTransitionPanel title="Opening your Studio workspace" detail="Resolving secure workspace access…" />;
+      return <StudioTransitionPanel title={t("Opening your Studio workspace")} detail="Resolving secure workspace access…" />;
     }
-    return <div className="min-h-[100dvh] grid place-items-center bg-[#201c19] text-white/75 text-sm">Resolving secure workspace…</div>;
+    return <div className="min-h-[100dvh] grid place-items-center bg-[#201c19] text-white/75 text-sm">{t("Resolving secure workspace…")}</div>;
   }
 
   // Do not mount/cache-render a live professional page while redirecting.
   // Other restricted accounts and Production retain the isolated demo shell.
   if (!authLoading && user?.operatingStatus === "demo_only" && !isAuthRoute && !isFounderPilotRoute && !isOriginalPhysicianStudio) {
     return <Suspense fallback={developmentStudioLoadingEnabled
-      ? <StudioTransitionPanel title="Opening your Clinic workspace" detail="Preparing the page…" />
-      : <p role="status">Loading isolated demo workspace…</p>}><DemoPhysicianWorkspace /></Suspense>;
+      ? <StudioTransitionPanel title={t("Opening your Clinic workspace")} detail="Preparing the page…" />
+      : <p role="status">{t("Loading isolated demo workspace…")}</p>}><DemoPhysicianWorkspace /></Suspense>;
   }
   // The marker chooses original pages, never permission. This adapter verifies
   // the server-issued local authority on every navigation, and cannot mount a
@@ -1209,7 +1213,7 @@ export default function Router() {
       <Suspense
         fallback={
           developmentStudioLoadingEnabled && isStudioTransitionRoute(location)
-          ? <StudioTransitionPanel title="Opening your Studio workspace" detail="Preparing the page…" />
+          ? <StudioTransitionPanel title={t("Opening your Studio workspace")} detail="Preparing the page…" />
           : <div className="min-h-screen flex items-center justify-center bg-black text-white/60 text-sm">
             Loading...
           </div>
@@ -1404,9 +1408,9 @@ export default function Router() {
         {/* Cafeteria Setup route: show page if enabled; otherwise Coming Soon */}
         <Route path="/cafeteria-setup">
           <ComingSoon
-            title="Cafeteria Setup"
+            title={t("Cafeteria Setup")}
             blurb="We'll auto-generate meals from your onboarding preferences here."
-            hint="For now, use Add from Menu or Fridge Rescue."
+            hint={t("For now, use Add from Menu or Fridge Rescue.")}
             ctaLabel="Open Weekly Meal Board"
             ctaHref="/weekly-meal-board"
           />

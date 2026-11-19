@@ -1,4 +1,32 @@
 {
+  "measurementPreferences": {
+    "title": "Preferências de medidas",
+    "country": "País",
+    "system": "Sistema de medidas",
+    "auto": "Automático",
+    "imperial": "Unidades dos EUA",
+    "metric": "Métrico",
+    "country_US": "Estados Unidos",
+    "country_CA": "Canadá",
+    "country_AU": "Austrália",
+    "country_UK": "Reino Unido",
+    "country_NZ": "Nova Zelândia",
+    "resolved": "Automático: {{system}} · {{country}}",
+    "hint": "O modo automático segue o país salvo, não o idioma ou o dispositivo. Se nenhum país estiver salvo, serão usados os Estados Unidos. As escolhas manuais permanecem inalteradas quando o país muda.",
+    "saveFailed": "Não foi possível salvar as preferências de medidas. Suas escolhas estão mantidas aqui; tente novamente.",
+    "refreshFailed": "Suas escolhas foram salvas, mas não foi possível atualizá-las. Permaneça aqui e tente novamente para confirmá-las.",
+    "equivalent": "Equivalente: {{quantity}}",
+    "invalidQuantity": "Insira um número ou uma fração claros. A quantidade salva não foi alterada.",
+    "periodQuantity": "{{quantity}} neste período",
+    "weekQuantity": "{{quantity}} nesta semana",
+    "currentAverage": "Média atual",
+    "weeklyChange": "Variação semanal",
+    "totalChange": "Variação total",
+    "weightLabel": "Peso ({{unit}})",
+    "waistLabel": "Cintura ({{unit}})",
+    "quantityPlaceholder": "ex.: {{quantity}}",
+    "fluidOunces": "fl oz"
+  },
   "localeFoundation": {
     "wakingUp": "Preparando seu mecanismo de refeições…",
     "startupHint": "O primeiro carregamento leva alguns segundos a mais. Só um instante!",
@@ -132,6 +160,9 @@
     "adjustPreferences": "Ajustar minhas preferências"
   },
   "language": {
+    "enDesc": "Usar inglês na interface, independentemente do idioma deste dispositivo.",
+    "esDesc": "Usar espanhol na interface, independentemente do idioma deste dispositivo. Alguns recursos ainda podem aparecer em inglês.",
+    "measurementLink": "País e medidas em Editar perfil",
     "pageTitle": "Idioma",
     "intro": "My Perfect Meals gera nomes de refeições, receitas, recomendações de restaurantes, orientações de compras e respostas de coaching nativamente no seu idioma.",
     "auto": "Automático (Dispositivo)",

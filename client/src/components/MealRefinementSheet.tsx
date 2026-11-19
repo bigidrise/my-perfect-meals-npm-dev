@@ -1,3 +1,4 @@
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 /**
  * MealRefinementSheet
  *
@@ -90,6 +91,7 @@ export default function MealRefinementSheet({
   existingMeal,
   mealType,
 }: Props) {
+  const { t } = useConsumerCopy();
   const [phase, setPhase] = useState<Phase>("idle");
   const [input, setInput] = useState("");
   const [selectedChip, setSelectedChip] = useState<string | null>(null);
@@ -468,7 +470,7 @@ export default function MealRefinementSheet({
                         setError(null);
                       }}
                       mode="append"
-                      label="Add refinement by voice"
+                      label={t("Add refinement by voice")}
                     />
                 </div>
 

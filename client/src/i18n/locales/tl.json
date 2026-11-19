@@ -1,4 +1,32 @@
 {
+  "measurementPreferences": {
+    "title": "Mga kagustuhan sa pagsukat",
+    "country": "Bansa",
+    "system": "Sistema ng pagsukat",
+    "auto": "Awtomatiko",
+    "imperial": "Mga yunit na ginagamit sa U.S.",
+    "metric": "Metriko",
+    "country_US": "Estados Unidos",
+    "country_CA": "Canada",
+    "country_AU": "Australia",
+    "country_UK": "United Kingdom",
+    "country_NZ": "New Zealand",
+    "resolved": "Awtomatiko: {{system}} · {{country}}",
+    "hint": "Sinusunod ng Awtomatiko ang naka-save mong bansa, hindi ang wika o device mo. Kung walang naka-save na bansa, Estados Unidos ang gagamitin. Hindi nagbabago ang mga manu-manong pinili kapag binago ang bansa.",
+    "saveFailed": "Hindi ma-save ang mga kagustuhan sa pagsukat. Nananatili rito ang mga pinili mo; pakisubukang muli.",
+    "refreshFailed": "Na-save ang mga pinili mo, ngunit hindi ma-refresh. Manatili rito at subukang muli upang makumpirma ang mga ito.",
+    "equivalent": "Katumbas: {{quantity}}",
+    "invalidQuantity": "Maglagay ng malinaw na numero o fraction. Hindi nabago ang naka-save na dami.",
+    "periodQuantity": "{{quantity}} sa panahong ito",
+    "weekQuantity": "{{quantity}} ngayong linggo",
+    "currentAverage": "Kasalukuyang average",
+    "weeklyChange": "Pagbabago sa linggo",
+    "totalChange": "Kabuuang pagbabago",
+    "weightLabel": "Timbang ({{unit}})",
+    "waistLabel": "Baywang ({{unit}})",
+    "quantityPlaceholder": "hal. {{quantity}}",
+    "fluidOunces": "fluid ounce"
+  },
   "localeFoundation": {
     "wakingUp": "Inihahanda ang iyong meal engine…",
     "startupHint": "Mas matagal nang ilang segundo ang unang pag-load. Sandali lang!",
@@ -132,6 +160,9 @@
     "adjustPreferences": "Ayusin ang aking preferences"
   },
   "language": {
+    "enDesc": "Gamitin ang Ingles para sa interface, anuman ang wika ng device na ito.",
+    "esDesc": "Gamitin ang Espanyol para sa interface, anuman ang wika ng device na ito. Maaaring nasa Ingles pa rin ang ilang feature.",
+    "measurementLink": "Bansa at mga sukat sa I-edit ang Profile",
     "pageTitle": "Wika",
     "intro": "Ang My Perfect Meals ay nagge-generate ng mga pangalan ng pagkain, recipe, rekomendasyon sa restaurant, gabay sa pamimili at mga tugon ng coaching nang native sa iyong wika.",
     "auto": "Awtomatiko (Device)",

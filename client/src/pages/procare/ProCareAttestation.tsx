@@ -8,7 +8,7 @@ import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { LEGAL_DOCUMENTS } from "../../../../shared/legalDocuments";
 import ProfessionalLegalModal from "@/components/pro/ProfessionalLegalModal";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import {
   clearProfessionalLegalRecovery,
   readProfessionalLegalRecovery,
@@ -97,13 +97,13 @@ function EstablishedProfessionalLegalContinuation() {
   }, [setLocation, user?.professionalCategory, isExistingProfessionalRecovery]);
 
   if (!category) return <div className="mx-auto max-w-lg p-6 text-white">
-    <label htmlFor="professional-legal-category">Choose your professional category to review the attestation</label>
+    <label htmlFor="professional-legal-category">{t("Choose your professional category to review the attestation")}</label>
     <select id="professional-legal-category" value="" className="mt-3 block w-full rounded border border-white/30 bg-zinc-900 p-3"
       onChange={event => {
         const selected = event.target.value;
         if (Object.hasOwn(CATEGORY_LABELS, selected)) { setAccepted(false); setCategory(selected as ProfessionalCategory); }
       }}>
-      <option value="" disabled>Select a category</option>
+      <option value="" disabled>{t("Select a category")}</option>
       {Object.entries(CATEGORY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
     </select>
   </div>;
@@ -204,7 +204,7 @@ function EstablishedProfessionalLegalContinuation() {
             <h1 className="text-2xl font-bold mb-2">Professional Acknowledgment</h1>
             <p className="text-white/60 text-sm max-w-sm mx-auto">
               {isLoggedIn
-                ? "Please review and accept the required professional agreements to continue."
+                ? t("Please review and accept the required professional agreements to continue.")
                 : "Please review and accept the following before creating your professional account."}
             </p>
           </div>

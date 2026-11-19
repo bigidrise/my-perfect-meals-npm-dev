@@ -1,3 +1,12 @@
+// These concept tests inject their generator and need no persisted context.
+// Fail if a transitive import tries to access the shared application database.
+jest.mock("../db", () => {
+  const unavailable = new Proxy({}, {
+    get() { throw new Error("Unexpected database access in isolated concept test"); },
+  });
+  return { db: unavailable, pool: unavailable };
+});
+
 import type { OneTouchDirection } from "@shared/oneTouch";
 import {
   generateOneTouchDirections, validateCravingConcept, validateDishConcept,
