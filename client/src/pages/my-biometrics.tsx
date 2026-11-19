@@ -1743,7 +1743,7 @@ function AccountMyBiometrics() {
               : "text-white/60 hover:text-white"
           }`}
         >
-          {v === "today" ? "Today" : `${v} Days`}
+          {v === "today" ? t("Today") : t("{{count}} Days", { count: Number(v) })}
         </button>
       ))}
     </div>
@@ -2037,7 +2037,7 @@ function AccountMyBiometrics() {
                       return (
                         <div key={row.key} className="space-y-2 mb-3">
                           <div className="flex justify-between text-sm">
-                            <span className="text-white">{row.key}</span>
+                            <span className="text-white">{t(row.key)}</span>
                             <span className="text-white">
                               {Math.round(row.used)} / {Math.round(row.max)}{" "}
                               {row.unit}{" "}
@@ -2076,7 +2076,7 @@ function AccountMyBiometrics() {
                   ].map((row) => (
                     <div key={row.label} className="space-y-2 mb-3">
                       <div className="flex justify-between text-sm">
-                        <span className="text-white">{row.label}</span>
+                        <span className="text-white">{t(row.label)}</span>
                         <span className="text-white/60">{row.value} {row.unit}</span>
                       </div>
                       <div className="h-2 w-full rounded bg-white/10 overflow-hidden">
@@ -2272,7 +2272,7 @@ function AccountMyBiometrics() {
                 onClick={addMacros}
                 disabled={macroSaving}
               >
-                {macroSaving ? "Saving…" : "Add"}
+                {t(macroSaving ? "Saving…" : "Add")}
               </PillButton>
               <PillButton
                 onClick={resetToday}
@@ -2445,7 +2445,7 @@ function AccountMyBiometrics() {
                       disabled={logWeightSaving || !logWeightInput.trim()}
                       className="!bg-lime-500/20 !border-lime-400 hover:!bg-lime-500/30 disabled:opacity-40"
                     >
-                      {logWeightSaving ? "Saving…" : "Save"}
+                      {t(logWeightSaving ? "Saving…" : "Save")}
                     </PillButton>
                   </div>
                   {/* Review-macros nudge */}
@@ -2747,7 +2747,7 @@ function AccountMyBiometrics() {
                         disabled={goalBFSaving || !goalBFInput.trim()}
                         className="px-2 py-1 text-xs font-semibold rounded-md bg-orange-600 text-white disabled:opacity-40"
                       >
-                        {goalBFSaving ? "..." : "Save"}
+                        {goalBFSaving ? "..." : t("Save")}
                       </button>
                       <button
                         onClick={() => setEditingGoalBF(false)}
