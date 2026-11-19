@@ -598,9 +598,9 @@ export function MealCard({
           {builderSnapshot && (builderSnapshot.estimated || builderSnapshot.issues.length > 0 ||
             builderSnapshot.unclassifiedCarbs > 0.01) && (
             <p className="text-[10px] text-white/60">
-              {builderSnapshot.estimated && "Carb split estimated. "}
+              {builderSnapshot.estimated && t("Carb split estimated. ")}
               {builderSnapshot.unclassifiedCarbs > 0.01 &&
-                `${Math.round(builderSnapshot.unclassifiedCarbs)}g other/unclassified carbs. `}
+                t("{{grams}}g other/unclassified carbs. ", { grams: Math.round(builderSnapshot.unclassifiedCarbs) })}
               {builderSnapshot.issues.join(". ")}
             </p>
           )}

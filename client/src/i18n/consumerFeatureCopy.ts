@@ -6,6 +6,11 @@ import { biometricsClinicalSpanish } from "./biometricsClinicalCopy";
 
 /** Ordinary display copy only. Never translate saved records, unknown API errors or safety evidence here. */
 export const consumerFeatureSpanish: Record<string, string> = {
+  "Add meals to your weekly plan and track your nutrition with Essential.": "Añade comidas a tu plan semanal y registra tu nutrición con Essential.",
+  "Meal Replaced!": "¡Comida reemplazada!",
+  "Added to Meal Plan!": "¡Añadido al plan de comidas!",
+  "Failed to add meal to your plan. Please try again.": "No se pudo añadir la comida a tu plan. Inténtalo de nuevo.",
+  "Adding…": "Añadiendo…",
   "Other medication": "Otro medicamento",
   "Enter a valid dose (mg).": "Introduce una dosis válida (mg).",
   "Status {{status}}:": "Estado {{status}}:",
