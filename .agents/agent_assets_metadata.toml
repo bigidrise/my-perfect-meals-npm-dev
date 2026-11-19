@@ -1475,3 +1475,31 @@ mtime_ms = 1795106385209
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/6b8c548f-47d5-4d2f-86a8-717aa505afc6/02cb4a43-2505-4abc-9e22-eaf4849d7499"
 storage_version_token = "1795106617593349"
 content_type = "text/csv"
+
+[[outputs]]
+id = "xVqjsuZOqYiip6KylmB2v"
+uri = "file://.local/reports/pr478-final-blocker-classification.html"
+type = "html"
+title = "PR #478 — Final blocker classification"
+description = "Exact 101-check classification, six TypeScript line movements, remaining authentication action, and one recommended release path. No candidate changes."
+logical_id = "9f978220-0abf-4569-9111-1e98790713a1"
+content_hash = "sha256:cb10533c38654e50672c267d36c02e6c275d1bc9a4175cf594064c9b2a5a5d58"
+size = 58509
+mtime_ms = 1795107949566
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/9f978220-0abf-4569-9111-1e98790713a1/2f658a69-faec-4f7e-8548-376f528d778c"
+storage_version_token = "1795108096649393"
+content_type = "text/html"
+
+[[outputs]]
+id = "9AjZC0N9jRtWKofluLEf4"
+uri = "file://.local/reports/pr478-future-reuse-architecture-inspection.html"
+type = "html"
+title = "Future enhancements — existing architecture reuse"
+description = "Read-only product-finder and Recipe Maker inspection: exact owners, reusable flows, grading differences, persistence limits and required future regression coverage."
+logical_id = "b6e991cc-39aa-453d-b7e7-0d83fcf94b89"
+content_hash = "sha256:91728c1bf0167c1aaae1f3865b8578f1d72cddf8b76b04edee58782d355ae7df"
+size = 21062
+mtime_ms = 1795108047283
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/b6e991cc-39aa-453d-b7e7-0d83fcf94b89/096d7511-80e4-41c8-a262-ac8ea699f4cc"
+storage_version_token = "1795108097371103"
+content_type = "text/html"
