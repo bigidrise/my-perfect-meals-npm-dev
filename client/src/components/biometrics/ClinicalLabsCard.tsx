@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 
 import ProtocolRecommendationModal from "@/components/clinical/ProtocolRecommendationModal";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import ThyroidRecommendationModal from "@/components/clinical/ThyroidRecommendationModal";
 import ProtocolDowngradeModal from "@/components/clinical/ProtocolDowngradeModal";
 import type {
@@ -157,13 +157,14 @@ function LabField({
   unit?: string; placeholder?: string;
   onChange: (k: keyof LabValues, v: string) => void;
 }) {
+  const { t } = useConsumerCopy();
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-white/50 w-36 shrink-0">{label}</span>
+      <span className="text-xs text-white/50 w-36 shrink-0">{t(label)}</span>
       <div className="flex items-center gap-1 flex-1">
         <Input
           type="number" inputMode="decimal" step="any"
-          value={value} placeholder={placeholder || "—"}
+          value={value} placeholder={placeholder?.startsWith("e.g. ") ? t("e.g. {{value}}", { value: placeholder.slice(5) }) : placeholder || "—"}
           onChange={(e) => onChange(name, e.target.value)}
           className="bg-black/40 border-white/20 text-white placeholder:text-white/25 text-sm h-8 focus:bg-black/40 focus:text-white caret-white"
         />
@@ -186,7 +187,7 @@ function CollapsibleSection({
   onToggle: () => void;
   onChange: (k: keyof LabValues, v: string) => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useConsumerCopy();
   const status = evalStatus(form, section.checks);
 
   return (
@@ -228,7 +229,7 @@ interface ClinicalLabsCardProps {
 }
 
 export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
-  const { t } = useTranslation();
+  const { t } = useConsumerCopy();
   const { toast } = useToast();
   const [form, setForm] = useState<LabValues>(EMPTY_LABS);
   const [saving, setSaving] = useState(false);
@@ -421,14 +422,12 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
         setShowDowngradeModal(true);
       } else if (thyroidMonitoring) {
         toast({
-          title: "Thyroid Labs Saved",
+          title: t("Thyroid Labs Saved"),
           description:
-            "Some markers (TPO or Thyroglobulin antibodies) are still above the reference range. " +
-            "Your Thyroid Support protocol remains active. When all markers return to normal, " +
-            "you'll be prompted to reassess.",
+            t("Some markers (TPO or Thyroglobulin antibodies) are still above the reference range. Your Thyroid Support protocol remains active. When all markers return to normal, you'll be prompted to reassess."),
         });
       } else {
-        toast({ title: "Clinical Labs Saved", description: "Your lab values have been recorded." });
+        toast({ title: t("Clinical Labs Saved"), description: t("Your lab values have been recorded.") });
       }
     } catch {
       toast({ title: t("clinicalLabs.toast.failed"), variant: "destructive" });
@@ -468,10 +467,10 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
         'menopause': 'Menopause Support',
         'perimenopause': 'Perimenopause Support',
       };
-      const labels = signal.conditions.map(c => conditionLabels[c] ?? c).join(", ");
+      const labels = signal.conditions.map(c => t(conditionLabels[c] ?? c)).join(", ");
       toast({
-        title: "Hormone Markers Flagged",
-        description: `Your measurements suggest ${labels} may be beneficial. This is an advisory only; no protocol was activated.`,
+        title: t("Hormone Markers Flagged"),
+        description: t("Your measurements suggest {{labels}} may be beneficial. This is an advisory only; no protocol was activated.", { labels }),
       });
     } catch {
       // ignore — advisory only
@@ -615,7 +614,7 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
     },
     {
       id: "diabetes",
-      label: "Diabetes & Insulin",
+      label: t("Diabetes & Insulin"),
       icon: <Droplets className="w-4 h-4" />,
       iconColor: "text-sky-400",
       checks: [
@@ -830,14 +829,14 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
                           <div className="flex items-start gap-2 bg-rose-950/40 border border-rose-800/30 rounded-lg px-3 py-2.5 mt-2">
                             <Lock className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
                             <div>
-                              <p className="text-xs font-semibold text-rose-300">Physician-guided protocol active</p>
+                              <p className="text-xs font-semibold text-rose-300">{t("Physician-guided protocol active")}</p>
                               {oncologyCtx?.ownerName && (
                                 <p className="text-[10px] text-rose-400/70 mt-0.5">
-                                  Assigned by {oncologyCtx.ownerName}
+                                  {t("Assigned by")} {oncologyCtx.ownerName}
                                 </p>
                               )}
                               <p className="text-[10px] text-rose-400/60 mt-1 leading-relaxed">
-                                Your oncology support context is managed by your care team. Labs entered here are informational and support nutrition tracking only.
+                                {t("Your oncology support context is managed by your care team. Labs entered here are informational and support nutrition tracking only.")}
                               </p>
                             </div>
                           </div>
@@ -848,19 +847,19 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
                           <div className="flex items-start gap-2 bg-rose-950/20 border border-rose-800/20 rounded-lg px-3 py-2 mt-1">
                             <ShieldCheck className="w-3.5 h-3.5 text-rose-400/70 shrink-0 mt-0.5" />
                             <p className="text-[10px] text-rose-300/60 leading-relaxed">
-                              Recovery & oncology support is active. Lab values here support adaptive nutrition guidance only — not diagnosis or treatment assessment.
+                              {t("Recovery & oncology support is active. Lab values here support adaptive nutrition guidance only — not diagnosis or treatment assessment.")}
                             </p>
                           </div>
                         )}
 
                         {/* Prealbumin — entry field */}
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-rose-200/50 w-36 shrink-0">Prealbumin</span>
+                          <span className="text-xs text-rose-200/50 w-36 shrink-0">{t("Prealbumin")}</span>
                           <div className="flex items-center gap-1 flex-1">
                             <Input
                               type="number" inputMode="decimal" step="any"
                               value={form.prealbumin}
-                              placeholder="e.g. 22"
+                            placeholder={t("e.g. {{value}}", { value: "22" })}
                               disabled={isPhysicianControlled}
                               onChange={(e) => handleChange("prealbumin", e.target.value)}
                               className="bg-black/40 border-rose-900/40 text-rose-100 placeholder:text-rose-300/20 text-sm h-8 focus:bg-black/40 focus:text-white caret-white disabled:opacity-40"
@@ -879,24 +878,24 @@ export default function ClinicalLabsCard({ userId }: ClinicalLabsCardProps) {
                         {/* Albumin reference — read from Liver Panel */}
                         {form.albumin && (
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-rose-200/40 w-36 shrink-0">Albumin (ref.)</span>
+                            <span className="text-xs text-rose-200/40 w-36 shrink-0">{t("Albumin (ref.)")}</span>
                             <span className="text-sm text-rose-100/50 font-mono">{form.albumin} g/dL</span>
-                            <span className="text-[10px] text-rose-300/30">from Liver Panel</span>
+                            <span className="text-[10px] text-rose-300/30">{t("from Liver Panel")}</span>
                           </div>
                         )}
 
                         {/* CRP reference — read from Inflammation & Recovery */}
                         {form.crp && (
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-rose-200/40 w-36 shrink-0">CRP (ref.)</span>
+                            <span className="text-xs text-rose-200/40 w-36 shrink-0">{t("CRP (ref.)")}</span>
                             <span className="text-sm text-rose-100/50 font-mono">{form.crp} mg/L</span>
-                            <span className="text-[10px] text-rose-300/30">from Inflammation</span>
+                            <span className="text-[10px] text-rose-300/30">{t("from Inflammation")}</span>
                           </div>
                         )}
 
                         {/* Guidance note */}
                         <p className="text-[10px] text-rose-300/40 leading-relaxed pt-1 border-t border-rose-800/15">
-                          These values support adaptive nutrition guidance only. Always follow your care team's recommendations.
+                          {t("These values support adaptive nutrition guidance only. Always follow your care team's recommendations.")}
                         </p>
                       </div>
                     )}

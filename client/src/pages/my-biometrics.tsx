@@ -71,6 +71,7 @@ import MacroScanModal from "@/components/MacroScanModal";
 import { launchIngredientPhotoCapture, type IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
 import { useTranslation } from "react-i18next";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { sendToShoppingList } from "@/lib/shoppingListApi";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
@@ -156,7 +157,7 @@ function AccountMyBiometrics() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const measurementSystem = useMeasurementSystem();
-  const { t } = useTranslation("biometrics");
+  const { t } = useConsumerCopy("biometrics");
   const { t: measurementT } = useTranslation("measurementPreferences");
   const metricDisplay = measurementSystem === "metric";
   const isDesktop = useIsDesktop();
@@ -606,12 +607,12 @@ function AccountMyBiometrics() {
       if (anyNear) {
         const highs = summaryBadges
           .filter((b) => b.pct >= 90)
-          .map((b) => `${b.key} ${Math.round(b.pct)}%`)
+          .map((b) => `${t(b.key)} ${Math.round(b.pct)}%`)
           .join(", ");
         try {
           toast({
-            title: "Heads up",
-            description: `You're close on: ${highs}.`,
+            title: t("Heads up"),
+            description: t("You're close on: {{items}}.", { items: highs }),
           });
         } catch {}
         sessionStorage.setItem(k, "1");
@@ -754,8 +755,8 @@ function AccountMyBiometrics() {
     });
 
     toast({
-      title: "Added to Today",
-      description: `${P}g protein, ${C}g carbs, ${F}g fat logged.`,
+      title: t("Added to Today"),
+      description: t("{{protein}}g protein, {{carbs}}g carbs, {{fat}}g fat logged.", { protein: P, carbs: C, fat: F }),
     });
 
     clearQuickView();
@@ -812,7 +813,7 @@ function AccountMyBiometrics() {
           dateIso: new Date().toISOString(),
         });
       } catch {
-        toast({ title: "Macros not saved", description: "Your entry couldn't be saved. It is still here so you can retry.", variant: "destructive" });
+        toast({ title: t("Macros not saved"), description: t("Your entry couldn't be saved. It is still here so you can retry."), variant: "destructive" });
         setMacroSaving(false);
         macroSaveInFlight.current = false;
         return;
@@ -900,8 +901,8 @@ function AccountMyBiometrics() {
       } catch (e) {
         console.error("Failed to reset today on server:", e);
         toast({
-          title: "Reset failed",
-          description: "Could not clear today's macros from the server. Please try again.",
+          title: t("Reset failed"),
+          description: t("Could not clear today's macros from the server. Please try again."),
           variant: "destructive",
         });
         return;
@@ -909,8 +910,8 @@ function AccountMyBiometrics() {
     }
 
     toast({
-      title: "Reset Complete",
-      description: "Today's macros have been cleared.",
+      title: t("Reset Complete"),
+      description: t("Today's macros have been cleared."),
     });
   };
 
@@ -920,8 +921,8 @@ function AccountMyBiometrics() {
     await launchIngredientPhotoCapture({
       onAnalyzing: () => {
         toast({
-          title: "Analyzing ingredients...",
-          description: "Reading the label and checking your profile — just a moment.",
+          title: t("Analyzing ingredients..."),
+          description: t("Reading the label and checking your profile — just a moment."),
         });
       },
       onSuccess: (result) => {
@@ -930,7 +931,7 @@ function AccountMyBiometrics() {
       },
       onError: (error) => {
         toast({
-          title: "Scan failed",
+          title: t("Scan failed"),
           description: error,
           variant: "destructive",
         });
@@ -1172,8 +1173,8 @@ function AccountMyBiometrics() {
             const body = await r.json().catch(() => ({}));
             console.error("[MACROS/LOG] paste write failed", r.status, body);
             toast({
-              title: "Macros not saved",
-              description: "Your entry was added locally but couldn't be saved to your account. Check your connection and try again.",
+              title: t("Macros not saved"),
+              description: t("Your entry was added locally but couldn't be saved to your account. Check your connection and try again."),
               variant: "destructive",
             });
           }
@@ -1181,8 +1182,8 @@ function AccountMyBiometrics() {
         .catch((err) => {
           console.error("[MACROS/LOG] paste network error", err);
           toast({
-            title: "Macros not saved",
-            description: "Network error — your entry wasn't persisted. Please try again.",
+            title: t("Macros not saved"),
+            description: t("Network error — your entry wasn't persisted. Please try again."),
             variant: "destructive",
           });
         });
@@ -1402,7 +1403,7 @@ function AccountMyBiometrics() {
         return [row, ...filtered].slice(0, 365);
       });
       setLogWeightInput("");
-      toast({ title: "✓ Weight logged", description: "Your progress has been recorded." });
+      toast({ title: t("✓ Weight logged"), description: t("Your progress has been recorded.") });
 
       const returnTo = sessionStorage.getItem("biometrics:returnTo");
       if (returnTo) {
@@ -1410,7 +1411,7 @@ function AccountMyBiometrics() {
         setTimeout(() => setLocation(returnTo), 900);
       }
     } catch {
-      toast({ title: "Couldn't save weight", description: "Please try again.", variant: "destructive" });
+      toast({ title: t("Couldn't save weight"), description: t("Please try again."), variant: "destructive" });
     } finally {
       setLogWeightSaving(false);
     }
@@ -1766,7 +1767,7 @@ function AccountMyBiometrics() {
               : "text-white/60 hover:text-white"
           }`}
         >
-          {v === "7"
+          {t(v === "7"
             ? "1W"
             : v === "1"
               ? "1M"
@@ -1774,7 +1775,7 @@ function AccountMyBiometrics() {
                 ? "3M"
                 : v === "6"
                   ? "6M"
-                  : "12M"}
+                  : "12M")}
         </button>
       ))}
     </div>
@@ -1864,8 +1865,8 @@ function AccountMyBiometrics() {
         {/* Apple 1.4.1 Compliance: Prominent citation banner - MUST be visible */}
         <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-400/30 rounded-xl p-4">
           <p className="text-sm text-white/90 leading-relaxed">
-            <span className="font-semibold text-blue-300">Scientific Sources:</span>{" "}
-            Nutrient data from{" "}
+            <span className="font-semibold text-blue-300">{t("Scientific Sources:")}</span>{" "}
+            {t("Nutrient data from")}{" "}
             <a
               href="https://fdc.nal.usda.gov/"
               target="_blank"
@@ -1874,7 +1875,7 @@ function AccountMyBiometrics() {
             >
               USDA FoodData Central
             </a>
-            . Daily values per{" "}
+            {t(". Daily values per")}{" "}
             <a
               href="https://ods.od.nih.gov/HealthInformation/Dietary_Reference_Intakes.aspx"
               target="_blank"
@@ -1896,7 +1897,7 @@ function AccountMyBiometrics() {
           <CardHeader>
             <CardTitle className="text-white text-lg flex items-center gap-2">
               <BarChart3 className="h-5 w-5" />
-              Today's Macros
+              {t("Today's Macros")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -1905,7 +1906,7 @@ function AccountMyBiometrics() {
               <div className="flex items-center justify-between mb-3">
                 <div className="text-sm font-semibold text-white flex items-center gap-2">
                   <Target className="h-4 w-4" />
-                  {targets ? "Macro Targets Active" : "Today's Macros"}
+                  {t(targets ? "Macro Targets Active" : "Today's Macros")}
                 </div>
                 <Button
                   variant="outline"
@@ -1915,37 +1916,31 @@ function AccountMyBiometrics() {
                   onClick={() => setShowPersistentInfo(true)}
                 >
                   <Info className="h-3 w-3" />
-                  <span>Persistent</span>
+                  <span>{t("Persistent")}</span>
                   <span className="text-orange-300/70 text-[10px]">
-                    (tap)
+                    {t("(tap)")}
                   </span>
                 </Button>
-                <InformationModal open={showPersistentInfo} onOpenChange={setShowPersistentInfo} className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-md" title={<span className="flex items-center gap-2"><Info className="h-5 w-5 text-orange-400" />What Does "Persistent" Mean?</span>}>
+                <InformationModal open={showPersistentInfo} onOpenChange={setShowPersistentInfo} className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-md" title={<span className="flex items-center gap-2"><Info className="h-5 w-5 text-orange-400" />{t('What Does "Persistent" Mean?')}</span>}>
                     <div className="space-y-4 pt-4">
                       <p className="text-white/90 text-sm leading-relaxed">
                         <strong className="text-orange-300">
-                          Persistent
+                          {t("Persistent")}
                         </strong>{" "}
-                        means these macro targets stay the same every day
-                        until you change them.
+                        {t("means these macro targets stay the same every day until you change them.")}
                       </p>
                       <p className="text-white/80 text-sm leading-relaxed">
-                        Unlike your daily macro tracking (which resets each
-                        day), your <strong>macro targets</strong> remain
-                        constant. They don't change automatically.
+                        {t("Unlike your daily macro tracking (which resets each day), your")} <strong>{t("macro targets")}</strong> {t("remain constant. They don't change automatically.")}
                       </p>
                       <div className="rounded-lg border border-orange-400/30 bg-orange-900/20 p-3">
                         <p className="text-orange-200 text-sm">
-                          💡 <strong>Example:</strong> If your target is 2000
-                          calories today, it will still be 2000 calories
-                          tomorrow, next week, and next month—unless you
-                          update it.
+                          💡 <strong>{t("Example:")}</strong> {t("If your target is 2000 calories today, it will still be 2000 calories tomorrow, next week, and next month—unless you update it.")}
                         </p>
                       </div>
                       <p className="text-white/70 text-xs mb-4">
                         {targetSource === "pro"
-                          ? `These targets were set by ${proName}. They'll stay active until ${proName} changes them.`
-                          : "You can change your macro targets anytime from:"}
+                          ? t("These targets were set by {{name}}. They'll stay active until {{name}} changes them.", { name: proName })
+                          : t("You can change your macro targets anytime from:")}
                       </p>
 
                       {targetSource !== "pro" && !isGuestMode() && (
@@ -1955,7 +1950,7 @@ function AccountMyBiometrics() {
                             className="bg-orange-600/20 text-orange-200 border border-orange-400/30 hover:bg-orange-600/30 hover:border-orange-400/50 h-auto py-2 text-xs"
                             data-testid="button-go-macro-calculator"
                           >
-                            Macro Calculator
+                            {t("Macro Calculator")}
                           </Button>
                           <Button
                             onClick={() => {
@@ -1966,7 +1961,7 @@ function AccountMyBiometrics() {
                             className="bg-orange-600/20 text-orange-200 border border-orange-400/30 hover:bg-orange-600/30 hover:border-orange-400/50 h-auto py-2 text-xs"
                             data-testid="button-go-athlete-board"
                           >
-                            Professional Board
+                            {t("Professional Board")}
                           </Button>
                         </div>
                       )}
@@ -1980,11 +1975,11 @@ function AccountMyBiometrics() {
                   <div className="flex items-center gap-2 text-sm">
                     <Stethoscope className="h-4 w-4 text-orange-300" />
                     <span className="font-semibold text-orange-200">
-                      Set by {proName}
+                      {t("Set by")} {proName}
                     </span>
                   </div>
                   <div className="text-xs text-white/60 mt-1">
-                    Your professional has customized your macro targets
+                    {t("Your professional has customized your macro targets")}
                   </div>
                 </div>
               )}
@@ -1995,7 +1990,7 @@ function AccountMyBiometrics() {
                   {["Protein", "Carbs", "Fat", "Calories"].map((label) => (
                     <div key={label} className="space-y-2 mb-3">
                       <div className="flex justify-between text-sm">
-                        <span className="text-white">{label}</span>
+                        <span className="text-white">{t(label)}</span>
                         <div className="animate-pulse h-4 w-20 rounded bg-white/10" />
                       </div>
                       <div className="h-2 w-full rounded bg-white/10 overflow-hidden">
@@ -2017,11 +2012,11 @@ function AccountMyBiometrics() {
                             ? "border-yellow-400/70 bg-yellow-500/15 text-yellow-100/90 mpm-badge-pulse"
                             : "bg-white/10 text-white/80 border-white/20",
                         ].join(" ")}
-                        title={`${Math.round(b.pct)}% of ${b.key}`}
+                        title={t("{{percent}}% of {{label}}", { percent: Math.round(b.pct), label: t(b.key) })}
                       >
-                        {b.key}
+                        {t(b.key)}
                         {b.over
-                          ? " (Over)"
+                          ? t(" (Over)")
                           : b.near
                             ? ` (${Math.round(b.pct)}%)`
                             : ""}
@@ -2047,7 +2042,7 @@ function AccountMyBiometrics() {
                               {Math.round(row.used)} / {Math.round(row.max)}{" "}
                               {row.unit}{" "}
                               {over
-                                ? "• Over"
+                                ? t("• Over")
                                 : near
                                   ? `• ${Math.round(row.pct)}%`
                                   : ""}
@@ -2062,8 +2057,8 @@ function AccountMyBiometrics() {
                           {near && (
                             <div className="text-xs opacity-90 text-yellow-200">
                               {over
-                                ? "Over today's limit."
-                                : "Approaching limit."}
+                                ? t("Over today's limit.")
+                                : t("Approaching limit.")}
                             </div>
                           )}
                         </div>
@@ -2090,7 +2085,7 @@ function AccountMyBiometrics() {
                     </div>
                   ))}
                   <p className="text-xs text-white/40 text-center mt-1">
-                    Set targets in Macro Calculator to track progress
+                    {t("Set targets in Macro Calculator to track progress")}
                   </p>
                 </div>
               )}
@@ -2109,7 +2104,7 @@ function AccountMyBiometrics() {
                     className="text-xs font-normal leading-snug text-white/85 whitespace-normal"
                     data-testid="text-macro-scan-subtitle"
                   >
-                    Scan the nutrition label on the package.
+                    {t("Scan the nutrition label on the package.")}
                   </span>
                 </span>
               </Button>
@@ -2120,12 +2115,12 @@ function AccountMyBiometrics() {
               data-testid="button-just-describe"
             >
               <span className="flex min-w-0 flex-col items-center gap-0.5 text-center">
-                <span className="text-md font-semibold">✏️ Just Describe It</span>
+                <span className="text-md font-semibold">✏️ {t("Just Describe It")}</span>
                 <span
                   className="text-xs font-normal leading-snug text-white/85 whitespace-normal"
                   data-testid="text-just-describe-subtitle"
                 >
-                  No label or macros? Just describe what you ate.
+                  {t("No label or macros? Just describe what you ate.")}
                 </span>
               </span>
             </Button>
@@ -2137,10 +2132,10 @@ function AccountMyBiometrics() {
                   className="w-full bg-orange-600/80 text-md text-white mb-1"
                   data-testid="button-ingredient-intelligence"
                 >
-                  🧾 Ingredient Intelligence
+                  🧾 {t("Ingredient Intelligence")}
                 </Button>
                 <p className="text-xs text-white/40 text-center leading-snug mb-3 px-2">
-                  Understand packaged foods using your wellness profile, dietary preferences, and health goals.
+                  {t("Understand packaged foods using your wellness profile, dietary preferences, and health goals.")}
                 </p>
               </div>
 
@@ -2151,7 +2146,7 @@ function AccountMyBiometrics() {
             >
               <div>
                 <label className="text-xs text-white/80 font-medium mb-1 block">
-                  Protein (g)
+                  {t("Protein (g)")}
                 </label>
                 <Input
                   data-wt="bio-manual-protein"
@@ -2164,7 +2159,7 @@ function AccountMyBiometrics() {
               </div>
               <div>
                 <label className="text-xs text-white/80 font-medium mb-1 block">
-                  Starchy (g)
+                  {t("Starchy (g)")}
                 </label>
                 <Input
                   data-wt="bio-manual-starchy"
@@ -2177,7 +2172,7 @@ function AccountMyBiometrics() {
               </div>
               <div>
                 <label className="text-xs text-white/80 font-medium mb-1 block">
-                  Fibrous (g)
+                  {t("Fibrous (g)")}
                 </label>
                 <Input
                   data-wt="bio-manual-fibrous"
@@ -2190,7 +2185,7 @@ function AccountMyBiometrics() {
               </div>
               <div>
                 <label className="text-xs text-white/80 font-medium mb-1 block">
-                  Fat (g)
+                  {t("Fat (g)")}
                 </label>
                 <Input
                   data-wt="bio-manual-fat"
@@ -2203,7 +2198,7 @@ function AccountMyBiometrics() {
               </div>
               <div>
                 <label className="text-xs text-white/80 font-medium mb-1 block">
-                  Calories
+                  {t("Calories")}
                 </label>
                 <Input
                   data-wt="bio-manual-calories"
@@ -2220,21 +2215,15 @@ function AccountMyBiometrics() {
             {PROFILES_ENABLED && (
               <div className="mt-3 p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
                 <p className="text-xs text-white/90 leading-relaxed text-center">
-                  <strong>Short on Protein or Carbs?</strong> Enter the amount
-                  you need to add in{" "}
-                  <strong>either the Protein field OR the Carbs field</strong>{" "}
-                  (don't adjust Calories or Fat — leave those blank). Then use
-                  the <strong>Additional Macros</strong> dropdown to select
-                  which food source you're getting it from (chicken, rice,
-                  veggies, etc.). Press <strong>Add</strong> and the system will
-                  automatically fill in all the other macros based on that food
-                  type.
+                  <strong>{t("Short on Protein or Carbs?")}</strong> {t("Enter the amount you need to add in")}{" "}
+                  <strong>{t("either the Protein field OR the Carbs field")}</strong>{" "}
+                  {t("(don't adjust Calories or Fat — leave those blank). Then use the")} <strong>{t("Additional Macros")}</strong> {t("dropdown to select which food source you're getting it from (chicken, rice, veggies, etc.). Press")} <strong>{t("Add")}</strong> {t("and the system will automatically fill in all the other macros based on that food type.")}
                 </p>
               </div>
             )}
 
             {qv?.restaurantServing && <div className="mb-4 rounded-lg border border-orange-400/30 bg-black/70 p-3">
-              <p className="text-xs text-white/65">Original recommendation. Editing your macro entry does not recalculate these portions. Review before logging.</p>
+              <p className="text-xs text-white/65">{t("Original recommendation. Editing your macro entry does not recalculate these portions. Review before logging.")}</p>
               <RestaurantPortions serving={qv.restaurantServing} meal={{
                 name: qv.title || "", calories: qv.calories, protein: qv.protein,
                 carbs: qv.carbs, fat: qv.fat,
@@ -2245,7 +2234,7 @@ function AccountMyBiometrics() {
               <div className="flex items-center justify-between gap-2 mt-3">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-white/70 font-medium">
-                    Additional Macros:
+                    {t("Additional Macros:")}
                   </span>
                   <Select
                     value={selectedProfile}
@@ -2258,19 +2247,19 @@ function AccountMyBiometrics() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="whey">Whey / Isolate</SelectItem>
-                      <SelectItem value="chicken">Chicken (lean)</SelectItem>
-                      <SelectItem value="turkey">Turkey (lean)</SelectItem>
-                      <SelectItem value="fish">White Fish (lean)</SelectItem>
+                      <SelectItem value="whey">{t("Whey / Isolate")}</SelectItem>
+                      <SelectItem value="chicken">{t("Chicken (lean)")}</SelectItem>
+                      <SelectItem value="turkey">{t("Turkey (lean)")}</SelectItem>
+                      <SelectItem value="fish">{t("White Fish (lean)")}</SelectItem>
                       <SelectItem value="beef">
-                        Red Meat (beef/steak)
+                        {t("Red Meat (beef/steak)")}
                       </SelectItem>
-                      <SelectItem value="rice">Rice (starchy carb)</SelectItem>
-                      <SelectItem value="oats">Oats (carb+fat tail)</SelectItem>
+                      <SelectItem value="rice">{t("Rice (starchy carb)")}</SelectItem>
+                      <SelectItem value="oats">{t("Oats (carb+fat tail)")}</SelectItem>
                       <SelectItem value="veggies">
-                        Fibrous Veggies (carb)
+                        {t("Fibrous Veggies (carb)")}
                       </SelectItem>
-                      <SelectItem value="oil">Olive Oil (fat)</SelectItem>
+                      <SelectItem value="oil">{t("Olive Oil (fat)")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -2289,7 +2278,7 @@ function AccountMyBiometrics() {
                 onClick={resetToday}
                 data-testid="button-reset-today"
               >
-                Reset Today
+                {t("Reset Today")}
               </PillButton>
             </div>
 
@@ -2304,15 +2293,15 @@ function AccountMyBiometrics() {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="p-4 border-b border-white/10 font-semibold">
-                    Paste Macros
+                    {t("Paste Macros")}
                   </div>
                   <div className="p-4 space-y-3">
                     <p className="text-sm text-white/70">
-                      Accepts formats like:{" "}
+                      {t("Accepts formats like:")}{" "}
                       <code className="bg-black/30 px-1 rounded">
-                        Protein 30, Carbs 40, Fat 10, 370 kcal
+                        {t("Protein 30, Carbs 40, Fat 10, 370 kcal")}
                       </code>{" "}
-                      or just{" "}
+                      {t("or just")}{" "}
                       <code className="bg-black/30 px-1 rounded">
                         30 40 10 370
                       </code>
@@ -2323,7 +2312,7 @@ function AccountMyBiometrics() {
                       onChange={(e) => setPasteText(e.target.value)}
                       rows={6}
                       className="w-full rounded-lg bg-black/30 border border-white/20 p-3 outline-none text-white"
-                      placeholder="Paste here..."
+                      placeholder={t("Paste here...")}
                     />
                     <div className="flex justify-end gap-2">
                       <Button
@@ -2331,13 +2320,13 @@ function AccountMyBiometrics() {
                         className="bg-white/10 border-white/20 text-white"
                         onClick={() => setOpenPaste(false)}
                       >
-                        Cancel
+                        {t("Cancel")}
                       </Button>
                       <Button
                         className="bg-orange-600 hover:bg-orange-700 text-white"
                         onClick={addMacrosParsed}
                       >
-                        Add
+                        {t("Add")}
                       </Button>
                     </div>
                   </div>
@@ -2355,7 +2344,7 @@ function AccountMyBiometrics() {
         <Card id="biometrics-weight-section" className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-white text-xl flex items-center gap-2">
-              <Scale className="h-5 w-5" /> Body Stats
+              <Scale className="h-5 w-5" /> {t("Body Stats")}
             </CardTitle>
             <MonthViewToggle value={weightView} onChange={setWeightView} />
           </CardHeader>
@@ -2378,7 +2367,7 @@ function AccountMyBiometrics() {
                       : "text-white/60 hover:text-white"
                   }`}
                 >
-                  {label}
+                  {t(label)}
                 </button>
               ))}
             </div>
@@ -2434,7 +2423,7 @@ function AccountMyBiometrics() {
                 {/* Log Today's Weight — measurement only, does NOT change macros */}
                 <div className="mt-4 pt-4 border-t border-white/10">
                   <div className="text-xs font-semibold text-white/60 uppercase tracking-wide mb-2">
-                    Log Today's Weight
+                    {t("Log Today's Weight")}
                   </div>
                   <div className="flex gap-2 items-center">
                     <Input
@@ -2465,15 +2454,14 @@ function AccountMyBiometrics() {
                       onClick={() => setLocation("/macro-counter")}
                       className="mt-2 w-full text-left text-xs px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-400/30 text-orange-300 hover:bg-orange-500/20 transition"
                     >
-                      ↗ {reviewMacrosNudge} — <span className="underline">Review Macros →</span>
+                      ↗ {reviewMacrosNudge} — <span className="underline">{t("Review Macros →")}</span>
                     </button>
                   )}
                   <div className="mt-2">
                     <ReadOnlyNote>
-                      Logging here tracks your progress without changing your macro prescription.
-                      To update your macros, go to the{" "}
+                      {t("Logging here tracks your progress without changing your macro prescription. To update your macros, go to the")}{" "}
                       <button onClick={() => setLocation("/macro-counter")} className="underline text-white/80">
-                        Macro Calculator
+                        {t("Macro Calculator")}
                       </button>.
                     </ReadOnlyNote>
                   </div>
@@ -2488,7 +2476,7 @@ function AccountMyBiometrics() {
                     />
                   )}
                   {bmi && bmiCategory && (
-                    <Summary label="BMI*" value={`${bmi} — ${bmiCategory.label}`} sub="*Height from settings" categoryColor={bmiCategory.color} />
+                    <Summary label="BMI*" value={`${bmi} — ${t(bmiCategory.label)}`} sub="*Height from settings" categoryColor={bmiCategory.color} />
                   )}
                   {whr && <Summary label="Waist/Height" value={whr} />}
                 </div>
@@ -2511,7 +2499,7 @@ function AccountMyBiometrics() {
                 </div>
                 {latestWaistDate && (
                   <div className="text-xs text-white/40 mb-3">
-                    Last recorded: {new Date(latestWaistDate + "T12:00:00").toLocaleDateString()}
+                    {t("Last recorded:")} {new Date(latestWaistDate + "T12:00:00").toLocaleDateString()}
                   </div>
                 )}
                 {/* Chart */}
@@ -2532,7 +2520,7 @@ function AccountMyBiometrics() {
                         <Tooltip
                           contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid #333", color: "#fff", borderRadius: 8 }}
                           labelFormatter={(l) => new Date(l + "T12:00:00").toLocaleDateString()}
-                          formatter={(v: any) => [convertLengthDisplay(Number(v), "in", measurementSystem), "Waist"]}
+                          formatter={(v: any) => [convertLengthDisplay(Number(v), "in", measurementSystem), t("Waist")]}
                         />
                         <Line type="monotone" dataKey="metricAvg" stroke="#f97316" dot={false} name={measurementT("waistLabel", { unit: metricDisplay ? "cm" : "in" })} connectNulls={false} />
                       </LineChart>
@@ -2540,17 +2528,17 @@ function AccountMyBiometrics() {
                   </div>
                 ) : waistLoaded ? (
                   <div className="flex flex-col items-center justify-center py-8 text-white/40 text-sm gap-2">
-                    <span>No waist data yet.</span>
-                    <span className="text-xs text-center">Waist measurements are saved automatically when you use the Macro Calculator.</span>
+                    <span>{t("No waist data yet.")}</span>
+                    <span className="text-xs text-center">{t("Waist measurements are saved automatically when you use the Macro Calculator.")}</span>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center py-8 text-white/40 text-sm">Loading…</div>
+                  <div className="flex items-center justify-center py-8 text-white/40 text-sm">{t("Loading…")}</div>
                 )}
                 <div className="mt-3">
                   <ReadOnlyNote>
-                    Waist is saved automatically when you update your stats in the{" "}
+                    {t("Waist is saved automatically when you update your stats in the")}{" "}
                     <button onClick={() => setLocation("/macro-counter")} className="underline text-white/80">
-                      Macro Calculator
+                      {t("Macro Calculator")}
                     </button>.
                   </ReadOnlyNote>
                 </div>
@@ -2576,13 +2564,13 @@ function AccountMyBiometrics() {
                   </span>
                   {bodyFatPeriodChange !== null && (
                     <span className={`text-sm ${bodyFatPeriodChange < 0 ? "text-emerald-400" : bodyFatPeriodChange > 0 ? "text-orange-400" : "text-white/50"}`}>
-                      {bodyFatPeriodChange > 0 ? "+" : ""}{bodyFatPeriodChange}% this period
+                      {bodyFatPeriodChange > 0 ? "+" : ""}{bodyFatPeriodChange}{t("% this period")}
                     </span>
                   )}
                 </div>
                 {bodyCompLatest?.recordedAt && (
                   <div className="text-xs text-white/40 mb-3">
-                    Last recorded: {new Date(bodyCompLatest.recordedAt).toLocaleDateString()}
+                    {t("Last recorded:")} {new Date(bodyCompLatest.recordedAt).toLocaleDateString()}
                   </div>
                 )}
                 {/* Chart */}
@@ -2603,30 +2591,30 @@ function AccountMyBiometrics() {
                         <Tooltip
                           contentStyle={{ background: "rgba(0,0,0,0.9)", border: "1px solid #333", color: "#fff", borderRadius: 8 }}
                           labelFormatter={(l) => new Date(l + "T12:00:00").toLocaleDateString()}
-                          formatter={(v: any) => [`${v}%`, "Body Fat"]}
+                          formatter={(v: any) => [`${v}%`, t("Body Fat")]}
                         />
-                        <Line type="monotone" dataKey="metricAvg" stroke="#a78bfa" dot={true} name="Body Fat (%)" connectNulls={false} />
+                        <Line type="monotone" dataKey="metricAvg" stroke="#a78bfa" dot={true} name={t("Body Fat (%)")} connectNulls={false} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-8 text-white/40 text-sm gap-2">
-                    <span>No body fat data yet.</span>
-                    <span className="text-xs text-center">Log a body composition scan in the Body Composition section below.</span>
+                    <span>{t("No body fat data yet.")}</span>
+                    <span className="text-xs text-center">{t("Log a body composition scan in the Body Composition section below.")}</span>
                   </div>
                 )}
                 <div className="mt-3">
                   <ReadOnlyNote>
-                    Body fat is logged in the{" "}
+                    {t("Body fat is logged in the")}{" "}
                     <button
                       onClick={() => {
                         document.getElementById("biometrics-body-comp-section")?.scrollIntoView({ behavior: "smooth" });
                       }}
                       className="underline text-white/80"
                     >
-                      Body Composition
+                      {t("Body Composition")}
                     </button>{" "}
-                    section below. Each scan method (DEXA, BIA, calipers, etc.) is stored separately.
+                    {t("section below. Each scan method (DEXA, BIA, calipers, etc.) is stored separately.")}
                   </ReadOnlyNote>
                 </div>
                 {/* Summary */}
@@ -2643,7 +2631,7 @@ function AccountMyBiometrics() {
                       />
                     )}
                     {bodyCompLatest.scanMethod && (
-                      <Summary label="Method" value={bodyCompLatest.scanMethod} />
+                      <Summary label="Method" value={["Other", "other"].includes(bodyCompLatest.scanMethod) ? t("Other") : bodyCompLatest.scanMethod} />
                     )}
                   </div>
                 )}
@@ -2656,7 +2644,7 @@ function AccountMyBiometrics() {
         <Card className="bg-black/30 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-white text-xl flex items-center gap-2">
-              <Ruler className="h-5 w-5" /> Body Composition
+              <Ruler className="h-5 w-5" /> {t("Body Composition")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -2665,13 +2653,13 @@ function AccountMyBiometrics() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {parseFloat(bodyCompLatest.currentBodyFatPct) > 0 && (
                     <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                      <div className="text-xs text-white/60">Body Fat</div>
+                      <div className="text-xs text-white/60">{t("Body Fat")}</div>
                       <div className="text-lg font-bold text-white">{parseFloat(bodyCompLatest.currentBodyFatPct).toFixed(1)}%</div>
-                      <div className="text-[10px] text-white/40 mt-1">Estimated using the U.S. Navy Body Fat Formula.</div>
+                      <div className="text-[10px] text-white/40 mt-1">{t("Estimated using the U.S. Navy Body Fat Formula.")}</div>
                     </div>
                   )}
                   <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                    <div className="text-xs text-white/60">Target Body Fat</div>
+                    <div className="text-xs text-white/60">{t("Target Body Fat")}</div>
                     {editingGoalBF ? (
                       <div className="flex items-center gap-2 mt-1">
                         <input
@@ -2689,13 +2677,13 @@ function AccountMyBiometrics() {
                           disabled={goalBFSaving || !goalBFInput.trim() || goalBFInput === (bodyCompLatest?.goalBodyFatPct ? parseFloat(bodyCompLatest.goalBodyFatPct).toString() : "")}
                           className="px-2 py-1 text-xs font-semibold rounded-md bg-orange-600 text-white disabled:opacity-40"
                         >
-                          {goalBFSaving ? "..." : "Save"}
+                          {goalBFSaving ? "..." : t("Save")}
                         </button>
                         <button
                           onClick={() => setEditingGoalBF(false)}
                           className="px-2 py-1 text-xs rounded-md bg-white/10 text-white/60"
                         >
-                          Cancel
+                          {t("Cancel")}
                         </button>
                       </div>
                     ) : (
@@ -2710,24 +2698,24 @@ function AccountMyBiometrics() {
                           }}
                           className="px-2 py-0.5 text-xs rounded-md bg-orange-600/20 text-orange-400 font-medium"
                         >
-                          Edit
+                          {t("Edit")}
                         </button>
                       </div>
                     )}
                   </div>
                   {parseFloat(bodyCompLatest.currentBodyFatPct) > 0 && (
                     <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                      <div className="text-xs text-white/60">Method</div>
-                      <div className="text-sm font-medium text-white">{bodyCompLatest.scanMethod}</div>
+                      <div className="text-xs text-white/60">{t("Method")}</div>
+                      <div className="text-sm font-medium text-white">{["Other", "other"].includes(bodyCompLatest.scanMethod) ? t("Other") : bodyCompLatest.scanMethod}</div>
                     </div>
                   )}
                 </div>
                 {parseFloat(bodyCompLatest.currentBodyFatPct) > 0 && (
                   <div className="flex items-center gap-2 text-xs text-white/50">
-                    <span>Recorded: {new Date(bodyCompLatest.recordedAt).toLocaleDateString()}</span>
+                    <span>{t("Recorded:")} {new Date(bodyCompLatest.recordedAt).toLocaleDateString()}</span>
                     {bodyCompSource && (
                       <span className={`px-2 py-0.5 rounded-full ${bodyCompSource !== "client" ? "bg-amber-500/20 text-amber-300" : "bg-white/10 text-white/50"}`}>
-                        {bodyCompSource}
+                        {bodyCompSource === "client" ? t("client") : bodyCompSource}
                       </span>
                     )}
                   </div>
@@ -2737,11 +2725,11 @@ function AccountMyBiometrics() {
               <div className="py-4 space-y-3">
                 <div className="text-center">
                   <Ruler className="h-8 w-8 text-white/30 mx-auto mb-2" />
-                  <p className="text-white/60 text-sm mb-1">No body composition data yet</p>
-                  <p className="text-white/40 text-xs">Use the Macro Calculator to estimate or enter your body fat</p>
+                  <p className="text-white/60 text-sm mb-1">{t("No body composition data yet")}</p>
+                  <p className="text-white/40 text-xs">{t("Use the Macro Calculator to estimate or enter your body fat")}</p>
                 </div>
                 <div className="p-3 rounded-xl bg-black/25 border border-white/10">
-                  <div className="text-xs text-white/60 mb-1">Set Your Target Body Fat %</div>
+                  <div className="text-xs text-white/60 mb-1">{t("Set Your Target Body Fat %")}</div>
                   {editingGoalBF ? (
                     <div className="flex items-center gap-2">
                       <input
@@ -2765,7 +2753,7 @@ function AccountMyBiometrics() {
                         onClick={() => setEditingGoalBF(false)}
                         className="px-2 py-1 text-xs rounded-md bg-white/10 text-white/60"
                       >
-                        Cancel
+                        {t("Cancel")}
                       </button>
                     </div>
                   ) : (
@@ -2773,7 +2761,7 @@ function AccountMyBiometrics() {
                       onClick={() => { setGoalBFInput(""); setEditingGoalBF(true); }}
                       className="px-3 py-1.5 text-xs font-semibold rounded-md bg-orange-600 text-white"
                     >
-                      Set Goal
+                      {t("Set Goal")}
                     </button>
                   )}
                 </div>
@@ -2793,15 +2781,15 @@ function AccountMyBiometrics() {
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-white text-xl flex items-center gap-2">
-                  🧪 Lab Values
+                  🧪 {t("Lab Values")}
                 </CardTitle>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/30 text-orange-300 text-[10px] font-bold uppercase tracking-wide">
-                  Clinical
+                  {t("Clinical")}
                 </span>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-white/60 leading-relaxed">
-                  Track and manage lab markers and advanced health metrics as part of the Clinical experience. Tap to learn more.
+                  {t("Track and manage lab markers and advanced health metrics as part of the Clinical experience. Tap to learn more.")}
                 </p>
               </CardContent>
             </Card>
@@ -2818,15 +2806,15 @@ function AccountMyBiometrics() {
           >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-white text-xl flex items-center gap-2">
-                🧬 Therapeutic Nutrition Intelligence
+                🧬 {t("Therapeutic Nutrition Intelligence")}
               </CardTitle>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/30 text-orange-300 text-[10px] font-bold uppercase tracking-wide">
-                Clinical
+                {t("Clinical")}
               </span>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-white/70 leading-relaxed">
-                Log peptides, hormone therapies, medications, and active treatments so My Perfect Meals can adapt your nutrition plan around your clinical protocol. Available with the Clinical plan.
+                {t("Log peptides, hormone therapies, medications, and active treatments so My Perfect Meals can adapt your nutrition plan around your clinical protocol. Available with the Clinical plan.")}
               </p>
             </CardContent>
           </Card>
@@ -2834,7 +2822,7 @@ function AccountMyBiometrics() {
 
         {/* Version tag for deployment tracking */}
         <div className="text-[10px] text-white/40 text-center mt-4 mb-2">
-          Build: Biometrics v1.1 • Profiles ON • Server-backed Hydration
+          {t("Build: Biometrics v1.1 • Profiles ON • Server-backed Hydration")}
         </div>
       </div>
 
@@ -2848,13 +2836,10 @@ function AccountMyBiometrics() {
 
             <div className="space-y-4 text-white/90 text-sm">
               <p>
-                Track your daily macros (protein, carbs, fat, calories), weight,
-                and water intake. Your data is stored locally and syncs with the
-                Macro Calculator.
+                {t("Track your daily macros (protein, carbs, fat, calories), weight, and water intake. Your data is stored locally and syncs with the Macro Calculator.")}
               </p>
               <p className="text-white/80">
-                Use the "Add" button to log meals manually, or tap "Log from
-                Photo" to use AI to estimate nutrition from a food picture.
+                {t('Use the "Add" button to log meals manually, or tap "Log from Photo" to use AI to estimate nutrition from a food picture.')}
               </p>
             </div>
 
@@ -2862,7 +2847,7 @@ function AccountMyBiometrics() {
               onClick={() => setShowBiometricsInfoModal(false)}
               className="mt-6 w-full bg-lime-700 hover:bg-lime-800 text-white font-semibold py-3 rounded-xl transition-colors"
             >
-              Got it!
+              {t("Got it!")}
             </button>
           </div>
         </div>
@@ -2878,9 +2863,7 @@ function AccountMyBiometrics() {
 
             <div className="space-y-4 text-white/90 text-sm">
               <p>
-                Your macro targets are now active in today's macros. Navigate to
-                the Body Stats card below, save your weight, and you will be
-                sent to the plan builder.
+                {t("Your macro targets are now active in today's macros. Navigate to the Body Stats card below, save your weight, and you will be sent to the plan builder.")}
               </p>
             </div>
 
@@ -2888,7 +2871,7 @@ function AccountMyBiometrics() {
               onClick={() => setShowTodaysMacrosInfoModal(false)}
               className="mt-6 w-full bg-lime-700 hover:bg-lime-800 text-white font-semibold py-3 rounded-xl transition-colors"
             >
-              Got it!
+              {t("Got it!")}
             </button>
           </div>
         </div>
@@ -2897,8 +2880,8 @@ function AccountMyBiometrics() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        steps={biometricsTourSteps}
-        title="How to Use Biometrics"
+        steps={biometricsTourSteps.map(step => ({ ...step, title: t(step.title), description: t(step.description) }))}
+        title={t("How to Use Biometrics")}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
 
@@ -2918,8 +2901,8 @@ function AccountMyBiometrics() {
       <ConfirmationModal
         open={showResetConfirm}
         onOpenChange={(open) => setShowResetConfirm(open)}
-        title="Reset Today's Macros?"
-        description="This will permanently delete all macro entries logged today. Your targets, previous days, weight, and lab data are not affected."
+        title={t("Reset Today's Macros?")}
+        description={t("This will permanently delete all macro entries logged today. Your targets, previous days, weight, and lab data are not affected.")}
         className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-sm mx-4"
         footer={
           <div className="flex gap-3 w-full">
@@ -2927,18 +2910,18 @@ function AccountMyBiometrics() {
               onClick={() => setShowResetConfirm(false)}
               className="flex-1 bg-white/10 text-white border border-white/20"
             >
-              Cancel
+              {t("Cancel")}
             </PillButton>
             <PillButton
               onClick={confirmReset}
               className="flex-1 bg-red-600 text-white"
             >
-              Reset Today
+              {t("Reset Today")}
             </PillButton>
           </div>
         }
       >
-        <span className="sr-only">Confirm whether to reset today's macro entries.</span>
+        <span className="sr-only">{t("Confirm whether to reset today's macro entries.")}</span>
       </ConfirmationModal>
 
       <MacroScanModal
@@ -2951,8 +2934,8 @@ function AccountMyBiometrics() {
           setF(String(result.fat));
           setK(String(result.calories));
           toast({
-            title: "Macros Detected",
-            description: `${Math.round(result.calories)} kcal — Protein ${result.protein}g, Carbs ${result.carbs}g, Fat ${result.fat}g.`,
+            title: t("Macros Detected"),
+            description: t("{{calories}} kcal — Protein {{protein}}g, Carbs {{carbs}}g, Fat {{fat}}g.", { calories: Math.round(result.calories), protein: result.protein, carbs: result.carbs, fat: result.fat }),
           });
         }}
       />
@@ -2987,14 +2970,14 @@ function AccountMyBiometrics() {
             }, ...prev];
           });
           toast({
-            title: "Added to Today",
-            description: `${macros.protein}g protein, ${macros.carbs}g carbs, ${macros.fat}g fat logged.`,
+            title: t("Added to Today"),
+            description: t("{{protein}}g protein, {{carbs}}g carbs, {{fat}}g fat logged.", { protein: macros.protein, carbs: macros.carbs, fat: macros.fat }),
           });
         }}
       />
 
       {/* MODAL #1 — Guide modal: shown on arrival from Add to Macros / Save Day */}
-      <ConfirmationModal open={showGuideModal} onOpenChange={setShowGuideModal} className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-sm mx-4" title="Go to Quick View" footer={
+      <ConfirmationModal open={showGuideModal} onOpenChange={setShowGuideModal} className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-sm mx-4" title={t("Go to Quick View")} footer={
         <Button
           onClick={() => {
             setShowGuideModal(false);
@@ -3002,16 +2985,16 @@ function AccountMyBiometrics() {
           }}
           className="bg-orange-600 hover:bg-orange-700 text-white px-6"
         >
-          OK
+          {t("OK")}
         </Button>
       }>
         <p className="text-white/80 text-sm leading-relaxed">
-          Scroll up to find the <strong className="text-orange-300">Quick View</strong> section, then tap <strong className="text-white">Add to Today</strong> to log your macros.
+          {t("Scroll up to find the")} <strong className="text-orange-300">{t("Quick View")}</strong> {t("section, then tap")} <strong className="text-white">{t("Add to Today")}</strong> {t("to log your macros.")}
         </p>
       </ConfirmationModal>
 
       {/* MODAL #2 — Next action modal: shown after Add to Today or Dismiss */}
-      <ConfirmationModal open={showNextActionModal} onOpenChange={setShowNextActionModal} className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-sm mx-4" title="What would you like to do next?">
+      <ConfirmationModal open={showNextActionModal} onOpenChange={setShowNextActionModal} className="bg-black/90 backdrop-blur-lg border-white/20 text-white max-w-sm mx-4" title={t("What would you like to do next?")}>
         <div className="flex flex-col gap-3 mt-2">
           <Button
             onClick={() => {
@@ -3030,7 +3013,7 @@ function AccountMyBiometrics() {
             onClick={() => setShowNextActionModal(false)}
             className="bg-black text-white w-full"
           >
-            Stay on Biometrics
+            {t("Stay on Biometrics")}
           </Button>
         </div>
       </ConfirmationModal>
@@ -3049,10 +3032,11 @@ function Row({
   value: string;
   children: React.ReactNode;
 }) {
+  const { t } = useConsumerCopy("biometrics");
   return (
     <div>
       <div className="flex justify-between text-sm mb-1">
-        <span className="text-white/80">{label}</span>
+        <span className="text-white/80">{t(label)}</span>
         <span className="text-white">{value}</span>
       </div>
       {children}
@@ -3070,11 +3054,12 @@ function Summary({
   sub?: string;
   categoryColor?: string;
 }) {
+  const { t } = useConsumerCopy("biometrics");
   return (
     <div className="rounded-xl p-3 bg-black/20 border border-white/10">
-      <div className="text-xs text-white/70">{label}</div>
+      <div className="text-xs text-white/70">{t(label)}</div>
       <div className={`text-lg font-semibold ${categoryColor || "text-white"}`}>{value}</div>
-      {sub && <div className="text-xs text-white/60">{sub}</div>}
+      {sub && <div className="text-xs text-white/60">{t(sub)}</div>}
     </div>
   );
 }

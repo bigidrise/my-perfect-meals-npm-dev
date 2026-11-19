@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -184,11 +185,12 @@ function DoseRow({
   row: EntryRow;
   onChange: (dose: string) => void;
 }) {
+  const { t } = useConsumerCopy();
   const isActive = row.dose.trim() !== "" && parseFloat(row.dose) > 0;
   return (
     <div className="flex items-center gap-2">
       <span className={`text-xs w-40 shrink-0 leading-tight ${isActive ? "text-teal-300/90" : "text-white/50"}`}>
-        {row.label}
+        {t(row.label)}
       </span>
       <div className="flex items-center gap-1 flex-1 min-w-0">
         <Input
@@ -196,12 +198,12 @@ function DoseRow({
           inputMode="decimal"
           step="any"
           value={row.dose}
-          placeholder={row.placeholder}
+          placeholder={row.placeholder.startsWith("e.g. ") ? t("e.g. {{value}}", { value: row.placeholder.slice(5) }) : row.placeholder}
           onChange={(e) => onChange(e.target.value)}
           className="bg-black/40 border-white/20 text-white placeholder:text-white/25 text-sm h-8 focus:bg-black/40 focus:text-white caret-white"
         />
         {row.unit && (
-          <span className="text-[10px] text-white/30 shrink-0 w-14 text-left">{row.unit}</span>
+          <span className="text-[10px] text-white/30 shrink-0 w-14 text-left">{t(row.unit)}</span>
         )}
       </div>
     </div>
@@ -225,7 +227,7 @@ function CustomDoseRow({
   onUnitChange: (v: string) => void;
   onRemove: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useConsumerCopy();
   const isWeekly = row.unit?.endsWith("/week");
 
   return (
@@ -267,7 +269,7 @@ function CustomDoseRow({
                 : "text-white/35 hover:text-white/55"
             }`}
           >
-            Day
+            {t("Day")}
           </button>
           <button
             onClick={() => onUnitChange("mg/week")}
@@ -277,10 +279,10 @@ function CustomDoseRow({
                 : "text-white/35 hover:text-white/55"
             }`}
           >
-            Week
+            {t("Week")}
           </button>
         </div>
-        <span className="text-[9px] text-white/25 select-none">per</span>
+        <span className="text-[9px] text-white/25 select-none">{t("per")}</span>
       </div>
     </div>
   );
