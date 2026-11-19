@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import "@testing-library/jest-dom";
 import i18n from "@/i18n";
 import { trainingScheduleSpanish } from "@/i18n/trainingScheduleCopy";
+import { approvedTrainingExplanationSpanish } from "@/i18n/approvedTrainingExplanations";
 import { consumerEnglish, consumerSpanish } from "@/i18n/consumerJourney";
 import GeneralNutritionTrainingPage from "@/pages/GeneralNutritionTrainingPage";
 import { PageTitleProvider, useCurrentPageTitle } from "@/contexts/PageTitleContext";
@@ -13,6 +14,10 @@ import ts from "typescript";
 import { computeDemandProfile } from "@shared/performanceDemandEngine";
 
 const mockNavigate = jest.fn();
+let mockTrainingExplanationsEnabled = true;
+jest.mock("@/lib/trainingExplanationDevelopmentGate", () => ({
+  get approvedTrainingExplanationsEnabled() { return mockTrainingExplanationsEnabled; },
+}));
 const mockUser: any = {
   id: "offline-training-fixture", timezone: "UTC", entitlements: ["FULL_ACCESS"],
   activeProtocolTrack: "athletic",
@@ -46,6 +51,7 @@ function CurrentTitle() { return <div data-testid="page-title">{useCurrentPageTi
 const openPage = () => render(<PageTitleProvider><CurrentTitle /><GeneralNutritionTrainingPage /></PageTitleProvider>);
 
 beforeEach(() => {
+  mockTrainingExplanationsEnabled = true;
   jest.useFakeTimers().setSystemTime(new Date("2026-11-16T12:00:00Z"));
   window.history.replaceState({}, "", "/general-nutrition/training");
   localStorage.clear();
@@ -152,7 +158,7 @@ test("a custom sport name is preserved even when it resembles a translated syste
   }
 });
 
-test("protected nutrition explanations are unchanged and are not registered for translation", () => {
+test("canonical explanations stay unchanged and separate from ordinary interface copy", () => {
   const file = "client/src/pages/TrainingNutritionHub.tsx";
   const source = ts.createSourceFile(file, fs.readFileSync(file, "utf8"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let count = 0;
@@ -171,4 +177,70 @@ test("protected nutrition explanations are unchanged and are not registered for 
   }
   visit(source);
   expect(count).toBe(21);
+});
+
+test.each(["en", "es"])("%s displays exactly the six approved explanations without changing the selected demand or account", async language => {
+  await i18n.changeLanguage(language);
+  const previous = mockUser.performanceContext;
+  mockUser.performanceContext = {
+    ...previous, trainingFrequency: "1-2", trainingPhase: "in_season",
+    recoveryStatus: "good", adaptationTargets: ["speed"],
+  };
+  const before = JSON.stringify(mockUser);
+  try {
+    const demandBefore = computeDemandProfile(mockUser.performanceContext);
+    expect(demandBefore).toMatchObject({
+      fuelDemand: "low", recoveryDemand: "high", adaptationDemand: "power_focused",
+    });
+    openPage();
+    await screen.findByText(language === "es" ? "Entrenamiento de potencia" : "Power Training");
+    expect(Object.keys(approvedTrainingExplanationSpanish)).toHaveLength(6);
+    for (const [english, spanish] of Object.entries(approvedTrainingExplanationSpanish)) {
+      expect(screen.getByText(language === "es" ? spanish : english)).toBeInTheDocument();
+      expect(screen.queryByText(language === "es" ? english : spanish)).not.toBeInTheDocument();
+      expect(consumerEnglish[english]).toBe(english);
+      expect(consumerSpanish[english]).toBe(spanish);
+    }
+    expect(JSON.stringify(mockUser)).toBe(before);
+    expect(computeDemandProfile(mockUser.performanceContext)).toEqual(demandBefore);
+  } finally {
+    mockUser.performanceContext = previous;
+  }
+});
+
+test("a Spanish interface leaves explanation text English when the Development gate is disabled", async () => {
+  mockTrainingExplanationsEnabled = false;
+  await i18n.changeLanguage("es");
+  const previous = mockUser.performanceContext;
+  mockUser.performanceContext = {
+    ...previous, trainingFrequency: "1-2", trainingPhase: "in_season",
+    recoveryStatus: "good", adaptationTargets: ["speed"],
+  };
+  try {
+    openPage();
+    await screen.findByText("Entrenamiento de potencia");
+    for (const [english, spanish] of Object.entries(approvedTrainingExplanationSpanish)) {
+      expect(screen.getByText(english)).toBeInTheDocument();
+      expect(screen.queryByText(spanish)).not.toBeInTheDocument();
+    }
+    expect(screen.getByText("Calendario semanal de entrenamiento")).toBeInTheDocument();
+  } finally {
+    mockUser.performanceContext = previous;
+  }
+});
+
+test("unapproved explanations retain their original wording even in Spanish Development", async () => {
+  await i18n.changeLanguage("es");
+  const previous = mockUser.performanceContext;
+  mockUser.performanceContext = { ...previous, recoveryStatus: "average" };
+  try {
+    expect(computeDemandProfile(mockUser.performanceContext).recoveryDemand).toBe("moderate");
+    openPage();
+    await screen.findByText("Entrenamiento de potencia");
+    const unapproved = "Anti-inflammatory ingredients are incorporated where possible — omega-3 sources, colorful vegetables, turmeric, and ginger — to support your training recovery.";
+    expect(approvedTrainingExplanationSpanish).not.toHaveProperty(unapproved);
+    expect(screen.getByText(unapproved)).toBeInTheDocument();
+  } finally {
+    mockUser.performanceContext = previous;
+  }
 });

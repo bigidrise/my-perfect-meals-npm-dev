@@ -10,8 +10,10 @@ import { approvedConsumerOnboardingSpanish } from "./approvedConsumerOnboarding"
 import { foodWorkflowSpanish } from "./foodWorkflowCopy";
 import { consumerFeatureSpanish } from "./consumerFeatureCopy";
 import { consumerDailyDisplaySpanish } from "./consumerDailyDisplayCopy";
+import { approvedTrainingExplanationSpanish } from "./approvedTrainingExplanations";
 
 export const consumerSpanish: Record<string, string> = {
+  ...approvedTrainingExplanationSpanish,
   ...consumerDailyDisplaySpanish,
   ...consumerFeatureSpanish,
   ...startupPhraseTranslations,
