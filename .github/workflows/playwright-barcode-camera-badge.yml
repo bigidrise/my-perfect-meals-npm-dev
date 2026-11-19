@@ -72,6 +72,9 @@ jobs:
         run: |
           ./node_modules/.bin/playwright install --with-deps chromium
 
+      - name: Generate frontend build metadata
+        run: node scripts/update-version.js
+
       # The browser spec mocks /api/**; the Jest step tests the real barcode
       # route separately. Serve the real frontend without database boot hooks.
       - name: Start barcode frontend (background)
