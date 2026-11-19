@@ -1,9 +1,11 @@
 import { trainingScheduleSpanish } from "./trainingScheduleCopy";
 import { savedGroceriesSpanish } from "./savedGroceriesCopy";
+import { ingredientAnalysisLabelsSpanish } from "./ingredientAnalysisLabels";
 
 /** Ordinary display copy only. Never translate saved records, unknown API errors or safety evidence here. */
 export const consumerFeatureSpanish: Record<string, string> = {
   ...savedGroceriesSpanish,
+  ...ingredientAnalysisLabelsSpanish,
   "Active Protocol:": "Protocolo activo:",
   "Anti-Inflammatory (optional)": "Antiinflamatorio (opcional)",
   "Alpha-gal Syndrome": "Síndrome de alfa-gal",
