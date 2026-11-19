@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useOrgFlag } from "@/contexts/OrgContext";
@@ -201,7 +202,7 @@ export default function MeetYourCoach() {
           onClick={() => setLocation("/dashboard")}
           className="bg-white/10 border border-white/20 text-white"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4" /><span className="sr-only"><BackNavigationLabel /></span>
         </Button>
         <h1 className="text-xl font-bold">Professional Team</h1>
       </div>

@@ -521,7 +521,7 @@ export default function Welcome() {
           ))}
 
           <button
-            aria-label="Previous slide"
+            aria-label={t("Previous slide")}
             onClick={prev}
             className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 backdrop-blur px-2 py-2 rounded-full border border-white/10 active:scale-[0.98] transition-transform"
           >

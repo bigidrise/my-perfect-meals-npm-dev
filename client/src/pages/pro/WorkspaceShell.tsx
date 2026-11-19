@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { ArrowLeft, Loader2, Activity, Target, UtensilsCrossed, CheckCircle2 } from "lucide-react";
@@ -133,7 +134,7 @@ export default function WorkspaceShell() {
             onClick={() => navigate("/pro/clients")}
             className="text-white/70 hover:text-white"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5" /><span className="sr-only"><BackNavigationLabel /></span>
           </Button>
           <div className="flex-1">
             <h1 className="text-lg font-semibold">{clientName}</h1>

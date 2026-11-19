@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 // client/src/pages/MacroCounter.tsx
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Calculator } from "lucide-react";
@@ -1721,7 +1722,7 @@ function AccountMacroCounter() {
                 className="flex items-center gap-1 text-purple-400 hover:bg-purple-500/10 px-2 py-1 rounded-lg text-sm font-medium -ml-2"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Return to Pro Portal
+                <BackNavigationLabel label="Return to Pro Portal" />
               </button>
             )}
             <h1 className="text-lg font-bold text-white flex items-center gap-2">

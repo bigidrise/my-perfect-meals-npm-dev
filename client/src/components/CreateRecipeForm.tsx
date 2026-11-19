@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState } from 'react';
 import { apiUrl } from '@/lib/resolveApiBase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -137,7 +138,7 @@ export default function CreateRecipeForm({ onBack }: CreateRecipeFormProps) {
       <div className="flex items-center gap-4">
         <Button variant="outline" onClick={onBack}>
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Tutorials
+          <BackNavigationLabel label="Back to Tutorials" />
         </Button>
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">

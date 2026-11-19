@@ -1,3 +1,4 @@
+import { BackNavigationLabel, useBackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useProClient } from "@/contexts/ProClientContext";
 import { useLocation, useSearch } from "wouter";
 import { User2, LogOut, ChevronLeft } from "lucide-react";
@@ -20,6 +21,7 @@ interface BuilderHeaderProps {
 
 export function BuilderHeader({ title, onOpenTour, clientId, protocols, backTo, backLabel }: BuilderHeaderProps) {
   const { t } = useConsumerCopy();
+  const navigationLabel = useBackNavigationLabel();
   const { client, isProCareMode } = useProClient();
   const [, setLocation] = useLocation();
   const search = useSearch();
@@ -42,10 +44,10 @@ export function BuilderHeader({ title, onOpenTour, clientId, protocols, backTo, 
             <button
               onClick={() => setLocation(effectiveBackTo)}
               className="flex items-center gap-1 text-white/80 active:text-white transition-colors flex-shrink-0 -ml-1 pr-1"
-              aria-label={t("Back to {{name}}", { name: effectiveBackLabel ?? t("Hub") })}
+              aria-label={t("Back to {{name}}", { name: navigationLabel(effectiveBackLabel ?? "Hub") })}
             >
               <ChevronLeft className="w-5 h-5" />
-              <span className="text-sm font-medium">{effectiveBackLabel ?? t("Hub")}</span>
+              <span className="text-sm font-medium"><BackNavigationLabel label={effectiveBackLabel ?? "Hub"} /></span>
             </button>
           )}
           <h1 className="text-lg font-bold text-white flex-1 min-w-0 break-words leading-tight">

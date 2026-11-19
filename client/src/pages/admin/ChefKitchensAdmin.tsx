@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -252,7 +253,7 @@ export default function ChefKitchensAdmin() {
           onClick={() => setLocation("/admin")}
           className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
         >
-          <ArrowLeft className="h-4 w-4 text-white/60" />
+          <ArrowLeft className="h-4 w-4 text-white/60" /><span className="sr-only"><BackNavigationLabel /></span>
         </button>
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <ChefHat className="h-5 w-5 text-orange-400 flex-shrink-0" />

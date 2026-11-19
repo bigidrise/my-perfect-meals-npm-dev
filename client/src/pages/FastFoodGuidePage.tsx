@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 // 🔒🔒🔒 FAST FOOD GUIDE - CLONE OF RESTAURANT GUIDE 🔒🔒🔒
 // STATUS: Exact clone with Fast Food branding — same engine, same logic
 //
@@ -716,7 +717,7 @@ export default function FastFoodGuidePage() {
                 className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
               >
                 <ArrowLeft className="h-5 w-5" />
-                <span className="text-sm font-medium">Back</span>
+                <span className="text-sm font-medium"><BackNavigationLabel /></span>
               </button>
 
               {/* Title */}
@@ -895,7 +896,7 @@ export default function FastFoodGuidePage() {
                         rounded-xl
                         transition-none"
                     >
-                      Back
+                      <BackNavigationLabel />
                     </Button>
                     <Button
                       onClick={() => advanceGuided("step3")}
@@ -1004,7 +1005,7 @@ export default function FastFoodGuidePage() {
                         rounded-xl
                         transition-none"
                     >
-                      Back
+                      <BackNavigationLabel />
                     </Button>
                     <Button
                       onClick={handleSearch}

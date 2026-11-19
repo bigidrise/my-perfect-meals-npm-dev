@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useState } from "react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { usePageTitle } from "@/contexts/PageTitleContext";
@@ -167,7 +168,7 @@ export default function CatIngredientScanner() {
         >
           <div className="px-4 py-3 flex items-center justify-between">
             <button onClick={() => setLocation("/companion/cats")} className="p-1">
-              <ArrowLeft className="w-5 h-5 text-white/70" />
+              <ArrowLeft className="w-5 h-5 text-white/70" /><span className="sr-only"><BackNavigationLabel /></span>
             </button>
             <h1 className="text-sm font-bold text-white">Cat Ingredient Scanner</h1>
             <PillButton onClick={handleCopilotOpen}>How it works</PillButton>
@@ -185,7 +186,7 @@ export default function CatIngredientScanner() {
               className="flex items-center gap-1.5 text-orange-400 text-sm hover:text-orange-300 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span>Back to My Perfect Cat</span>
+              <span><BackNavigationLabel label="Back to My Perfect Cat" /></span>
             </button>
           </div>
         )}

@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Play, Pause, ChevronLeft } from "lucide-react";
@@ -99,7 +100,7 @@ export default function CoachCornerWelcome() {
           onClick={() => setLocation("/dashboard")}
           className="w-9 h-9 rounded-full bg-black/40 border border-white/10 flex items-center justify-center"
         >
-          <ChevronLeft className="w-5 h-5 text-white/80" />
+          <ChevronLeft className="w-5 h-5 text-white/80" /><span className="sr-only"><BackNavigationLabel /></span>
         </button>
       </div>
       <div className="flex-1 overflow-y-auto px-4 pb-10">

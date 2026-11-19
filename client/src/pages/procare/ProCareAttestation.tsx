@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -175,7 +176,7 @@ function EstablishedProfessionalLegalContinuation() {
             className="flex items-center gap-1 text-white/60 text-sm mb-4 active:scale-[0.98]"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back
+            <BackNavigationLabel />
           </button>
 
           <div className="text-center mb-6">

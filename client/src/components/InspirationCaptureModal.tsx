@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useConsumerCopy } from "@/i18n/useConsumerCopy";
@@ -781,7 +782,7 @@ export default function InspirationCaptureModal({
                   onClick={() => setPhase("capture")}
                   className="absolute left-0 p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-all active:scale-95"
                 >
-                  <ChevronLeft className="h-5 w-5" />
+                  <ChevronLeft className="h-5 w-5" /><span className="sr-only"><BackNavigationLabel /></span>
                 </button>
               )}
               {/* Discard / close — all phases except 3-option preview (which has its own Trash2) */}

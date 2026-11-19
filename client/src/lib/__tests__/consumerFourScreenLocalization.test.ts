@@ -12,6 +12,7 @@ import { CuisineOverrideControl } from "@/components/ui/CuisineOverrideControl";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { useMenuDisplayCopy } from "@/i18n/useMenuDisplayCopy";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -53,6 +54,10 @@ test.each(["en", "es"])("%s screenshot labels resolve through the real namespace
   );
   const backLabel = i18n.t("diabeticBuilder.backLabel");
   expect(backLabel).toBe(language === "es" ? "Centro para diabéticos" : "Diabetes Hub");
+  const menu = renderHook(useMenuDisplayCopy);
+  expect(menu.result.current.builders.diabetic).toBe(
+    language === "es" ? "Creador de comidas para la diabetes" : "Diabetic Builder",
+  );
 });
 
 test("Create a Dish source keeps voice and clear controls in the same action row", () => {

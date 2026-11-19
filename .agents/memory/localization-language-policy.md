@@ -15,6 +15,12 @@ The product goal is a consistent Spanish experience across every applicable supp
 
 **How to apply:** Keep interface, generated content, professional workflows, and delivery channels within their approved phase. Never interpret an interface phase as authorization to change clinical or nutrition rules.
 
+Every page in the platform must have back controls in the selected interface language, including named parent destinations, not just a corrected example page.
+
+**Why:** The user repeated that fixing the Diabetic Builder alone was insufficient and explicitly required every page.
+
+**How to apply:** Cover shared headers, individual pages, desktop/mobile variants and accessible back labels. Preserve destinations and callbacks; translate ordinary navigation without expanding clinical wording approval.
+
 Current release customer-selectable languages are only Automatic, English and Español. Automatic supports only English/Spanish, with English fallback for other device languages. Unsupported saved languages display English without rewriting their account value. Preserve dormant language definitions, resources and code for future activation.
 
 **Why:** The founder explicitly limited current release choices to EN/ES and required the smallest change to the existing Language page and system, not another selector, engine or page.

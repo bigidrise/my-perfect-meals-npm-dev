@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
@@ -542,7 +543,7 @@ export default function StudioWizard({ config }: StudioWizardProps) {
             data-testid="button-back"
           >
             <ArrowLeft className="h-5 w-5" />
-            <span className="text-sm font-medium">Back</span>
+            <span className="text-sm font-medium"><BackNavigationLabel /></span>
           </button>
 
           <h1 className="text-lg font-bold text-white truncate min-w-0">

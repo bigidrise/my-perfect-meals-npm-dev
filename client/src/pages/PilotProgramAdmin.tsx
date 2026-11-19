@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useMemo, useState } from "react";
 import FounderPilotInvitation from "@/components/business/FounderPilotInvitation";
 import DevelopmentPilotMfaStatus from "@/components/business/DevelopmentPilotMfaStatus";
@@ -206,7 +207,7 @@ export default function PilotProgramAdmin({ showDevelopmentMfaStatus = false }: 
     <div className="min-h-screen bg-neutral-950 px-5 py-10 text-white">
       <div className="mx-auto max-w-3xl">
         <button type="button" onClick={() => setLocation("/admin")} className="mb-5 text-sm text-white/55 hover:text-white">
-          ← Admin Dashboard
+          ← <BackNavigationLabel label="Admin Dashboard" />
         </button>
         <p className="text-sm font-semibold uppercase tracking-wider text-violet-300">Pilot administration</p>
         <h1 className="mt-2 text-3xl font-bold">Organization Pilots</h1>

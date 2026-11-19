@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { ArrowLeft } from "lucide-react";
 
 interface AcademyBackButtonProps {
@@ -25,7 +26,7 @@ export function AcademyBackButton({
       className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white bg-black/60 hover:bg-black/80 border border-white/20 backdrop-blur-sm transition-colors shadow-lg active:scale-[0.98] ${className}`}
     >
       <ArrowLeft className="h-4 w-4" />
-      {label}
+      <BackNavigationLabel label={label} />
     </button>
   );
 }

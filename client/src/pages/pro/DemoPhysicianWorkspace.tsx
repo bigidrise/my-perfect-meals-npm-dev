@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { resolveLanguagePreference } from "@/i18n/languagePreference";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
@@ -752,7 +753,7 @@ export default function DemoPhysicianWorkspace({ fallback }: { fallback?: ReactN
       <div className="mx-auto max-w-6xl space-y-5 pt-6" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 1.5rem)" }}>
         {boundaryNotice}
         <button type="button" onClick={() => setLocation("/pro/physician-clients")}
-          className="min-h-11 rounded-lg border border-white/30 px-4">Back to Clients</button>
+          className="min-h-11 rounded-lg border border-white/30 px-4"><BackNavigationLabel label="Back to Clients" /></button>
         <h1 className="text-2xl font-bold">Client Dashboard{authorizedPatient ? ` — ${patients.find(item => item.id === page.patientId)?.label}` : ""}</h1>
         {patientsLoading ? <p role="status">Loading test client…</p>
           : patientsError ? <p role="alert">{patientsError}</p>

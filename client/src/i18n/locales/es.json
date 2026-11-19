@@ -1125,7 +1125,7 @@
   "findMeals": {
     "pageTitle": "Encontrar Comidas Cercanas",
     "headerTitle": "Buscador de Comidas",
-    "socialHub": "Hub Social",
+    "socialHub": "Centro social",
     "entryTitle": "Encontrar Mi Comida",
     "entryDesc": "Dime lo que se te antoja y encontraré restaurantes cercanos con opciones saludables que se adapten a tus objetivos.",
     "letsFindMeals": "Buscar Comidas",
@@ -1209,7 +1209,7 @@
     "pageTitle": "Constructor de Medicación Metabólica",
     "tourTitle": "Guía del Constructor de Medicación Metabólica",
     "loadingBoard": "Cargando tablero de comidas...",
-    "glp1Hub": "Hub GLP-1",
+    "glp1Hub": "Centro de GLP-1",
     "activeClinical": "Apoyos Clínicos Activos:",
     "hormonalMetabolic": "Hormonal y Metabólico:",
     "clinicalAntiInflam": "Antiinflamatorio",
@@ -1330,7 +1330,7 @@
   },
   "businessCenter": {
     "title": "Business Center",
-    "back": "Back",
+    "back": "Atrás",
     "tagline": "Every way to grow with My Perfect Meals — as a partner, a professional, or a creator.",
     "pillars": {
       "partners": "Partner Programs",
@@ -3967,7 +3967,7 @@
     "title": "Rincón de padres",
     "yourChild": "tu hijo",
     "helpingBuildHabits": "Ayudando a {{name}} a crear hábitos sanos",
-    "backToBeginnings": "Volver a My Perfect Beginnings",
+    "backToBeginnings": "Volver a Mis Comienzos Perfectos",
     "startFresh": "Empezar de nuevo",
     "startNewConversation": "Iniciar una nueva conversación",
     "clearConfirm": "¿Borrar esta conversación y empezar de nuevo?",
@@ -4253,7 +4253,7 @@
     "wrongAccountAddress": "This invitation was sent to",
     "wrongAccountDiffAccount": "You’re currently signed in with a different account.",
     "wrongAccountHint": "Sign out and sign in with the correct email address, then click the invitation link again.",
-    "backToApp": "Back to App",
+    "backToApp": "Volver a la aplicación",
     "expiredTitle": "Invitation Expired",
     "expiredBody": "This invitation has expired. Ask your trainer to send a new one — it only takes a moment.",
     "backupCodeHint": "You can also enter your backup code manually:",
@@ -4308,7 +4308,7 @@
     "roleDoctor": "doctor"
   },
   "businessCenterSection": {
-    "backBtn": "Business Suite",
+    "backBtn": "Suite de negocios",
     "affiliate": {
       "title": "Oportunidades de Afiliados",
       "description": "El programa de afiliados y la certificación están siendo finalizados. Una vez lanzados, podrás ganar comisiones, acceder a activos de marketing y rastrear tus referencias — todo dentro de My Perfect Meals.",

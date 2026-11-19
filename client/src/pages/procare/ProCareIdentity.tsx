@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -229,7 +230,7 @@ export default function ProCareIdentity() {
             className="flex items-center gap-1 text-white/60 text-sm mb-4 active:scale-[0.98]"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back
+            <BackNavigationLabel />
           </button>
 
           <div className="text-center mb-6">

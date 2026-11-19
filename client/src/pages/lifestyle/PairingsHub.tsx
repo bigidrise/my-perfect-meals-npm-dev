@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
@@ -101,7 +102,7 @@ export default function PairingsHub() {
                 className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-2 transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
-                <span className="text-sm font-medium">Back</span>
+                <span className="text-sm font-medium"><BackNavigationLabel /></span>
               </button>
             )}
             <div className="text-center mb-6">

@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useState } from "react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { usePageTitle } from "@/contexts/PageTitleContext";
@@ -161,7 +162,7 @@ export default function CatNutritionHub() {
         >
           <div className="px-4 py-3 flex items-center justify-between">
             <button onClick={() => setLocation("/companion")} className="p-1">
-              <ArrowLeft className="w-5 h-5 text-white/70" />
+              <ArrowLeft className="w-5 h-5 text-white/70" /><span className="sr-only"><BackNavigationLabel /></span>
             </button>
             <div className="flex items-center gap-2">
               <span className="text-base">🐈</span>
@@ -182,7 +183,7 @@ export default function CatNutritionHub() {
               className="flex items-center gap-1.5 text-orange-400 text-sm hover:text-orange-300 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span>Back to My Perfect Pets</span>
+              <span><BackNavigationLabel label="Back to My Perfect Pets" /></span>
             </button>
           </div>
         )}
