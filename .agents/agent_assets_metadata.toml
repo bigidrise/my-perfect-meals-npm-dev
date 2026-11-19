@@ -1447,3 +1447,31 @@ mtime_ms = 1795101759603
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/b275f0a2-1807-44b4-9825-580fd06b5313/805f4f79-5809-4d7a-bce6-43f117faa9dd"
 storage_version_token = "1795101760732232"
 content_type = "text/html"
+
+[[outputs]]
+id = "Ep9BZM-CNHG_k3P-EQHp4"
+uri = "file://.local/reports/pr478-targeted-release-recovery.html"
+type = "html"
+title = "PR #478 — Targeted recovery results"
+description = "All 19 changed files, authentication limits, exact validation results, individual clinical-source review, inventory provenance, and remaining release blockers."
+logical_id = "82a73382-2f6a-419a-8097-a2388df3c12d"
+content_hash = "sha256:ce81514345c25d501d58e706e8c4345891bcb9167ce1bf5dd13bd029c92a1535"
+size = 57741
+mtime_ms = 1795106558514
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/82a73382-2f6a-419a-8097-a2388df3c12d/d2689eb1-3331-4fc3-9a82-d7167ddc767b"
+storage_version_token = "1795106616813073"
+content_type = "text/html"
+
+[[outputs]]
+id = "MofHFRY44u2ht3OB1cbmX"
+uri = "file://.local/reconciliation/dev-production-20261119/generated-artifacts/reconciliation-validation/recovery-inventory-review.csv"
+type = "table"
+title = "Localization inventory — 88-file review"
+description = "Separates the 20 per-file regressions and 68 inventory differences by approved Development/Production provenance."
+logical_id = "6b8c548f-47d5-4d2f-86a8-717aa505afc6"
+content_hash = "sha256:35a3e7a26a4a1e5669462eddf4999d1c2c5566283d7ca5e849436ebd03095612"
+size = 8854
+mtime_ms = 1795106385209
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/6b8c548f-47d5-4d2f-86a8-717aa505afc6/02cb4a43-2505-4abc-9e22-eaf4849d7499"
+storage_version_token = "1795106617593349"
+content_type = "text/csv"
