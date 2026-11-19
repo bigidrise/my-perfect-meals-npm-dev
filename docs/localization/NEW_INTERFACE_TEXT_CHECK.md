@@ -71,12 +71,17 @@ to translate their safety decisions or machine reason codes.
 
 ## Translation and resource connections
 
-The parser recognizes imports/aliases of `useTranslation` and `useConsumerCopy`,
-destructured translator aliases, object `.t` calls and imported i18n `.t`.
+The parser recognizes imports/aliases of `useTranslation`, `useConsumerCopy`
+and `useMacroCalculatorCopy`, destructured translator aliases, object `.t`
+calls and imported i18n `.t`.
 Bindings retain their lexical namespace rather than guessing from every hook
 in the file. Consumer source-phrase keys use the additive consumer namespace
 where the current helper actually does so. Explicit `ns` and `ns:key` are
 supported. Dynamic keys/namespaces are review-needed.
+The calculator helper resolves its source-owned namespace first, then consumer
+phrases and its legacy namespace. Its catalog is required only when actually
+registered in the runtime's EN/ES initialization; partial registration and
+changed English derivation fail closed.
 
 Count calls resolve EN/ES `_one`/`_other` forms without demanding a nonexistent
 base leaf. Spanish-only extra categories such as `_many` are permitted and their
@@ -85,6 +90,14 @@ statically parses legacy EN/ES JSON and the existing additive resource objects,
 including allowlisted startup/approved spreads. **No application/resource code
 is executed.** Changed spread or derived resource-construction shapes fail
 closed until the static reader is extended with tests.
+
+Registered feature spreads include saved groceries, ingredient-analysis labels,
+Biometrics, clinical Biometrics and Training Schedule. Approved training
+explanations are registered separately at the consumer dictionary level.
+Feature registrations are lazy: a historical comparison does not require later
+modules it never connected, but a connected missing file is an error, never an
+empty substitute. Actual object-spread order determines duplicate-key precedence.
+Registration does not waive placeholder, interpolation or protected-copy review.
 
 This measures EN/ES only and does not pad sibling languages with English.
 Existing other-language checks remain independently enforced. Key presence and

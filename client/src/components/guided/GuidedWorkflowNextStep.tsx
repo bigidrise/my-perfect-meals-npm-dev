@@ -7,7 +7,7 @@ import { useGuidedJourneyDashboard } from "@/hooks/useGuidedJourneyDashboard";
 import { GuidedJourneyExplanation } from "./GuidedJourneyExplanation";
 
 /** Inline offer only; the existing workflows own saving, redirects and resume. */
-export function GuidedWorkflowNextStep({ busy = false, professionalSession = false, summaryVisible = false }: { busy?: boolean; professionalSession?: boolean; summaryVisible?: boolean }) {
+export function GuidedWorkflowNextStep({ busy = false, professionalSession = false, summaryVisible = false, translate = (text: string) => text }: { busy?: boolean; professionalSession?: boolean; summaryVisible?: boolean; translate?: (text: string) => string }) {
   const { user, loading, refreshUser } = useAuth();
   const { activeProfileId } = useHousehold();
   const [path, navigate] = useLocation();
@@ -26,24 +26,24 @@ export function GuidedWorkflowNextStep({ busy = false, professionalSession = fal
   if (!journey.visible) return null;
   return <>
     {(journey.handoff || journey.model.canRetry || journey.presentationNotice) && (
-      <section data-testid="guided-workflow-next-step" aria-label="Guided Journey next step"
+      <section data-testid="guided-workflow-next-step" aria-label={translate("Guided Journey next step")}
         style={summaryVisible ? { marginTop: "8rem" } : undefined}
         className="mx-auto w-full max-w-5xl rounded-xl border border-orange-300/30 bg-zinc-950 p-4 text-white">
         <p role="status" className="text-sm leading-relaxed text-zinc-200">
-          {journey.handoff?.message ?? journey.presentationNotice ?? journey.model.statusText}
+          {translate(journey.handoff?.message ?? journey.presentationNotice ?? journey.model.statusText)}
         </p>
         {journey.handoff && <button type="button" disabled={busy}
           onClick={() => { void journey.nextStep(); }} data-testid="guided-workflow-next-action"
           className="mt-3 min-h-11 scroll-mt-64 rounded-xl bg-orange-500 px-4 py-2 font-semibold text-zinc-950 disabled:opacity-50">
-          Next Step{journey.handoff.destination === "dashboard" ? ": Dashboard" : ""}
+          {translate("Next Step")}{journey.handoff.destination === "dashboard" ? translate(": Dashboard") : ""}
         </button>}
         {journey.model.canRetry && <button type="button" disabled={busy}
           onClick={journey.retry} className="mt-3 min-h-11 scroll-mt-64 rounded-xl border border-white/30 px-4 py-2">
-          Retry Progress Check
+          {translate("Retry Progress Check")}
         </button>}
       </section>
     )}
-    {journey.explanation && <GuidedJourneyExplanation open model={journey.explanation}
+    {journey.explanation && <GuidedJourneyExplanation open model={journey.explanation} translate={translate}
       busy={busy || journey.model.busy}
       onPrimary={() => { void journey.explanationPrimary(); }}
       onSecondary={journey.explanationSecondary} onClose={journey.dismissExplanation}

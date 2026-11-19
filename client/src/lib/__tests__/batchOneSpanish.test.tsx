@@ -26,6 +26,8 @@ const mockNavigate = jest.fn(), mockToast = jest.fn(), mockSavePreferences = jes
 const mockCreate = jest.fn(), mockUpdate = jest.fn(), mockDelete = jest.fn(), mockWater = jest.fn();
 const mockCancel = jest.fn(), mockGenerate = jest.fn(), mockHouseholdSwitch = jest.fn(), mockHydration = jest.fn();
 const mockGlucose = jest.fn();
+let mockGlp1Active = false;
+let mockDevelopmentRuntime = false;
 const mockGlycemicData = { bloodGlucose: 105, lowRangeCarbs: ["LEGACY_FOOD"], midRangeCarbs: [], highRangeCarbs: [] };
 const mockShot = { id: "offline-shot", dateUtc: "2026-11-18T15:07:00Z", doseMg: 2.5, medicationName: "Zepbound", location: "thigh", notes: "ORIGINAL_SAVED_NOTES" };
 const mockShots = [mockShot];
@@ -39,7 +41,7 @@ const mockSubmitPreflight = jest.fn(), mockReloadPreflight = jest.fn();
 let mockPreflight: any;
 jest.mock("@/hooks/useGlp1HubCheckin", () => ({ useGlp1HubCheckin: () => mockPreflight }));
 
-jest.mock("@/lib/developmentRuntimeFlag", () => ({ isDevelopmentRuntime: false }));
+jest.mock("@/lib/developmentRuntimeFlag", () => ({ get isDevelopmentRuntime() { return mockDevelopmentRuntime; } }));
 jest.mock("wouter", () => ({ useLocation: () => ["/fixture", mockNavigate], useSearch: () => mockSearch }));
 jest.mock("framer-motion", () => ({ motion: { div: ({ initial, animate, transition, children, ...p }: any) => <div {...p}>{children}</div> } }));
 jest.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: { id: "offline-subject" }, refreshUser: jest.fn() }) }));
@@ -77,13 +79,13 @@ jest.mock("@/hooks/useDiabetes", () => ({
   useDiabetesProfile: () => ({ data: null, isLoading: false }),
 }));
 jest.mock("@/hooks/useQuickTour", () => ({ useQuickTour: () => ({ isOpen: false, openTour: jest.fn(), closeTour: jest.fn() }) }));
-jest.mock("@/hooks/useGLP1CurrentUse", () => ({ useGLP1CurrentUse: () => ({ data: { effectiveActive: false }, isError: false, isLoading: false }) }));
+jest.mock("@/hooks/useGLP1CurrentUse", () => ({ useGLP1CurrentUse: () => ({ data: { effectiveActive: mockGlp1Active }, isError: false, isLoading: false }) }));
 jest.mock("@/lib/subscriptionCheck", () => ({ isClinicalOrAbove: () => false }));
 jest.mock("@/hooks/useCreateWithChefRequest", () => ({ useCreateWithChefRequest: () => ({ generateMeal: mockGenerate, cancel: mockCancel }) }));
 jest.mock("@/hooks/useSnackCreatorRequest", () => ({ useSnackCreatorRequest: () => ({ generateSnack: mockGenerate, cancel: mockCancel }) }));
 jest.mock("@/components/layout/MobileHeaderGuard", () => ({ __esModule: true, default: ({ children }: any) => children }));
 jest.mock("@/components/copilot/CopilotBrain", () => ({ CopilotBrain: () => null }));
-jest.mock("@/components/ui/HowThisWorksLink", () => ({ HowThisWorksLink: () => null }));
+jest.mock("@/components/ui/HowThisWorksLink", () => ({ HowThisWorksLink: ({ label }: any) => <span>{label}</span> }));
 jest.mock("@/components/MedicalSourcesInfo", () => ({ MedicalSourcesInfo: ({ trigger }: any) => trigger ?? null }));
 jest.mock("@/components/guided/QuickTourModal", () => ({ QuickTourModal: () => null }));
 jest.mock("@/components/guided/QuickTourButton", () => ({ QuickTourButton: () => null }));
@@ -101,6 +103,8 @@ jest.mock("@/components/ui/drawer", () => ({
 
 beforeEach(async () => {
   cleanup(); localStorage.clear(); jest.clearAllMocks(); mockSearch = "";
+  mockGlp1Active = false;
+  mockDevelopmentRuntime = false;
   await i18n.changeLanguage("en");
   mockPreflight = {
     checkin: { id: "offline-checkin", appetiteLevel: "reduced", fatigue: "mild", notifyCareTeam: "physician", medicationName: "ORIGINAL_MEDICATION" },
@@ -188,6 +192,53 @@ test("Spanish food buttons save English catalog identities and preserve legacy s
     bloodGlucose: 105, preferredCarbs: ["LEGACY_FOOD", "Berries"], lowRangeCarbs: ["LEGACY_FOOD", "Berries"],
     midRangeCarbs: [], highRangeCarbs: [], glycemicPreferencesConfigured: true,
   }));
+});
+
+test("Shot Tracker localizes ordinary validation and Other without changing medication identities", async () => {
+  await i18n.changeLanguage("es");
+  const alert = jest.spyOn(window, "alert").mockImplementation(() => {});
+  try {
+    const view = render(<ShotTrackerPanel userId="offline-subject" onClose={jest.fn()} />);
+    expect(screen.getByRole("option", { name: "Otro medicamento" })).toHaveValue("Other");
+    fireEvent.change(view.container.querySelector('input[type="number"]')!, { target: { value: "0" } });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar inyección" }));
+    expect(alert).toHaveBeenCalledWith("Introduce una dosis válida (mg).");
+    expect(mockCreate).not.toHaveBeenCalled();
+    // Separate attempts use fresh controls; the real shared button deliberately
+    // ignores a second click within its 300 ms double-submit protection.
+    view.unmount();
+    const validView = render(<ShotTrackerPanel userId="offline-subject" onClose={jest.fn()} />);
+    fireEvent.change(validView.container.querySelector("select")!, { target: { value: "Other" } });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar inyección" }));
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ medicationName: "Other", doseMg: 2.5 })));
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+    expect(screen.getAllByRole("option", { name: "Otro medicamento" })).toHaveLength(2);
+    expect(screen.getByDisplayValue("ORIGINAL_SAVED_NOTES")).toBeVisible();
+  } finally {
+    alert.mockRestore();
+  }
+});
+
+test("Diabetic Hub localizes its tutorial and symptom-panel controls without saving", async () => {
+  mockGlp1Active = true;
+  mockDevelopmentRuntime = true;
+  await i18n.changeLanguage("es");
+  render(<DiabeticHub />);
+  expect(screen.getByText("Tutorial del centro")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Actualizar los síntomas diarios de GLP-1" }));
+  expect(screen.getByRole("button", { name: "Ocultar el panel diario de síntomas" })).toBeVisible();
+  expect(mockSubmitPreflight).not.toHaveBeenCalled();
+  expect(mockGlucose).not.toHaveBeenCalled();
+});
+
+test("Spanish carb-choice range controls wrap and the long Save label remains multiline", async () => {
+  await i18n.changeLanguage("es");
+  render(<GlycemicSettingsModal open onClose={jest.fn()} />);
+  for (const button of screen.getAllByRole("button", { name: "Seleccionar todo" })) {
+    expect(button.parentElement).toHaveClass("flex-wrap", "gap-2");
+  }
+  expect(screen.getByRole("button", { name: "Guardar preferencias de carbohidratos según la glucosa" })).toHaveClass("h-auto", "whitespace-normal");
+  expect(mockSavePreferences).not.toHaveBeenCalled();
 });
 
 test("hydration labels do not alter fluid units, quantities or beverage identifiers", async () => {

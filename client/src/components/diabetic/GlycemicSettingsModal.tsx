@@ -116,7 +116,7 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
 
           {/* LOW GLUCOSE RANGE */}
           <div className="rounded-xl border border-blue-500/30 bg-blue-950/20 p-3">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
               <div>
                 <p className="text-blue-300 text-sm font-semibold flex items-center gap-2">
                   <span className="text-lg">🔵</span> {t("Low Glucose Range")}
@@ -145,7 +145,7 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
 
           {/* IN-RANGE GLUCOSE */}
           <div className="rounded-xl border border-green-500/30 bg-green-950/20 p-3">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
               <div>
                 <p className="text-green-300 text-sm font-semibold flex items-center gap-2">
                   <span className="text-lg">🟢</span> {t("In-Range Glucose")}
@@ -174,7 +174,7 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
 
           {/* HIGH GLUCOSE RANGE */}
           <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-3">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
               <div>
                 <p className="text-red-300 text-sm font-semibold flex items-center gap-2">
                   <span className="text-lg">🔴</span> {t("High Glucose Range")}

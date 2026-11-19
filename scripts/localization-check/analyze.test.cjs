@@ -97,3 +97,29 @@ test("EN/ES additive resources, missing values, placeholders, interpolation and 
   altered.es.consumerJourney.Listen = "";
   assert.ok(resourceFindings(altered).some(item => item.text === "consumerJourney:Listen"));
 });
+test("calculator helper aliases resolve calculator copy first, then consumer and legacy namespaces", () => {
+  const catalogs = structuredClone(resources);
+  catalogs.en.macroCalculatorCopy = { "Goal:": "Goal:", "Listen": "Listen" };
+  catalogs.es.macroCalculatorCopy = { "Goal:": "Objetivo:", "Listen": "Oír" };
+  catalogs.es.consumerJourney.Listen = ""; // Must not override the calculator's own source key.
+  const source = `import {useMacroCalculatorCopy as useTranslation} from "@/i18n/useMacroCalculatorCopy";
+    function X(){const {t:tr}=useTranslation();return <>{tr("Goal:")}{tr("Listen")}{tr("common.save")}{tr("shopping:brands",{count:2})}</>}`;
+  assert.deepEqual(analyze("client/src/X.tsx", source, catalogs), []);
+  delete catalogs.en.macroCalculatorCopy.Listen;
+  delete catalogs.es.macroCalculatorCopy.Listen;
+  assert.ok(analyze("client/src/X.tsx", source, catalogs).some(item =>
+    item.text === "consumerJourney:Listen" && item.classification === "missing-connection"));
+});
+test("calculator helper recognition does not waive missing, mismatched, dynamic, protected or spoofed copy", () => {
+  const catalogs = structuredClone(resources);
+  catalogs.en.macroCalculatorCopy = { "Ready {{name}}": "Ready {{name}}", "Medical advice": "Medical advice" };
+  catalogs.es.macroCalculatorCopy = { "Ready {{name}}": "Listo {{other}}", "Medical advice": "Consejo médico" };
+  const scanCalculator = body => analyze("client/src/X.tsx",
+    `import {useMacroCalculatorCopy} from "@/i18n/useMacroCalculatorCopy";function X(){const {t}=useMacroCalculatorCopy();return <>${body}</>}`, catalogs);
+  assert.equal(scanCalculator('{t("Missing message")}')[0].classification, "missing-connection");
+  assert.equal(scanCalculator('{t("Ready {{name}}")}')[0].classification, "missing-connection");
+  assert.equal(scanCalculator('{t(key)}')[0].classification, "review");
+  assert.equal(scanCalculator('{t("Medical advice")}')[0].classification, "protected-review");
+  const spoofed = `import {useMacroCalculatorCopy} from "unrelated-package";function X(){const {t}=useMacroCalculatorCopy();return <>{t("common.save")}</>}`;
+  assert.equal(analyze("client/src/X.tsx", spoofed, catalogs)[0].classification, "review");
+});

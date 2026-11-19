@@ -13,6 +13,7 @@ const fixture = (run) => {
   git("init", "-q"); git("config", "user.email", "fixture@example.invalid"); git("config", "user.name", "Offline fixture"); git("config", "core.hooksPath", "/dev/null");
   write("client/src/i18n/locales/en.json", '{"common":{"save":"Save"}}');
   write("client/src/i18n/locales/es.json", '{"common":{"save":"Guardar"}}');
+  write("client/src/i18n/index.ts", 'i18n.init({resources:{en:{translation:en,consumerJourney:consumerEnglish},es:{translation:es,consumerJourney:consumerSpanish}}});');
   write("shared/consumerStartupCopy.ts", 'export const startupEnglish={loading:"Loading"};export const startupSpanish={loading:"Cargando"};export const startupPhraseTranslations=Object.fromEntries(Object.entries(startupEnglish).map(([key,phrase])=>[phrase,startupSpanish[key as keyof typeof startupEnglish]]));');
   write("client/src/i18n/approvedConsumerOnboarding.ts", 'export const approvedConsumerOnboardingSpanish={"Approved":"Aprobado"};');
   write("client/src/i18n/foodWorkflowCopy.ts", 'export const foodWorkflowSpanish={"Recipe Ready":"Receta lista"};');
@@ -63,6 +64,74 @@ test("pure resource reading supports current additive spreads and refuses execut
   assert.equal(loadResources(read).es.consumerJourney.Loading, "Cargando");
   write("client/src/i18n/consumerJourney.ts", 'export const consumerSpanish=fetch("https://example.invalid");');
   assert.throws(() => loadResources(read), /Unsupported static dictionary/);
+}));
+test("feature dictionaries are loaded lazily and connected saved groceries cannot be missing or executable", () => fixture(({ root, write }) => {
+  const read = file => fs.readFileSync(path.join(root, file), "utf8");
+  // Historical snapshots do not need any of the later feature modules.
+  assert.equal(loadResources(read).es.consumerJourney.Loading, "Cargando");
+  write("client/src/i18n/consumerJourney.ts", 'export const consumerSpanish={...consumerFeatureSpanish};export const consumerEnglish=Object.fromEntries(Object.keys(consumerSpanish).map(key=>[key,key]));');
+  write("client/src/i18n/consumerFeatureCopy.ts", 'export const consumerFeatureSpanish={...savedGroceriesSpanish};');
+  assert.throws(() => loadResources(read), /ENOENT/);
+  write("client/src/i18n/savedGroceriesCopy.ts", 'export const savedGroceriesSpanish={"Saved Groceries":"Productos guardados"};');
+  assert.equal(loadResources(read).es.consumerJourney["Saved Groceries"], "Productos guardados");
+  assert.equal(check(root).findings.length, 0);
+  write("client/src/i18n/savedGroceriesCopy.ts", 'export const savedGroceriesSpanish={"Saved Groceries":fetch("https://example.invalid")};');
+  assert.throws(() => loadResources(read), /Unsupported resource expression/);
+}));
+test("all current feature spreads and approved training explanations preserve runtime precedence", () => fixture(({ root, write }) => {
+  const read = file => fs.readFileSync(path.join(root, file), "utf8");
+  const definitions = [
+    ["savedGroceriesSpanish", "savedGroceriesCopy", "Saved Groceries", "Productos guardados"],
+    ["ingredientAnalysisLabelsSpanish", "ingredientAnalysisLabels", "Product summary", "Resumen del producto"],
+    ["biometricsSpanish", "biometricsCopy", "Daily progress", "Progreso diario"],
+    ["biometricsClinicalSpanish", "biometricsClinicalCopy", "Expanded details", "Detalles ampliados"],
+    ["trainingScheduleSpanish", "trainingScheduleCopy", "Training schedule", "Programa de entrenamiento"],
+  ];
+  for (const [name, file, key, value] of definitions)
+    write(`client/src/i18n/${file}.ts`, `export const ${name}=${JSON.stringify({ [key]: value, Shared: name })};`);
+  write("client/src/i18n/consumerFeatureCopy.ts", `export const consumerFeatureSpanish={${definitions.map(([name]) => `...${name}`).join(",")},"Shared":"Feature wins"};`);
+  write("client/src/i18n/approvedTrainingExplanations.ts", 'export const approvedTrainingExplanationSpanish={"Training explanation":"Explicación del entrenamiento","Shared":"Training wins"};');
+  write("client/src/i18n/consumerJourney.ts", 'export const consumerSpanish={...approvedTrainingExplanationSpanish,...consumerFeatureSpanish,"Shared":"Local wins"};export const consumerEnglish=Object.fromEntries(Object.keys(consumerSpanish).map(key=>[key,key]));');
+  const resources = loadResources(read);
+  for (const [, , key, value] of definitions) assert.equal(resources.es.consumerJourney[key], value);
+  assert.equal(resources.es.consumerJourney.Shared, "Local wins");
+  assert.equal(resources.es.consumerJourney["Training explanation"], "Explicación del entrenamiento");
+  write("client/src/i18n/consumerFeatureCopy.ts", 'export const consumerFeatureSpanish={...unregisteredDictionary};');
+  assert.throws(() => loadResources(read), /Unregistered dictionary spread: .*#unregisteredDictionary/);
+}));
+test("registered feature resources still enforce empty, placeholder, interpolation and protected-copy checks", () => fixture(({ root, write }) => {
+  write("client/src/i18n/consumerJourney.ts", 'export const consumerSpanish={...consumerFeatureSpanish};export const consumerEnglish=Object.fromEntries(Object.keys(consumerSpanish).map(key=>[key,key]));');
+  write("client/src/i18n/consumerFeatureCopy.ts", 'export const consumerFeatureSpanish={...savedGroceriesSpanish};');
+  write("client/src/i18n/savedGroceriesCopy.ts", 'export const savedGroceriesSpanish={"Empty copy":"","Pending copy":"TODO","Day {{day}}":"Día","Medical advice":"Consejo médico"};');
+  const findings = check(root).findings;
+  for (const key of ["Empty copy", "Pending copy", "Day {{day}}"])
+    assert.ok(findings.some(item => item.text === `consumerJourney:${key}` && item.classification === "missing-connection"));
+  assert.ok(findings.some(item => item.text === "consumerJourney:Medical advice" && item.classification === "protected-review"));
+}));
+test("connected approved training explanations remain required, static and subject to review", () => fixture(({ root, write }) => {
+  const read = file => fs.readFileSync(path.join(root, file), "utf8");
+  write("client/src/i18n/consumerJourney.ts", 'export const consumerSpanish={...approvedTrainingExplanationSpanish};export const consumerEnglish=Object.fromEntries(Object.keys(consumerSpanish).map(key=>[key,key]));');
+  assert.throws(() => loadResources(read), /ENOENT/);
+  write("client/src/i18n/approvedTrainingExplanations.ts", 'export const approvedTrainingExplanationSpanish={"Medical advice":"Consejo médico"};');
+  assert.ok(check(root).findings.some(item => item.classification === "protected-review"));
+  write("client/src/i18n/approvedTrainingExplanations.ts", 'export const approvedTrainingExplanationSpanish=fetch("https://example.invalid");');
+  assert.throws(() => loadResources(read), /Unsupported static dictionary/);
+}));
+test("calculator resources follow actual namespace registration and preserve strict construction checks", () => fixture(({ root, write }) => {
+  const read = file => fs.readFileSync(path.join(root, file), "utf8");
+  assert.equal(loadResources(read).es.macroCalculatorCopy, undefined);
+  const connectedIndex = 'i18n.init({resources:{en:{macroCalculatorCopy:macroCalculatorEnglish},es:{macroCalculatorCopy:macroCalculatorSpanish}}});';
+  write("client/src/i18n/index.ts", connectedIndex);
+  assert.throws(() => loadResources(read), /ENOENT/);
+  const catalog = 'export const macroCalculatorSpanish={"Goal:":"Objetivo:","Meal {{count}}":"Comida {{count}}"};';
+  write("client/src/i18n/macroCalculatorCopy.ts", catalog + 'export const macroCalculatorEnglish=Object.fromEntries(Object.keys(macroCalculatorSpanish).map(key=>[key,key]));');
+  assert.equal(loadResources(read).en.macroCalculatorCopy["Goal:"], "Goal:");
+  assert.equal(loadResources(read).es.macroCalculatorCopy["Goal:"], "Objetivo:");
+  write("client/src/i18n/index.ts", 'i18n.init({resources:{en:{macroCalculatorCopy:macroCalculatorEnglish},es:{}}});');
+  assert.throws(() => loadResources(read), /Both EN\/ES registrations/);
+  write("client/src/i18n/index.ts", connectedIndex);
+  write("client/src/i18n/macroCalculatorCopy.ts", catalog + 'export const macroCalculatorEnglish={};');
+  assert.throws(() => loadResources(read), /Resource construction changed/);
 }));
 test("daily display resources are required when connected and preserve existing resource precedence", () => fixture(({ root, write }) => {
   const read = file => fs.readFileSync(path.join(root, file), "utf8");

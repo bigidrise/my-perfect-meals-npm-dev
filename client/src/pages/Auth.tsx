@@ -14,6 +14,8 @@ import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck
 import { MfaChallengeModal } from "@/components/MfaChallengeModal";
 import { MfaSetupSection } from "@/components/MfaSetupSection";
 import { createProfessionalLegalRecoveryUrl } from "@/lib/professionalLegalRecovery";
+import { professionalAgreementsAreCurrent } from "@/lib/professionalLegalStatus";
+import { isCanonicalPractitionerRole } from "@shared/professionalRoles";
 import { saveNewAccountProfessionalDraft, professionalRequestsEnabled } from "@/lib/professionalOnboarding";
 import { IS_DEVELOPMENT } from "@/lib/developmentAuthRoutes";
 import { pendingBusinessPilotReturn } from "@/lib/businessPilotEntrance";
@@ -195,15 +197,23 @@ export default function Auth() {
       return;
     }
 
+    const fullUser = await refreshUser();
+    if (fullUser?.isProCare && isCanonicalPractitionerRole(fullUser.professionalRole)) {
+      if (!(await professionalAgreementsAreCurrent(fullUser.professionalRole))) {
+        setLocation(createProfessionalLegalRecoveryUrl(
+          urlReturnTo || "/professional-dashboard", "professional-workspace", fullUser.id,
+        ));
+        return;
+      }
+    }
+
     // If a returnTo path was preserved (e.g. /join/studio after a ProCare invite
     // deep-link redirected an unauthenticated user to login), send them there now.
     if (urlReturnTo) {
-      try { await refreshUser(); } catch { /* non-fatal */ }
       setLocation(urlReturnTo);
       return;
     }
 
-    const fullUser = await refreshUser();
     const onboardingDone = fullUser?.onboardingCompletedAt;
 
     const isBusinessUser = fullUser?.professionalRole === "business";

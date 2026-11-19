@@ -51,6 +51,16 @@ Before reporting missing translations, resolve imported helper aliases, the call
 
 **How to apply:** Treat initial lookups as candidates until source ownership and actual resource resolution are reconciled. Keep dictionary presence separate from runtime visibility and semantic approval.
 
+Connect new additive catalogs and custom translation helpers to the static
+localization guard in the same change, including its historical comparison path.
+
+**Why:** Runtime-connected catalogs can otherwise stop the guard at registration,
+while unrecognized helpers can be misclassified despite working translations.
+
+**How to apply:** Add explicit, nonexecuting registrations and regression fixtures.
+Require connected files, tolerate genuinely unconnected historical modules, and
+retain protected-wording review. A repaired scan is not a cleared findings queue.
+
 Required first-run consent gates cannot be treated as optional untranslated exceptions when claiming a Spanish consumer journey is complete.
 
 **Why:** Translating headings and buttons still makes a Spanish-speaking new user read and accept English; clinical/legal review requirements block completion rather than remove the gate from scope.
@@ -225,3 +235,13 @@ included lab-change warnings and problem messages.
 
 **How to apply:** Complete the Development presentation scope while preserving
 canonical measurements, doses, saved names, clinical decisions and safeguards.
+
+The founder requires Spanish throughout the entire Macro Calculator, including
+all reachable pop-ups and conditional states, not only its visible main labels.
+
+**Why:** The founder repeated, “the entire macro calculator,” when redirecting
+work back to this feature.
+
+**How to apply:** Include guided and returning-user paths, expanded panels,
+educational/source dialogs, validation, notifications and save confirmations.
+Keep canonical measurements, nutrition calculations and stored records unchanged.

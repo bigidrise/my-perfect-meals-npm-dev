@@ -308,7 +308,7 @@ export default function DiabeticHub() {
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
           <div className="flex justify-center">
-            <HowThisWorksLink featureKey="diabeticHub" label="Hub Tutorial" />
+            <HowThisWorksLink featureKey="diabeticHub" label={t("Hub Tutorial")} />
           </div>
           {/* ── Quick Launch ── */}
           <button
@@ -431,7 +431,7 @@ export default function DiabeticHub() {
               <Button type="button" className="h-auto whitespace-normal bg-orange-600 text-white hover:bg-orange-500" aria-expanded={showDailySymptoms}
                 aria-controls="diabetic-glp1-daily-symptoms"
                 onClick={() => setShowDailySymptoms((open) => !open)}>
-                {showDailySymptoms ? "Hide daily symptom panel" : "Update daily GLP-1 symptoms"}
+                {showDailySymptoms ? t("Hide daily symptom panel") : t("Update daily GLP-1 symptoms")}
               </Button>
               {showDailySymptoms && <div id="diabetic-glp1-daily-symptoms"><GLP1DailyCheckin /></div>}
             </section>
@@ -565,15 +565,15 @@ export default function DiabeticHub() {
                     type="number"
                     value={fastingMin}
                     onChange={(e) => setFastingMin(e.target.value)}
-                    placeholder="Min"
-                    className="w-full px-3 py-2 rounded-xl bg-white/20 border border-white/40 text-white placeholder-white/60 focus:outline-none focus:border-orange-300"
+                    placeholder={t("Min")}
+                    className="min-w-0 w-full flex-1 px-3 py-2 rounded-xl bg-white/20 border border-white/40 text-white placeholder-white/60 focus:outline-none focus:border-orange-300"
                   />
                   <input
                     type="number"
                     value={fastingMax}
                     onChange={(e) => setFastingMax(e.target.value)}
-                    placeholder="Max"
-                    className="w-full px-3 py-2 rounded-xl bg-white/20 border border-white/40 text-white placeholder-white/60 focus:outline-none focus:border-orange-300"
+                    placeholder={t("Max")}
+                    className="min-w-0 w-full flex-1 px-3 py-2 rounded-xl bg-white/20 border border-white/40 text-white placeholder-white/60 focus:outline-none focus:border-orange-300"
                   />
                 </div>
               </div>

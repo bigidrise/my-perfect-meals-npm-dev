@@ -42,6 +42,8 @@ function analyze(owner, text, resources, protectedTexts = new Set()) {
       return { consumer: false, namespace: literal(call.arguments[0]) || (call.arguments.length ? null : "translation") };
     if (imported.original === "useConsumerCopy" && /(?:^|\/)useConsumerCopy$/.test(imported.module))
       return { consumer: true, namespace: literal(call.arguments[0]) || (call.arguments.length ? null : "translation") };
+    if (imported.original === "useMacroCalculatorCopy" && /(?:^|\/)useMacroCalculatorCopy$/.test(imported.module))
+      return { calculator: true, consumer: true, namespace: literal(call.arguments[0]) || (call.arguments.length ? null : "translation") };
     return null;
   }
   walk(ast, node => {
@@ -95,7 +97,8 @@ function analyze(owner, text, resources, protectedTexts = new Set()) {
       if (name === "ns") namespace = literal(prop.initializer);
       if (name === "count") count = true;
     }
-    if (info.consumer && key && typeof lookup(resources, "en", "consumerJourney", key) === "string") namespace = "consumerJourney";
+    if (info.calculator && key && typeof lookup(resources, "en", "macroCalculatorCopy", key) === "string") namespace = "macroCalculatorCopy";
+    else if (info.consumer && key && typeof lookup(resources, "en", "consumerJourney", key) === "string") namespace = "consumerJourney";
     else if (key?.includes(":")) [namespace, key] = key.split(/:(.*)/s);
     if (key === null || !namespace) {
       add(node, node.getText(ast), "connection", "review", "Dynamic key/namespace: provide bounded ownership evidence.");
