@@ -215,3 +215,13 @@ service. Do not request Spanish upstream of English-sensitive clinical checks,
 replace saved evidence, regenerate an assessment merely to translate it, or infer
 Production approval. Built-in profile-factor names are ordinary display labels
 and should resolve directly from shared resources without requiring an AI call.
+
+Biometrics localization covers the entire experience, including expanded lab
+work, therapeutic medication rows, pop-up modals and problems reported after
+someone changes their lab work—not only the labels shown in screenshots.
+
+**Why:** The founder explicitly repeated the full-page scope and specifically
+included lab-change warnings and problem messages.
+
+**How to apply:** Complete the Development presentation scope while preserving
+canonical measurements, doses, saved names, clinical decisions and safeguards.

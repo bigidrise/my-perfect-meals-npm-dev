@@ -10,6 +10,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { TrendingUp } from "lucide-react";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 type OfflineDay = {
   day: string;
@@ -84,51 +85,52 @@ function buildDays(macroRows: OfflineDay[], n: number): ChartDay[] {
 }
 
 const CustomTooltip = ({ active, payload }: any) => {
+  const { t } = useConsumerCopy();
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload as ChartDay;
   return (
     <div className="rounded-xl bg-black/95 border border-white/20 p-3 text-white text-xs space-y-1.5 min-w-[150px]">
       <div className="font-semibold text-white/70 mb-1">{d.fullDate}</div>
       <div className="flex justify-between gap-6">
-        <span className="text-orange-400">Protein</span>
+        <span className="text-orange-400">{t("Protein")}</span>
         <span className="font-medium">{d.protein}g</span>
       </div>
       {d.hasCarbSplit ? (
         <>
           {d.unsplitCarbs > 0 && (
             <div className="flex justify-between gap-6">
-              <span className="text-amber-400">Carbs</span>
+              <span className="text-amber-400">{t("Carbs")}</span>
               <span className="font-medium">{d.unsplitCarbs}g</span>
             </div>
           )}
           <div className="flex justify-between gap-6">
-            <span className="text-yellow-300">Starchy Carbs</span>
+            <span className="text-yellow-300">{t("Starchy Carbs")}</span>
             <span className="font-medium">{d.starchyCarbs}g</span>
           </div>
           <div className="flex justify-between gap-6">
-            <span className="text-lime-400">Fibrous Carbs</span>
+            <span className="text-lime-400">{t("Fibrous Carbs")}</span>
             <span className="font-medium">{d.fibrousCarbs}g</span>
           </div>
           {d.totalCarbs > 0 && (
             <div className="flex justify-between gap-6 border-t border-white/10 pt-1 text-white/40">
-              <span>Total Carbs</span>
+              <span>{t("Total Carbs")}</span>
               <span>{d.totalCarbs}g</span>
             </div>
           )}
         </>
       ) : (
         <div className="flex justify-between gap-6">
-          <span className="text-amber-400">Carbs</span>
+          <span className="text-amber-400">{t("Carbs")}</span>
           <span className="font-medium">{d.totalCarbs}g</span>
         </div>
       )}
       <div className="flex justify-between gap-6">
-        <span className="text-slate-400">Fat</span>
+        <span className="text-slate-400">{t("Fat")}</span>
         <span className="font-medium">{d.fat}g</span>
       </div>
       {d.kcal > 0 && (
         <div className="border-t border-white/10 pt-1.5 flex justify-between gap-6 text-white/40">
-          <span>Calories</span>
+          <span>{t("Calories")}</span>
           <span>{d.kcal} kcal</span>
         </div>
       )}
@@ -163,6 +165,7 @@ function barSizeFor(v: ViewKey): number {
 }
 
 export default function MacroConsistencyTimeline({ macroRows }: Props) {
+  const { t } = useConsumerCopy();
   const [view, setView] = useState<ViewKey>("7");
   const days = useMemo(
     () => buildDays(macroRows, parseInt(view)),
@@ -185,12 +188,12 @@ export default function MacroConsistencyTimeline({ macroRows }: Props) {
         <div>
           <CardTitle className="text-white text-xl flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-orange-400" />
-            Macro Consistency
+            {t("Macro Consistency")}
           </CardTitle>
           <p className="text-xs text-white/40 mt-0.5">
-            {anyCarbSplit
+            {t(anyCarbSplit
               ? "Protein · Starchy · Fibrous · Fat"
-              : "Protein · Carbs · Fat · Log meals to see trends"}
+              : "Protein · Carbs · Fat · Log meals to see trends")}
           </p>
         </div>
         <div className="flex gap-0.5 bg-black/30 p-1 rounded-lg shrink-0">
@@ -202,7 +205,7 @@ export default function MacroConsistencyTimeline({ macroRows }: Props) {
                 view === key ? "bg-white/20 text-white" : "text-white/60"
               }`}
             >
-              {label}
+              {t(label)}
             </button>
           ))}
         </div>
@@ -213,10 +216,10 @@ export default function MacroConsistencyTimeline({ macroRows }: Props) {
           <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
             <TrendingUp className="h-10 w-10 text-white/15" />
             <p className="text-white/50 text-sm font-medium">
-              Log meals for a few days to see your macro consistency.
+              {t("Log meals for a few days to see your macro consistency.")}
             </p>
             <p className="text-white/30 text-xs max-w-xs">
-              Use MacroScan or describe a meal above to start tracking.
+              {t("Use MacroScan or describe a meal above to start tracking.")}
             </p>
           </div>
         ) : (
@@ -290,33 +293,33 @@ export default function MacroConsistencyTimeline({ macroRows }: Props) {
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 px-1">
               <div className="flex items-center gap-1.5 text-xs text-white/70">
                 <div className="w-3 h-3 rounded-sm bg-orange-500 shrink-0" />
-                <span>Protein</span>
+                <span>{t("Protein")}</span>
               </div>
               {anyCarbSplit ? (
                 <>
                   <div className="flex items-center gap-1.5 text-xs text-white/70">
                     <div className="w-3 h-3 rounded-sm bg-yellow-500 shrink-0" />
-                    <span>Starchy</span>
+                    <span>{t("Starchy")}</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-white/70">
                     <div className="w-3 h-3 rounded-sm bg-lime-500 shrink-0" />
-                    <span>Fibrous</span>
+                    <span>{t("Fibrous")}</span>
                   </div>
                 </>
               ) : (
                 <div className="flex items-center gap-1.5 text-xs text-white/70">
                   <div className="w-3 h-3 rounded-sm bg-amber-400 shrink-0" />
-                  <span>Carbs</span>
+                  <span>{t("Carbs")}</span>
                 </div>
               )}
               <div className="flex items-center gap-1.5 text-xs text-white/70">
                 <div className="w-3 h-3 rounded-sm bg-slate-500 shrink-0" />
-                <span>Fat</span>
+                <span>{t("Fat")}</span>
               </div>
             </div>
 
             <p className="text-xs text-white/25 text-center mt-3">
-              Calories shown as context — tap any bar to view
+            {t("Calories shown as context — tap any bar to view")}
             </p>
           </>
         )}
