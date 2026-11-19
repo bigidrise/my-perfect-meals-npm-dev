@@ -11,10 +11,11 @@
  */
 
 import { useState, useRef, useEffect } from "react";
+import { useMacroCalculatorCopy as useConsumerCopy } from "@/i18n/useMacroCalculatorCopy";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
-import { useChefVoice } from "@/lib/useChefVoice";
+import { useCalculatorVoice as useChefVoice } from "./useCalculatorVoice";
 import { MACRO_CALC_METABOLIC_OPEN } from "@/components/copilot/scripts/macroCalculatorScripts";
 import {
   Collapsible,
@@ -56,6 +57,7 @@ export default function MetabolicConsiderations({
   onApplyAdjustments,
   onFlagsChange,
 }: MetabolicConsiderationsProps) {
+  const { t } = useConsumerCopy();
   const [isOpen, setIsOpen] = useState(false);
   const [advisory, setAdvisory] = useState<ClinicalAdvisoryState>(
     () => loadUserAdvisory() || {},
@@ -129,18 +131,13 @@ export default function MetabolicConsiderations({
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Heart className="h-5 w-5 text-pink-400" />
-                  Metabolic & Hormonal Considerations
-                  {hasActive && (
+                  <Heart className="h-5 w-5 text-pink-400" />{t("Metabolic & Hormonal Considerations")}{hasActive && (
                     <span className="text-xs bg-black/60 text-pink-200 px-2 py-0.5 rounded-full ml-2">
-                      {suggestions.length} active
-                    </span>
+                      {suggestions.length}{" "}{t("active")}</span>
                   )}
                 </h3>
                 {!isOpen && (
-                  <span className="text-sm text-pink-300/80 ml-7 mt-1">
-                    Tap to review & adjust (optional)
-                  </span>
+                  <span className="text-sm text-pink-300/80 ml-7 mt-1">{t("Tap to review & adjust (optional)")}</span>
                 )}
               </div>
               {isOpen ? (
@@ -155,20 +152,13 @@ export default function MetabolicConsiderations({
         <CollapsibleContent>
           <CardContent className="pt-0 px-5 pb-5 space-y-4">
             <div className="mb-3">
-              <div className="text-base text-white font-semibold">
-                Select any that apply to you (optional)
-              </div>
-              <div className="text-xs text-white/60 mt-1">
-                These adjust your macros for metabolic accuracy.
-              </div>
+              <div className="text-base text-white font-semibold">{t("Select any that apply to you (optional)")}</div>
+              <div className="text-xs text-white/60 mt-1">{t("These adjust your macros for metabolic accuracy.")}</div>
             </div>
             <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
               <div className="flex items-start gap-2">
                 <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-blue-200/90">
-                  They help fine-tune recommendations without overriding your
-                  goals.
-                </p>
+                <p className="text-xs text-blue-200/90">{t("They help fine-tune recommendations without overriding your goals.")}</p>
               </div>
             </div>
 
@@ -188,25 +178,23 @@ export default function MetabolicConsiderations({
                     <div className="mb-2">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-sm font-medium text-white">
-                          {def.label}
+                          {t(def.label)}
                         </span>
                       </div>
                       <PillButton
                         onClick={() => handleToggle(key, !isEnabled)}
                         active={isEnabled}
                       >
-                        {isEnabled ? "On" : "Off"}
+                        {isEnabled ? t("On") : t("Off")}
                       </PillButton>
                     </div>
                     <p className="text-xs text-white/60 mb-2">
-                      {def.description}
+                      {t(def.description)}
                     </p>
 
                     {isEnabled && (
                       <div className="mt-3 p-3 bg-black/30 rounded-lg">
-                        <div className="text-xs font-medium text-white/80 mb-2">
-                          Suggested adjustment:
-                        </div>
+                        <div className="text-xs font-medium text-white/80 mb-2">{t("Suggested adjustment:")}</div>
                         <div className="flex gap-4 text-xs mb-2">
                           <span
                             className={
@@ -216,8 +204,7 @@ export default function MetabolicConsiderations({
                                   ? "text-red-400"
                                   : "text-white/60"
                             }
-                          >
-                            Protein:{" "}
+                          >{t("Protein:")}{" "}
                             {formatDeltaPercent(def.proteinDeltaPercent)}
                           </span>
                           <span
@@ -228,8 +215,7 @@ export default function MetabolicConsiderations({
                                   ? "text-red-400"
                                   : "text-white/60"
                             }
-                          >
-                            Carbs: {formatDeltaPercent(def.carbDeltaPercent)}
+                          >{t("Carbs:")}{" "}{formatDeltaPercent(def.carbDeltaPercent)}
                           </span>
                           <span
                             className={
@@ -239,12 +225,11 @@ export default function MetabolicConsiderations({
                                   ? "text-red-400"
                                   : "text-white/60"
                             }
-                          >
-                            Fat: {formatDeltaPercent(def.fatDeltaPercent)}
+                          >{t("Fat:")}{" "}{formatDeltaPercent(def.fatDeltaPercent)}
                           </span>
                         </div>
                         <p className="text-xs text-white/70 italic">
-                          {def.userExplanation}
+                          {t(def.userExplanation)}
                         </p>
                       </div>
                     )}
@@ -256,9 +241,7 @@ export default function MetabolicConsiderations({
             {hasActive && suggestions.length > 0 && (
               <div className="mt-4 p-4 bg-black/60 rounded-lg">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium text-white">
-                    Combined adjustments:
-                  </span>
+                  <span className="text-sm font-medium text-white">{t("Combined adjustments:")}</span>
                 </div>
                 <div className="flex gap-4 text-sm mb-4">
                   <span
@@ -269,10 +252,8 @@ export default function MetabolicConsiderations({
                           ? "text-red-400"
                           : "text-white/60"
                     }
-                  >
-                    Protein: {aggregated.protein > 0 ? "+" : ""}
-                    {aggregated.protein}g
-                  </span>
+                  >{t("Protein:")}{" "}{aggregated.protein > 0 ? "+" : ""}
+                    {aggregated.protein}{t("g")}</span>
                   <span
                     className={
                       aggregated.carbs > 0
@@ -281,10 +262,8 @@ export default function MetabolicConsiderations({
                           ? "text-red-400"
                           : "text-white/60"
                     }
-                  >
-                    Carbs: {aggregated.carbs > 0 ? "+" : ""}
-                    {aggregated.carbs}g
-                  </span>
+                  >{t("Carbs:")}{" "}{aggregated.carbs > 0 ? "+" : ""}
+                    {aggregated.carbs}{t("g")}</span>
                   <span
                     className={
                       aggregated.fat > 0
@@ -293,31 +272,19 @@ export default function MetabolicConsiderations({
                           ? "text-red-400"
                           : "text-white/60"
                     }
-                  >
-                    Fat: {aggregated.fat > 0 ? "+" : ""}
-                    {aggregated.fat}g
-                  </span>
+                  >{t("Fat:")}{" "}{aggregated.fat > 0 ? "+" : ""}
+                    {aggregated.fat}{t("g")}</span>
                 </div>
                 <Button
                   onClick={handlePreviewChanges}
                   className="w-full bg-lime-600  border border-2 border-lime-400 text-white"
-                >
-                  Preview Changes
-                </Button>
+                >{t("Preview Changes")}</Button>
               </div>
             )}
 
             <div className="mt-4 rounded-xl border border-white/15 bg-black/40 p-3 text-xs text-white/70">
-              <div className="font-semibold text-white/80 mb-1">
-                Educational Notice
-              </div>
-              <p>
-                Metabolic and hormone-related insights are provided for
-                educational and lifestyle guidance only. They do not diagnose,
-                treat, or replace medical advice. Individual responses vary.
-                Consult a qualified healthcare professional for medical
-                concerns.
-              </p>
+              <div className="font-semibold text-white/80 mb-1">{t("Educational Notice")}</div>
+              <p>{t("Metabolic and hormone-related insights are provided for educational and lifestyle guidance only. They do not diagnose, treat, or replace medical advice. Individual responses vary. Consult a qualified healthcare professional for medical concerns.")}</p>
             </div>
           </CardContent>
         </CollapsibleContent>
@@ -329,15 +296,10 @@ export default function MetabolicConsiderations({
             <CardContent className="p-6">
               <div className="flex items-center gap-2 mb-4">
                 <AlertCircle className="h-5 w-5 text-pink-400" />
-                <h3 className="text-lg font-semibold text-white">
-                  Apply Adjustments?
-                </h3>
+                <h3 className="text-lg font-semibold text-white">{t("Apply Adjustments?")}</h3>
               </div>
 
-              <p className="text-sm text-white/80 mb-4">
-                These adjustments will be applied to your calculated macro
-                targets:
-              </p>
+              <p className="text-sm text-white/80 mb-4">{t("These adjustments will be applied to your calculated macro targets:")}</p>
 
               <div className="p-4 bg-black/30 rounded-lg mb-4">
                 <div className="grid grid-cols-3 gap-4 text-center">
@@ -346,27 +308,24 @@ export default function MetabolicConsiderations({
                       className={`text-lg font-bold ${pendingDeltas.protein > 0 ? "text-green-400" : pendingDeltas.protein < 0 ? "text-red-400" : "text-white/60"}`}
                     >
                       {pendingDeltas.protein > 0 ? "+" : ""}
-                      {pendingDeltas.protein}g
-                    </div>
-                    <div className="text-xs text-white/60">Protein</div>
+                      {pendingDeltas.protein}{t("g")}</div>
+                    <div className="text-xs text-white/60">{t("Protein")}</div>
                   </div>
                   <div>
                     <div
                       className={`text-lg font-bold ${pendingDeltas.carbs > 0 ? "text-green-400" : pendingDeltas.carbs < 0 ? "text-red-400" : "text-white/60"}`}
                     >
                       {pendingDeltas.carbs > 0 ? "+" : ""}
-                      {pendingDeltas.carbs}g
-                    </div>
-                    <div className="text-xs text-white/60">Carbs</div>
+                      {pendingDeltas.carbs}{t("g")}</div>
+                    <div className="text-xs text-white/60">{t("Carbs")}</div>
                   </div>
                   <div>
                     <div
                       className={`text-lg font-bold ${pendingDeltas.fat > 0 ? "text-green-400" : pendingDeltas.fat < 0 ? "text-red-400" : "text-white/60"}`}
                     >
                       {pendingDeltas.fat > 0 ? "+" : ""}
-                      {pendingDeltas.fat}g
-                    </div>
-                    <div className="text-xs text-white/60">Fat</div>
+                      {pendingDeltas.fat}{t("g")}</div>
+                    <div className="text-xs text-white/60">{t("Fat")}</div>
                   </div>
                 </div>
               </div>
@@ -377,16 +336,12 @@ export default function MetabolicConsiderations({
                   onClick={handleCancelApply}
                   className="flex-1 bg-black border-white/20 text-white"
                 >
-                  <X className="h-4 w-4 mr-2" />
-                  Cancel
-                </Button>
+                  <X className="h-4 w-4 mr-2" />{t("Cancel")}</Button>
                 <Button
                   onClick={handleConfirmApply}
                   className="flex-1 bg-lime-600 text-white"
                 >
-                  <Check className="h-4 w-4 mr-2" />
-                  Apply
-                </Button>
+                  <Check className="h-4 w-4 mr-2" />{t("Apply")}</Button>
               </div>
             </CardContent>
           </Card>

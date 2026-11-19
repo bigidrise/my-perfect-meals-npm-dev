@@ -2,6 +2,7 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { readLanguagePreference, resolveLanguagePreference } from "./languagePreference";
 import { consumerEnglish, consumerSpanish } from "./consumerJourney";
+import { macroCalculatorEnglish, macroCalculatorSpanish } from "./macroCalculatorCopy";
 import { startupEnglish, startupSpanish } from "@shared/consumerStartupCopy";
 
 import en from "./locales/en.json";
@@ -40,8 +41,8 @@ function applyDocumentDir(lng: string) {
 
 i18n.use(initReactI18next).init({
   resources: {
-    en: { ...en, translation: en, consumerJourney: consumerEnglish },
-    es: { ...es, translation: es, consumerJourney: consumerSpanish },
+    en: { ...en, translation: en, consumerJourney: consumerEnglish, macroCalculatorCopy: macroCalculatorEnglish },
+    es: { ...es, translation: es, consumerJourney: consumerSpanish, macroCalculatorCopy: macroCalculatorSpanish },
     fr: { ...fr, translation: fr },
     de: { ...de, translation: de },
     it: { ...it, translation: it },

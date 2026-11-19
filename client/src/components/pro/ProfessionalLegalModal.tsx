@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, Stethoscope, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -25,17 +26,30 @@ const PHYSICIAN_DOCS = [
 
 interface ProfessionalLegalModalProps {
   open: boolean;
-  onAccepted: () => void;
+  onAccepted: () => void | Promise<void>;
   flow?: "professional" | "physician";
 }
 
 export default function ProfessionalLegalModal({ open, onAccepted, flow = "professional" }: ProfessionalLegalModalProps) {
+  const { user } = useAuth();
+  if (!open || !user?.id) return null;
+  const documents = flow === "physician" ? PHYSICIAN_DOCS : COACH_DOCS;
+  return <ProfessionalLegalForm key={`${user.id}:${flow}:${documents.map(doc => `${doc.type}:${doc.version}`).join(",")}`}
+    onAccepted={onAccepted} flow={flow} userId={user.id} />;
+}
+
+function ProfessionalLegalForm({ onAccepted, flow, userId }: {
+  onAccepted: ProfessionalLegalModalProps["onAccepted"];
+  flow: "professional" | "physician";
+  userId: string;
+}) {
   const [accepted, setAccepted] = useState<Record<string, boolean>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!open) return null;
+  const active = useRef(true);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
 
   const isPhysicianFlow = flow === "physician";
   const DOCS = isPhysicianFlow ? PHYSICIAN_DOCS : COACH_DOCS;
@@ -51,26 +65,28 @@ export default function ProfessionalLegalModal({ open, onAccepted, flow = "profe
   };
 
   const handleAcceptAll = async () => {
+    if (!allAccepted || saving) return;
     setSaving(true);
     setError(null);
     try {
       for (const doc of DOCS) {
+        if (!active.current) return;
         const res = await fetch(apiUrl("/api/legal/accept"), {
           method: "POST",
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
           credentials: "include",
-          body: JSON.stringify({ documentType: doc.type, version: doc.version }),
+          body: JSON.stringify({ documentType: doc.type, version: doc.version, expectedUserId: userId }),
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error || "Failed to accept document");
         }
       }
-      onAccepted();
+      if (active.current) await onAccepted();
     } catch (err: any) {
-      setError(err.message || "Failed to save acceptance");
+      if (active.current) setError(err.message || "Failed to save acceptance");
     } finally {
-      setSaving(false);
+      if (active.current) setSaving(false);
     }
   };
 
@@ -101,6 +117,7 @@ export default function ProfessionalLegalModal({ open, onAccepted, flow = "profe
                   className="w-full flex items-center justify-between p-4 text-left"
                 >
                   <span className="text-sm font-semibold text-white">{doc.title}</span>
+                  <span className="ml-auto mr-3 text-xs text-white/50">v{doc.version}</span>
                   {expanded[doc.type] ? (
                     <ChevronUp className="w-4 h-4 text-white/40" />
                   ) : (

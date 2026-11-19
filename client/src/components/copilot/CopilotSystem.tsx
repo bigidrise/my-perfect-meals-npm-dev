@@ -1,4 +1,6 @@
 import React, { useEffect } from "react";
+import { useLocation } from "wouter";
+import { isCalculatorCopilotPaused } from "./calculatorCopilotPause";
 import { CopilotProvider, CopilotAction, useCopilot } from "./CopilotContext";
 import { CopilotButton } from "./CopilotButton";
 import { CopilotSheet } from "./CopilotSheet";
@@ -13,8 +15,7 @@ interface CopilotSystemProps {
 
 const CopilotSystemInner: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { setLastResponse } = useCopilot();
-
-  useCopilotPageExplanation();
+  const [pathname] = useLocation();
 
   useEffect(() => {
     setResponseHandler((response) => {
@@ -26,10 +27,15 @@ const CopilotSystemInner: React.FC<{ children: React.ReactNode }> = ({ children 
   return (
     <>
       {children}
-      <CopilotSheet />
+      {!isCalculatorCopilotPaused(pathname) && <ActiveCopilotChrome />}
     </>
   );
 };
+
+function ActiveCopilotChrome() {
+  useCopilotPageExplanation();
+  return <CopilotSheet />;
+}
 
 export const CopilotSystem: React.FC<CopilotSystemProps> = ({ 
   children,

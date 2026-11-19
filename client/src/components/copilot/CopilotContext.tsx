@@ -6,6 +6,7 @@ import React, {
   useState,
   ReactNode,
 } from "react";
+import { isCalculatorCopilotPaused } from "./calculatorCopilotPause";
 
 export type CopilotMode = "idle" | "listening" | "thinking";
 
@@ -113,12 +114,18 @@ export const CopilotProvider: React.FC<CopilotProviderProps> = ({
   const [targetRegistry, setTargetRegistry] = useState<Set<string>>(new Set());
   const [needsRetry, setNeedsRetry] = useState(false);
 
-  const openCopilot = useCallback(() => setIsOpen(true), []); // Renamed from open to avoid conflict with openCopilot
+  const openCopilot = useCallback(() => {
+    if (isCalculatorCopilotPaused(window.location.pathname)) return;
+    setIsOpen(true);
+  }, []);
   const close = useCallback(() => {
     setIsOpen(false);
     setMode("idle");
   }, []);
-  const toggle = useCallback(() => setIsOpen((prev) => !prev), []);
+  const toggle = useCallback(() => {
+    if (isCalculatorCopilotPaused(window.location.pathname)) return;
+    setIsOpen(prev => !prev);
+  }, []);
 
   const setContextInfo = useCallback((info: Partial<CopilotContextInfo>) => {
     setContextInfoState((prev) => ({

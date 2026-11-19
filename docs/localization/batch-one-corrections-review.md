@@ -2,6 +2,42 @@
 
 **Batch 1 is not approved as complete. Batch 2 has not started.**
 
+## Resumed ordinary-interface corrections
+
+After restoring the localization guard, the five-area review was resumed without
+activating the protected drafts or starting another batch.
+
+- **Shot Tracker:** connected the dose-entry validation and status prefix; the
+  generic Other medication option now displays Spanish in both create/edit forms.
+  Its saved value remains `Other`; actual medication names and records stay original.
+- **Diabetic Hub:** connected the tutorial label, both daily symptom-panel
+  controls and minimum/maximum placeholders. Paired range inputs can shrink on
+  narrow screens without changing their values or bounds.
+- **Glucose-Based Carb Choices:** the three range headers allow their longer
+  Spanish selection controls to wrap. The existing multiline Save control remains.
+- **Hydration and My Perfect Menu:** reviewed the existing ordinary corrections;
+  no additional ordinary-text defect was established in this pass. Protected
+  explanations remain held rather than being treated as missing ordinary labels.
+
+**Latest verification:** 23 focused tests passed across the five actual areas,
+including three added cases for these corrections, language switching, retained
+form values and canonical mocked save payloads. The client build passed.
+All 107 numeric AST literals across the five main components match the pre-change
+source. No unit setting, nutrition rule, dose value or glucose threshold changed.
+
+The current incremental guard completed its scan of 289 changed source files
+and reported 672 unresolved candidates: 408 protected-review, 149 review and
+115 interface. This is not a passing localization gate or a confirmed-defect
+count; no exception, baseline or review manifest was changed to clear it.
+
+The Development workflow restarted in its existing safe-start configuration and
+the Diabetic Hub route returned HTTP 200. The anonymous mobile capture showed
+only the startup loader, **not** the authenticated Hub. Fresh script-free
+component fixtures use compiled application CSS, but assertions about wrapping
+classes and fixture markup are not authenticated mobile visual acceptance.
+No real account mutation, paid provider call, Production action or publication
+was performed. The underlying TypeScript investigation was not reopened.
+
 Passive browser review found two mobile clipping issues: the Spanish carb-preference Save label and the sick-day guide heading. Their wrapping styles were corrected in the November 18 screenshot follow-up. Authenticated visual acceptance and protected-wording approval remain open.
 
 This report supersedes the earlier `.local/reports/spanish-batch-one-review.md`, which overstated readiness and classified ordinary labels too broadly as protected wording. Passing tests alone is not visual acceptance.
@@ -73,9 +109,9 @@ No Training task, Batch 2 implementation, release, merge or Production action wa
 
 ## Verification evidence and limitations
 
-- **182 focused assertions passed across 15 suites**, including the actual five areas, the actual preflight/daily check-in, all hydration doors, translated errors and open dialogs, English/Spanish/Auto preference handling, retained unsaved answers, live notification language changes and canonical mocked save/create/edit/delete payloads.
-- The permanent localization checker tests pass: **27 tests**, with its scanner, registry and baseline unchanged.
-- Safety type check passed. The release type gate matches the unchanged **109-diagnostic** reviewed baseline.
+- **Earlier recorded verification:** 182 focused assertions passed across 15 suites, including the actual five areas, the actual preflight/daily check-in, all hydration doors, translated errors and open dialogs, English/Spanish/Auto preference handling, retained unsaved answers, live notification language changes and canonical mocked save/create/edit/delete payloads. The latest focused pass is reported above, not a rerun of all 15 suites.
+- The subsequent guard-registration repair passed **36 tests**; those tooling tests were not rerun for these page-only corrections.
+- Earlier safety/release checks passed at that time, including the then-matching **109-diagnostic** baseline. They were not rerun for this resumption and are not current release approval.
 - A client build succeeded. Existing large-bundle notices remain.
 - The permanent **new-interface localization guard is not green**: its conservative protected-wording review findings are intentionally not suppressed. Medical terminology and ordinary labels such as Medication, glucose headings and related form/status text trigger review heuristics. This is not represented as clinical approval or release clearance. A separate finding ledger records exact results.
 - All legacy language JSON catalogs are unchanged. The previously reported inactive-language measurement-key gaps were not repaired, hidden or reclassified in this correction.

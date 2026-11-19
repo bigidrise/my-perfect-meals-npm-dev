@@ -6,6 +6,14 @@ import { biometricsClinicalSpanish } from "./biometricsClinicalCopy";
 
 /** Ordinary display copy only. Never translate saved records, unknown API errors or safety evidence here. */
 export const consumerFeatureSpanish: Record<string, string> = {
+  "Other medication": "Otro medicamento",
+  "Enter a valid dose (mg).": "Introduce una dosis válida (mg).",
+  "Status {{status}}:": "Estado {{status}}:",
+  "Hub Tutorial": "Tutorial del centro",
+  "Hide daily symptom panel": "Ocultar el panel diario de síntomas",
+  "Update daily GLP-1 symptoms": "Actualizar los síntomas diarios de GLP-1",
+  "Min": "Mín.",
+  "Max": "Máx.",
   ...savedGroceriesSpanish,
   ...ingredientAnalysisLabelsSpanish,
   ...biometricsSpanish,

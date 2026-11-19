@@ -250,6 +250,8 @@ function LegacyProCareStudioGuard({ component: Component }: { component: React.C
   const [certified, setCertified] = useState(false);
   const [legalChecked, setLegalChecked] = useState(false);
   const [legalAccepted, setLegalAccepted] = useState(false);
+  const [legalError, setLegalError] = useState(false);
+  const [legalRetry, setLegalRetry] = useState(0);
   const certifiedRef = useRef(false);
   const { org, isLoading: orgLoading } = useOrg();
   const requireAcademy = org.featureFlags.requireAcademy !== false; // default: true
@@ -281,6 +283,8 @@ function LegacyProCareStudioGuard({ component: Component }: { component: React.C
 
     let active = true;
     setLegalChecked(false);
+    setLegalAccepted(false);
+    setLegalError(false);
     const flow = user.professionalRole === "physician" ? "physician" : "professional";
     Promise.all([
       apiRequest("/api/legal/status?flow=attestation"),
@@ -295,21 +299,22 @@ function LegacyProCareStudioGuard({ component: Component }: { component: React.C
           setLocation(createProfessionalLegalRecoveryUrl(
             location,
             "professional-workspace",
+            user.id,
           ));
         }
       })
       .catch(() => {
         if (!active) return;
-        // The protected API remains fail-closed. Do not redirect a professional
-        // based only on a transient status-check failure.
-        setLegalAccepted(true);
+        // Unknown is not consent. Keep the workspace hidden and offer a retry.
+        setLegalAccepted(false);
+        setLegalError(true);
         setLegalChecked(true);
       });
 
     return () => {
       active = false;
     };
-  }, [user?.id, user?.professionalRole, location, setLocation]);
+  }, [user?.id, user?.professionalRole, location, setLocation, legalRetry]);
 
   // When any /api/pro/* call returns PRO_REQUIRED (e.g. trial expired), show
   // a clear upgrade prompt so professionals aren't left with a blank error.
@@ -384,12 +389,12 @@ function LegacyProCareStudioGuard({ component: Component }: { component: React.C
 
   // Wait for org config to load before making cert decision to avoid premature redirects
   useEffect(() => {
-    if (orgLoading) return;
+    if (orgLoading || !legalChecked || !legalAccepted) return;
     setCertChecked(false);
     setCertified(false);
     certifiedRef.current = false;
     verifyCert(true);
-  }, [user?.id, orgLoading]);
+  }, [user?.id, orgLoading, legalChecked, legalAccepted]);
 
   // Periodic re-verification while the page stays open
   useEffect(() => {
@@ -402,6 +407,7 @@ function LegacyProCareStudioGuard({ component: Component }: { component: React.C
   }, [user?.id, verifyCert]);
 
   if (studioAccess === "error") return <p role="alert">Studio access could not be verified. Please refresh and try again.</p>;
+  if (legalError) return <div role="alert">Professional agreements could not be verified. <button onClick={() => setLegalRetry(value => value + 1)}>Retry</button></div>;
   if (studioAccess === "denied") return <p role="alert">Studio access is not authorized or ready. Recognizing a workspace does not grant patient access.</p>;
   if (studioAccess !== "available" || !certChecked || !legalChecked) return null;
   if (!certified || !legalAccepted) return null;
@@ -964,6 +970,7 @@ export default function Router() {
 
   useEffect(() => {
     const handleProfessionalLegalRequired = (event: Event) => {
+      if (!user?.isProCare || !user.professionalRole || user.professionalRole === "business") return;
       const detail = (event as CustomEvent<{
         returnTo?: string;
         action?: ProfessionalLegalRecoveryAction;
@@ -971,6 +978,7 @@ export default function Router() {
       setLocation(createProfessionalLegalRecoveryUrl(
         detail?.returnTo || location,
         detail?.action || "professional-workspace",
+        user.id,
       ));
     };
     window.addEventListener(
@@ -981,7 +989,7 @@ export default function Router() {
       "mpm:professional-legal-required",
       handleProfessionalLegalRequired,
     );
-  }, [location, setLocation]);
+  }, [location, setLocation, user?.id, user?.isProCare, user?.professionalRole]);
 
   // Add fallback protection
   if (!location) {

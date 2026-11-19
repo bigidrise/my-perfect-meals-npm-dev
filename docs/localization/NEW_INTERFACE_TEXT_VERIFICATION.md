@@ -1,6 +1,37 @@
 # Incremental localization guard — verification
 
-## Delivered
+## Dictionary registration repair
+
+The static reader now registers the existing nested feature dictionaries and
+the separately connected approved training explanations. It no longer stops at
+`consumerFeatureCopy.ts#savedGroceriesSpanish`. Historical snapshots load only
+their connected feature modules; connected missing modules, unknown spreads and
+executable expressions still fail closed.
+
+The reader also recognizes the existing calculator catalog when mounted in both
+runtime languages, checks its English derivation, and follows the calculator
+helper's actual namespace precedence. This changes validation tooling only,
+not application code or translation resources.
+
+**Current verification:** all **36 tests passed**, zero failed or skipped.
+Coverage includes all registered feature spreads, duplicate-key precedence,
+historical absence versus missing connected modules, executable rejection,
+empty/placeholder values, interpolation, protected wording, calculator helper
+aliases and missing/partial namespace registration.
+
+The current-workspace guard completed its scan of **289 changed source files**
+and exited **1** for **666 unresolved findings**: 405 protected-review,
+149 review and 112 interface. It did not exit 2 with a reader failure.
+These are review/connection candidates within the documented incremental scope,
+not 666 confirmed customer defects. No finding was waived or suppressed.
+
+No application restart, database access, provider request, translation batch,
+TypeScript investigation or publication was performed. The adoption boundary,
+exceptions, approval manifests and release/typecheck baseline remain untouched.
+The earlier passing results below describe the original guard delivery, not the
+current workspace.
+
+## Original delivery
 
 - Permanent standalone command `npm run validate:i18n:new` and regression suite
   `npm run test:i18n:new`.

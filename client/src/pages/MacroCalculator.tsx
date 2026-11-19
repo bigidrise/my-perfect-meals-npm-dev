@@ -5,7 +5,7 @@ import { Calculator } from "lucide-react";
 import { useLocation } from "wouter";
 import { estimateBodyFatHybrid } from "@/lib/bodyFatEstimation";
 import { motion, AnimatePresence } from "framer-motion";
-import { useChefVoice } from "@/components/chefs-kitchen/useChefVoice";
+import { useCalculatorVoice as useChefVoice } from "@/components/macro-targeting/useCalculatorVoice";
 import {
   MACRO_CALC_ENTRY,
   MACRO_CALC_GOAL,
@@ -112,7 +112,7 @@ import { getAssignedBuilderFromStorage } from "@/lib/assignedBuilder";
 import MetabolicConsiderations from "@/components/macro-targeting/MetabolicConsiderations";
 import BodyCompositionSection from "@/components/macro-targeting/BodyCompositionSection";
 import WaistRiskSection from "@/components/macro-targeting/WaistRiskSection";
-import { useTranslation } from "react-i18next";
+import { useMacroCalculatorCopy as useTranslation } from "@/i18n/useMacroCalculatorCopy";
 import {
   MacroDeltas,
   AdvisorySources,
@@ -170,6 +170,7 @@ const kgFromLbs = (lbs: number) => lbs * 0.45359237;
 const cmFromFeetInches = (ft: number, inch: number) => ft * 30.48 + inch * 2.54;
 
 function WaistEducationBlock({ waistCm, heightCm }: { waistCm: number; heightCm: number }) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = React.useState(false);
 
   const hasRatio = waistCm > 0 && heightCm > 0;
@@ -189,20 +190,18 @@ function WaistEducationBlock({ waistCm, heightCm }: { waistCm: number; heightCm:
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-white/50">
-        Healthy guideline: your waist should be less than half your height.
-      </p>
+      <p className="text-xs text-white/50">{t("Healthy guideline: your waist should be less than half your height.")}</p>
 
       {hasRatio && risk && (
         <div className={`flex items-center gap-3 p-2.5 rounded-lg border ${riskBgMap[risk.level]}`}>
           <div>
-            <span className="text-xs text-white/50">Waist-to-Height Ratio: </span>
+            <span className="text-xs text-white/50">{t("Waist-to-Height Ratio:")}{" "}</span>
             <span className={`text-sm font-bold ${riskColorMap[risk.level]}`}>
               {ratio.toFixed(2)}
             </span>
           </div>
           <div className={`text-xs font-medium px-2 py-0.5 rounded-full ${riskColorMap[risk.level]} bg-white/5`}>
-            {risk.label}
+            {t(risk.label)}
           </div>
         </div>
       )}
@@ -211,36 +210,22 @@ function WaistEducationBlock({ waistCm, heightCm }: { waistCm: number; heightCm:
         <CollapsibleTrigger asChild>
           <button className="w-full flex items-center justify-between text-xs text-white/40 hover:text-white/60 transition-colors py-1.5">
             <span className="flex items-center gap-1.5">
-              <Info className="h-3 w-3" />
-              Why does My Perfect Meals ask for waist size?
-            </span>
+              <Info className="h-3 w-3" />{t("Why does My Perfect Meals ask for waist size?")}</span>
             {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className="bg-black/30 border border-white/10 rounded-lg p-3 mt-1 space-y-2 text-xs text-white/70 leading-relaxed">
-            <p>
-              Doctors and nutrition scientists use waist circumference to estimate visceral fat.
-              Visceral fat is the fat stored around your organs, and it is strongly linked to heart disease,
-              insulin resistance, and metabolic syndrome.
-            </p>
-            <p>
-              Instead of using BMI alone, My Perfect Meals uses a measurement called the waist-to-height ratio.
-            </p>
-            <p>
-              Research from organizations such as the World Health Organization (WHO), National Institutes of
-              Health (NIH), and American Diabetes Association (ADA) shows that keeping your waist less than
-              half of your height is associated with better metabolic health.
-            </p>
-            <p>Your waist measurement helps My Perfect Meals:</p>
+            <p>{t("Doctors and nutrition scientists use waist circumference to estimate visceral fat. Visceral fat is the fat stored around your organs, and it is strongly linked to heart disease, insulin resistance, and metabolic syndrome.")}</p>
+            <p>{t("Instead of using BMI alone, My Perfect Meals uses a measurement called the waist-to-height ratio.")}</p>
+            <p>{t("Research from organizations such as the World Health Organization (WHO), National Institutes of Health (NIH), and American Diabetes Association (ADA) shows that keeping your waist less than half of your height is associated with better metabolic health.")}</p>
+            <p>{t("Your waist measurement helps My Perfect Meals:")}</p>
             <ul className="list-disc list-inside space-y-1 pl-1">
-              <li>Estimate visceral fat risk</li>
-              <li>Adjust carbohydrate targets when necessary</li>
-              <li>Improve macro precision for long-term metabolic health</li>
+              <li>{t("Estimate visceral fat risk")}</li>
+              <li>{t("Adjust carbohydrate targets when necessary")}</li>
+              <li>{t("Improve macro precision for long-term metabolic health")}</li>
             </ul>
-            <p className="text-white/50 italic">
-              This measurement does not diagnose disease. It simply helps the system make smarter nutrition recommendations.
-            </p>
+            <p className="text-white/50 italic">{t("This measurement does not diagnose disease. It simply helps the system make smarter nutrition recommendations.")}</p>
           </div>
         </CollapsibleContent>
       </Collapsible>
@@ -298,53 +283,42 @@ function bodyTendencyLabel(bt: BodyType): string {
 }
 
 function BodyTypeGuide() {
+  const { t } = useTranslation();
   return (
     <div className="mb-3">
       <details
         data-wt="mc-bodytype-info"
         className="rounded-xl border border-white/15 bg-white/5 p-3"
       >
-        <summary className="cursor-pointer select-none text-sm font-semibold text-white/90">
-          About body tendencies (tap to expand)
-        </summary>
+        <summary className="cursor-pointer select-none text-sm font-semibold text-white/90">{t("About body tendencies (tap to expand)")}</summary>
 
         <div className="mt-2 space-y-3 text-sm text-white/80">
           <div>
-            <div className="font-semibold text-white">Naturally Lean <span className="font-normal text-white/50 text-xs ml-1">Ectomorphic tendency</span></div>
-            <p className="mt-1 leading-relaxed">
-              You've always been on the thinner side or struggle to gain weight and muscle. Smaller frame, faster metabolism.{" "}
-              <span className="text-white/90">Strategy:</span> slightly more calories and carbs to support growth.
-            </p>
+            <div className="font-semibold text-white">{t("Naturally Lean")}{" "}<span className="font-normal text-white/50 text-xs ml-1">{t("Ectomorphic tendency")}</span></div>
+            <p className="mt-1 leading-relaxed">{t("You've always been on the thinner side or struggle to gain weight and muscle. Smaller frame, faster metabolism.")}{" "}
+              <span className="text-white/90">{t("Strategy:")}</span>{" "}{t("slightly more calories and carbs to support growth.")}</p>
           </div>
 
           <div>
-            <div className="font-semibold text-white">Naturally Athletic <span className="font-normal text-white/50 text-xs ml-1">Mesomorphic tendency</span></div>
-            <p className="mt-1 leading-relaxed">
-              You build muscle and lose fat fairly easily with training. Medium frame, responds well to nutrition changes.{" "}
-              <span className="text-white/90">Strategy:</span> balanced calories and macros, adjusted for your goal.
-            </p>
+            <div className="font-semibold text-white">{t("Naturally Athletic")}{" "}<span className="font-normal text-white/50 text-xs ml-1">{t("Mesomorphic tendency")}</span></div>
+            <p className="mt-1 leading-relaxed">{t("You build muscle and lose fat fairly easily with training. Medium frame, responds well to nutrition changes.")}{" "}
+              <span className="text-white/90">{t("Strategy:")}</span>{" "}{t("balanced calories and macros, adjusted for your goal.")}</p>
           </div>
 
           <div>
-            <div className="font-semibold text-white">Naturally Fuller Build <span className="font-normal text-white/50 text-xs ml-1">Endomorphic tendency</span></div>
-            <p className="mt-1 leading-relaxed">
-              You gain body weight more readily and fat loss may take more effort. Often benefits from mindful carb choices.{" "}
-              <span className="text-white/90">Strategy:</span> slightly fewer starchy carbs, a bit more fat for satiety.
-            </p>
+            <div className="font-semibold text-white">{t("Naturally Fuller Build")}{" "}<span className="font-normal text-white/50 text-xs ml-1">{t("Endomorphic tendency")}</span></div>
+            <p className="mt-1 leading-relaxed">{t("You gain body weight more readily and fat loss may take more effort. Often benefits from mindful carb choices.")}{" "}
+              <span className="text-white/90">{t("Strategy:")}</span>{" "}{t("slightly fewer starchy carbs, a bit more fat for satiety.")}</p>
           </div>
 
           <div>
-            <div className="font-semibold text-white">Combination Build <span className="font-normal text-white/50 text-xs ml-1">Mixed tendency</span></div>
-            <p className="mt-1 leading-relaxed">
-              You share traits from more than one description. This is very common — body composition changes over time.{" "}
-              <span className="text-white/90">Strategy:</span> balanced starting split, adjusted as you see results.
-            </p>
+            <div className="font-semibold text-white">{t("Combination Build")}{" "}<span className="font-normal text-white/50 text-xs ml-1">{t("Mixed tendency")}</span></div>
+            <p className="mt-1 leading-relaxed">{t("You share traits from more than one description. This is very common — body composition changes over time.")}{" "}
+              <span className="text-white/90">{t("Strategy:")}</span>{" "}{t("balanced starting split, adjusted as you see results.")}</p>
           </div>
 
           <div className="rounded-lg border border-white/10 bg-black/30 p-2">
-            <p className="text-[12px] text-white/60 leading-relaxed">
-              Most people are a combination. These descriptions set a starting point for your nutrition split — not a permanent identity. Choose the one that fits you best right now.
-            </p>
+            <p className="text-[12px] text-white/60 leading-relaxed">{t("Most people are a combination. These descriptions set a starting point for your nutrition split — not a permanent identity. Choose the one that fits you best right now.")}</p>
           </div>
         </div>
       </details>
@@ -375,6 +349,7 @@ function BodyCompositionGuidedStep({
   onContinue: () => void;
   onApplyAdjustments?: (deltas: MacroDeltas) => void;
 }) {
+  const { t } = useTranslation();
   const [bodyCompData, setBodyCompData] = useState<{
     currentBF: number;
     goalBF: number | null;
@@ -413,7 +388,7 @@ function BodyCompositionGuidedStep({
         direction: "reduce" as const,
         slots: -1,
         label: "Reducing starchy carbs by 1 slot",
-        detail: `You're ${diff.toFixed(1)}% above your goal — we'll cut starchy carbs to help you lean out.`,
+        detail: t("You're {{difference}}% above your goal — we'll cut starchy carbs to help you lean out.", { difference: diff.toFixed(1) }),
         color: "amber",
         newStarch: Math.max(0, baseStarch - 25),
       };
@@ -422,7 +397,7 @@ function BodyCompositionGuidedStep({
         direction: "neutral" as const,
         slots: 0,
         label: "Standard starchy carb allocation",
-        detail: `You're within range of your goal — your starchy carbs stay at the standard level.`,
+        detail: t("You're within range of your goal — your starchy carbs stay at the standard level."),
         color: "green",
         newStarch: baseStarch,
       };
@@ -435,8 +410,8 @@ function BodyCompositionGuidedStep({
           ? "Adding 1 bonus starch slot for performance"
           : "Standard starchy carb allocation",
         detail: isPerformance
-          ? `You're ${Math.abs(diff).toFixed(1)}% below your goal — extra carbs to fuel your performance.`
-          : `You're below your goal body fat — starchy carbs stay standard for your current goal.`,
+          ? t("You're {{difference}}% below your goal — extra carbs to fuel your performance.", { difference: Math.abs(diff).toFixed(1) })
+          : t("You're below your goal body fat — starchy carbs stay standard for your current goal."),
         color: isPerformance ? "blue" : "green",
         newStarch: isPerformance ? baseStarch + 25 : baseStarch,
       };
@@ -457,24 +432,16 @@ function BodyCompositionGuidedStep({
         <CardContent className="p-5 space-y-4">
           <div className="flex items-center gap-2">
             <Scale className="h-5 w-5 text-blue-400" />
-            <h3 className="text-lg font-semibold text-white">
-              Body Composition
-            </h3>
-            <span className="text-xs bg-zinc-700 text-zinc-300 px-2 py-0.5 rounded-full">
-              Optional
-            </span>
+            <h3 className="text-lg font-semibold text-white">{t("Body Composition")}</h3>
+            <span className="text-xs bg-zinc-700 text-zinc-300 px-2 py-0.5 rounded-full">{t("Optional")}</span>
           </div>
 
-          <p className="text-white/80 text-sm leading-relaxed">
-            If you've had your body fat professionally measured — like a DEXA scan, BodPod, calipers, or smart scale — you can add that here. It helps fine-tune your starchy carb allocation in the Performance Nutrition and Performance builders.
-          </p>
+          <p className="text-white/80 text-sm leading-relaxed">{t("If you've had your body fat professionally measured — like a DEXA scan, BodPod, calipers, or smart scale — you can add that here. It helps fine-tune your starchy carb allocation in the Performance Nutrition and Performance builders.")}</p>
 
           <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
             <div className="flex items-start gap-2">
               <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-blue-200/90">
-                Most people don't have this number — and that's perfectly fine. Your macros work great without it. This is only for people who actively track their body composition.
-              </p>
+              <p className="text-xs text-blue-200/90">{t("Most people don't have this number — and that's perfectly fine. Your macros work great without it. This is only for people who actively track their body composition.")}</p>
             </div>
           </div>
 
@@ -506,9 +473,7 @@ function BodyCompositionGuidedStep({
                     : impact.color === "blue"
                     ? "text-blue-200"
                     : "text-emerald-200"
-                }`}>
-                  Starch Impact Preview
-                </span>
+                }`}>{t("Starch Impact Preview")}</span>
               </div>
               <p className={`text-xs mb-3 ${
                 impact.color === "amber"
@@ -521,17 +486,17 @@ function BodyCompositionGuidedStep({
               </p>
               <div className="flex items-center gap-3">
                 <div className="text-center flex-1 p-2 bg-black/30 rounded-lg">
-                  <div className="text-xs text-white/50 mb-1">Current BF%</div>
+                  <div className="text-xs text-white/50 mb-1">{t("Current BF%")}</div>
                   <div className="text-lg font-bold text-white">{bodyCompData.currentBF}%</div>
                 </div>
                 <div className="text-white/30">→</div>
                 <div className="text-center flex-1 p-2 bg-black/30 rounded-lg">
-                  <div className="text-xs text-white/50 mb-1">Goal BF%</div>
+                  <div className="text-xs text-white/50 mb-1">{t("Goal BF%")}</div>
                   <div className="text-lg font-bold text-white">{bodyCompData.goalBF}%</div>
                 </div>
                 <div className="text-white/30">→</div>
                 <div className="text-center flex-1 p-2 bg-black/30 rounded-lg">
-                  <div className="text-xs text-white/50 mb-1">Starchy Carbs</div>
+                  <div className="text-xs text-white/50 mb-1">{t("Starchy Carbs")}</div>
                   <div className={`text-lg font-bold ${
                     impact.direction === "reduce"
                       ? "text-amber-400"
@@ -539,8 +504,7 @@ function BodyCompositionGuidedStep({
                       ? "text-blue-400"
                       : "text-emerald-400"
                   }`}>
-                    {impact.newStarch}g
-                    {impact.direction === "reduce" && (
+                    {impact.newStarch}{t("g")}{impact.direction === "reduce" && (
                       <span className="text-xs ml-1">↓</span>
                     )}
                     {impact.direction === "increase" && (
@@ -556,7 +520,7 @@ function BodyCompositionGuidedStep({
                   ? "text-blue-300"
                   : "text-emerald-300"
               }`}>
-                {impact.label}
+                {t(impact.label)}
               </p>
             </motion.div>
           )}
@@ -566,15 +530,11 @@ function BodyCompositionGuidedStep({
               onClick={onSkip}
               variant="outline"
               className="flex-1 py-4 bg-white/5 border-white/20 text-white text-base font-semibold rounded-xl"
-            >
-              Skip
-            </Button>
+            >{t("Skip")}</Button>
             <Button
               onClick={onContinue}
               className="flex-1 py-4 bg-blue-600 text-white text-base font-semibold rounded-xl"
-            >
-              Continue
-            </Button>
+            >{t("Continue")}</Button>
           </div>
         </CardContent>
       </Card>
@@ -702,6 +662,7 @@ const CLINICAL_CATEGORY_MODIFIERS: Record<string, { name: string; bullets: strin
 };
 
 function ClinicalCategoryReasoningList({ categories }: { categories: string[] }) {
+  const { t } = useTranslation();
   const matched = categories
     .map((slug) => CLINICAL_CATEGORY_MODIFIERS[slug])
     .filter(Boolean);
@@ -710,15 +671,15 @@ function ClinicalCategoryReasoningList({ categories }: { categories: string[] })
 
   return (
     <div className="space-y-2 pt-1">
-      <p className="text-xs text-white/40 uppercase tracking-wide">Adjustments applied</p>
+      <p className="text-xs text-white/40 uppercase tracking-wide">{t("Adjustments applied")}</p>
       {matched.map((entry) => (
         <div key={entry.name} className="space-y-1">
-          <p className="text-xs font-semibold text-white/70">{entry.name}</p>
+          <p className="text-xs font-semibold text-white/70">{t(entry.name)}</p>
           <ul className="space-y-0.5 pl-2">
             {entry.bullets.map((b) => (
               <li key={b} className="text-xs text-white/50 flex gap-1.5">
                 <span className="text-orange-500 mt-0.5 shrink-0">·</span>
-                {b}
+                {t(b)}
               </li>
             ))}
           </ul>
@@ -758,8 +719,8 @@ function AccountMacroCounter() {
   const calculatorStorageKeys = macroCalculatorStorageKeys(calculatorDraftAccountId);
   useEffect(() => {
     if (savedMacroSetup.error) toast({
-      title: "Setup status unavailable",
-      description: savedMacroSetup.error,
+      title: t("Setup status unavailable"),
+      description: t(savedMacroSetup.error),
       variant: "destructive",
     });
   }, [savedMacroSetup.error, toast]);
@@ -969,7 +930,8 @@ function AccountMacroCounter() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasSpokenEntry, setHasSpokenEntry] = useState(resolveInitialStep() !== "entry");
   const [syncingWeight, setSyncingWeight] = useState(false);
-  const [coachMuted, setCoachMuted] = useState(() => localStorage.getItem("mpm.macroCalc.coachMuted") === "true");
+  // Narration is paused without changing the account's saved preferences.
+  const coachMuted = true;
   const entrySpokenRef = useRef(resolveInitialStep() !== "entry");
 
   // Chef Voice for guided walkthrough
@@ -1237,8 +1199,8 @@ function AccountMacroCounter() {
   const { isOpen: copilotOpen, close: closeCopilot } = useCopilot();
   useEffect(() => {
     // Give the written setup explanation the screen without changing Copilot settings.
-    if (setupGuideEnabled && quickTour.shouldShow && copilotOpen) closeCopilot();
-  }, [setupGuideEnabled, quickTour.shouldShow, copilotOpen, closeCopilot]);
+    if (copilotOpen) closeCopilot();
+  }, [copilotOpen, closeCopilot]);
 
   // Walkthrough disabled - conflicts with Copilot intro TTS
   // useEffect(() => {
@@ -1613,20 +1575,20 @@ function AccountMacroCounter() {
     if (failures.length > 0) {
       console.warn("[MacroCalculator] Partial save — biometric failures:", failures);
       toast({
-        title: `${options?.successTitle ?? "Macros saved"} — some stats didn't update`,
-        description: `Macros saved. Could not update: ${failures.join(", ")}. Try saving again or visit the Biometrics page.`,
+        title: t("{{value1}} — some stats didn't update", { value1: t(options?.successTitle ?? "Macros saved") }),
+        description: t("Macros saved. Could not update: {{value1}}. Try saving again or visit the Biometrics page.", { value1: failures.map(field => t(field)).join(", ") }),
         duration: 8000,
       });
     } else if (bodyFatClinicalSkip) {
       toast({
-        title: options?.successTitle ?? "Macros & Stats Saved",
-        description: "Macro targets and body measurements updated. Body-fat estimate was not applied — a professional measurement is already on file.",
+        title: t(options?.successTitle ?? "Macros & Stats Saved"),
+        description: t("Macro targets and body measurements updated. Body-fat estimate was not applied — a professional measurement is already on file."),
         duration: 6000,
       });
     } else {
       toast({
-        title: options?.successTitle ?? "Macros & Stats Saved",
-        description: "Your macro targets and body stats have been updated.",
+        title: t(options?.successTitle ?? "Macros & Stats Saved"),
+        description: t("Your macro targets and body stats have been updated."),
       });
     }
   };
@@ -1643,8 +1605,8 @@ function AccountMacroCounter() {
     } catch (error) {
       console.error("Failed to update macro targets:", error);
       toast({
-        title: "Update Failed",
-        description: "Failed to save your macro targets. Please try again.",
+        title: t("Update Failed"),
+        description: t("Failed to save your macro targets. Please try again."),
         variant: "destructive",
       });
     } finally {
@@ -1722,7 +1684,7 @@ function AccountMacroCounter() {
                 className="flex items-center gap-1 text-purple-400 hover:bg-purple-500/10 px-2 py-1 rounded-lg text-sm font-medium -ml-2"
               >
                 <ArrowLeft className="h-4 w-4" />
-                <BackNavigationLabel label="Return to Pro Portal" />
+                <BackNavigationLabel label={t("Return to Pro Portal")} />
               </button>
             )}
             <h1 className="text-lg font-bold text-white flex items-center gap-2">
@@ -1731,20 +1693,7 @@ function AccountMacroCounter() {
 
             <div className="flex-grow" />
 
-            <button
-              onClick={() => {
-                const next = !coachMuted;
-                setCoachMuted(next);
-                localStorage.setItem("mpm.macroCalc.coachMuted", String(next));
-                if (next) stop();
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-sm text-white/80 font-medium"
-              title={coachMuted ? "Unmute coach narration" : "Mute coach narration"}
-            >
-              {coachMuted ? "🔇" : "🔊"}
-              <span className="hidden sm:inline">{coachMuted ? t("coachOff") : t("coachOn")}</span>
-            </button>
-            <QuickTourButton onClick={quickTour.openTour} />
+            <QuickTourButton onClick={quickTour.openTour} label={t("Guide")} ariaLabel={t("How to use this page")} />
           </div>
         </div>
         </MobileHeaderGuard>
@@ -1758,42 +1707,31 @@ function AccountMacroCounter() {
             <HowThisWorksLink featureKey="macroCalculator" labelKey="tutorialControl.howItWorks" />
           </div>
           {(!setupGuideEnabled || savedMacroSetup.complete === true) &&
-            <GuidedWorkflowNextStep busy={isSaving} professionalSession={isProSession}
+            <GuidedWorkflowNextStep busy={isSaving} professionalSession={isProSession} translate={text => t(text)}
               summaryVisible={guidedStep === "done" && !!results} />}
           {/* Scientific Sources - Apple App Store Compliance (must be visible immediately) */}
           {(guidedStep === "entry" || guidedStep === "goal") && (
             <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-400/30 rounded-xl p-4">
               <p className="text-sm text-white/90 leading-relaxed">
-                <span className="font-semibold text-blue-300">
-                  Scientific Sources:
-                </span>{" "}
-                Calculations based on{" "}
+                <span className="font-semibold text-blue-300">{t("Scientific Sources:")}</span>{" "}{t("Calculations based on")}{" "}
                 <a
                   href="https://pubmed.ncbi.nlm.nih.gov/2305711/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-400 underline font-medium"
-                >
-                  Mifflin-St Jeor (NCBI/NIH)
-                </a>{" "}
-                and{" "}
+                >{t("Mifflin-St Jeor (NCBI/NIH)")}</a>{" "}{t("and")}{" "}
                 <a
                   href="https://ods.od.nih.gov/HealthInformation/Dietary_Reference_Intakes.aspx"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-400 underline font-medium"
-                >
-                  NIH Dietary Reference Intakes
-                </a>
-                . Nutrient data from{" "}
+                >{t("NIH Dietary Reference Intakes")}</a>{t(". Nutrient data from")}{" "}
                 <a
                   href="https://fdc.nal.usda.gov/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-400 underline font-medium"
-                >
-                  USDA FoodData Central
-                </a>
+                >{t("USDA FoodData Central")}</a>
                 .
               </p>
             </div>
@@ -1813,14 +1751,10 @@ function AccountMacroCounter() {
                   <CardContent className="p-5 space-y-5">
                     <div className="flex items-center gap-3">
                       <Sparkles className="h-6 w-6 text-orange-500" />
-                      <h2 className="text-xl font-bold text-white">
-                        Before We Begin
-                      </h2>
+                      <h2 className="text-xl font-bold text-white">{t("Before We Begin")}</h2>
                     </div>
 
-                    <p className="text-white/80 text-sm leading-relaxed">
-                      This calculator builds your personalized daily nutrition plan — calories, protein, carbs, and healthy fats — based on your body and goals.
-                    </p>
+                    <p className="text-white/80 text-sm leading-relaxed">{t("This calculator builds your personalized daily nutrition plan — calories, protein, carbs, and healthy fats — based on your body and goals.")}</p>
 
                     <div className="flex items-center gap-3 flex-wrap">
                       {[
@@ -1829,17 +1763,17 @@ function AccountMacroCounter() {
                         { icon: "🎯", label: "Personalized results" },
                       ].map((b) => (
                         <span key={b.label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-600/20 border border-orange-500/30 text-sm text-orange-200">
-                          {b.icon} {b.label}
+                          {b.icon} {t(b.label)}
                         </span>
                       ))}
                     </div>
 
                     <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-2">
-                      <p className="text-sm font-semibold text-white/80">Before you start, grab:</p>
+                      <p className="text-sm font-semibold text-white/80">{t("Before you start, grab:")}</p>
                       <ul className="space-y-1.5 text-sm text-white/70">
-                        <li className="flex items-start gap-2"><span>📏</span><span>A flexible tape measure <span className="text-white/45">(for your waist — the most important measurement)</span></span></li>
-                        <li className="flex items-start gap-2"><span>⚖️</span><span>Your current weight</span></li>
-                        <li className="flex items-start gap-2"><span>📐</span><span>Your approximate height</span></li>
+                        <li className="flex items-start gap-2"><span>📏</span><span>{t("A flexible tape measure")}{" "}<span className="text-white/45">{t("(for your waist — the most important measurement)")}</span></span></li>
+                        <li className="flex items-start gap-2"><span>⚖️</span><span>{t("Your current weight")}</span></li>
+                        <li className="flex items-start gap-2"><span>📐</span><span>{t("Your approximate height")}</span></li>
                       </ul>
                     </div>
 
@@ -1861,9 +1795,7 @@ function AccountMacroCounter() {
                         rounded-xl
                       "
                       data-testid="guided-talk-to-chef"
-                    >
-                      Let's Get Started →
-                    </Button>
+                    >{t("Let's Get Started →")}</Button>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -1882,14 +1814,9 @@ function AccountMacroCounter() {
                   <CardContent className="p-5 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
-                      <h3 className="text-lg font-semibold text-white">
-                        Step 1 of 10
-                      </h3>
+                      <h3 className="text-lg font-semibold text-white">{t("Step 1 of 10")}</h3>
                     </div>
-                    <p className="text-white text-base">
-                      What are we trying to do with our nutrition? What's your
-                      ultimate goal?
-                    </p>
+                    <p className="text-white text-base">{t("What are we trying to do with our nutrition? What's your ultimate goal?")}</p>
                     <div className="grid grid-cols-2 gap-3">
                       {[
                         { v: "loss", label: "Lose Fat", sub: null },
@@ -1914,9 +1841,9 @@ function AccountMacroCounter() {
                           }}
                           className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${goal === g.v ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
                         >
-                          <div>{g.label}</div>
+                          <div>{t(g.label)}</div>
                           {g.sub && (
-                            <div className="text-xs text-white/50 mt-0.5">{g.sub}</div>
+                            <div className="text-xs text-white/50 mt-0.5">{t(g.sub)}</div>
                           )}
                         </div>
                       ))}
@@ -1925,24 +1852,20 @@ function AccountMacroCounter() {
                     {/* Contest Prep overlay explanation — shown after selection, before advancing */}
                     {goal === "contest_prep" && guidedStep === "goal" && (
                       <div className="rounded-xl bg-orange-950/50 border border-orange-500/40 p-4 space-y-3">
-                        <p className="text-sm font-semibold text-orange-300">Competition Prep mode activated</p>
+                        <p className="text-sm font-semibold text-orange-300">{t("Competition Prep mode activated")}</p>
                         <div className="text-sm text-white/75 leading-relaxed space-y-1">
-                          <p>Your calculator is now set to:</p>
+                          <p>{t("Your calculator is now set to:")}</p>
                           <ul className="list-none space-y-1 mt-1">
-                            <li className="flex items-start gap-2"><span className="text-orange-400 mt-0.5">›</span><span>Hard cut — aggressive fat-loss calorie target</span></li>
-                            <li className="flex items-start gap-2"><span className="text-orange-400 mt-0.5">›</span><span>Low-carb split — minimal starchy carbs</span></li>
-                            <li className="flex items-start gap-2"><span className="text-orange-400 mt-0.5">›</span><span>30g starchy carb cap per day</span></li>
+                            <li className="flex items-start gap-2"><span className="text-orange-400 mt-0.5">›</span><span>{t("Hard cut — aggressive fat-loss calorie target")}</span></li>
+                            <li className="flex items-start gap-2"><span className="text-orange-400 mt-0.5">›</span><span>{t("Low-carb split — minimal starchy carbs")}</span></li>
+                            <li className="flex items-start gap-2"><span className="text-orange-400 mt-0.5">›</span><span>{t("30g starchy carb cap per day")}</span></li>
                           </ul>
                         </div>
-                        <p className="text-xs text-white/55 leading-relaxed">
-                          This is a metabolic overlay — not just a calculator preset. It carries into every meal generator in the app, telling them to use lean proteins, fibrous carbs, and competition-clean preparations. You can apply it to your full app profile at the save step.
-                        </p>
+                        <p className="text-xs text-white/55 leading-relaxed">{t("This is a metabolic overlay — not just a calculator preset. It carries into every meal generator in the app, telling them to use lean proteins, fibrous carbs, and competition-clean preparations. You can apply it to your full app profile at the save step.")}</p>
                         <button
                           onClick={() => advanceGuided("commitmentLevel")}
                           className="w-full py-2.5 bg-orange-600 text-white font-semibold rounded-lg text-sm"
-                        >
-                          Got it, continue
-                        </button>
+                        >{t("Got it, continue")}</button>
                       </div>
                     )}
                   </CardContent>
@@ -1962,8 +1885,7 @@ function AccountMacroCounter() {
                 {/* Completed: Goal */}
                 <div className="rounded-xl border border-white/20 bg-black/40 p-3">
                   <p className="text-sm text-white/60 flex items-center gap-2">
-                    <Check className="h-4 w-4 text-lime-500 flex-shrink-0" />
-                    Goal: {goalLabel(goal)}
+                    <Check className="h-4 w-4 text-lime-500 flex-shrink-0" />{t("Goal:")}{" "}{t(goalLabel(goal))}
                   </p>
                 </div>
 
@@ -1971,16 +1893,10 @@ function AccountMacroCounter() {
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
-                      <h3 className="text-lg font-semibold text-white">
-                        Step 2 of 10
-                      </h3>
+                      <h3 className="text-lg font-semibold text-white">{t("Step 2 of 10")}</h3>
                     </div>
-                    <p className="text-white text-base">
-                      What level of structure fits you best?
-                    </p>
-                    <p className="text-sm text-white/60">
-                      This helps us match your nutrition targets to how consistently you are likely to follow a plan. It does not make the plan harder or easier — it helps us make it realistic for you.
-                    </p>
+                    <p className="text-white text-base">{t("What level of structure fits you best?")}</p>
+                    <p className="text-sm text-white/60">{t("This helps us match your nutrition targets to how consistently you are likely to follow a plan. It does not make the plan harder or easier — it helps us make it realistic for you.")}</p>
                     <div className="grid grid-cols-1 gap-3">
                       {([
                         {
@@ -2007,8 +1923,8 @@ function AccountMacroCounter() {
                           }}
                           className={`flex flex-col gap-1 px-4 py-3 border rounded-xl cursor-pointer transition-colors ${userType === u.v ? "bg-orange-500/20 border-orange-400 text-orange-200" : "border-white/30 text-white/80 hover:border-white/60"}`}
                         >
-                          <span className="font-semibold text-base">{u.label}</span>
-                          <span className="text-xs opacity-70 leading-snug">{u.sub}</span>
+                          <span className="font-semibold text-base">{t(u.label)}</span>
+                          <span className="text-xs opacity-70 leading-snug">{t(u.sub)}</span>
                         </div>
                       ))}
                     </div>
@@ -2030,19 +1946,17 @@ function AccountMacroCounter() {
                 <div className="flex flex-col gap-2">
                   <div className="rounded-xl border border-white/20 bg-black/40 p-3">
                     <p className="text-sm text-white/90 font-medium flex items-center gap-2">
-                      <Check className="h-4 w-4 text-lime-500 flex-shrink-0" />
-                      Goal: {goalLabel(goal)}
+                      <Check className="h-4 w-4 text-lime-500 flex-shrink-0" />{t("Goal:")}{" "}{t(goalLabel(goal))}
                     </p>
                   </div>
                   <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-3">
                     <p className="text-sm text-orange-200 font-medium flex items-center gap-2">
-                      <Check className="h-4 w-4 text-orange-400 flex-shrink-0" />
-                      Structure:{" "}
+                      <Check className="h-4 w-4 text-orange-400 flex-shrink-0" />{t("Structure:")}{" "}
                       {userType === "flexible"
-                        ? "Flexible"
+                        ? t("Flexible")
                         : userType === "consistent"
-                          ? "Consistent"
-                          : "Performance"}
+                          ? t("Consistent")
+                          : t("Performance")}
                     </p>
                   </div>
                 </div>
@@ -2051,16 +1965,10 @@ function AccountMacroCounter() {
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
-                      <h3 className="text-lg font-semibold text-white">
-                        Step 3 of 10
-                      </h3>
+                      <h3 className="text-lg font-semibold text-white">{t("Step 3 of 10")}</h3>
                     </div>
-                    <p className="text-white text-base">
-                      Which description best matches your natural tendency?
-                    </p>
-                    <p className="text-sm text-white/55 -mt-2">
-                      Most people are a combination. Choose the one that fits you best right now.
-                    </p>
+                    <p className="text-white text-base">{t("Which description best matches your natural tendency?")}</p>
+                    <p className="text-sm text-white/55 -mt-2">{t("Most people are a combination. Choose the one that fits you best right now.")}</p>
                     <BodyTypeGuide />
                     <div className="grid grid-cols-2 gap-3">
                       {([
@@ -2079,9 +1987,9 @@ function AccountMacroCounter() {
                         >
                           <BodyTypeSilhouette type={b.v} />
                           <div>
-                            <div className="font-semibold text-sm text-white">{b.label}</div>
-                            <div className="text-[11px] text-white/50 mt-0.5">{b.sub}</div>
-                            <div className="text-[11px] text-white/40 mt-1 leading-tight">{b.desc}</div>
+                            <div className="font-semibold text-sm text-white">{t(b.label)}</div>
+                            <div className="text-[11px] text-white/50 mt-0.5">{t(b.sub)}</div>
+                            <div className="text-[11px] text-white/40 mt-1 leading-tight">{t(b.desc)}</div>
                           </div>
                         </div>
                       ))}
@@ -2104,14 +2012,12 @@ function AccountMacroCounter() {
                 <div className="space-y-2">
                   <div className="rounded-xl border border-white/20 bg-black/40 p-3">
                     <p className="text-sm text-white/90 font-medium flex items-center gap-2">
-                      <Check className="h-4 w-4 text-lime-500" />
-                      Goal: {goalLabel(goal)}
+                      <Check className="h-4 w-4 text-lime-500" />{t("Goal:")}{" "}{t(goalLabel(goal))}
                     </p>
                   </div>
                   <div className="rounded-xl border border-white/20 bg-black/40 p-3">
                     <p className="text-sm text-white/90 font-medium flex items-center gap-2">
-                      <Check className="h-4 w-4 text-lime-500" />
-                      Body Tendency: {bodyTendencyLabel(bodyType)}
+                      <Check className="h-4 w-4 text-lime-500" />{t("Body Tendency:")}{" "}{t(bodyTendencyLabel(bodyType))}
                     </p>
                   </div>
                 </div>
@@ -2120,13 +2026,9 @@ function AccountMacroCounter() {
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
-                      <h3 className="text-lg font-semibold text-white">
-                        Step 4
-                      </h3>
+                      <h3 className="text-lg font-semibold text-white">{t("Step 4")}</h3>
                     </div>
-                    <p className="text-white text-base">
-                      What units are you measuring in?
-                    </p>
+                    <p className="text-white text-base">{t("What units are you measuring in?")}</p>
                     <div className="grid grid-cols-2 gap-3">
                       <div
                         onClick={() => {
@@ -2134,18 +2036,14 @@ function AccountMacroCounter() {
                           advanceGuided("sex");
                         }}
                         className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${units === "imperial" ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
-                      >
-                        US / Imperial
-                      </div>
+                      >{t("US / Imperial")}</div>
                       <div
                         onClick={() => {
                           changeInputUnits("metric");
                           advanceGuided("sex");
                         }}
                         className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${units === "metric" ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
-                      >
-                        Metric
-                      </div>
+                      >{t("Metric")}</div>
                     </div>
                   </CardContent>
                 </Card>
@@ -2165,16 +2063,10 @@ function AccountMacroCounter() {
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
-                      <h3 className="text-lg font-semibold text-white">
-                        Step 5 of 10
-                      </h3>
+                      <h3 className="text-lg font-semibold text-white">{t("Step 5 of 10")}</h3>
                     </div>
-                    <p className="text-white text-base">
-                      What is your biological sex?
-                    </p>
-                    <p className="text-xs text-white/45 -mt-2">
-                      Used only for the metabolic formula — it affects how we calculate your calorie burn and protein targets.
-                    </p>
+                    <p className="text-white text-base">{t("What is your biological sex?")}</p>
+                    <p className="text-xs text-white/45 -mt-2">{t("Used only for the metabolic formula — it affects how we calculate your calorie burn and protein targets.")}</p>
                     <div className="grid grid-cols-2 gap-3">
                       <div
                         onClick={() => {
@@ -2182,18 +2074,14 @@ function AccountMacroCounter() {
                           advanceGuided("age");
                         }}
                         className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${sex === "female" ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
-                      >
-                        Female
-                      </div>
+                      >{t("Female")}</div>
                       <div
                         onClick={() => {
                           setSex("male");
                           advanceGuided("age");
                         }}
                         className={`px-3 py-2 border rounded-lg cursor-pointer text-center ${sex === "male" ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
-                      >
-                        Male
-                      </div>
+                      >{t("Male")}</div>
                     </div>
                   </CardContent>
                 </Card>
@@ -2213,14 +2101,12 @@ function AccountMacroCounter() {
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
-                      <h3 className="text-lg font-semibold text-white">
-                        Step 6 of 10
-                      </h3>
+                      <h3 className="text-lg font-semibold text-white">{t("Step 6 of 10")}</h3>
                     </div>
-                    <p className="text-white text-base">How old are you?</p>
+                    <p className="text-white text-base">{t("How old are you?")}</p>
                     <Input
                       type="number"
-                      placeholder="Enter your age..."
+                      placeholder={t("Enter your age...")}
                       className="w-full bg-black/60 border-white/30 text-white h-12 text-lg"
                       value={age || ""}
                       onChange={(e) =>
@@ -2240,9 +2126,7 @@ function AccountMacroCounter() {
                         border border-white/60
                         disabled:opacity-40 disabled:cursor-not-allowed
                       "
-                    >
-                      Continue
-                    </Button>
+                    >{t("Continue")}</Button>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -2261,20 +2145,16 @@ function AccountMacroCounter() {
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
-                      <h3 className="text-lg font-semibold text-white">
-                        Step 7 of 10
-                      </h3>
+                      <h3 className="text-lg font-semibold text-white">{t("Step 7 of 10")}</h3>
                     </div>
-                    <p className="text-white text-base">What's your height?</p>
+                    <p className="text-white text-base">{t("What's your height?")}</p>
                     {units === "imperial" ? (
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-sm text-white/70 mb-1 block">
-                            Feet
-                          </label>
+                          <label className="text-sm text-white/70 mb-1 block">{t("Feet")}</label>
                           <Input
                             type="number"
-                            placeholder="ft"
+                            placeholder={t("ft")}
                             className="w-full bg-black/60 border-white/30 text-white h-12 text-lg"
                             value={heightFt || ""}
                             onChange={(e) =>
@@ -2287,12 +2167,10 @@ function AccountMacroCounter() {
                           />
                         </div>
                         <div>
-                          <label className="text-sm text-white/70 mb-1 block">
-                            Inches
-                          </label>
+                          <label className="text-sm text-white/70 mb-1 block">{t("Inches")}</label>
                           <Input
                             type="number"
-                            placeholder="in"
+                            placeholder={t("in")}
                             className="w-full bg-black/60 border-white/30 text-white h-12 text-lg"
                             value={heightIn || ""}
                             onChange={(e) =>
@@ -2308,7 +2186,7 @@ function AccountMacroCounter() {
                     ) : (
                       <Input
                         type="number"
-                        placeholder="Enter height in cm..."
+                        placeholder={t("Enter height in cm...")}
                         className="w-full bg-black/60 border-white/30 text-white h-12 text-lg"
                         value={heightCm || ""}
                         onChange={(e) =>
@@ -2333,9 +2211,7 @@ function AccountMacroCounter() {
                         border border-white/60
                         disabled:opacity-40 disabled:cursor-not-allowed
                       "
-                    >
-                      Continue
-                    </Button>
+                    >{t("Continue")}</Button>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -2354,19 +2230,15 @@ function AccountMacroCounter() {
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
-                      <h3 className="text-lg font-semibold text-white">
-                        Step 8 of 10
-                      </h3>
+                      <h3 className="text-lg font-semibold text-white">{t("Step 8 of 10")}</h3>
                     </div>
-                    <p className="text-white text-base">
-                      What's your current weight?
-                    </p>
+                    <p className="text-white text-base">{t("What's your current weight?")}</p>
                     <Input
                       type="number"
                       placeholder={
                         units === "imperial"
-                          ? "Enter weight in lbs..."
-                          : "Enter weight in kg..."
+                          ? t("Enter weight in lbs...")
+                          : t("Enter weight in kg...")
                       }
                       className="w-full bg-black/60 border-white/30 text-white h-12 text-lg"
                       value={
@@ -2393,9 +2265,7 @@ function AccountMacroCounter() {
                         border border-white/60
                         disabled:opacity-40 disabled:cursor-not-allowed
                       "
-                    >
-                      Continue
-                    </Button>
+                    >{t("Continue")}</Button>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -2413,22 +2283,16 @@ function AccountMacroCounter() {
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
-                      <h3 className="text-lg font-semibold text-white">
-                        Step 9 of 10
-                      </h3>
+                      <h3 className="text-lg font-semibold text-white">{t("Step 9 of 10")}</h3>
                     </div>
-                    <p className="text-white text-base">
-                      What's your waist circumference?
-                    </p>
-                    <p className="text-xs text-white/45 -mt-2">
-                      Your waist measurement helps us understand body composition and where you tend to carry weight — information the scale alone cannot provide.
-                    </p>
+                    <p className="text-white text-base">{t("What's your waist circumference?")}</p>
+                    <p className="text-xs text-white/45 -mt-2">{t("Your waist measurement helps us understand body composition and where you tend to carry weight — information the scale alone cannot provide.")}</p>
                     <Input
                       type="number"
                       placeholder={
                         units === "imperial"
-                          ? "Enter waist in inches..."
-                          : "Enter waist in cm..."
+                          ? t("Enter waist in inches...")
+                          : t("Enter waist in cm...")
                       }
                       className="w-full bg-black/60 border-white/30 text-white h-12 text-lg"
                       value={
@@ -2458,9 +2322,7 @@ function AccountMacroCounter() {
                         border border-white/60
                         disabled:opacity-40 disabled:cursor-not-allowed
                       "
-                    >
-                      Continue
-                    </Button>
+                    >{t("Continue")}</Button>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -2479,16 +2341,10 @@ function AccountMacroCounter() {
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
-                      <h3 className="text-lg font-semibold text-white">
-                        Step 10 of 10
-                      </h3>
+                      <h3 className="text-lg font-semibold text-white">{t("Step 10 of 10")}</h3>
                     </div>
-                    <p className="text-white text-base">
-                      What is your activity level?
-                    </p>
-                    <p className="text-xs text-white/45 -mt-2">
-                      This determines how many calories your body burns daily — the biggest variable in your plan.
-                    </p>
+                    <p className="text-white text-base">{t("What is your activity level?")}</p>
+                    <p className="text-xs text-white/45 -mt-2">{t("This determines how many calories your body burns daily — the biggest variable in your plan.")}</p>
                     <div className="space-y-2">
                       {[
                         {
@@ -2517,8 +2373,8 @@ function AccountMacroCounter() {
                           }}
                           className={`w-full px-3 py-2 border rounded-lg cursor-pointer flex justify-between items-center ${activity === a.v ? "bg-white/15 border-white" : "border-white/40 hover:border-white/70"}`}
                         >
-                          <span>{a.label}</span>
-                          <span className="text-sm opacity-80">{a.desc}</span>
+                          <span>{t(a.label)}</span>
+                          <span className="text-sm opacity-80">{t(a.desc)}</span>
                         </div>
                       ))}
                     </div>
@@ -2540,22 +2396,16 @@ function AccountMacroCounter() {
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
-                      <h3 className="text-lg font-semibold text-white">
-                        Optional: Save Your Weight
-                      </h3>
+                      <h3 className="text-lg font-semibold text-white">{t("Optional: Save Your Weight")}</h3>
                     </div>
-                    <p className="text-white text-base">
-                      Would you like to save your weight to biometrics?
-                    </p>
-                    <p className="text-white/60 text-sm">
-                      This helps track your progress and adjust your plan over time.
-                    </p>
+                    <p className="text-white text-base">{t("Would you like to save your weight to biometrics?")}</p>
+                    <p className="text-white/60 text-sm">{t("This helps track your progress and adjust your plan over time.")}</p>
                     <Button
                       disabled={syncingWeight}
                       onClick={async () => {
                         const weightValue = units === "imperial" ? weightLbs : weightKg;
                         if (!weightValue || weightValue <= 0) {
-                          toast({ title: "Enter weight first", description: "Please enter a valid weight before saving.", variant: "destructive" });
+                          toast({ title: t("Enter weight first"), description: t("Please enter a valid weight before saving."), variant: "destructive" });
                           return;
                         }
                         setSyncingWeight(true);
@@ -2567,10 +2417,10 @@ function AccountMacroCounter() {
                             body: JSON.stringify({ value: weightLbs, unit: "lb", localDate: today }),
                           });
                           if (!res.ok) throw new Error("Save failed");
-                          toast({ title: "Weight saved to biometrics", description: "Your progress is being tracked." });
+                          toast({ title: t("Weight saved to biometrics"), description: t("Your progress is being tracked.") });
                           advanceGuided("metabolic");
                         } catch {
-                          toast({ title: "Couldn't save weight", description: "Please try again.", variant: "destructive" });
+                          toast({ title: t("Couldn't save weight"), description: t("Please try again."), variant: "destructive" });
                         } finally {
                           setSyncingWeight(false);
                         }
@@ -2578,15 +2428,13 @@ function AccountMacroCounter() {
                       className="w-full py-3 bg-lime-600 border border-lime-300 text-white font-semibold rounded-xl disabled:opacity-60"
                     >
                       <Scale className="h-4 w-4 mr-2" />
-                      {syncingWeight ? "Saving…" : "Save Weight to Biometrics"}
+                      {syncingWeight ? t("Saving…") : t("Save Weight to Biometrics")}
                     </Button>
                     <Button
                       variant="ghost"
                       onClick={() => advanceGuided("metabolic")}
                       className="w-full text-white/60 hover:text-white"
-                    >
-                      Skip for Now
-                    </Button>
+                    >{t("Skip for Now")}</Button>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -2605,17 +2453,10 @@ function AccountMacroCounter() {
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <ChefHat className="h-5 w-5 text-orange-500" />
-                      <h3 className="text-lg font-semibold text-white">
-                        Almost Done
-                      </h3>
+                      <h3 className="text-lg font-semibold text-white">{t("Almost Done")}</h3>
                     </div>
-                    <p className="text-white text-base">
-                      Any metabolic or hormonal considerations? These help
-                      fine-tune your targets.
-                    </p>
-                    <p className="text-sm text-white/60">
-                      You can adjust these now or skip and do it later.
-                    </p>
+                    <p className="text-white text-base">{t("Any metabolic or hormonal considerations? These help fine-tune your targets.")}</p>
+                    <p className="text-sm text-white/60">{t("You can adjust these now or skip and do it later.")}</p>
                     {results && (
                       <WaistRiskSection
                         waistCm={waistCm}
@@ -2631,9 +2472,9 @@ function AccountMacroCounter() {
                             waistRisk: deltas,
                           }));
                           toast({
-                            title: "Adjustments Applied",
+                            title: t("Adjustments Applied"),
                             description:
-                              "Waist risk adjustments have been applied.",
+                              t("Waist risk adjustments have been applied."),
                           });
                         }}
                         onClearAdjustments={() => {
@@ -2658,9 +2499,9 @@ function AccountMacroCounter() {
                             metabolic: deltas,
                           }));
                           toast({
-                            title: "Adjustments Applied",
+                            title: t("Adjustments Applied"),
                             description:
-                              "Your macro targets have been fine-tuned.",
+                              t("Your macro targets have been fine-tuned."),
                           });
                         }}
                       />
@@ -2671,9 +2512,7 @@ function AccountMacroCounter() {
                         advanceGuided("results");
                       }}
                       className="w-full py-4 bg-black/30  border border-white/60 text-white font-semibold text-lg rounded-xl"
-                    >
-                      Let's See What We Got!
-                    </Button>
+                    >{t("Let's See What We Got!")}</Button>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -2691,20 +2530,15 @@ function AccountMacroCounter() {
                 <Card className="bg-zinc-900/80 border border-white/30 text-white">
                   <CardContent className="p-5">
                     <h3 className="text-lg font-semibold flex items-center mb-4">
-                      <Target className="h-5 w-5 mr-2 text-emerald-300" />
-                      Your Daily Macro Targets
-                    </h3>
+                      <Target className="h-5 w-5 mr-2 text-emerald-300" />{t("Your Daily Macro Targets")}</h3>
                     <div className="space-y-3">
                       <div className="flex justify-between items-center rounded-xl border-2 border-emerald-500/40 bg-emerald-500/10 p-4 mb-2">
-                        <div className="text-base font-bold text-white">
-                          Total Calories
-                        </div>
+                        <div className="text-base font-bold text-white">{t("Total Calories")}</div>
                         <div className="text-2xl font-bold text-emerald-300">
-                          {results.target} kcal
-                        </div>
+                          {results.target}{" "}{t("kcal")}</div>
                       </div>
                       <MacroRow
-                        label="Protein"
+                        label={t("Protein")}
                         grams={Math.max(
                           0,
                           results.macros.protein.g + advisoryDeltas.protein,
@@ -2717,17 +2551,17 @@ function AccountMacroCounter() {
                         const cupsPerDay = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
                         return (
                           <>
-                            <MacroRow label="Carbs - Starchy" grams={starchy} isKey />
-                            <MacroRow label="Carbs - Fibrous (Vegetables)" grams={fibrous} />
+                            <MacroRow label={t("Carbs - Starchy")} grams={starchy} isKey />
+                            <MacroRow label={t("Carbs - Fibrous (Vegetables)")} grams={fibrous} />
                             <div className="flex items-center justify-between text-xs text-green-400/80 px-1 -mt-1">
-                              <span>🥦 {cupsPerMeal} cups/meal · {cupsPerDay} cups/day</span>
-                              <span>1 cup ≈ 5g</span>
+                              <span>🥦 {cupsPerMeal}{" "}{t("cups/meal ·")}{" "}{cupsPerDay}{" "}{t("cups/day")}</span>
+                              <span>{t("1 cup ≈ 5g")}</span>
                             </div>
                           </>
                         );
                       })()}
                       <MacroRow
-                        label="Fats"
+                        label={t("Fats")}
                         grams={Math.max(
                           0,
                           results.macros.fat.g + advisoryDeltas.fat,
@@ -2745,9 +2579,7 @@ function AccountMacroCounter() {
                     rounded-xl
                     border border-white/60
                   "
-                >
-                  Continue
-                </Button>
+                >{t("Continue")}</Button>
               </motion.div>
             )}
 
@@ -2764,25 +2596,25 @@ function AccountMacroCounter() {
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <span className="text-blue-400 text-xl">⚡</span>
-                      <h3 className="text-lg font-semibold text-white">Nutrition Strategy</h3>
+                      <h3 className="text-lg font-semibold text-white">{t("Nutrition Strategy")}</h3>
                     </div>
 
                     {/* Meals Per Day */}
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-white/80">Meals Per Day</p>
-                      <p className="text-xs text-white/50">Drives your daily vegetable prescription — more meals = more vegetable volume</p>
+                      <p className="text-sm font-medium text-white/80">{t("Meals Per Day")}</p>
+                      <p className="text-xs text-white/50">{t("Drives your daily vegetable prescription — more meals = more vegetable volume")}</p>
                       <div className="space-y-3">
                         {([3, 4, 5] as const).map((n) => (
                           <div key={n} className={`p-4 rounded-xl border transition-all ${mealsPerDay === n ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
                             <div className="flex items-center justify-between">
                               <div>
-                                <span className="text-sm font-medium text-white">{n} Meals</span>
+                                <span className="text-sm font-medium text-white">{n}{" "}{t("Meals")}</span>
                                 <p className="text-xs text-white/60 mt-0.5">
-                                  {n === 3 ? "3 meals, no snacks — simple structure" : n === 4 ? "3 meals + 1 snack — most common" : "5 smaller meals — frequent fueling"}
+                                  {n === 3 ? t("3 meals, no snacks — simple structure") : n === 4 ? t("3 meals + 1 snack — most common") : t("5 smaller meals — frequent fueling")}
                                 </p>
                               </div>
                               <PillButton onClick={() => setMealsPerDay(n)} active={mealsPerDay === n}>
-                                {mealsPerDay === n ? "On" : "Off"}
+                                {mealsPerDay === n ? t("On") : t("Off")}
                               </PillButton>
                             </div>
                           </div>
@@ -2792,27 +2624,27 @@ function AccountMacroCounter() {
 
                     {/* Cut Intensity */}
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-white/80">Cut Intensity</p>
+                      <p className="text-sm font-medium text-white/80">{t("Cut Intensity")}</p>
                       <div className="space-y-3">
                         <div className={`p-4 rounded-xl border transition-all ${cutIntensity === "none" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
                           <div className="flex items-center justify-between">
                             <div>
-                              <span className="text-sm font-medium text-white">Standard</span>
-                              <p className="text-xs text-white/60 mt-0.5">Balanced deficit — recommended for most goals</p>
+                              <span className="text-sm font-medium text-white">{t("Standard")}</span>
+                              <p className="text-xs text-white/60 mt-0.5">{t("Balanced deficit — recommended for most goals")}</p>
                             </div>
                             <PillButton onClick={() => setCutIntensity("none")} active={cutIntensity === "none"}>
-                              {cutIntensity === "none" ? "On" : "Off"}
+                              {cutIntensity === "none" ? t("On") : t("Off")}
                             </PillButton>
                           </div>
                         </div>
                         <div className={`p-4 rounded-xl border transition-all ${cutIntensity === "hard" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
                           <div className="flex items-center justify-between">
                             <div>
-                              <span className="text-sm font-medium text-white">Hard Cut</span>
-                              <p className="text-xs text-white/60 mt-0.5">Aggressive deficit with protein boost</p>
+                              <span className="text-sm font-medium text-white">{t("Hard Cut")}</span>
+                              <p className="text-xs text-white/60 mt-0.5">{t("Aggressive deficit with protein boost")}</p>
                             </div>
                             <PillButton onClick={() => setCutIntensity("hard")} active={cutIntensity === "hard"}>
-                              {cutIntensity === "hard" ? "On" : "Off"}
+                              {cutIntensity === "hard" ? t("On") : t("Off")}
                             </PillButton>
                           </div>
                         </div>
@@ -2822,27 +2654,27 @@ function AccountMacroCounter() {
                     {/* Cut Style — only when hard cut selected */}
                     {cutIntensity === "hard" && (
                       <div className="space-y-2">
-                        <p className="text-sm font-medium text-white/80">Cut Style</p>
+                        <p className="text-sm font-medium text-white/80">{t("Cut Style")}</p>
                         <div className="space-y-3">
                           <div className={`p-4 rounded-xl border transition-all ${cutStyle === "balanced" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
                             <div className="flex items-center justify-between">
                               <div>
-                                <span className="text-sm font-medium text-white">Balanced</span>
-                                <p className="text-xs text-white/60 mt-0.5">Moderate carb reduction, fat held steady</p>
+                                <span className="text-sm font-medium text-white">{t("Balanced")}</span>
+                                <p className="text-xs text-white/60 mt-0.5">{t("Moderate carb reduction, fat held steady")}</p>
                               </div>
                               <PillButton onClick={() => setCutStyle("balanced")} active={cutStyle === "balanced"}>
-                                {cutStyle === "balanced" ? "On" : "Off"}
+                                {cutStyle === "balanced" ? t("On") : t("Off")}
                               </PillButton>
                             </div>
                           </div>
                           <div className={`p-4 rounded-xl border transition-all ${cutStyle === "lowCarb" ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
                             <div className="flex items-center justify-between">
                               <div>
-                                <span className="text-sm font-medium text-white">Low Carb</span>
-                                <p className="text-xs text-white/60 mt-0.5">Deep carb cut, fat raised to compensate</p>
+                                <span className="text-sm font-medium text-white">{t("Low Carb")}</span>
+                                <p className="text-xs text-white/60 mt-0.5">{t("Deep carb cut, fat raised to compensate")}</p>
                               </div>
                               <PillButton onClick={() => setCutStyle("lowCarb")} active={cutStyle === "lowCarb"}>
-                                {cutStyle === "lowCarb" ? "On" : "Off"}
+                                {cutStyle === "lowCarb" ? t("On") : t("Off")}
                               </PillButton>
                             </div>
                           </div>
@@ -2852,13 +2684,13 @@ function AccountMacroCounter() {
 
                     {/* Starchy Carb Cap (optional) */}
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-white/80">Starchy Carb Cap <span className="text-white/40 font-normal">(optional)</span></p>
+                      <p className="text-sm font-medium text-white/80">{t("Starchy Carb Cap")}{" "}<span className="text-white/40 font-normal">{t("(optional)")}</span></p>
                       <div className="flex items-center gap-3">
                         <Input
                           type="number"
                           min={0}
                           max={400}
-                          placeholder="No cap"
+                          placeholder={t("No cap")}
                           value={starchyCarbCap_g ?? ""}
                           onChange={(e) => {
                             const v = e.target.value;
@@ -2866,14 +2698,12 @@ function AccountMacroCounter() {
                           }}
                           className="w-28 bg-white/10 border-white/20 text-white placeholder:text-white/30"
                         />
-                        <span className="text-sm text-white/50">g / day</span>
+                        <span className="text-sm text-white/50">{t("g / day")}</span>
                         {starchyCarbCap_g !== null && (
                           <button
                             onClick={() => setStarchyCarbCap_g(null)}
                             className="text-xs text-white/40 hover:text-white/70 underline"
-                          >
-                            Clear
-                          </button>
+                          >{t("Clear")}</button>
                         )}
                       </div>
                     </div>
@@ -2882,11 +2712,11 @@ function AccountMacroCounter() {
                     <div className={`p-4 rounded-xl border transition-all ${strictMode ? "bg-black/60 border-white/20" : "bg-white/5 border-white/10"}`}>
                       <div className="flex items-center justify-between">
                         <div>
-                          <span className="text-sm font-medium text-white">Strict Mode</span>
-                          <p className="text-xs text-white/60 mt-0.5">No auto-corrections — raw macros only (competition / ProCare)</p>
+                          <span className="text-sm font-medium text-white">{t("Strict Mode")}</span>
+                          <p className="text-xs text-white/60 mt-0.5">{t("No auto-corrections — raw macros only (competition / ProCare)")}</p>
                         </div>
                         <PillButton onClick={() => setStrictMode(!strictMode)} active={strictMode} variant="amber">
-                          {strictMode ? "On" : "Off"}
+                          {strictMode ? t("On") : t("Off")}
                         </PillButton>
                       </div>
                     </div>
@@ -2902,9 +2732,7 @@ function AccountMacroCounter() {
                     rounded-xl
                     border border-white/60
                   "
-                >
-                  Continue
-                </Button>
+                >{t("Continue")}</Button>
               </motion.div>
             )}
 
@@ -2923,18 +2751,11 @@ function AccountMacroCounter() {
                     {/* Header */}
                     <div className="flex items-center gap-2">
                       <span className="text-amber-400 text-xl">🍠</span>
-                      <h3 className="text-lg font-semibold text-white">
-                        Your Starch Game Plan
-                      </h3>
+                      <h3 className="text-lg font-semibold text-white">{t("Your Starch Game Plan")}</h3>
                     </div>
 
                     {/* Why we're asking */}
-                    <p className="text-sm text-white/70">
-                      My Perfect Meals separates starchy and fibrous carbohydrates because they
-                      affect the body differently. Your starch distribution helps the AI determine
-                      where to place energy-rich carbohydrates throughout your day while keeping
-                      your meals aligned with your nutrition goals.
-                    </p>
+                    <p className="text-sm text-white/70">{t("My Perfect Meals separates starchy and fibrous carbohydrates because they affect the body differently. Your starch distribution helps the AI determine where to place energy-rich carbohydrates throughout your day while keeping your meals aligned with your nutrition goals.")}</p>
 
                     {/* Daily starch target — shows the computed value */}
                     {(() => {
@@ -2942,23 +2763,19 @@ function AccountMacroCounter() {
                       if (starchyTarget <= 0) return null;
                       return (
                         <div className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-1">
-                          <p className="text-xs text-white/50 uppercase tracking-wide font-medium">Your daily starch target</p>
+                          <p className="text-xs text-white/50 uppercase tracking-wide font-medium">{t("Your daily starch target")}</p>
                           <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-bold text-amber-400">{starchyTarget}g</span>
-                            <span className="text-sm text-white/60">of starchy carbohydrates per day</span>
+                            <span className="text-3xl font-bold text-amber-400">{starchyTarget}{t("g")}</span>
+                            <span className="text-sm text-white/60">{t("of starchy carbohydrates per day")}</span>
                           </div>
-                          <p className="text-xs text-white/40 pt-1">
-                            Starchy carbs = rice, pasta, bread, potatoes, oats. Fibrous vegetables are unlimited.
-                          </p>
+                          <p className="text-xs text-white/40 pt-1">{t("Starchy carbs = rice, pasta, bread, potatoes, oats. Fibrous vegetables are unlimited.")}</p>
                         </div>
                       );
                     })()}
 
                     {/* How many starch meals? */}
                     <div className="space-y-3">
-                      <p className="text-white text-sm font-medium">
-                        How many meals a day will include starchy carbs?
-                      </p>
+                      <p className="text-white text-sm font-medium">{t("How many meals a day will include starchy carbs?")}</p>
                       <div className="flex gap-2 flex-wrap">
                         {STARCH_MEAL_COUNTS.map((n) => (
                           <PillButton
@@ -2970,7 +2787,7 @@ function AccountMacroCounter() {
                             }}
                             active={defaultStarchMealsPerDay === n}
                           >
-                            {n} {n === 1 ? "meal" : "meals"}
+                            {n} {n === 1 ? t("meal") : t("meals")}
                           </PillButton>
                         ))}
                       </div>
@@ -2978,9 +2795,7 @@ function AccountMacroCounter() {
 
                     {/* Timing preference */}
                     <div className="space-y-3">
-                      <p className="text-white text-sm font-medium">
-                        When do you prefer to eat your starchy carbs?
-                      </p>
+                      <p className="text-white text-sm font-medium">{t("When do you prefer to eat your starchy carbs?")}</p>
                       <div className="flex gap-2 flex-wrap">
                         {STARCH_TIMING_OPTIONS.filter(option => option.value !== "workout"
                           || (user?.performanceModeEnabled && user?.weeklyTrainingSchedule)).map(({ value, label }) => (
@@ -2989,20 +2804,20 @@ function AccountMacroCounter() {
                             onClick={() => { setStarchDistributionStrategy(value as typeof starchDistributionStrategy); setIsDirty(true); }}
                             active={starchDistributionStrategy === value}
                           >
-                            {label}
+                            {t(label)}
                           </PillButton>
                         ))}
                       </div>
                       <p className="text-white/50 text-xs min-h-[1.25rem]">
                         {starchDistributionStrategy === "even"
-                          ? "Starch is distributed evenly across your selected meal slots."
+                          ? t("Starch is distributed evenly across your selected meal slots.")
                           : starchDistributionStrategy === "morning"
-                          ? "Starch is assigned to your earliest meal slots — may support glucose control and daily targets."
+                          ? t("Starch is assigned to your earliest meal slots — may support glucose control and daily targets.")
                           : starchDistributionStrategy === "workout"
-                          ? "Starch is timed around your training sessions for fuel and recovery."
+                          ? t("Starch is timed around your training sessions for fuel and recovery.")
                           : starchDistributionStrategy === "evening"
-                          ? "Starch is assigned to your latest meal slots."
-                          : "The AI selects which meal slots receive starch based on your meal plan context."}
+                          ? t("Starch is assigned to your latest meal slots.")
+                          : t("The AI selects which meal slots receive starch based on your meal plan context.")}
                       </p>
                     </div>
 
@@ -3021,38 +2836,33 @@ function AccountMacroCounter() {
 
                       return (
                         <div className="bg-black/40 rounded-xl p-4 border border-amber-500/20 space-y-3">
-                          <p className="text-xs text-amber-400/80 uppercase tracking-wide font-medium">
-                            Today's Starch Prescription
-                          </p>
+                          <p className="text-xs text-amber-400/80 uppercase tracking-wide font-medium">{t("Today's Starch Prescription")}</p>
 
                           {/* Math flow */}
                           <div className="space-y-1 text-sm">
                             <div className="flex items-center gap-2 text-white/70">
-                              <span>{starchyTarget}g daily starch</span>
+                              <span>{starchyTarget}{t("g daily starch")}</span>
                             </div>
-                            <div className="text-white/30 text-xs pl-1">÷ {n} {n === 1 ? "starch meal" : "starch meals"}</div>
+                            <div className="text-white/30 text-xs pl-1">÷ {n} {n === 1 ? t("starch meal") : t("starch meals")}</div>
                           </div>
 
                           {/* Meal rows */}
                           <div className="space-y-1 border-t border-white/10 pt-3">
                             {mealGrams.map((g, i) => (
                               <div key={i} className="flex items-center justify-between text-sm">
-                                <span className="text-white/70">Meal {i + 1}</span>
-                                <span className="text-amber-400 font-semibold">≈ {g}g</span>
+                                <span className="text-white/70">{t("Meal")}{" "}{i + 1}</span>
+                                <span className="text-amber-400 font-semibold">≈ {g}{t("g")}</span>
                               </div>
                             ))}
                           </div>
 
                           {/* Timing */}
                           <div className="flex items-center justify-between text-sm border-t border-white/10 pt-3">
-                            <span className="text-white/50">Timing</span>
-                            <span className="text-white/80 font-medium">{timingLabel}</span>
+                            <span className="text-white/50">{t("Timing")}</span>
+                            <span className="text-white/80 font-medium">{t(timingLabel)}</span>
                           </div>
 
-                          <p className="text-xs text-white/40 pt-1">
-                            My Perfect Meals will use this prescription when generating meals.
-                            You don't have to calculate anything yourself.
-                          </p>
+                          <p className="text-xs text-white/40 pt-1">{t("My Perfect Meals will use this prescription when generating meals. You don't have to calculate anything yourself.")}</p>
                         </div>
                       );
                     })()}
@@ -3060,32 +2870,16 @@ function AccountMacroCounter() {
                     {/* Educational collapsible */}
                     <Collapsible>
                       <CollapsibleTrigger className="flex items-center justify-between w-full text-left py-1">
-                        <span className="text-sm text-white/60 font-medium">Why Does Starch Timing Matter?</span>
+                        <span className="text-sm text-white/60 font-medium">{t("Why Does Starch Timing Matter?")}</span>
                         <ChevronDown className="h-4 w-4 text-white/30 flex-shrink-0" />
                       </CollapsibleTrigger>
                       <CollapsibleContent className="mt-3 space-y-3">
-                        <p className="text-sm text-white/70">
-                          Your body doesn't just care <em>how many</em> starchy carbohydrates you eat — it also
-                          responds to <em>when</em> you eat them.
-                        </p>
-                        <p className="text-sm text-white/70">
-                          For many people, especially those working on blood sugar management, insulin sensitivity,
-                          or weight loss, eating larger amounts of starchy carbohydrates earlier in the day may
-                          help support better glucose control and make it easier to stay within daily nutrition targets.
-                        </p>
-                        <p className="text-sm text-white/70">
-                          If your goal is athletic performance, muscle gain, or fueling workouts, your starch
-                          distribution may be different. That's why Performance Nutrition uses its own timing
-                          strategies based on your training schedule.
-                        </p>
+                        <p className="text-sm text-white/70">{t("Your body doesn't just care")}{" "}<em>{t("how many")}</em>{" "}{t("starchy carbohydrates you eat — it also responds to")}{" "}<em>{t("when")}</em>{" "}{t("you eat them.")}</p>
+                        <p className="text-sm text-white/70">{t("For many people, especially those working on blood sugar management, insulin sensitivity, or weight loss, eating larger amounts of starchy carbohydrates earlier in the day may help support better glucose control and make it easier to stay within daily nutrition targets.")}</p>
+                        <p className="text-sm text-white/70">{t("If your goal is athletic performance, muscle gain, or fueling workouts, your starch distribution may be different. That's why Performance Nutrition uses its own timing strategies based on your training schedule.")}</p>
                         <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                          <p className="text-xs text-white/40 font-medium mb-1">Educational Note</p>
-                          <p className="text-xs text-white/50">
-                            Carbohydrate timing is one part of a healthy nutrition plan. Individual responses
-                            vary depending on activity level, medical conditions, medications, and overall meal
-                            composition. If you have diabetes or another medical condition, always follow the
-                            guidance provided by your healthcare team.
-                          </p>
+                          <p className="text-xs text-white/40 font-medium mb-1">{t("Educational Note")}</p>
+                          <p className="text-xs text-white/50">{t("Carbohydrate timing is one part of a healthy nutrition plan. Individual responses vary depending on activity level, medical conditions, medications, and overall meal composition. If you have diabetes or another medical condition, always follow the guidance provided by your healthcare team.")}</p>
                         </div>
                       </CollapsibleContent>
                     </Collapsible>
@@ -3093,9 +2887,7 @@ function AccountMacroCounter() {
                     <button
                       onClick={() => advanceGuided("clinicalContext")}
                       className="w-full py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm"
-                    >
-                      Continue
-                    </button>
+                    >{t("Continue")}</button>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -3114,57 +2906,38 @@ function AccountMacroCounter() {
                   <CardContent className="p-6 space-y-6">
                     <div className="flex items-center gap-2">
                       <span className="text-blue-400 text-xl">⚕️</span>
-                      <h3 className="text-lg font-semibold text-white">
-                        Medications, Hormones & Your Nutrition Plan
-                      </h3>
+                      <h3 className="text-lg font-semibold text-white">{t("Medications, Hormones & Your Nutrition Plan")}</h3>
                     </div>
 
                     {/* Education card */}
                     <div className="bg-white/5 rounded-xl p-4 space-y-4 border border-white/10">
-                      <p className="text-sm text-white">
-                        Medications, hormones, and lab values can affect how your nutrition plan should be interpreted.
-                      </p>
-                      <p className="text-sm text-white/90">
-                        Some treatments may influence appetite, glucose response, fluid balance, blood pressure,
-                        body composition, and weight trends. Lab values help the system understand how your body
-                        is responding and allow more informed personalization.
-                      </p>
+                      <p className="text-sm text-white">{t("Medications, hormones, and lab values can affect how your nutrition plan should be interpreted.")}</p>
+                      <p className="text-sm text-white/90">{t("Some treatments may influence appetite, glucose response, fluid balance, blood pressure, body composition, and weight trends. Lab values help the system understand how your body is responding and allow more informed personalization.")}</p>
 
                       {/* Two-level distinction */}
                       <div className="space-y-2 border-t border-white/10 pt-3">
-                        <p className="text-sm font-semibold text-white">This screen is for screening only</p>
+                        <p className="text-sm font-semibold text-white">{t("This screen is for screening only")}</p>
                         <div className="space-y-2 text-sm text-white/90">
                           <p>
-                            <span className="font-medium text-orange-400">Here (Macro Calculator):</span>{" "}
-                            Identify that a relevant medication, hormone, or treatment exists.
-                          </p>
+                            <span className="font-medium text-orange-400">{t("Here (Macro Calculator):")}</span>{" "}{t("Identify that a relevant medication, hormone, or treatment exists.")}</p>
                           <p>
-                            <span className="font-medium text-orange-400">Biometrics / Clinical Profile:</span>{" "}
-                            Record the complete information the system needs — medication name, treatment type,
-                            dose, frequency, relevant lab values, dates, and trends. Selecting a category here
-                            does not replace that record.
-                          </p>
+                            <span className="font-medium text-orange-400">{t("Biometrics / Clinical Profile:")}</span>{" "}{t("Record the complete information the system needs — medication name, treatment type, dose, frequency, relevant lab values, dates, and trends. Selecting a category here does not replace that record.")}</p>
                         </div>
                       </div>
 
                       {/* Why sources matter — connected to feature */}
                       <Collapsible>
                         <CollapsibleTrigger className="flex items-center gap-1 text-xs text-white/80 font-medium">
-                          <span>Why this matters — clinical evidence</span>
+                          <span>{t("Why this matters — clinical evidence")}</span>
                           <ChevronDown className="h-3 w-3" />
                         </CollapsibleTrigger>
                         <CollapsibleContent className="mt-2 space-y-3">
-                          <p className="text-xs text-white/90">
-                            Corticosteroids such as prednisone may affect appetite, fluid retention, glucose tolerance,
-                            protein catabolism, and weight trends. Hormone therapies such as testosterone require
-                            laboratory monitoring to evaluate treatment response and guide clinical decisions.
-                            That is why My Perfect Meals asks about both medication use and relevant lab values.
-                          </p>
+                          <p className="text-xs text-white/90">{t("Corticosteroids such as prednisone may affect appetite, fluid retention, glucose tolerance, protein catabolism, and weight trends. Hormone therapies such as testosterone require laboratory monitoring to evaluate treatment response and guide clinical decisions. That is why My Perfect Meals asks about both medication use and relevant lab values.")}</p>
                           <div className="space-y-1">
-                            <p className="text-xs font-semibold text-white">Sources consulted:</p>
+                            <p className="text-xs font-semibold text-white">{t("Sources consulted:")}</p>
                             <ul className="space-y-1 ml-2 text-xs text-white/80">
-                              <li>• FDA/DailyMed — Prednisone prescribing information (fluid retention, altered glucose tolerance, appetite, weight gain, sodium retention, potassium loss, protein catabolism)</li>
-                              <li>• Endocrine Society — Testosterone Therapy for Hypogonadism clinical practice guideline (laboratory assessment and ongoing monitoring requirements)</li>
+                              <li>{t("• FDA/DailyMed — Prednisone prescribing information (fluid retention, altered glucose tolerance, appetite, weight gain, sodium retention, potassium loss, protein catabolism)")}</li>
+                              <li>{t("• Endocrine Society — Testosterone Therapy for Hypogonadism clinical practice guideline (laboratory assessment and ongoing monitoring requirements)")}</li>
                             </ul>
                           </div>
                         </CollapsibleContent>
@@ -3173,9 +2946,7 @@ function AccountMacroCounter() {
 
                     {/* Response gate */}
                     <div className="space-y-3">
-                      <p className="text-white text-sm font-medium">
-                        Are you taking medications, hormones, peptides, or receiving treatments that may affect your nutrition?
-                      </p>
+                      <p className="text-white text-sm font-medium">{t("Are you taking medications, hormones, peptides, or receiving treatments that may affect your nutrition?")}</p>
                       <div className="flex gap-2 flex-wrap">
                         {(["yes", "no", "unsure"] as const).map((r) => (
                           <PillButton
@@ -3186,7 +2957,7 @@ function AccountMacroCounter() {
                             }}
                             active={clinicalContextResponse === r}
                           >
-                            {r === "yes" ? "Yes" : r === "no" ? "No" : "Not sure"}
+                            {r === "yes" ? t("Yes") : r === "no" ? t("No") : t("Not sure")}
                           </PillButton>
                         ))}
                       </div>
@@ -3195,7 +2966,7 @@ function AccountMacroCounter() {
                     {/* Category picker — only when "yes" */}
                     {clinicalContextResponse === "yes" && (
                       <div className="space-y-4">
-                        <p className="text-white text-sm font-medium">Select all that apply:</p>
+                        <p className="text-white text-sm font-medium">{t("Select all that apply:")}</p>
                         <div className="flex gap-2 flex-wrap">
                           {(
                             [
@@ -3222,18 +2993,14 @@ function AccountMacroCounter() {
                               }}
                               active={clinicalContextCategories.includes(value)}
                             >
-                              {label}
+                              {t(label)}
                             </PillButton>
                           ))}
                         </div>
 
                         {/* Screening-only notice — appears on any selection */}
                         {clinicalContextCategories.length > 0 && (
-                          <p className="text-sm text-white/90">
-                            Your selections tell the system that a relevant medication or treatment exists.
-                            The Macro Calculator uses this to flag important considerations — it does not
-                            replace a complete medication record with names, doses, frequency, and lab values.
-                          </p>
+                          <p className="text-sm text-white/90">{t("Your selections tell the system that a relevant medication or treatment exists. The Macro Calculator uses this to flag important considerations — it does not replace a complete medication record with names, doses, frequency, and lab values.")}</p>
                         )}
 
                         {/* Detailed record callout — shown when any lab-measurable medication is selected */}
@@ -3241,9 +3008,7 @@ function AccountMacroCounter() {
                           ["testosterone_therapy", "thyroid_medication", "glp1_medication", "insulin_or_diabetes_medication", "estrogen_or_progesterone"].includes(c)
                         ) && (
                           <div className="rounded-xl bg-orange-950/50 border border-orange-500/40 p-4 space-y-3">
-                            <p className="text-sm font-semibold text-white">
-                              Additional clinical information may improve personalization
-                            </p>
+                            <p className="text-sm font-semibold text-white">{t("Additional clinical information may improve personalization")}</p>
                             <p className="text-sm text-white/90">
                               {[
                                 clinicalContextCategories.includes("testosterone_therapy") && "testosterone therapy (total testosterone, free testosterone)",
@@ -3252,8 +3017,7 @@ function AccountMacroCounter() {
                                 clinicalContextCategories.includes("insulin_or_diabetes_medication") && "insulin or diabetes medication (A1c, blood glucose trends)",
                                 clinicalContextCategories.includes("estrogen_or_progesterone") && "estrogen or progesterone therapy (hormone panel)",
                               ].filter(Boolean).length > 0 && (
-                                <>
-                                  You selected{" "}
+                                <>{t("You selected")}{" "}
                                   {[
                                     clinicalContextCategories.includes("testosterone_therapy") && "testosterone therapy",
                                     clinicalContextCategories.includes("thyroid_medication") && "thyroid medication",
@@ -3262,17 +3026,11 @@ function AccountMacroCounter() {
                                     clinicalContextCategories.includes("estrogen_or_progesterone") && "estrogen or progesterone therapy",
                                   ].filter(Boolean).join(", ")}.{" "}
                                 </>
-                              )}
-                              Add your treatment details and relevant lab values in Biometrics so My Perfect Meals
-                              can evaluate this context more completely and provide more informed,
-                              clinically aware personalization.
-                            </p>
+                              )}{t("Add your treatment details and relevant lab values in Biometrics so My Perfect Meals can evaluate this context more completely and provide more informed, clinically aware personalization.")}</p>
                             <a
                               href="/my-biometrics"
                               className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-orange-600 text-white text-sm font-semibold"
-                            >
-                              Add Medication &amp; Lab Details
-                            </a>
+                            >{t("Add Medication & Lab Details")}</a>
                           </div>
                         )}
                       </div>
@@ -3299,7 +3057,7 @@ function AccountMacroCounter() {
                       }}
                       className="w-full py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm"
                     >
-                      {clinicalContextResponse ? "Continue" : "Skip for now"}
+                      {clinicalContextResponse ? t("Continue") : t("Skip for now")}
                     </button>
                   </CardContent>
                 </Card>
@@ -3320,9 +3078,9 @@ function AccountMacroCounter() {
                     bodyComposition: deltas,
                   }));
                   toast({
-                    title: "Adjustments Applied",
+                    title: t("Adjustments Applied"),
                     description:
-                      "Body composition adjustments have been applied to your macros.",
+                      t("Body composition adjustments have been applied to your macros."),
                   });
                 }}
               />
@@ -3341,78 +3099,60 @@ function AccountMacroCounter() {
                   <CardContent className="p-5 space-y-4">
                     <div className="flex items-center gap-2">
                       <Check className="h-5 w-5 text-lime-500" />
-                      <h3 className="text-lg font-semibold text-white">
-                        All Set!
-                      </h3>
+                      <h3 className="text-lg font-semibold text-white">{t("All Set!")}</h3>
                     </div>
-                    <p className="text-white text-base">
-                      Your personalized macro targets are ready. Save them and
-                      head to your meal builder!
-                    </p>
+                    <p className="text-white text-base">{t("Your personalized macro targets are ready. Save them and head to your meal builder!")}</p>
 
                     {/* Summary */}
                     <div className="bg-black/40 rounded-xl p-4 space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/70">Calories:</span>
+                        <span className="text-white/70">{t("Calories:")}</span>
                         <span className="text-white font-semibold">
-                          {results.target} kcal
-                        </span>
+                          {results.target}{" "}{t("kcal")}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/70">Protein:</span>
+                        <span className="text-white/70">{t("Protein:")}</span>
                         <span className="text-white font-semibold">
                           {Math.max(
                             0,
                             results.macros.protein.g + advisoryDeltas.protein,
-                          )}
-                          g
-                        </span>
+                          )}{t("g")}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/70">Starchy Carbs:</span>
+                        <span className="text-white/70">{t("Starchy Carbs:")}</span>
                         <span className="text-white font-semibold">
-                          {Math.max(0, results.macros.carbs.starchy + (advisoryDeltas.carbs > 0 ? Math.round(advisoryDeltas.carbs * 0.4) : Math.round(advisoryDeltas.carbs * 0.4)))}
-                          g
-                        </span>
+                          {Math.max(0, results.macros.carbs.starchy + (advisoryDeltas.carbs > 0 ? Math.round(advisoryDeltas.carbs * 0.4) : Math.round(advisoryDeltas.carbs * 0.4)))}{t("g")}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/70">Fibrous Carbs:</span>
+                        <span className="text-white/70">{t("Fibrous Carbs:")}</span>
                         <span className="text-white font-semibold">
-                          {Math.max(0, results.macros.carbs.fibrous + (advisoryDeltas.carbs > 0 ? Math.round(advisoryDeltas.carbs * 0.6) : Math.round(advisoryDeltas.carbs * 0.6)))}
-                          g
-                        </span>
+                          {Math.max(0, results.macros.carbs.fibrous + (advisoryDeltas.carbs > 0 ? Math.round(advisoryDeltas.carbs * 0.6) : Math.round(advisoryDeltas.carbs * 0.6)))}{t("g")}</span>
                       </div>
                       <div className="flex justify-between text-sm border-t border-white/10 pt-2">
-                        <span className="text-white/50 text-xs">Total Carbs:</span>
+                        <span className="text-white/50 text-xs">{t("Total Carbs:")}</span>
                         <span className="text-white/50 text-xs font-medium">
                           {Math.max(
                             0,
                             results.macros.carbs.g + advisoryDeltas.carbs,
-                          )}
-                          g
-                        </span>
+                          )}{t("g")}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-white/70">Fats:</span>
+                        <span className="text-white/70">{t("Fats:")}</span>
                         <span className="text-white font-semibold">
                           {Math.max(
                             0,
                             results.macros.fat.g + advisoryDeltas.fat,
-                          )}
-                          g
-                        </span>
+                          )}{t("g")}</span>
                       </div>
                     </div>
 
                     {/* Performance Overlay — Apply to Profile */}
                     {goal === "contest_prep" && (
                       <div className="bg-orange-950/40 border border-orange-500/30 rounded-xl p-4 space-y-3">
-                        <p className="text-sm font-semibold text-orange-300">Use Competition Prep Across My App</p>
-                        <p className="text-xs text-white/60">
-                          Apply this metabolic mode so all of your meal generators match your prep goals.
-                        </p>
+                        <p className="text-sm font-semibold text-orange-300">{t("Use Competition Prep Across My App")}</p>
+                        <p className="text-xs text-white/60">{t("Apply this metabolic mode so all of your meal generators match your prep goals.")}</p>
                         <div className="bg-black/30 rounded-lg p-3 space-y-1.5">
-                          <p className="text-[11px] font-semibold text-orange-400 uppercase tracking-wide">What this does</p>
+                          <p className="text-[11px] font-semibold text-orange-400 uppercase tracking-wide">{t("What this does")}</p>
                           <ul className="space-y-1">
                             {[
                               "Every meal builder switches to competition standards",
@@ -3422,7 +3162,7 @@ function AccountMacroCounter() {
                             ].map((item) => (
                               <li key={item} className="flex items-start gap-2 text-[11px] text-white/60">
                                 <span className="text-orange-500 mt-0.5 flex-shrink-0">•</span>
-                                <span>{item}</span>
+                                <span>{t(item)}</span>
                               </li>
                             ))}
                           </ul>
@@ -3440,19 +3180,19 @@ function AccountMacroCounter() {
                               });
                               if (res.ok) {
                                 setOverlayApplied(true);
-                                toast({ title: "Metabolic mode applied", description: "Competition Prep is now active across your app." });
+                                toast({ title: t("Metabolic mode applied"), description: t("Competition Prep is now active across your app.") });
                               } else {
-                                toast({ title: "Could not apply", description: "Please try again.", variant: "destructive" });
+                                toast({ title: t("Could not apply"), description: t("Please try again."), variant: "destructive" });
                               }
                             } catch {
-                              toast({ title: "Could not apply", description: "Please try again.", variant: "destructive" });
+                              toast({ title: t("Could not apply"), description: t("Please try again."), variant: "destructive" });
                             } finally {
                               setIsApplyingOverlay(false);
                             }
                           }}
                           className="w-full py-2 bg-orange-600 disabled:opacity-50 text-white text-sm font-semibold rounded-lg"
                         >
-                          {overlayApplied ? "✓ Applied" : isApplyingOverlay ? "Applying…" : "Apply"}
+                          {overlayApplied ? t("✓ Applied") : isApplyingOverlay ? t("Applying…") : t("Apply")}
                         </button>
                       </div>
                     )}
@@ -3473,15 +3213,9 @@ function AccountMacroCounter() {
                             <>
                               <div className="flex items-center gap-2">
                                 <span className="text-blue-400 text-base">⚕️</span>
-                                <p className="text-sm font-semibold text-blue-300">
-                                  Clinical Precision — Active
-                                </p>
+                                <p className="text-sm font-semibold text-blue-300">{t("Clinical Precision — Active")}</p>
                               </div>
-                              <p className="text-xs text-white/60">
-                                Your lab results and verified medication profile are connected.
-                                The nutrition engine is applying structured clinical context
-                                to your targets.
-                              </p>
+                              <p className="text-xs text-white/60">{t("Your lab results and verified medication profile are connected. The nutrition engine is applying structured clinical context to your targets.")}</p>
                               <ClinicalCategoryReasoningList categories={clinicalContextCategories} />
                             </>
                           )}
@@ -3489,42 +3223,27 @@ function AccountMacroCounter() {
                             <>
                               <div className="flex items-center gap-2">
                                 <span className="text-teal-400 text-base">⚕️</span>
-                                <p className="text-sm font-semibold text-teal-300">
-                                  Clinical Precision — Available
-                                </p>
+                                <p className="text-sm font-semibold text-teal-300">{t("Clinical Precision — Available")}</p>
                               </div>
-                              <p className="text-xs text-white/60">
-                                Your screening response has been saved. Adding lab results and a
-                                detailed medication profile in your clinical profile unlocks the
-                                full Clinical Precision engine.
-                              </p>
+                              <p className="text-xs text-white/60">{t("Your screening response has been saved. Adding lab results and a detailed medication profile in your clinical profile unlocks the full Clinical Precision engine.")}</p>
                               <ClinicalCategoryReasoningList categories={clinicalContextCategories} />
                               <button
                                 onClick={() => (window.location.href = "/biometrics")}
                                 className="text-xs text-teal-400 underline underline-offset-2 bg-transparent border-0 p-0 cursor-pointer"
-                              >
-                                Add lab results →
-                              </button>
+                              >{t("Add lab results →")}</button>
                             </>
                           )}
                           {clinicalPrecisionStatus === "clinical_information_needed" && (
                             <>
                               <div className="flex items-center gap-2">
                                 <span className="text-white/40 text-base">⚕️</span>
-                                <p className="text-sm font-semibold text-white/60">
-                                  Clinical Precision — Information Needed
-                                </p>
+                                <p className="text-sm font-semibold text-white/60">{t("Clinical Precision — Information Needed")}</p>
                               </div>
-                              <p className="text-xs text-white/50">
-                                Your plan includes Clinical Precision. Connect your lab results
-                                and medication profile to activate the clinical nutrition engine.
-                              </p>
+                              <p className="text-xs text-white/50">{t("Your plan includes Clinical Precision. Connect your lab results and medication profile to activate the clinical nutrition engine.")}</p>
                               <button
                                 onClick={() => (window.location.href = "/biometrics")}
                                 className="text-xs text-orange-400 underline underline-offset-2 bg-transparent border-0 p-0 cursor-pointer"
-                              >
-                                Add clinical data →
-                              </button>
+                              >{t("Add clinical data →")}</button>
                             </>
                           )}
                         </div>
@@ -3558,8 +3277,8 @@ function AccountMacroCounter() {
                         } catch (error) {
                           console.error("Failed to save macro targets:", error);
                           toast({
-                            title: "Save Failed",
-                            description: "Failed to save your macro targets. Please try again.",
+                            title: t("Save Failed"),
+                            description: t("Failed to save your macro targets. Please try again."),
                             variant: "destructive",
                           });
                         } finally {
@@ -3569,7 +3288,7 @@ function AccountMacroCounter() {
                       className="w-full py-4 bg-lime-600  border border-lime-300 text-white font-semibold text-lg rounded-xl"
                     >
                       <ChefHat className="h-5 w-5 mr-2" />
-                      {isSaving ? "Saving..." : "Save Macros & Stats"}
+                      {isSaving ? t("Saving...") : t("Save Macros & Stats")}
                     </Button>
                   </CardContent>
                 </Card>
@@ -3589,8 +3308,8 @@ function AccountMacroCounter() {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <Target className="h-4 w-4 text-lime-400" />
-                      <span className="text-xs font-semibold text-white/80 uppercase tracking-wide">Your Macros</span>
-                      <span className="text-[10px] text-lime-400/80 bg-lime-400/10 px-1.5 py-0.5 rounded-full">Live update</span>
+                      <span className="text-xs font-semibold text-white/80 uppercase tracking-wide">{t("Your Macros")}</span>
+                      <span className="text-[10px] text-lime-400/80 bg-lime-400/10 px-1.5 py-0.5 rounded-full">{t("Live update")}</span>
                     </div>
                     <Button
                       size="sm"
@@ -3599,7 +3318,7 @@ function AccountMacroCounter() {
                       className={`text-white font-semibold text-xs rounded-lg px-3 py-1.5 h-auto disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300 ${isDirty && isCalcInputValid ? "bg-lime-600 hover:bg-lime-500 ring-2 ring-orange-400 shadow-[0_0_14px_rgba(251,146,60,0.55)] animate-pulse" : "bg-lime-600 hover:bg-lime-500"}`}
                     >
                       <Save className="h-3 w-3 mr-1" />
-                      {isSaving ? "Saving..." : isDirty ? "Update Macros" : "Saved"}
+                      {isSaving ? t("Saving...") : isDirty ? t("Update Macros") : t("Saved")}
                     </Button>
                   </div>
                   <div className="grid grid-cols-4 gap-2">
@@ -3610,8 +3329,8 @@ function AccountMacroCounter() {
                       { label: "Fat", value: `${Math.max(0, results.macros.fat.g + advisoryDeltas.fat)}`, unit: "g" },
                     ].map((m) => (
                       <div key={m.label} className="bg-white/5 rounded-lg px-2 py-1.5 text-center">
-                        <div className="text-white font-bold text-sm leading-tight">{m.value}<span className="text-[10px] text-white/50 ml-0.5">{m.unit}</span></div>
-                        <div className="text-[10px] text-white/50 mt-0.5">{m.label}</div>
+                        <div className="text-white font-bold text-sm leading-tight">{m.value}<span className="text-[10px] text-white/50 ml-0.5">{t(m.unit)}</span></div>
+                        <div className="text-[10px] text-white/50 mt-0.5">{t(m.label)}</div>
                       </div>
                     ))}
                   </div>
@@ -3626,12 +3345,8 @@ function AccountMacroCounter() {
                   <div className="flex items-center gap-3">
                     <ChefHat className="h-6 w-6 text-lime-500" />
                     <div>
-                      <p className="text-white font-medium">
-                        Need to recalculate?
-                      </p>
-                      <p className="text-white/60 text-sm">
-                        Walk through the setup again with Chef
-                      </p>
+                      <p className="text-white font-medium">{t("Need to recalculate?")}</p>
+                      <p className="text-white/60 text-sm">{t("Walk through the setup again with Chef")}</p>
                     </div>
                   </div>
                   <Button
@@ -3649,36 +3364,25 @@ function AccountMacroCounter() {
               {/* Apple 1.4.1 Compliance: Prominent citation banner - MUST be visible */}
               <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-400/30 rounded-xl p-4">
                 <p className="text-sm text-white/90 leading-relaxed">
-                  <span className="font-semibold text-blue-300">
-                    Scientific Sources:
-                  </span>{" "}
-                  Calculations based on{" "}
+                  <span className="font-semibold text-blue-300">{t("Scientific Sources:")}</span>{" "}{t("Calculations based on")}{" "}
                   <a
                     href="https://pubmed.ncbi.nlm.nih.gov/2305711/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-400 underline font-medium"
-                  >
-                    Mifflin-St Jeor (NCBI/NIH)
-                  </a>{" "}
-                  and{" "}
+                  >{t("Mifflin-St Jeor (NCBI/NIH)")}</a>{" "}{t("and")}{" "}
                   <a
                     href="https://ods.od.nih.gov/HealthInformation/Dietary_Reference_Intakes.aspx"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-400 underline font-medium"
-                  >
-                    NIH Dietary Reference Intakes
-                  </a>
-                  . Nutrient data from{" "}
+                  >{t("NIH Dietary Reference Intakes")}</a>{t(". Nutrient data from")}{" "}
                   <a
                     href="https://fdc.nal.usda.gov/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-400 underline font-medium"
-                  >
-                    USDA FoodData Central
-                  </a>
+                  >{t("USDA FoodData Central")}</a>
                   .
                 </p>
               </div>
@@ -3691,9 +3395,7 @@ function AccountMacroCounter() {
                 >
                   <CardContent className="p-5">
                     <h3 className="text-lg font-semibold flex items-center">
-                      <Activity className="h-5 w-5 mr-2 text-emerald-300" />
-                      Choose Your Goal
-                    </h3>
+                      <Activity className="h-5 w-5 mr-2 text-emerald-300" />{t("Choose Your Goal")}</h3>
                     <RadioGroup
                       data-testid="macro-goal"
                       value={goal}
@@ -3743,18 +3445,16 @@ function AccountMacroCounter() {
                             value={g.v}
                             className="sr-only"
                           />
-                          <div>{g.label}</div>
+                          <div>{t(g.label)}</div>
                           {g.sub && (
-                            <div className="text-xs text-white/50 mt-0.5">{g.sub}</div>
+                            <div className="text-xs text-white/50 mt-0.5">{t(g.sub)}</div>
                           )}
                         </Label>
                       ))}
                     </RadioGroup>
                     {goal === "contest_prep" && (
                       <div className="mt-3 rounded-lg bg-orange-900/30 border border-orange-500/40 px-3 py-2 text-xs text-orange-200 leading-relaxed">
-                        <span className="font-semibold text-orange-300">Contest Prep preset active.</span>{" "}
-                        Hard cut · low-carb split · starchy carb cap 30g. All values can still be adjusted below.
-                      </div>
+                        <span className="font-semibold text-orange-300">{t("Contest Prep preset active.")}</span>{" "}{t("Hard cut · low-carb split · starchy carb cap 30g. All values can still be adjusted below.")}</div>
                     )}
                   </CardContent>
                 </Card>
@@ -3765,9 +3465,7 @@ function AccountMacroCounter() {
                 >
                   <CardContent className="p-5 space-y-4">
                     <h3 className="text-lg font-semibold flex items-center">
-                      <User2 className="h-5 w-5 mr-2 text-pink-300" />
-                      Structure Level
-                    </h3>
+                      <User2 className="h-5 w-5 mr-2 text-pink-300" />{t("Structure Level")}</h3>
                     <div className="grid grid-cols-3 gap-2">
                       {([
                         { v: "flexible",    label: "Flexible",    sub: "Day-to-day flexibility" },
@@ -3779,16 +3477,14 @@ function AccountMacroCounter() {
                           onClick={() => setUserType(u.v)}
                           className={`px-2 py-3 border rounded-lg cursor-pointer text-center ${userType === u.v ? "bg-orange-500/20 border-orange-400 text-orange-300" : "border-white/30 text-white/70 hover:border-white/60"}`}
                         >
-                          <div className="text-sm font-semibold">{u.label}</div>
-                          <div className="text-[11px] opacity-70 mt-0.5">{u.sub}</div>
+                          <div className="text-sm font-semibold">{t(u.label)}</div>
+                          <div className="text-[11px] opacity-70 mt-0.5">{t(u.sub)}</div>
                         </div>
                       ))}
                     </div>
 
                     <h3 className="text-lg font-semibold flex items-center pt-1">
-                      <User2 className="h-5 w-5 mr-2 text-pink-300" />
-                      What's Your Body Type
-                    </h3>
+                      <User2 className="h-5 w-5 mr-2 text-pink-300" />{t("What's Your Body Type")}</h3>
                     <BodyTypeGuide />
                     <div
                       data-testid="macro-body-type-selector"
@@ -3815,8 +3511,8 @@ function AccountMacroCounter() {
                           className={`flex flex-col items-center gap-1.5 px-3 py-3 border rounded-xl cursor-pointer text-center transition-colors ${bodyType === b.v ? "bg-white/15 border-white" : "border-white/40"}`}
                         >
                           <BodyTypeSilhouette type={b.v} />
-                          <div className="text-sm font-semibold text-white">{b.label}</div>
-                          <div className="text-[11px] text-white/50">{b.sub}</div>
+                          <div className="text-sm font-semibold text-white">{t(b.label)}</div>
+                          <div className="text-[11px] text-white/50">{t(b.sub)}</div>
                         </div>
                       ))}
                     </div>
@@ -3833,13 +3529,10 @@ function AccountMacroCounter() {
               >
                 <CardContent className="p-5">
                   <h3 className="text-lg font-semibold flex items-center">
-                    <Ruler className="h-5 w-5 mr-2" /> Your Details
-                  </h3>
+                    <Ruler className="h-5 w-5 mr-2" />{" "}{t("Your Details")}</h3>
                   <div className="grid md:grid-cols-2 gap-4 mt-4">
                     <div className="space-y-3">
-                      <div className="text-xs text-white font-semibold">
-                        Units
-                      </div>
+                      <div className="text-xs text-white font-semibold">{t("Units")}</div>
                       <RadioGroup
                         data-wt="mc-units-toggle"
                         value={units}
@@ -3866,9 +3559,7 @@ function AccountMacroCounter() {
                         ))}
                       </RadioGroup>
 
-                      <div className="text-xs text-white font-semibold">
-                        Sex
-                      </div>
+                      <div className="text-xs text-white font-semibold">{t("Sex")}</div>
                       <RadioGroup
                         data-wt="mc-sex-selector"
                         value={sex}
@@ -3890,16 +3581,14 @@ function AccountMacroCounter() {
                               value={s}
                               className="sr-only"
                             />
-                            {s}
+                            {s === "male" ? t("Male") : t("Female")}
                           </Label>
                         ))}
                       </RadioGroup>
 
                       <div className="grid grid-cols-3 gap-2">
                         <div className="col-span-3">
-                          <div className="text-xs text-white font-semibold">
-                            Age
-                          </div>
+                          <div className="text-xs text-white font-semibold">{t("Age")}</div>
                           <Input
                             data-testid="macro-age"
                             type="number"
@@ -3918,9 +3607,7 @@ function AccountMacroCounter() {
                         {units === "imperial" ? (
                           <>
                             <div>
-                              <div className="text-xs text-white font-semibold">
-                                Height (ft)
-                              </div>
+                              <div className="text-xs text-white font-semibold">{t("Height (ft)")}</div>
                               <Input
                                 data-testid="macro-height"
                                 type="number"
@@ -3936,9 +3623,7 @@ function AccountMacroCounter() {
                               />
                             </div>
                             <div>
-                              <div className="text-xs text-white font-semibold">
-                                Height (in)
-                              </div>
+                              <div className="text-xs text-white font-semibold">{t("Height (in)")}</div>
                               <Input
                                 data-testid="macro-height"
                                 type="number"
@@ -3954,9 +3639,7 @@ function AccountMacroCounter() {
                               />
                             </div>
                             <div>
-                              <div className="text-xs text-white font-semibold">
-                                Weight (lbs)
-                              </div>
+                              <div className="text-xs text-white font-semibold">{t("Weight (lbs)")}</div>
                               <Input
                                 data-testid="macro-weight"
                                 type="number"
@@ -3975,9 +3658,7 @@ function AccountMacroCounter() {
                         ) : (
                           <>
                             <div className="col-span-2">
-                              <div className="text-xs text-white font-semibold">
-                                Height (cm)
-                              </div>
+                              <div className="text-xs text-white font-semibold">{t("Height (cm)")}</div>
                               <Input
                                 type="number"
                                 className="bg-black/60 border-white/50 text-white placeholder-white"
@@ -3992,9 +3673,7 @@ function AccountMacroCounter() {
                               />
                             </div>
                             <div>
-                              <div className="text-xs text-white font-semibold">
-                                Weight (kg)
-                              </div>
+                              <div className="text-xs text-white font-semibold">{t("Weight (kg)")}</div>
                               <Input
                                 type="number"
                                 className="bg-black/60 border-white/50 text-white placeholder-white"
@@ -4012,13 +3691,12 @@ function AccountMacroCounter() {
                         )}
 
                         <div className="col-span-3">
-                          <div className="text-xs text-white font-semibold">
-                            Waist ({units === "imperial" ? "in" : "cm"})
+                          <div className="text-xs text-white font-semibold">{t("Waist (")}{units === "imperial" ? t("in") : t("cm")})
                           </div>
                           <Input
                             data-testid="macro-waist"
                             type="number"
-                            placeholder={units === "imperial" ? "e.g. 32" : "e.g. 81"}
+                            placeholder={units === "imperial" ? t("e.g. 32") : t("e.g. 81")}
                             className="bg-black/60 border-white/50 text-white placeholder-white/50"
                             value={
                               units === "imperial"
@@ -4044,9 +3722,7 @@ function AccountMacroCounter() {
                             }}
                           />
                           {!waistVal && (
-                            <p className="text-xs text-white/50 mt-1">
-                              Optional — add for deeper metabolic insights
-                            </p>
+                            <p className="text-xs text-white/50 mt-1">{t("Optional — add for deeper metabolic insights")}</p>
                           )}
                         </div>
                       </div>
@@ -4056,9 +3732,7 @@ function AccountMacroCounter() {
                     </div>
 
                     <div className="space-y-3">
-                      <div className="text-xs text-white font-semibold">
-                        Activity
-                      </div>
+                      <div className="text-xs text-white font-semibold">{t("Activity")}</div>
                       <RadioGroup
                         data-testid="macro-activity-selector"
                         value={activity}
@@ -4117,7 +3791,7 @@ function AccountMacroCounter() {
                               value={k}
                               className="sr-only"
                             />
-                            {label}
+                            {t(label)}
                           </Label>
                         ))}
                       </RadioGroup>
@@ -4133,9 +3807,9 @@ function AccountMacroCounter() {
                               units === "imperial" ? weightLbs : weightKg;
                             if (!weight || weight <= 0) {
                               toast({
-                                title: "Enter weight first",
+                                title: t("Enter weight first"),
                                 description:
-                                  "Please enter a valid weight before saving.",
+                                  t("Please enter a valid weight before saving."),
                                 variant: "destructive",
                               });
                               return;
@@ -4155,14 +3829,14 @@ function AccountMacroCounter() {
                               });
                               if (!res.ok) throw new Error(`Save failed: ${res.status}`);
                               toast({
-                                title: "Weight saved to biometrics",
-                                description: "Your progress is being tracked.",
+                                title: t("Weight saved to biometrics"),
+                                description: t("Your progress is being tracked."),
                               });
                               advance("sync-weight");
                             } catch {
                               toast({
-                                title: "Couldn't save weight",
-                                description: "Please try again.",
+                                title: t("Couldn't save weight"),
+                                description: t("Please try again."),
                                 variant: "destructive",
                               });
                             } finally {
@@ -4172,7 +3846,7 @@ function AccountMacroCounter() {
                           className="w-full bg-lime-700 border-2 border-lime-300 text-white hover:bg-lime-800 hover:border-lime-300 font-semibold mt-4"
                         >
                           <Scale className="h-4 w-4 mr-2" />
-                          {syncingWeight ? "Saving…" : "Save Weight To Biometrics"}
+                          {syncingWeight ? t("Saving…") : t("Save Weight To Biometrics")}
                         </Button>
                       )}
                     </div>
@@ -4194,9 +3868,9 @@ function AccountMacroCounter() {
                     waistRisk: deltas,
                   }));
                   toast({
-                    title: "Adjustments Applied",
+                    title: t("Adjustments Applied"),
                     description:
-                      "Waist risk adjustments have been applied to your macros.",
+                      t("Waist risk adjustments have been applied to your macros."),
                   });
                 }}
                 onClearAdjustments={() => {
@@ -4205,9 +3879,9 @@ function AccountMacroCounter() {
                     waistRisk: null,
                   }));
                   toast({
-                    title: "Adjustment Cleared",
+                    title: t("Adjustment Cleared"),
                     description:
-                      "Waist risk adjustments have been removed.",
+                      t("Waist risk adjustments have been removed."),
                   });
                 }}
               />
@@ -4226,9 +3900,9 @@ function AccountMacroCounter() {
                     metabolic: deltas,
                   }));
                   toast({
-                    title: "Adjustments Applied",
+                    title: t("Adjustments Applied"),
                     description:
-                      "Your macro targets have been fine-tuned based on your metabolic considerations.",
+                      t("Your macro targets have been fine-tuned based on your metabolic considerations."),
                   });
                 }}
               />
@@ -4241,9 +3915,9 @@ function AccountMacroCounter() {
                     bodyComposition: deltas,
                   }));
                   toast({
-                    title: "Adjustments Applied",
+                    title: t("Adjustments Applied"),
                     description:
-                      "Your macro targets have been adjusted based on your body composition.",
+                      t("Your macro targets have been adjusted based on your body composition."),
                   });
                 }}
               />
@@ -4256,42 +3930,31 @@ function AccountMacroCounter() {
                 >
                     <CardContent className="p-5">
                       <h3 className="text-lg font-semibold flex items-center mb-2">
-                        <Target className="h-5 w-5 mr-2 text-emerald-300" />{" "}
-                        Your Daily Macro Targets
-                      </h3>
+                        <Target className="h-5 w-5 mr-2 text-emerald-300" />{" "}{t("Your Daily Macro Targets")}</h3>
                       {/* Apple 1.4.1 Compliance: Inline citation BEFORE results for maximum visibility */}
-                      <p className="text-xs text-white/70 mb-4 leading-relaxed">
-                        Calculated using the{" "}
+                      <p className="text-xs text-white/70 mb-4 leading-relaxed">{t("Calculated using the")}{" "}
                         <a
                           href="https://pubmed.ncbi.nlm.nih.gov/2305711/"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-lime-400 underline"
-                        >
-                          Mifflin–St Jeor equation
-                        </a>{" "}
-                        and{" "}
+                        >{t("Mifflin–St Jeor equation")}</a>{" "}{t("and")}{" "}
                         <a
                           href="https://ods.od.nih.gov/HealthInformation/Dietary_Reference_Intakes.aspx"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-lime-400 underline"
-                        >
-                          NIH Dietary Reference Intakes
-                        </a>
+                        >{t("NIH Dietary Reference Intakes")}</a>
                         .
                       </p>
                       <div className="space-y-3">
                         <div className="flex justify-between items-center rounded-xl border-2 border-emerald-500/40 bg-emerald-500/10 p-4 mb-2">
-                          <div className="text-base font-bold text-white">
-                            Total Calories
-                          </div>
+                          <div className="text-base font-bold text-white">{t("Total Calories")}</div>
                           <div className="text-2xl font-bold text-emerald-300">
-                            {results.target} kcal
-                          </div>
+                            {results.target}{" "}{t("kcal")}</div>
                         </div>
                         <MacroRow
-                          label="Protein"
+                          label={t("Protein")}
                           grams={Math.max(
                             0,
                             results.macros.protein.g + advisoryDeltas.protein,
@@ -4304,17 +3967,17 @@ function AccountMacroCounter() {
                           const cupsPerDay = (results.macros as any).vegetableCupsPerDay ?? (mealsPerDay * 3);
                           return (
                             <>
-                              <MacroRow label="Carbs - Starchy" grams={starchy} isKey />
-                              <MacroRow label="Carbs - Fibrous (Vegetables)" grams={fibrous} />
+                              <MacroRow label={t("Carbs - Starchy")} grams={starchy} isKey />
+                              <MacroRow label={t("Carbs - Fibrous (Vegetables)")} grams={fibrous} />
                               <div className="flex items-center justify-between text-xs text-green-400/80 px-1 -mt-1">
-                                <span>🥦 {cupsPerMeal} cups/meal · {cupsPerDay} cups/day</span>
-                                <span>1 cup ≈ 5g</span>
+                                <span>🥦 {cupsPerMeal}{" "}{t("cups/meal ·")}{" "}{cupsPerDay}{" "}{t("cups/day")}</span>
+                                <span>{t("1 cup ≈ 5g")}</span>
                               </div>
                             </>
                           );
                         })()}
                         <MacroRow
-                          label="Fats"
+                          label={t("Fats")}
                           grams={Math.max(
                             0,
                             results.macros.fat.g + advisoryDeltas.fat,
@@ -4324,16 +3987,11 @@ function AccountMacroCounter() {
 
                       {/* Secondary methodology link - Primary citation is ABOVE results */}
                       <div className="mt-4 pt-3 border-t border-white/10">
-                        <p className="text-xs text-white/50 leading-relaxed mb-2">
-                          Detailed methodology and clinical references available
-                          below.
-                        </p>
+                        <p className="text-xs text-white/50 leading-relaxed mb-2">{t("Detailed methodology and clinical references available below.")}</p>
                         <MedicalSourcesInfo
                           trigger={
                             <button className="text-xs text-lime-400/80 hover:text-lime-400 underline flex items-center gap-1">
-                              <Info className="w-3 h-3" /> View all sources &
-                              methodology
-                            </button>
+                              <Info className="w-3 h-3" />{" "}{t("View all sources & methodology")}</button>
                           }
                         />
                       </div>
@@ -4345,7 +4003,7 @@ function AccountMacroCounter() {
                         data-testid="macro-update-button"
                       >
                         <Target className="h-4 w-4 mr-2" />
-                        {isSaving ? "Updating..." : isDirty ? "Update Macros" : "Saved"}
+                        {isSaving ? t("Updating...") : isDirty ? t("Update Macros") : t("Saved")}
                       </Button>
                     </CardContent>
                 </Card>
@@ -4353,10 +4011,9 @@ function AccountMacroCounter() {
                 <Card data-testid="macro-results" className="bg-zinc-900/80 border border-white/30 text-white">
                   <CardContent className="p-5">
                     <h3 className="text-lg font-semibold flex items-center mb-2">
-                      <Target className="h-5 w-5 mr-2 text-emerald-300" /> Your Daily Macro Targets
-                    </h3>
+                      <Target className="h-5 w-5 mr-2 text-emerald-300" />{" "}{t("Your Daily Macro Targets")}</h3>
                     <div className="py-8 text-center text-white/40 text-sm">
-                      {resultsLoading ? "Calculating your targets…" : "Fill in your details above to see your macro targets."}
+                      {resultsLoading ? t("Calculating your targets…") : t("Fill in your details above to see your macro targets.")}
                     </div>
                   </CardContent>
                 </Card>
@@ -4366,18 +4023,12 @@ function AccountMacroCounter() {
               <Card className="bg-zinc-900/80 border border-amber-500/30 text-white">
                     <CardContent className="p-5">
                       <h3 className="text-lg font-semibold flex items-center mb-3">
-                        <span className="text-amber-400 mr-2">🌾</span> Your
-                        Starch Game Plan
-                      </h3>
-                      <p className="text-sm text-white/70 mb-4">
-                        Choose how many meals include starchy carbs and when you prefer to eat them.
-                      </p>
+                        <span className="text-amber-400 mr-2">🌾</span>{" "}{t("Your Starch Game Plan")}</h3>
+                      <p className="text-sm text-white/70 mb-4">{t("Choose how many meals include starchy carbs and when you prefer to eat them.")}</p>
 
                       {/* Meal count */}
                       <div className="space-y-2 mb-5">
-                        <p className="text-xs text-white/60 font-medium uppercase tracking-wide">
-                          Starch meals per day
-                        </p>
+                        <p className="text-xs text-white/60 font-medium uppercase tracking-wide">{t("Starch meals per day")}</p>
                         <div className="flex gap-2 flex-wrap">
                           {([1, 2, 3, 4, 5, 6] as const).map((n) => (
                             <PillButton
@@ -4389,30 +4040,28 @@ function AccountMacroCounter() {
                               }}
                               active={defaultStarchMealsPerDay === n}
                             >
-                              {n} {n === 1 ? "meal" : "meals"}
+                              {n} {n === 1 ? t("meal") : t("meals")}
                             </PillButton>
                           ))}
                         </div>
                         <p className="text-xs text-white/40 min-h-[1.25rem]">
                           {defaultStarchMealsPerDay === 1
-                            ? "All starches in one meal — best for appetite control and fat loss."
+                            ? t("All starches in one meal — best for appetite control and fat loss.")
                             : defaultStarchMealsPerDay === 2
-                            ? "Split starches across two meals — good for training days."
+                            ? t("Split starches across two meals — good for training days.")
                             : defaultStarchMealsPerDay === 3
-                            ? "Three starch meals — suitable for athletes with higher carb needs."
+                            ? t("Three starch meals — suitable for athletes with higher carb needs.")
                             : defaultStarchMealsPerDay === 4
-                            ? "Four starch meals — high-volume training protocol."
+                            ? t("Four starch meals — high-volume training protocol.")
                             : defaultStarchMealsPerDay === 5
-                            ? "Five starch meals — competitive athlete fueling schedule."
-                            : "Six starch meals — maximum carbohydrate distribution for elite performance."}
+                            ? t("Five starch meals — competitive athlete fueling schedule.")
+                            : t("Six starch meals — maximum carbohydrate distribution for elite performance.")}
                         </p>
                       </div>
 
                       {/* Distribution strategy */}
                       <div className="space-y-2">
-                        <p className="text-xs text-white/60 font-medium uppercase tracking-wide">
-                          Timing preference
-                        </p>
+                        <p className="text-xs text-white/60 font-medium uppercase tracking-wide">{t("Timing preference")}</p>
                         <div className="flex gap-2 flex-wrap">
                           {(
                             [
@@ -4428,20 +4077,20 @@ function AccountMacroCounter() {
                               onClick={() => { setStarchDistributionStrategy(value); setIsDirty(true); }}
                               active={starchDistributionStrategy === value}
                             >
-                              {label}
+                              {t(label)}
                             </PillButton>
                           ))}
                         </div>
                         <p className="text-xs text-white/40 min-h-[1.25rem]">
                           {starchDistributionStrategy === "even"
-                            ? "Starch split equally across starch meals."
+                            ? t("Starch split equally across starch meals.")
                             : starchDistributionStrategy === "morning"
-                            ? "Front-load carbs — easier sleep, less late-day glucose spike."
+                            ? t("Front-load carbs — easier sleep, less late-day glucose spike.")
                             : starchDistributionStrategy === "workout"
-                            ? "Timed around training for fuel and recovery."
+                            ? t("Timed around training for fuel and recovery.")
                             : starchDistributionStrategy === "evening"
-                            ? "Saves starch for your evening meal."
-                            : "AI places starch intelligently based on your meal plan context."}
+                            ? t("Saves starch for your evening meal.")
+                            : t("AI places starch intelligently based on your meal plan context.")}
                         </p>
                       </div>
                   </CardContent>
@@ -4452,12 +4101,12 @@ function AccountMacroCounter() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="text-xs text-white/60">Estimated Body Fat</div>
+                        <div className="text-xs text-white/60">{t("Estimated Body Fat")}</div>
                         <div className="text-xl font-bold text-orange-400">{estimatedBodyFat}%</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-xs text-white/40">Deurenberg + Waist hybrid</div>
-                        <div className="text-xs text-white/30">Saved when you confirm macros</div>
+                        <div className="text-xs text-white/40">{t("Deurenberg + Waist hybrid")}</div>
+                        <div className="text-xs text-white/30">{t("Saved when you confirm macros")}</div>
                       </div>
                     </div>
                   </CardContent>
@@ -4483,8 +4132,8 @@ function AccountMacroCounter() {
                         } catch (error) {
                           console.error("Failed to save macro targets:", error);
                           toast({
-                            title: "Save Failed",
-                            description: "Failed to save your macro targets. Please try again.",
+                            title: t("Save Failed"),
+                            description: t("Failed to save your macro targets. Please try again."),
                             variant: "destructive",
                           });
                         } finally {
@@ -4495,7 +4144,7 @@ function AccountMacroCounter() {
                       className="w-full bg-lime-600 border-2 border-lime-400 text-white text-lg font-semibold mt-4"
                     >
                       <Target className="h-4 w-4 mr-2" />
-                      {isSaving ? "Saving..." : "Save Macros & Body Stats"}
+                      {isSaving ? t("Saving...") : t("Save Macros & Body Stats")}
                     </Button>
 
                     {/* Primary CTA: Use These Macros → Build Meals */}
@@ -4525,8 +4174,8 @@ function AccountMacroCounter() {
                         } catch (error) {
                           console.error("Failed to save macro targets:", error);
                           toast({
-                            title: "Save Failed",
-                            description: "Failed to save your macro targets. Please try again.",
+                            title: t("Save Failed"),
+                            description: t("Failed to save your macro targets. Please try again."),
                             variant: "destructive",
                           });
                         } finally {
@@ -4537,7 +4186,7 @@ function AccountMacroCounter() {
                       className="w-full bg-black/90 border-2 border-white/90 text-white text-white font-semi-bold px-8 text-lg py-4 rounded-2xl shadow-2xl hover:shadow-orange-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <ChefHat className="h-5 w-5 mr-2" />
-                      {isSaving ? "Saving..." : "2nd Step → Your Meal Builder"}
+                      {isSaving ? t("Saving...") : t("2nd Step → Your Meal Builder")}
                     </Button>
                   </div>
                 </>
@@ -4555,25 +4204,18 @@ function AccountMacroCounter() {
       >
         <AlertDialogContent className="bg-black/95 border border-white/20 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Recalculate Your Macros?</AlertDialogTitle>
-            <AlertDialogDescription className="text-white/70">
-              You already have macro targets saved. Recalculating will create new
-              targets based on your current information.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t("Recalculate Your Macros?")}</AlertDialogTitle>
+            <AlertDialogDescription className="text-white/70">{t("You already have macro targets saved. Recalculating will create new targets based on your current information.")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-white/10 text-white border-white/20 hover:bg-white/20">
-              No, Keep My Settings
-            </AlertDialogCancel>
+            <AlertDialogCancel className="bg-white/10 text-white border-white/20 hover:bg-white/20">{t("No, Keep My Settings")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={(event) => {
                 event.preventDefault();
                 setRecalculationConfirmation("second");
               }}
               className="bg-lime-600 text-white hover:bg-lime-500"
-            >
-              Yes, Continue
-            </AlertDialogAction>
+            >{t("Yes, Continue")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -4586,23 +4228,15 @@ function AccountMacroCounter() {
       >
         <AlertDialogContent className="bg-black/95 border border-white/20 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Replace Your Current Macro Targets?</AlertDialogTitle>
-            <AlertDialogDescription className="text-white/70">
-              Your current targets will remain in place until you complete the new
-              calculation. When you save the new calculation, it will replace your
-              current macro targets.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t("Replace Your Current Macro Targets?")}</AlertDialogTitle>
+            <AlertDialogDescription className="text-white/70">{t("Your current targets will remain in place until you complete the new calculation. When you save the new calculation, it will replace your current macro targets.")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-white/10 text-white border-white/20 hover:bg-white/20">
-              No, Keep My Settings
-            </AlertDialogCancel>
+            <AlertDialogCancel className="bg-white/10 text-white border-white/20 hover:bg-white/20">{t("No, Keep My Settings")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmMacroRecalculation}
               className="bg-orange-600 text-white hover:bg-orange-500"
-            >
-              Yes, Recalculate
-            </AlertDialogAction>
+            >{t("Yes, Recalculate")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -4610,14 +4244,16 @@ function AccountMacroCounter() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        steps={setupGuideEnabled ? setupCalculatorTourSteps : macroCalculatorTourSteps}
-        title={setupGuideEnabled ? "Set Your Nutrition Targets" : "How to Use the Macro Calculator"}
+        steps={(setupGuideEnabled ? setupCalculatorTourSteps : macroCalculatorTourSteps).map(step => ({
+          ...step, title: t(step.title), description: t(step.description),
+        }))}
+        title={setupGuideEnabled ? t("Set Your Nutrition Targets") : t("How to Use the Macro Calculator")}
         welcome={setupGuideEnabled}
         completionDriven={setupGuideEnabled}
         introduction={setupGuideEnabled
-          ? "Use your goals and body measurements to calculate your daily calorie, protein, carbohydrate, and fat targets."
+          ? t("Use your goals and body measurements to calculate your daily calorie, protein, carbohydrate, and fat targets.")
           : undefined}
-        primaryLabel={setupGuideEnabled ? "Start Calculator" : undefined}
+        primaryLabel={setupGuideEnabled ? t("Start Calculator") : undefined}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
     </>
@@ -4625,23 +4261,21 @@ function AccountMacroCounter() {
 }
 
 function MacroRow({ label, grams, isKey = false }: { label: string; grams: number; isKey?: boolean }) {
+  const { t } = useTranslation();
   return (
     <div className={`flex justify-between items-center rounded-xl border p-4 ${
       isKey ? "border-amber-500/40 bg-amber-950/30" : "border-white/20 bg-black/40"
     }`}>
       <div className="flex flex-col gap-0.5">
         <div className={`text-sm font-semibold ${isKey ? "text-amber-300" : "text-white/90"}`}>
-          {isKey && <span className="mr-1.5">★</span>}{label}
+          {isKey && <span className="mr-1.5">★</span>}{t(label)}
         </div>
         {isKey && (
-          <div className="text-[10px] text-amber-500/70 font-medium">
-            Your main daily limit — stay at or under this
-          </div>
+          <div className="text-[10px] text-amber-500/70 font-medium">{t("Your main daily limit — stay at or under this")}</div>
         )}
       </div>
       <div className={`text-lg font-bold ${isKey ? "text-amber-300" : "text-white"}`}>
-        {Math.round(grams)} grams
-      </div>
+        {Math.round(grams)}{" "}{t("grams")}</div>
     </div>
   );
 }

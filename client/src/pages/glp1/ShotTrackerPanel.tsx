@@ -85,7 +85,7 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
       alert(t("Session not available — please sign in again."));
       return;
     }
-    if (!doseMg || doseMg <= 0) return alert("Enter a valid dose (mg).");
+    if (!doseMg || doseMg <= 0) return alert(t("Enter a valid dose (mg)."));
     const asUTC = new Date(dateLocal).toISOString();
     try {
       if (isNative) {
@@ -182,7 +182,7 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
           >
             <option value="">{t("Select medication…")}</option>
             {MEDICATION_OPTIONS.map((m) => (
-              <option key={m} value={m}>{m}</option>
+              <option key={m} value={m}>{m === "Other" ? t("Other medication") : m}</option>
             ))}
           </select>
         </div>
@@ -266,7 +266,7 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
                 </div>
                 {isNative && (
                   <div className="text-xs text-red-300/60">
-                    {statusCode !== null ? `Status ${statusCode}: ` : ''}
+                    {statusCode !== null ? `${t("Status {{status}}:", { status: statusCode })} ` : ''}
                     {error?.message || t("Connection failed")}
                   </div>
                 )}
@@ -295,7 +295,7 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
                       >
                         <option value="">{t("Select medication…")}</option>
                         {MEDICATION_OPTIONS.map((m) => (
-                          <option key={m} value={m}>{m}</option>
+                          <option key={m} value={m}>{m === "Other" ? t("Other medication") : m}</option>
                         ))}
                       </select>
                       <input

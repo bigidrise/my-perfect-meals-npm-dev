@@ -30,6 +30,43 @@ function stringsObject(read, file, name, spreads = {}) {
   }
   return result;
 }
+// Explicit, lazy registrations: historical snapshots need only dictionaries
+// they actually spread. Unknown spreads and executable values still fail closed.
+function registeredSpreads(read, definitions) {
+  const spreads = Object.create(null);
+  for (const [name, file] of Object.entries(definitions)) {
+    Object.defineProperty(spreads, name, {
+      enumerable: true,
+      get: () => stringsObject(read, file, name),
+    });
+  }
+  return spreads;
+}
+function hasCalculatorNamespace(read) {
+  const file = "client/src/i18n/index.ts";
+  const ast = ts.createSourceFile(file, read(file), ts.ScriptTarget.Latest, true);
+  if (ast.parseDiagnostics.length) throw Error(`Cannot parse resource module: ${file}`);
+  let initialization;
+  function visit(node) {
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) &&
+      node.expression.name.text === "init" && node.arguments[0] &&
+      ts.isObjectLiteralExpression(unwrap(node.arguments[0]))) initialization = unwrap(node.arguments[0]);
+    ts.forEachChild(node, visit);
+  }
+  visit(ast);
+  const property = (object, name) => object && ts.isObjectLiteralExpression(object)
+    ? object.properties.find(item => ts.isPropertyAssignment(item) &&
+      (ts.isIdentifier(item.name) || ts.isStringLiteral(item.name)) && item.name.text === name)?.initializer
+    : undefined;
+  const resources = unwrap(property(initialization, "resources"));
+  const english = property(unwrap(property(resources, "en")), "macroCalculatorCopy");
+  const spanish = property(unwrap(property(resources, "es")), "macroCalculatorCopy");
+  if (!english && !spanish) return false;
+  if (!english || !spanish || english.getText(ast) !== "macroCalculatorEnglish" ||
+    spanish.getText(ast) !== "macroCalculatorSpanish")
+    throw Error(`Resource construction changed: ${file}#macroCalculatorCopy. Both EN/ES registrations must match the reviewed catalog.`);
+  return true;
+}
 function loadResources(read) {
   const en = JSON.parse(read("client/src/i18n/locales/en.json"));
   const es = JSON.parse(read("client/src/i18n/locales/es.json"));
@@ -43,15 +80,25 @@ function loadResources(read) {
     ? stringsObject(read, "client/src/i18n/foodWorkflowCopy.ts", "foodWorkflowSpanish")
     : {};
   const features = /\.\.\.\s*consumerFeatureSpanish\b/.test(read("client/src/i18n/consumerJourney.ts"))
-    ? stringsObject(read, "client/src/i18n/consumerFeatureCopy.ts", "consumerFeatureSpanish")
+    ? stringsObject(read, "client/src/i18n/consumerFeatureCopy.ts", "consumerFeatureSpanish", registeredSpreads(read, {
+      savedGroceriesSpanish: "client/src/i18n/savedGroceriesCopy.ts",
+      ingredientAnalysisLabelsSpanish: "client/src/i18n/ingredientAnalysisLabels.ts",
+      biometricsSpanish: "client/src/i18n/biometricsCopy.ts",
+      biometricsClinicalSpanish: "client/src/i18n/biometricsClinicalCopy.ts",
+      trainingScheduleSpanish: "client/src/i18n/trainingScheduleCopy.ts",
+    }))
     : {};
   const dailyDisplay = /\.\.\.\s*consumerDailyDisplaySpanish\b/.test(read("client/src/i18n/consumerJourney.ts"))
     ? stringsObject(read, "client/src/i18n/consumerDailyDisplayCopy.ts", "consumerDailyDisplaySpanish")
+    : {};
+  const trainingExplanations = /\.\.\.\s*approvedTrainingExplanationSpanish\b/.test(read("client/src/i18n/consumerJourney.ts"))
+    ? stringsObject(read, "client/src/i18n/approvedTrainingExplanations.ts", "approvedTrainingExplanationSpanish")
     : {};
   const phrases = Object.fromEntries(Object.entries(startupEn).map(([key, phrase]) => [phrase, startupEs[key]]));
   const consumerEs = stringsObject(read, "client/src/i18n/consumerJourney.ts", "consumerSpanish", {
     startupPhraseTranslations: phrases, approvedConsumerOnboardingSpanish: approved, foodWorkflowSpanish: food,
     consumerFeatureSpanish: features, consumerDailyDisplaySpanish: dailyDisplay,
+    approvedTrainingExplanationSpanish: trainingExplanations,
   });
   const consumerEn = Object.fromEntries(Object.keys(consumerEs).map(key => [key, key]));
   // Never silently model a changed runtime resource-construction contract.
@@ -59,9 +106,18 @@ function loadResources(read) {
     "Object.fromEntries(Object.keys(consumerSpanish).map(key => [key, key]))");
   assertDerived(read, startupFile, "startupPhraseTranslations",
     "Object.fromEntries(Object.entries(startupEnglish).map(([key, phrase]) => [phrase, startupSpanish[key as keyof typeof startupEnglish]]))");
+  const calculator = {};
+  if (hasCalculatorNamespace(read)) {
+    const file = "client/src/i18n/macroCalculatorCopy.ts";
+    const spanish = stringsObject(read, file, "macroCalculatorSpanish");
+    assertDerived(read, file, "macroCalculatorEnglish",
+      "Object.fromEntries(Object.keys(macroCalculatorSpanish).map(key => [key, key]))");
+    calculator.en = { macroCalculatorCopy: Object.fromEntries(Object.keys(spanish).map(key => [key, key])) };
+    calculator.es = { macroCalculatorCopy: spanish };
+  }
   return {
-    en: { ...en, translation: en, consumerJourney: consumerEn },
-    es: { ...es, translation: es, consumerJourney: consumerEs },
+    en: { ...en, translation: en, consumerJourney: consumerEn, ...calculator.en },
+    es: { ...es, translation: es, consumerJourney: consumerEs, ...calculator.es },
   };
 }
 function assertDerived(read, file, name, expected) {

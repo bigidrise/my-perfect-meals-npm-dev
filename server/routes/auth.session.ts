@@ -135,7 +135,7 @@ router.post("/api/auth/signup", async (req, res) => {
 
     // Build user values. Professional signup intent is deliberately kept
     // pending until the new account is authenticated and has recorded the
-    // current versioned legal acceptances through upgrade-to-procare.
+    // current versioned legal acceptances. Consent alone never grants paid access.
     const isBusinessAccount = req.body.businessAccount === true;
     const inviteToken = typeof req.body.inviteToken === "string" ? req.body.inviteToken : null;
     const clinicPilotToken = typeof req.body.clinicPilotToken === "string" ? req.body.clinicPilotToken : null;
@@ -257,7 +257,7 @@ router.post("/api/auth/signup", async (req, res) => {
       }
       // Do not activate ProCare here. This unauthenticated endpoint cannot
       // create legal acceptance records on the user's behalf. The authenticated
-      // upgrade endpoint is the sole professional activation boundary.
+      // professional identity and verified billing paths retain their authority.
     }
 
     // Create the user and claim any pre-registration record atomically. If the
