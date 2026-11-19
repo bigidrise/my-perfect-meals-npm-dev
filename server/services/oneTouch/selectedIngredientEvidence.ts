@@ -11,6 +11,25 @@ export function hasConcreteSelectedIngredients(names: readonly string[]): boolea
   return names.every(name => !ABSTRACT_INGREDIENT.test(name.trim()));
 }
 
+/**
+ * DISH ideas must settle unspecified groups before making a recipe promise.
+ * Normalize only category labels, not actual ingredient evidence or food
+ * identity. The existing Craving Menu matching contract remains unchanged.
+ */
+export function hasConcreteDishIngredients(names: readonly string[]): boolean {
+  return names.every(name => {
+    const group = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim()
+      .replace(/\s+/g, " ")
+      .replace(/^(?:a\s+)?(?:mix(?:ture)?|blend|assortment)\s+of\s+/i, "")
+      .replace(/^(?:(?:mixed|assorted|various|fresh|frozen|dried|chopped|diced)\s+)+/i, "")
+      .replace(/\s+(?:mix|mixture|blend)$/i, "")
+      .replace(/^(?:mezcla|surtido|variedad)\s+de\s+/i, "")
+      .replace(/(?:\s+(?:mixt[oa]s?|variad[oa]s?|fresc[oa]s?|congelad[oa]s?|picad[oa]s?|sec[oa]s?))+$/i, "");
+    return hasConcreteSelectedIngredients([group]) &&
+      !/^(?:verduras?|vegetales?|hortalizas?|especias?|condimentos?|hierbas?|aromaticos?|guarnicion(?:es)?|proteinas?|ingredientes?|salsas?)$/i.test(group);
+  });
+}
+
 function normalizedWords(value: string): string[] {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
     .split(/\s+/).filter(Boolean).map(word => {
