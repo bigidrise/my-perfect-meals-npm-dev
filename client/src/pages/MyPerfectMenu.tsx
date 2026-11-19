@@ -1327,16 +1327,16 @@ export default function MyPerfectMenu() {
           setSnackType(conceptSets.snack?.[0]?.snackType ?? null);
         }
       }}>
-        <AlertDialogContent>
+        <AlertDialogContent className="border-white/15 bg-black/95 text-white shadow-2xl backdrop-blur-xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("Replace your current snack ideas?")}</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-white">{t("Replace your current snack ideas?")}</AlertDialogTitle>
+            <AlertDialogDescription className="text-white/80">
               {t("Switching snack types replaces the three saved snack ideas. Save any finished recipe you want to keep to Favorites first.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t("Keep These Ideas")}</AlertDialogCancel>
-            <AlertDialogAction onClick={(event) => {
+            <AlertDialogCancel disableHover className="min-h-11 border-white/15 bg-white/10 text-white">{t("Keep These Ideas")}</AlertDialogCancel>
+            <AlertDialogAction disableHover className="min-h-11 bg-violet-600 text-white" onClick={(event) => {
               event.preventDefault();
               const next = snackSwitchType;
               setSnackSwitchType(null);
@@ -1358,8 +1358,8 @@ export default function MyPerfectMenu() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-white/15 bg-white/10 text-white hover:bg-white/15 hover:text-white">{t("Keep These Ideas")}</AlertDialogCancel>
-            <AlertDialogAction className="bg-orange-600 text-white hover:bg-orange-700" onClick={confirmTryMore}>{t("Replace with 3 New Ideas")}</AlertDialogAction>
+            <AlertDialogCancel disableHover className="min-h-11 border-white/15 bg-white/10 text-white">{t("Keep These Ideas")}</AlertDialogCancel>
+            <AlertDialogAction disableHover className="min-h-11 bg-orange-600 text-white" onClick={confirmTryMore}>{t("Replace with 3 New Ideas")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
