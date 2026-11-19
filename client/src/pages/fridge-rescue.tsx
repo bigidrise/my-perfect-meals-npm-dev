@@ -2,6 +2,7 @@
 // BACKUP: backups/fridge-rescue-stable-version.tsx
 // FEATURES: Perfect fridge ingredient rescue, AI meal generation, ingredient optimization, medical personalization
 import { useState, useRef, useEffect } from "react";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { fridgeRescueResultNotice, restoredFridgeRescueNotice } from "@/lib/fridgeRescueResultNotice";
 import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { usePageTitle } from "@/contexts/PageTitleContext";
@@ -1396,7 +1397,7 @@ const FridgeRescuePage = () => {
                                     <span className="text-green-400 mr-1">
                                       •
                                     </span>
-                                    <span>{ingredient}</span>
+                                    <span><IngredientDisplay ingredient={ingredient} legacyText={ingredient} /></span>
                                   </li>
                                 );
                               }
@@ -1413,7 +1414,7 @@ const FridgeRescuePage = () => {
                                     <span className="text-green-400 mr-1">
                                       •
                                     </span>
-                                    <span>{ingredient.displayText}</span>
+                                    <span><IngredientDisplay ingredient={ingredient} legacyText={ingredient.displayText} /></span>
                                   </li>
                                 );
                               }
@@ -1426,7 +1427,7 @@ const FridgeRescuePage = () => {
                                       •
                                     </span>
                                     <span>
-                                      {amount} {unit} {name}
+                                      <IngredientDisplay ingredient={ingredient} legacyText={<>{amount} {unit} {name}</>} />
                                     </span>
                                   </li>
                                 );
@@ -1436,7 +1437,7 @@ const FridgeRescuePage = () => {
                               return (
                                 <li key={i} className="flex items-start">
                                   <span className="text-green-400 mr-1">•</span>
-                                  <span>{name}</span>
+                                  <span><IngredientDisplay ingredient={ingredient} legacyText={name} /></span>
                                 </li>
                               );
                             })}
@@ -1467,7 +1468,7 @@ const FridgeRescuePage = () => {
                                       <span className="text-green-400 mr-1">
                                         •
                                       </span>
-                                      <span>{ingredient}</span>
+                                      <span><IngredientDisplay ingredient={ingredient} legacyText={ingredient} /></span>
                                     </li>
                                   );
                                 }
@@ -1484,7 +1485,7 @@ const FridgeRescuePage = () => {
                                       <span className="text-green-400 mr-1">
                                         •
                                       </span>
-                                      <span>{ingredient.displayText}</span>
+                                      <span><IngredientDisplay ingredient={ingredient} legacyText={ingredient.displayText} /></span>
                                     </li>
                                   );
                                 }
@@ -1498,7 +1499,7 @@ const FridgeRescuePage = () => {
                                         •
                                       </span>
                                       <span>
-                                        {amount} {unit} {name}
+                                        <IngredientDisplay ingredient={ingredient} legacyText={<>{amount} {unit} {name}</>} />
                                       </span>
                                     </li>
                                   );
@@ -1508,7 +1509,7 @@ const FridgeRescuePage = () => {
                                     <span className="text-green-400 mr-1">
                                       •
                                     </span>
-                                    <span>{name}</span>
+                                    <span><IngredientDisplay ingredient={ingredient} legacyText={name} /></span>
                                   </li>
                                 );
                               })}

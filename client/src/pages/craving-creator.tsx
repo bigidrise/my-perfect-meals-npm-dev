@@ -12,6 +12,7 @@ import { BackNavigationLabel, useBackNavigationLabel } from "@/components/naviga
 // DO NOT MODIFY WITHOUT USER APPROVAL
 
 import { useState, useEffect, useRef } from "react";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
@@ -1915,19 +1916,19 @@ export default function CravingCreator() {
 
                                 if (ingredient.displayText) {
                                   return (
-                                    <li key={i}>{ingredient.displayText}</li>
+                                    <li key={i}><IngredientDisplay ingredient={ingredient} legacyText={ingredient.displayText} /></li>
                                   );
                                 }
 
                                 if (amount) {
                                   return (
                                     <li key={i}>
-                                      {amount}{unit ? ` ${unit}` : ""} {name}
+                                      <IngredientDisplay ingredient={ingredient} legacyText={<>{amount}{unit ? ` ${unit}` : ""} {name}</>} />
                                     </li>
                                   );
                                 }
 
-                                return <li key={i}>{name}</li>;
+                                return <li key={i}><IngredientDisplay ingredient={ingredient} legacyText={name} /></li>;
                               },
                             )}
                           </ul>

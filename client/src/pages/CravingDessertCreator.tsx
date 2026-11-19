@@ -2,6 +2,7 @@ import { BackNavigationLabel, useBackNavigationLabel } from "@/components/naviga
 // 🔒 DESSERT CREATOR - RESTRUCTURED (December 9, 2025)
 // New 5-field structure: Category, Flavor Family, Specific Dessert, Serving Size, Dietary
 import { useState, useEffect, useRef } from "react";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
@@ -1222,8 +1223,8 @@ export default function DessertCreator() {
                         {generatedDessert.ingredients.map(
                           (ing: any, i: number) => (
                             <li key={i}>
-                              {ing.displayText ||
-                                `${ing.amount || ""} ${ing.unit || ""} ${ing.name || ing.item}`}
+                              <IngredientDisplay ingredient={ing} legacyText={ing.displayText ||
+                                `${ing.amount || ""} ${ing.unit || ""} ${ing.name || ing.item}`} />
                             </li>
                           ),
                         )}

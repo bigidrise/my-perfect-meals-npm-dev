@@ -8,6 +8,7 @@
  * always come from the canonical mealData — never from the translation payload.
  */
 import { useState, useRef, useEffect } from "react";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { AlertTriangle } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -233,9 +234,9 @@ export default function SavedMealRow({
                   <li key={i} className="text-sm text-white/80 flex items-start gap-2">
                     <span className="text-white/30 mt-1">•</span>
                     <span>
-                      {typeof ing === "string"
+                      <IngredientDisplay ingredient={ing} legacyText={typeof ing === "string"
                         ? ing
-                        : `${ing.amount || ing.quantity || ""} ${ing.unit || ""} ${ing.name || ing.item || ""}`.trim()}
+                        : `${ing.amount || ing.quantity || ""} ${ing.unit || ""} ${ing.name || ing.item || ""}`.trim()} />
                     </span>
                   </li>
                 ))}

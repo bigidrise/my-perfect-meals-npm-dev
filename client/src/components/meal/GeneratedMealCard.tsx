@@ -1,4 +1,5 @@
 import { MeasurementQuantity } from "@/components/MeasurementQuantity";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { Sparkles, Users, Brain, ChefHat, CalendarPlus, Leaf } from "lucide-react";
 import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
 import { formatAmount } from "@/utils/formatAmount";
@@ -362,7 +363,7 @@ export default function GeneratedMealCard({
           <ul className="text-sm text-white/80 space-y-1">
             {mealToShow.ingredients.map((ing, i) => (
               <li key={i}>
-                <MeasurementQuantity amount={ing.amount ?? ing.quantity} unit={ing.unit} /> {ing.name}
+                <IngredientDisplay ingredient={ing} legacyText={<><MeasurementQuantity amount={ing.amount ?? ing.quantity} unit={ing.unit} /> {ing.name}</>} />
               </li>
             ))}
           </ul>

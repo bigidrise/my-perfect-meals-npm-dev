@@ -4,6 +4,7 @@ import { BackNavigationLabel, useBackNavigationLabel } from "@/components/naviga
 // Allowed changes: labels, page title, default input values, cache key, feature flag.
 
 import { useState, useEffect, useRef } from "react";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { writeChefPrepareHandoff } from "@/lib/safeChefHandoff";
@@ -1551,19 +1552,19 @@ export default function SushiCreator() {
 
                                 if (ingredient.displayText) {
                                   return (
-                                    <li key={i}>{ingredient.displayText}</li>
+                                    <li key={i}><IngredientDisplay ingredient={ingredient} legacyText={ingredient.displayText} /></li>
                                   );
                                 }
 
                                 if (amount && unit) {
                                   return (
                                     <li key={i}>
-                                      {amount} {unit} {name}
+                                      <IngredientDisplay ingredient={ingredient} legacyText={<>{amount} {unit} {name}</>} />
                                     </li>
                                   );
                                 }
 
-                                return <li key={i}>{name}</li>;
+                                return <li key={i}><IngredientDisplay ingredient={ingredient} legacyText={name} /></li>;
                               },
                             )}
                           </ul>
