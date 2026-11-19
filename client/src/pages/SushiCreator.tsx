@@ -1,3 +1,4 @@
+import { BackNavigationLabel, useBackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 // 🍣 SUSHI CREATOR — Cloned from CravingCreator (locked source)
 // DO NOT MODIFY the API pipeline, response handling, image generation, or loading states.
 // Allowed changes: labels, page title, default input values, cache key, feature flag.
@@ -188,6 +189,7 @@ const CRAVING_TOUR_STEPS: TourStep[] = [
 ];
 
 export default function SushiCreator() {
+  const navigationLabel = useBackNavigationLabel();
   const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
   usePageTitle("Sushi Creator");
@@ -798,21 +800,21 @@ export default function SushiCreator() {
           {isDesktop && (
             <button
               onClick={() => setLocation("/craving-creator-landing")}
-              aria-label="Back to Craving Creator Hub"
+              aria-label={navigationLabel("Back to Craving Creator Hub")}
               className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="text-sm font-medium">Craving Creator Hub</span>
+              <span className="text-sm font-medium"><BackNavigationLabel label="Craving Creator Hub" /></span>
             </button>
           )}
           {!isDesktop && (
             <button
               onClick={() => setLocation("/craving-creator-landing")}
-              aria-label="Back to Craving Creator Hub"
+              aria-label={navigationLabel("Back to Craving Creator Hub")}
               className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="text-sm font-medium">Back</span>
+              <span className="text-sm font-medium"><BackNavigationLabel /></span>
             </button>
           )}
           <div className="flex items-center justify-between mb-6">
@@ -826,7 +828,7 @@ export default function SushiCreator() {
                 }}
                 className="bg-black/10 backdrop-blur-none text-gray-700 border-white/30 hover:bg-white"
               >
-                Return to Meal Hub Now
+                <BackNavigationLabel label="Return to Meal Hub Now" />
               </GlassButton>
             )}
           </div>

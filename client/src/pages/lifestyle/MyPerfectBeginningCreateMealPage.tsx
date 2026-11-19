@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect } from "react";
 import { resolvePediatricRecipeImage, pediatricImageForSave, createPediatricImageRestorer } from "@/lib/pediatricRecipeImage";
 import { isFallbackMealImage } from "@shared/pediatricMealImage";
@@ -346,7 +347,7 @@ function EarlyInfantScreen({ onBack }: { onBack: () => void }) {
         onClick={onBack}
         className="w-full py-2.5 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/15 transition-all"
       >
-        Back to My Perfect Beginning
+        <BackNavigationLabel label="Back to My Perfect Beginning" />
       </button>
     </motion.div>
   );
@@ -404,7 +405,7 @@ function HardStopScreen({
         onClick={onBack}
         className="w-full py-2.5 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/15 transition-all"
       >
-        Back to My Perfect Beginning
+        <BackNavigationLabel label="Back to My Perfect Beginning" />
       </button>
     </motion.div>
   );
@@ -2131,7 +2132,7 @@ export default function MyPerfectBeginningCreateMealPage() {
           className="flex items-center gap-1.5 text-emerald-400 text-sm"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>Back to My Perfect Beginnings</span>
+          <span><BackNavigationLabel label="Back to My Perfect Beginnings" /></span>
         </button>
 
         {/* Tagline */}
@@ -2209,7 +2210,7 @@ export default function MyPerfectBeginningCreateMealPage() {
               disabled={isGenerating}
               className="w-full text-sm text-white/40 hover:text-white/70 py-2 transition-colors disabled:opacity-50"
             >
-              ← Start over with a different request
+              ← <BackNavigationLabel label="Start over with a different request" />
             </button>
           </div>
         )}
@@ -3120,7 +3121,7 @@ function SideRecipeSheet({
               onClick={onClose}
               className="w-full py-2.5 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/15 transition-all active:scale-[0.98]"
             >
-              Back to Complete the Plate
+              <BackNavigationLabel label="Back to Complete the Plate" />
             </button>
           </div>
         </motion.div>

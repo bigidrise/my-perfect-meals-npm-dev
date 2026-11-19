@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
 import { PREGNANCY_PAGE_VISIBLE } from "@shared/familyFeatureVisibility";
 import { useEffect, useMemo, useState } from "react";
@@ -825,7 +826,7 @@ function AccountEditProfilePage() {
             className="flex-shrink-0 flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg"
           >
             <ArrowLeft className="h-5 w-5" />
-            <span className="text-sm font-medium">Back</span>
+            <span className="text-sm font-medium"><BackNavigationLabel /></span>
           </button>
 
           <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">{t("title")}</h1>
@@ -1060,7 +1061,7 @@ function AccountEditProfilePage() {
                     className="flex-1 bg-black text-white"
                     onClick={() => setStep(1)}
                   >
-                    Back
+                    <BackNavigationLabel />
                   </Button>
                   <Button
                     className="flex-1 bg-lime-600 text-white"
@@ -1853,7 +1854,7 @@ function AccountEditProfilePage() {
                     className="flex-1 bg-black text-white"
                     onClick={() => setStep(2)}
                   >
-                    Back
+                    <BackNavigationLabel />
                   </Button>
                   <Button
                     className="flex-1 bg-lime-600 text-white"
@@ -2021,7 +2022,7 @@ function AccountEditProfilePage() {
                     className="flex-1 bg-black text-white"
                     onClick={() => setStep(3)}
                   >
-                    Back
+                    <BackNavigationLabel />
                   </Button>
                   <Button
                     className="flex-1 bg-lime-600 text-white"
@@ -2132,7 +2133,7 @@ function AccountEditProfilePage() {
                   onClick={() => setStep(glycemicEligible ? 4 : 3)}
                   disabled={saving}
                 >
-                  Back
+                  <BackNavigationLabel />
                 </Button>
                 <Button
                   className="flex-1 bg-lime-600 text-white"

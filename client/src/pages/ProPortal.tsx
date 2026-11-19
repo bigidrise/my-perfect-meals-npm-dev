@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 
 import { useLocation } from "wouter";
 import { ArrowLeft } from "lucide-react";
@@ -35,7 +36,7 @@ export default function ProPortal() {
             onClick={() => setLocation("/dashboard")}
             className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-5 w-5" /><span className="sr-only"><BackNavigationLabel /></span>
           </button>
 
           {/* Title */}

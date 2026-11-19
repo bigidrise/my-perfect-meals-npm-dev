@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -380,7 +381,7 @@ export default function ExtendedOnboarding() {
             variant="outline"
             className="w-full mt-6 border-white/20 text-white hover:bg-white/10"
           >
-            Return to Dashboard
+            <BackNavigationLabel label="Return to Dashboard" />
           </Button>
         </div>
       );
@@ -480,7 +481,7 @@ export default function ExtendedOnboarding() {
 
         <div className="flex gap-3 mt-6">
           <Button onClick={handleBack} variant="outline" className="flex-1 bg-black border-black text-white">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Back
+            <ArrowLeft className="w-4 h-4 mr-2" /> <BackNavigationLabel />
           </Button>
           <Button
             disabled={!selectedBuilder || saving}

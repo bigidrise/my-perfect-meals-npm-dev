@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useLocation } from "wouter";
 import PlannedFeaturesNotice from "@/components/coming-soon/PlannedFeaturesNotice";
 import { useOrgBranding } from "@/hooks/useOrgBranding";
@@ -181,7 +182,7 @@ export default function PricingPage() {
               className="bg-black/10 hover:bg-black/50 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="text-xs font-medium">Back</span>
+              <span className="text-xs font-medium"><BackNavigationLabel /></span>
             </Button>
             <h1 className="text-lg font-bold text-white">Subscription</h1>
           </div>
@@ -637,7 +638,7 @@ export default function PricingPage() {
             data-testid="button-back"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="text-xs font-medium">Back</span>
+            <span className="text-xs font-medium"><BackNavigationLabel /></span>
           </Button>
           <h1 className="text-lg font-bold text-white flex items-center gap-2">
             Subscription

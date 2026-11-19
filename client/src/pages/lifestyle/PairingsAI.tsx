@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
@@ -237,7 +238,7 @@ export default function PairingsAI() {
                 className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
               >
                 <ArrowLeft className="h-5 w-5" />
-                <span className="text-sm font-medium">Back</span>
+                <span className="text-sm font-medium"><BackNavigationLabel /></span>
               </button>
               <h1 className="text-lg font-bold text-white truncate">Drink Pairings</h1>
             </div>
@@ -255,7 +256,7 @@ export default function PairingsAI() {
                 className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6 transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
-                <span className="text-sm font-medium">Pairings Hub</span>
+                <span className="text-sm font-medium"><BackNavigationLabel label="Pairings Hub" /></span>
               </button>
             )}
             <Card className="shadow-2xl bg-black/10 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto mb-6">

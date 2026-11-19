@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
@@ -133,7 +134,7 @@ export default function CoachingPreferencesPage() {
           onClick={() => setLocation("/dashboard")}
           className="p-1.5 rounded-lg bg-white/5 text-white/60 active:bg-white/10"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-5 h-5" /><span className="sr-only"><BackNavigationLabel /></span>
         </button>
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-orange-400" />

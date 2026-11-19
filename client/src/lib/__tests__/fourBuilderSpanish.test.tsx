@@ -262,8 +262,9 @@ test("all four owners retain shared cards, clinical indicators and centralized l
       expect((callback.arguments[1] as ts.ArrayLiteralExpression).elements.map(n => n.getText(source))).toContain("t");
     }
   }
-  // These are review-gated, even where the words appear in ordinary navigation.
-  expect(sources[1].getFullText()).toContain(">Diabetes Hub</span>");
+  // Ordinary back navigation is authorized for platform-wide localization.
+  expect(sources[1].getFullText()).toContain('{t("diabeticBuilder.backLabel")}');
+  // Clinical explanations and support wording remain review-gated.
   expect(sources[0].getFullText()).toContain(">Active Protocol:</span>");
   for (const index of [1, 3]) expect(sources[index].getFullText()).toContain(">Active Clinical Supports:</span>");
   for (const source of sources) expect(source.getFullText()).toContain('"Alpha-gal Syndrome"');

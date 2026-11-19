@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useLocation } from "wouter";
 import { ArrowLeft, Dumbbell } from "lucide-react";
 import PerformanceNutritionSetupForm from "@/components/performance/PerformanceNutritionSetupForm";
@@ -21,7 +22,7 @@ export default function PerformanceNutritionSetupPage() {
           onClick={() => setLocation(returnTo)}
           className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
         >
-          <ArrowLeft className="w-4 h-4 text-white" />
+          <ArrowLeft className="w-4 h-4 text-white" /><span className="sr-only"><BackNavigationLabel /></span>
         </button>
         <div className="flex items-center gap-2 flex-1">
           <div className="w-7 h-7 rounded-lg bg-orange-600/20 border border-orange-500/30 flex items-center justify-center">

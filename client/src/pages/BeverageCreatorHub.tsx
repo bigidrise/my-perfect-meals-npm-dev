@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
@@ -75,7 +76,7 @@ export default function BeverageCreatorHub() {
               onClick={() => setLocation("/lifestyle")}
               className="p-2 rounded-lg bg-white/5 text-white/60 hover:text-white transition-colors"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4" /><span className="sr-only"><BackNavigationLabel /></span>
             </button>
             <Wine className="h-6 w-6 text-blue-400" />
             <h1 className="text-lg font-bold text-white">Beverage Hub</h1>

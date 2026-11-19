@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 
 import React, { useEffect, useMemo, useState, useImperativeHandle, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -421,7 +422,7 @@ const BuilderDayBoard = forwardRef<BuilderDayBoardRef, {
               onClick={() => setActiveIdx((i) => Math.max(0, i - 1))}
               disabled={activeIdx === 0}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4" /><span className="sr-only"><BackNavigationLabel /></span>
             </button>
             {plan.days.map((d, i) => (
               <button

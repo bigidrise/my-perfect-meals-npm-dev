@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useLocation } from "wouter";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { ArrowLeft, Star, Users, CheckCircle2, TrendingUp, Clock, ChevronRight, Percent, GraduationCap, ExternalLink } from "lucide-react";
@@ -60,7 +61,7 @@ export default function FoundingPartnerProgram() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
             >
               <ArrowLeft className="h-4 w-4" />
-              {backLabel}
+              <BackNavigationLabel label={backLabel} />
             </button>
             <h1 className="text-lg font-bold text-white">Founding Partner Program</h1>
           </div>
@@ -78,7 +79,7 @@ export default function FoundingPartnerProgram() {
           className="flex items-center gap-1.5 text-orange-400 text-sm font-medium"
         >
           <ArrowLeft className="h-4 w-4" />
-          Partner Programs
+          <BackNavigationLabel label="Partner Programs" />
         </button>
 
         {/* Hero */}

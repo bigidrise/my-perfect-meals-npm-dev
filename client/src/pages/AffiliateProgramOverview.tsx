@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect } from "react";
 import { BC_HEADER } from "@/components/BusinessCenterShell";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
@@ -336,7 +337,7 @@ export default function AffiliateProgramOverview() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
             >
               <ArrowLeft className="h-4 w-4" />
-              Partner Programs
+              <BackNavigationLabel label="Partner Programs" />
             </button>
             <div className="flex-1 min-w-0">
               <h1 className="text-base font-bold text-white">Partner Program</h1>
@@ -356,7 +357,7 @@ export default function AffiliateProgramOverview() {
           className="flex items-center gap-1.5 text-orange-400 text-sm font-medium"
         >
           <ArrowLeft className="h-4 w-4" />
-          Partner Programs
+          <BackNavigationLabel label="Partner Programs" />
         </button>
 
         {/* Status Panel — always visible */}

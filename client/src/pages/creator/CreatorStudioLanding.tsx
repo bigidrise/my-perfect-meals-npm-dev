@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
@@ -25,7 +26,7 @@ export default function CreatorStudioLanding() {
           className="flex items-center gap-1.5 text-orange-400 text-sm font-medium mb-8"
         >
           <ArrowLeft className="h-4 w-4" />
-          Business Suite
+          <BackNavigationLabel label="Business Suite" />
         </button>
 
         <div className="text-center mb-10">

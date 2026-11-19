@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useLocation } from "wouter";
 import { PillButton } from "@/components/ui/pill-button";
 
@@ -42,7 +43,7 @@ export default function CoachCornerComplete() {
             onClick={() => setLocation("/dashboard")}
             className="!min-h-[40px] !text-xs !py-2 !px-6 !rounded-full"
           >
-            Back to Dashboard
+            <BackNavigationLabel label="Back to Dashboard" />
           </PillButton>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { PREGNANCY_CUSTOMER_AVAILABLE } from "@shared/pregnancyAvailability";
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -770,7 +771,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
               onClick={() => setLocation(backPath)}
               className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
             >
-              <ArrowLeft className="w-4 h-4 text-white" />
+              <ArrowLeft className="w-4 h-4 text-white" /><span className="sr-only"><BackNavigationLabel /></span>
             </button>
             <p className="text-white font-bold text-base leading-none">Performance Hub</p>
           </div>
@@ -823,7 +824,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
             onClick={() => setLocation(backPath)}
             className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
           >
-            <ArrowLeft className="w-4 h-4 text-white" />
+            <ArrowLeft className="w-4 h-4 text-white" /><span className="sr-only"><BackNavigationLabel /></span>
           </button>
           <div className="flex-1">
             <p className="text-white font-bold text-base leading-none">{pageTitle ?? "Performance Hub"}</p>

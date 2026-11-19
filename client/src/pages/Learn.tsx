@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { chefMemberText } from "@/lib/chefMemberBranding";
 import { isChefConversationEnabled } from "@/lib/chefCornerExperience";
@@ -3397,7 +3398,7 @@ export default function Learn() {
               className="bg-black/10 hover:bg-black/50 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="text-xs font-medium">Back</span>
+              <span className="text-xs font-medium"><BackNavigationLabel /></span>
             </Button>
             <div>
               <h1 className="text-lg font-bold text-white">App Library</h1>

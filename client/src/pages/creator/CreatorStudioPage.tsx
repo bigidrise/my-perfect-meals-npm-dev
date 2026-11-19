@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
@@ -62,7 +63,7 @@ export default function CreatorStudioPage() {
 
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => setLocation("/lifestyle")} className="p-2 rounded-lg bg-white/5 text-white/60 hover:text-white transition-colors">
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4" /><span className="sr-only"><BackNavigationLabel /></span>
           </button>
           <div>
             <div className="flex items-center gap-2">

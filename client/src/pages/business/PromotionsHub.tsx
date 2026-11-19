@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -637,7 +638,7 @@ export default function PromotionsHub() {
             className="flex items-center gap-1.5 text-orange-400 text-sm font-medium mb-6"
           >
             <ArrowLeft className="h-4 w-4" />
-            Business Center
+            <BackNavigationLabel label="Business Center" />
           </button>
         )}
 

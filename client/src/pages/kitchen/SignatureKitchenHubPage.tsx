@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 // client/src/pages/kitchen/SignatureKitchenHubPage.tsx
 // The Signature Kitchen Network hub — chef discovery AND partner acquisition surface.
 // Route: /kitchens
@@ -230,7 +231,7 @@ export default function SignatureKitchenHubPage() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)" }}>
         <button type="button" onClick={() => setLocation("/lifestyle")}
           className="p-2 rounded-full bg-black/60 backdrop-blur border border-white/10 text-white/60 active:scale-95 transition-transform">
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" /><span className="sr-only"><BackNavigationLabel /></span>
         </button>
       </div>
 

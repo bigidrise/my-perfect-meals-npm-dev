@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useRef, useState } from "react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { usePageTitle } from "@/contexts/PageTitleContext";
@@ -337,7 +338,7 @@ export default function CatProfileSetup() {
               onClick={() => step > 1 ? setStep(step - 1) : setLocation("/companion/cats")}
               className="p-1 flex-shrink-0"
             >
-              <ArrowLeft className="w-5 h-5 text-white/70" />
+              <ArrowLeft className="w-5 h-5 text-white/70" /><span className="sr-only"><BackNavigationLabel /></span>
             </button>
             <h1 className="text-sm font-bold text-white">
               {isEdit ? `Edit ${form.name || "Profile"}` : "Add Your Cat"}
@@ -363,7 +364,7 @@ export default function CatProfileSetup() {
               className="flex items-center gap-1.5 text-orange-400 text-sm hover:text-orange-300 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span>Back to My Perfect Cat</span>
+              <span><BackNavigationLabel label="Back to My Perfect Cat" /></span>
             </button>
           </div>
         )}

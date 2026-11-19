@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -225,7 +226,7 @@ export function BackToTopButton({ onClick }: { onClick: () => void }) {
         className="!rounded-full bg-black/30 backdrop-blur-lg border border-black/50 hover:bg-black/40 text-white px-6 py-3"
       >
         <ChevronUp className="h-4 w-4 mr-2" />
-        Back to Top
+        <BackNavigationLabel label="Back to Top" />
       </Button>
     </div>
   );

@@ -25,6 +25,7 @@ export function useMenuDisplayCopy() {
     } as Record<string, string>,
     builders: {
       general_nutrition: t("General Nutrition Builder"),
+      diabetic: t("Diabetic Builder"),
       glp1: t("GLP-1 Meal Builder"),
       anti_inflammatory: t("Anti-Inflammatory Meal Builder"),
       performance_competition: t("Performance Nutrition Builder"),

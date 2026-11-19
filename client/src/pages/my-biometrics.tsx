@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 // client/src/pages/MyBiometrics.tsx
 // Local-first, zero-fragility Biometrics page
 // • No server calls. Optional one-line sync hooks are commented.
@@ -1803,7 +1804,7 @@ function AccountMyBiometrics() {
               className="text-orange-300 hover:bg-orange-500/10 -ml-2"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
-              Back to {returnSource.label}
+              <BackNavigationLabel label={returnSource.label} backTo />
             </Button>
           )}
           {/* Pro Session: Return to Pro Portal */}
@@ -1821,7 +1822,7 @@ function AccountMyBiometrics() {
               className="text-purple-400 hover:bg-purple-500/10 -ml-2"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
-              Return to Pro Portal
+              <BackNavigationLabel label="Return to Pro Portal" />
             </Button>
           )}
           {/* Guest Mode: Back to Guest Suite button - only show for actual guests, not logged-in users */}
@@ -1836,7 +1837,7 @@ function AccountMyBiometrics() {
               className="text-lime-400 hover:bg-lime-500/10 -ml-2"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
-              {GUEST_SUITE_BRANDING.phase2.backToSuiteButton}
+              <BackNavigationLabel label={GUEST_SUITE_BRANDING.phase2.backToSuiteButton} />
             </Button>
           )}
           
@@ -3023,7 +3024,7 @@ function AccountMyBiometrics() {
             }}
             className="bg-orange-600 hover:bg-orange-700 text-white w-full"
           >
-            Return to Previous Page
+            <BackNavigationLabel label="Return to Previous Page" />
           </Button>
           <Button
             onClick={() => setShowNextActionModal(false)}

@@ -167,6 +167,31 @@ describe("My Perfect Menu generated response normalization", () => {
     expect(cuisineLabelsCompatible("Mexican", "Italian")).toBe(false);
   });
 
+  it.each([
+    ["Tailandesa", "thai"],
+    ["Cocina tailandesa", "Thai Cuisine"],
+    ["Cocina inspirada en Tailandesa", "Thai"],
+    ["Japonesa", "Japanese"],
+    ["Francés", "French"],
+    ["Mediterránea", "Mediterranean"],
+    ["Mexicana", "Mexican"],
+    ["Vietnamita", "Vietnamese"],
+  ])("accepts the same EN/ES cuisine identity: %s / %s", (spanish, english) => {
+    expect(cuisineLabelsCompatible(spanish, english)).toBe(true);
+    expect(cuisineLabelsCompatible(english, spanish)).toBe(true);
+  });
+
+  it.each([
+    ["Mexicana", "Thai"],
+    ["Tailandesa", "Italian"],
+    ["Asiática", "Thai"],
+    ["Cocina desconocida", "Thai"],
+    ["Cocina", "Thai"],
+    ["", "Thai"],
+  ])("does not turn a different or missing cuisine into a match: %s / %s", (actual, required) => {
+    expect(cuisineLabelsCompatible(actual, required)).toBe(false);
+  });
+
   it("reduces retry diagnostics to privacy-limited categories", () => {
     expect(rejectionCategoryCounts([
       "dietary:mustard",

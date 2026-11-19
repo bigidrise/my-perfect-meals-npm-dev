@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -158,7 +159,7 @@ export default function CoachCornerProgressSlowed() {
               onClick={() => setLocation("/coach-corner/home")}
               className="!min-h-[40px] !text-xs !py-2 !px-6 !rounded-full"
             >
-              Back to Ask Chef
+              <BackNavigationLabel label="Back to Ask Chef" />
             </PillButton>
           </div>
         </div>
@@ -173,7 +174,7 @@ export default function CoachCornerProgressSlowed() {
           onClick={() => setLocation("/coach-corner/home")}
           className="w-9 h-9 rounded-full bg-black/40 border border-white/10 flex items-center justify-center"
         >
-          <ChevronLeft className="w-5 h-5 text-white/80" />
+          <ChevronLeft className="w-5 h-5 text-white/80" /><span className="sr-only"><BackNavigationLabel /></span>
         </button>
         <span className="text-xs font-medium text-white/60 uppercase tracking-wide">
           My progress has slowed

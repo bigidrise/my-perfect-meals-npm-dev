@@ -1,3 +1,4 @@
+import { useBackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 export function DiabetesSupport() {
+  const navigationLabel = useBackNavigationLabel();
   // Using demo user ID for development
   const demoUserId = "demo-user-123";
   const { toast } = useToast();
@@ -323,7 +325,7 @@ export function DiabetesSupport() {
           <button
             onClick={scrollToTop}
             className="fixed bottom-6 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-black/30 backdrop-blur-lg hover:bg-black/40 text-white rounded-full flex items-center justify-center border border-white/40 hover:border-white/60 transition-all shadow-2xl relative overflow-hidden"
-            aria-label="Back to top"
+            aria-label={navigationLabel("Back to top")}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 pointer-events-none" />
             <ArrowUp className="h-5 w-5 relative z-10" />

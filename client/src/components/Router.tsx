@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import ChefConversationEntry from "./coaching/ChefConversationEntry";
@@ -517,7 +518,7 @@ const HydrationCenter = () => {
             onClick={() => setLocation("/my-biometrics")}
             className="mt-2 w-full rounded-xl bg-white/10 px-4 py-3 font-semibold text-white active:bg-white/20"
           >
-            Back to Biometrics
+            <BackNavigationLabel label="Back to Biometrics" />
           </button>
         </div>
       </div>

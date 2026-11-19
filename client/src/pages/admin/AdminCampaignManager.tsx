@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { useLocation } from "wouter";
 import {
@@ -629,7 +630,7 @@ export default function AdminCampaignManager() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
           >
             <ArrowLeft className="h-4 w-4" />
-            Admin
+            <BackNavigationLabel label="Admin" />
           </button>
           <h1 className="text-lg font-bold text-white">Campaign Manager</h1>
         </div>
