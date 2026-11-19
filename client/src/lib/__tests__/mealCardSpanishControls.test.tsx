@@ -9,6 +9,8 @@ import { I18nextProvider, initReactI18next } from "react-i18next";
 import { consumerEnglish, consumerSpanish } from "@/i18n/consumerJourney";
 import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
+import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
+import { PROTOCOL_MAP, DIET_MAP } from "@/lib/nutritionPersonalization";
 
 let mockFree = false;
 const mockGuard = jest.fn((_message, action) => { if (!mockFree) action(); });
@@ -128,5 +130,77 @@ test("the actual MealCard estimate paragraph follows live language and preserves
   expect(screen.getByText(/ORIGINAL_EVIDENCE/)).toHaveTextContent("Distribución de carbohidratos estimada. 7g de otros carbohidratos o sin clasificar.");
   expect(screen.queryByText(/Carb split estimated/)).not.toBeInTheDocument();
   expect(JSON.stringify(snapshot)).toBe(before);
+  expect(global.fetch).not.toHaveBeenCalled();
+});
+
+test.each(["en", "es"])("the actual protocol panel localizes its collapsed and expanded screenshot states in %s", async language => {
+  await instance.changeLanguage(language);
+  const user = { specialtyConditions: ["performance-nutrition", "oncology"], dailyCalorieTarget: 1634, dailyProteinTarget: 129 };
+  const before = JSON.stringify(user);
+  render(<ProtocolVisibilityPanel user={user} />, { wrapper: Wrapper });
+  expect(screen.getByText(language === "es" ? "Basado en" : "Built using")).toBeVisible();
+  expect(screen.getByText(language === "es" ? "Rendimiento deportivo" : "Athletic Performance")).toBeVisible();
+  expect(screen.getByText(language === "es" ? "1634 cal/día · 129g de proteína" : "1634 cal/day · 129g protein")).toBeVisible();
+  const toggle = screen.getByRole("button", { name: language === "es" ? "Cómo se elaboró para ti" : "How This Was Built For You" });
+  expect(toggle).toHaveAttribute("aria-expanded", "false");
+  fireEvent.click(toggle);
+  expect(toggle).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByText(language === "es" ? "Protocolos aplicados" : "Protocols Applied")).toBeVisible();
+  expect(screen.getAllByText(language === "es" ? "Protocolo oncológico" : "Oncology Protocol")).toHaveLength(2);
+  expect(screen.getByText(language === "es" ? "Nutrición para el rendimiento" : "Performance Nutrition")).toBeVisible();
+  expect(screen.getByText(language === "es" ? "Alta" : "High")).toBeVisible();
+  expect(screen.getByText(language === "es" ? "Moderado" : "Moderate")).toBeVisible();
+  expect(screen.getByText(language === "es"
+    ? "Al generar esta comida, se aplicaron todos los protocolos activos y las reglas alimentarias de tu perfil."
+    : "All active protocols and dietary rules from your profile were applied when generating this meal.")).toBeVisible();
+  expect(JSON.stringify(user)).toBe(before);
+  expect(global.fetch).not.toHaveBeenCalled();
+});
+
+test.each([
+  ["meal", "Por qué esta comida se ajusta a tu perfil"],
+  ["beverage", "Por qué esta bebida se ajusta a tu perfil"],
+  ["restaurant", "Por qué esta recomendación se ajusta a tu perfil"],
+] as const)("the %s explanation heading follows live language without rewriting original reasoning", async (context, heading) => {
+  const user = { specialtyCondition: "oncology" };
+  const original = "ORIGINAL_CLINICAL_REASONING: 1634 cal/day, 129g protein.";
+  render(<ProtocolVisibilityPanel user={user} context={context} reasoning={original} whyThisComplies="ORIGINAL_UNUSED_FALLBACK" />, { wrapper: Wrapper });
+  fireEvent.click(screen.getByRole("button", { name: "How This Was Built For You" }));
+  await act(async () => { await instance.changeLanguage("es"); });
+  expect(screen.getByRole("button", { name: "Cómo se elaboró para ti" })).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByText(heading)).toBeVisible();
+  expect(screen.getByText(original)).toBeVisible();
+  expect(screen.queryByText("ORIGINAL_UNUSED_FALLBACK")).not.toBeInTheDocument();
+  expect(global.fetch).not.toHaveBeenCalled();
+});
+
+test.each([
+  ["beverage", "Al generar esta bebida, se aplicaron todos los protocolos activos y las reglas alimentarias de tu perfil."],
+  ["restaurant", "Al generar esta recomendación, se aplicaron todos los protocolos activos y las reglas alimentarias de tu perfil."],
+] as const)("the %s panel uses its complete Spanish fallback sentence", async (context, explanation) => {
+  await instance.changeLanguage("es");
+  render(<ProtocolVisibilityPanel user={{ specialtyCondition: "oncology" }} context={context} />, { wrapper: Wrapper });
+  fireEvent.click(screen.getByRole("button", { name: "Cómo se elaboró para ti" }));
+  expect(screen.getByText(explanation)).toBeVisible();
+});
+
+test("all canonical protocol/diet labels have Spanish display resources without changing their maps", async () => {
+  const canonical = JSON.stringify({ PROTOCOL_MAP, DIET_MAP });
+  const labels = new Set([
+    ...Object.values(PROTOCOL_MAP).flatMap(protocol => [protocol.outcomeLabel, protocol.displayLabel]),
+    ...Object.values(DIET_MAP),
+  ]);
+  for (const label of labels) expect(consumerSpanish[label]?.trim()).toBeTruthy();
+  await instance.changeLanguage("es");
+  render(<ProtocolVisibilityPanel user={{
+    medicalConditions: ["oncology", "diabetes", "cardiac", "renal", "thyroid"],
+    dietaryRestrictions: ["vegan", "gluten-free"],
+  }} />, { wrapper: Wrapper });
+  expect(screen.getByText("+3 más")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Cómo se elaboró para ti" }));
+  expect(screen.getByText("Identidad alimentaria")).toBeVisible();
+  expect(screen.getByText(consumerSpanish.Vegan)).toBeVisible();
+  expect(screen.getByText("Sin gluten")).toBeVisible();
+  expect(JSON.stringify({ PROTOCOL_MAP, DIET_MAP })).toBe(canonical);
   expect(global.fetch).not.toHaveBeenCalled();
 });
