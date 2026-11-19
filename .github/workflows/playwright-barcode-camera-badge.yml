@@ -72,24 +72,36 @@ jobs:
         run: |
           ./node_modules/.bin/playwright install --with-deps chromium
 
-      - name: Start dev server (background)
+      # The browser spec mocks /api/**; the Jest step tests the real barcode
+      # route separately. Serve the real frontend without database boot hooks.
+      - name: Start barcode frontend (background)
         run: |
-          npm run dev &
+          ./node_modules/.bin/vite --host 127.0.0.1 --port 5000 --strictPort \
+            > "$RUNNER_TEMP/barcode-server.log" 2>&1 &
           echo "DEV_SERVER_PID=$!" >> "$GITHUB_ENV"
-        env:
-          NODE_ENV: development
 
-      - name: Wait for server to be ready
+      - name: Wait for barcode frontend to be ready
         run: |
-          echo "Waiting for server on port 5000…"
+          echo "Waiting for ${E2E_BASE_URL}/shopping-list…"
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:5000/api/auth/session > /dev/null 2>&1; then
-              echo "Server is up (attempt $i)"
-              break
+            if ! kill -0 "$DEV_SERVER_PID" 2>/dev/null; then
+              echo "::error::Barcode frontend exited before becoming ready."
+              cat "$RUNNER_TEMP/barcode-server.log"
+              exit 1
+            fi
+            if curl --fail --silent --show-error --max-time 2 \
+              "${E2E_BASE_URL}/shopping-list" \
+              -o "$RUNNER_TEMP/barcode-page.html" 2>/dev/null &&
+              grep -q '/src/main.tsx' "$RUNNER_TEMP/barcode-page.html"; then
+              echo "Barcode frontend is ready (attempt $i)"
+              exit 0
             fi
             echo "  attempt $i — not ready yet"
             sleep 2
           done
+          echo "::error::Barcode frontend did not become ready within 30 attempts."
+          cat "$RUNNER_TEMP/barcode-server.log"
+          exit 1
 
       - name: Run barcode route contract test (Jest)
         run: |
@@ -97,6 +109,13 @@ jobs:
 
       - name: Run barcode camera badge spec
         run: |
+          if ! kill -0 "$DEV_SERVER_PID" 2>/dev/null ||
+            ! curl --fail --silent --show-error --max-time 2 \
+              "${E2E_BASE_URL}/shopping-list" >/dev/null; then
+            echo "::error::Barcode frontend is unavailable before browser tests."
+            cat "$RUNNER_TEMP/barcode-server.log"
+            exit 1
+          fi
           ./node_modules/.bin/playwright test client/e2e/barcode-camera-database-badge.spec.ts \
             --project=chromium \
             --reporter=list
@@ -116,6 +135,15 @@ jobs:
         with:
           name: playwright-traces
           path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload barcode server log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: barcode-server-log
+          path: ${{ runner.temp }}/barcode-server.log
           retention-days: 7
           if-no-files-found: ignore
 
