@@ -1,4 +1,6 @@
 /** @jest-environment jsdom */
+let mockAnalysisLanguage = "en";
+jest.mock("@/lib/ingredientAnalysisTranslationGate", () => ({ ingredientAnalysisTranslationEnabled: true }));
 jest.mock("react-dom", () => ({
   ...jest.requireActual("react-dom"), createPortal: (node: any) => node,
 }));
@@ -25,6 +27,7 @@ jest.mock("@/lib/queryClient", () => {
 jest.mock("@/lib/api", () => ({ get: jest.fn(), post: jest.fn(), apiJSON: jest.fn() }));
 jest.mock("@/stores/shoppingListStore", () => ({ useShoppingListStore: jest.fn() }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({
+  i18n: { get resolvedLanguage() { return mockAnalysisLanguage; } },
   t: (key: string, values?: any) => {
     const labels: Record<string, string> = {
       "ingredientSheet.saveToGroceries": "Save to Groceries",
@@ -82,6 +85,7 @@ function saveButton(index = 1) {
 }
 
 beforeEach(() => {
+  mockAnalysisLanguage = "en";
   queryClient.clear(); owner = "fixture-a"; rows = { "fixture-a": [], "fixture-b": [] }; writes = []; added = [];
   jest.clearAllMocks();
   (useAuth as jest.Mock).mockImplementation(() => ({ user: owner ? { id: owner } : null }));
@@ -592,6 +596,40 @@ function existingPrintout(name = "Grana Padano") {
     alignmentGrade: "B" as const, gradeUnavailable: false, analysisMethod: "by_name" as const,
     overallSummary: "The existing full printout", verdict: "The existing Chef explanation", whatMattersMost: ["An existing useful point"] };
 }
+
+test("Spanish analysis renders translated explanations but Add and Save retain original product evidence", async () => {
+  mockAnalysisLanguage = "es";
+  const scan = { ...existingPrintout("Ragú Chunky Garden Combination Sauce"),
+    verdict: "Skip it for recovery meals.", whatMattersMost: ["Monitor added sugars."],
+    betterAlternatives: [{ category: "Rao's Homemade Marinara Sauce",
+      whyBetter: ["Only 100mg per serving."], targetCriteria: "Available at Walmart." }] };
+  const before = JSON.stringify(scan);
+  const originalRequest = (apiRequest as jest.Mock).getMockImplementation()!;
+  (apiRequest as jest.Mock).mockImplementation(async (url, options) => {
+    if (url !== "/api/translate") return originalRequest(url, options);
+    const { content } = JSON.parse(options.body);
+    return Object.fromEntries(Object.entries(content).map(([key, value]) => [key,
+      key === "translationStatus" ? "Traducción completa" : (value as string)
+        .replace("Skip it for recovery meals.", "Evítalo en las comidas de recuperación.")
+        .replace("Monitor added sugars.", "Vigila los azúcares añadidos.")
+        .replace("Only ", "Solo ").replace(" per serving.", " por porción.")
+        .replace("Available at Walmart.", "Disponible en Walmart.")]));
+  });
+  const onAddProduct = jest.fn();
+  render(wrap(<IngredientIntelligenceSheet open result={scan} onClose={jest.fn()} onAddProduct={onAddProduct} />));
+  await screen.findByText("Evítalo en las comidas de recuperación.");
+  expect(screen.getByText("Vigila los azúcares añadidos.")).toBeInTheDocument();
+  expect(screen.getByText("Solo 100mg por porción.")).toBeInTheDocument();
+  expect(screen.getByText(/Disponible en Walmart/)).toBeInTheDocument();
+  expect(screen.getByText("Rao's Homemade Marinara Sauce")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Add" }));
+  expect(onAddProduct).toHaveBeenCalledWith("Rao's Homemade Marinara Sauce");
+  fireEvent.click(screen.getByRole("button", { name: "Save to Groceries: Rao's Homemade Marinara Sauce" }));
+  await waitFor(() => expect(writes).toHaveLength(1));
+  expect(writes[0].productMeta.recommendationWhyBetter).toEqual(["Only 100mg per serving."]);
+  expect(writes[0].productName).toBe("Rao's Homemade Marinara Sauce");
+  expect(JSON.stringify(scan)).toBe(before);
+});
 
 test("Update Saved Analysis attaches the already-generated result to the existing recommendation without deleting or calling AI", async () => {
   const original = { id: "grana", productName: "Grana Padano", brand: null, source: "grocery-coach",

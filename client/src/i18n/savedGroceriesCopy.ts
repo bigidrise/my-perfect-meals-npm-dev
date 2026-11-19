@@ -1,5 +1,10 @@
 /** Library interface only. Product names, package labels and saved evidence remain original. */
 export const savedGroceriesSpanish: Record<string, string> = {
+  "Translating analysis explanations…": "Traduciendo las explicaciones del análisis…",
+  "Translation of the original analysis.": "Traducción del análisis original.",
+  "Analysis translation is unavailable. Showing the original text.": "La traducción del análisis no está disponible. Se muestra el texto original.",
+  "Retry translation": "Reintentar traducción",
+  "Temporary history on this device; not Saved Groceries": "Historial temporal en este dispositivo; no se guarda en Productos guardados",
   "{{count}} saved item · remembered across sessions": "{{count}} producto guardado · se conserva entre sesiones",
   "{{count}} saved items · remembered across sessions": "{{count}} productos guardados · se conservan entre sesiones",
   "Close saved groceries": "Cerrar productos guardados",

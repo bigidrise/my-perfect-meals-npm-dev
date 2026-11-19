@@ -201,3 +201,17 @@ and requested that all of them be translated, not just the example page.
 
 **How to apply:** Localize display names without altering canonical condition keys,
 activation, indicator colors or clinical rules. This does not approve advice prose.
+
+The founder approved Development-only Spanish display of generated ingredient/
+product-analysis explanations, including verdicts, personalized bullets,
+comparison reasons and availability text. Product names, numerical claims,
+grades, safety decisions and saved originals must remain unchanged.
+
+**Why:** The founder explicitly approved extending the interface correction to
+generated explanations, while preserving the existing safety-validation authority.
+
+**How to apply:** Keep translation presentation-only and use the existing translation
+service. Do not request Spanish upstream of English-sensitive clinical checks,
+replace saved evidence, regenerate an assessment merely to translate it, or infer
+Production approval. Built-in profile-factor names are ordinary display labels
+and should resolve directly from shared resources without requiring an AI call.
