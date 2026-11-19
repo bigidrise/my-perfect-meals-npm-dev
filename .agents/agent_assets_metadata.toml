@@ -1405,3 +1405,31 @@ mtime_ms = 1795029256915
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/ee0ce817-49df-41d9-8196-ab4bc333b161/ab3d7cd6-e0ee-4938-8cf7-c293f0373e99"
 storage_version_token = "1795029257861596"
 content_type = "text/html"
+
+[[outputs]]
+id = "OCxvrQTqVCEL8gwklJcOJ"
+uri = "file://generated-artifacts/release-type-repair/complete-diagnostic-comparison.csv"
+type = "table"
+title = "Complete 109-diagnostic comparison"
+description = "Every reviewed/current full diagnostic message, position, error code and independently verified source mapping."
+logical_id = "42742271-b89d-4c25-bfd0-e6c46ef0aff6"
+content_hash = "sha256:7e087008612c8fa77620652c8a85f8d3eb9e58a6a4112d998565795ade88a601"
+size = 56664
+mtime_ms = 1795054540097
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/42742271-b89d-4c25-bfd0-e6c46ef0aff6/a8c35837-fa03-40af-82da-ada0adefcbfa"
+storage_version_token = "1795054660292012"
+content_type = "text/csv"
+
+[[outputs]]
+id = "Sc4t1TM9fzPhhY-UCKiw6"
+uri = "file://docs/localization/RELEASE_TYPECHECK_RESTORATION_REVIEW.md"
+type = "text"
+title = "Release typecheck evidence review"
+description = "Exact fingerprint proposal, historical source provenance, all 17 moved locations, check results and the separate localization blocker."
+logical_id = "4a42b1e4-4551-445d-994f-2e3f126f7efa"
+content_hash = "sha256:552b3d02c4d9be8920e914de63a4f22c42cb3e7e7328a217fbbaef60d72a3bea"
+size = 8403
+mtime_ms = 1795054615214
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/4a42b1e4-4551-445d-994f-2e3f126f7efa/02ac6d59-4ab9-40d8-80cc-cb771987daae"
+storage_version_token = "1795054660884089"
+content_type = "text/markdown"

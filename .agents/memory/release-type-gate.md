@@ -116,6 +116,21 @@ Retain complete compiler stdout/stderr when diagnosing a fingerprint mismatch, n
 
 **How to apply:** Run the actual validator unchanged while capturing its compiler subprocess output to a temporary file (a Node spawnSync wrapper with syncBuiltinESMExports can do this). Keep its stable build-version handling and exact baseline comparison intact. Never suppress the new diagnostic or replace the reviewed fingerprint.
 
+## Reviewed source is not necessarily the baseline-changing commit
+
+Do not assume that a commit carrying an approved fingerprint contains exactly
+the source that produced the reviewed compiler output.
+
+**Why:** A baseline-changing commit also contained a later duplicate dictionary
+property that was absent from the approved output. Replaying that commit
+therefore added a diagnostic, despite identical compiler and dependency inputs.
+
+**How to apply:** Preserve the original replay. Verify source files against Git,
+record any authentic earlier-blob reconstruction explicitly, and require the
+unchanged historical gate to reproduce the approved fingerprint. Compare its
+complete output with the original reviewed capture when available; never drop
+a diagnostic from raw compiler output to manufacture that agreement.
+
 ## Locked-day target snapshot rule
 
 `onSaveDay` in builder pages must snapshot the same prescription-derived targets the RemainingMacrosFooter displays — **not** `getMacroTargets()` (localStorage cache). localStorage can be absent or stale. Use `prescription?.caloriesTarget` etc. directly, and guard with `if (!prescription || nutritionStateLoading) return` before the lockDay call.
