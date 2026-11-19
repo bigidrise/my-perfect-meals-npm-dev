@@ -1503,3 +1503,31 @@ mtime_ms = 1795108047283
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/b6e991cc-39aa-453d-b7e7-0d83fcf94b89/096d7511-80e4-41c8-a262-ac8ea699f4cc"
 storage_version_token = "1795108097371103"
 content_type = "text/html"
+
+[[outputs]]
+id = "3HT62c6ZMG_i6A6rh_jYH"
+uri = "file://.local/reports/pr478-bounded-corrections-final.html"
+type = "html"
+title = "PR #478 — bounded corrections and remaining holds"
+description = "Validation results, all 27 changed paths, exact six unchanged clinical explanations, preserved candidate inventory and every remaining review finding."
+logical_id = "ff21c27f-13ff-4783-a602-46fd59482795"
+content_hash = "sha256:5e88b7e327f612f3bb18982d7977c093611ef90b0cbfa5405989b892dbbf95b1"
+size = 264258
+mtime_ms = 1795109935514
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/ff21c27f-13ff-4783-a602-46fd59482795/ab6f0328-f025-4b65-b8b1-222e982bc4f1"
+storage_version_token = "1795109994468358"
+content_type = "text/html"
+
+[[outputs]]
+id = "-YgZ2dek0XOlCKttaUCxZ"
+uri = "file://.local/reports/pr478-remaining-review-findings.csv"
+type = "table"
+title = "PR #478 — remaining review register"
+description = "All 568 retained protected/dynamic review findings, with exact source locations, keys or calls and causes. No ordinary interface findings remain."
+logical_id = "d00d765a-e58d-44eb-b647-28212bf6abd1"
+content_hash = "sha256:7431049705d29e263fbd57724c633c9db4ad04760a75bb449b6243d6d1b18c5e"
+size = 212205
+mtime_ms = 1795109935502
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d00d765a-e58d-44eb-b647-28212bf6abd1/461c7703-fdd6-4f42-9a90-228925643cfa"
+storage_version_token = "1795109995487359"
+content_type = "text/csv"
