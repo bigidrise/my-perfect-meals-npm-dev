@@ -1433,3 +1433,17 @@ mtime_ms = 1795055092934
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/4a42b1e4-4551-445d-994f-2e3f126f7efa/31c393c3-23fe-42f7-9915-71a8ffeb646a"
 storage_version_token = "1795055118400688"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "jb4DLD6gYEgX_FlVluELf"
+uri = "file://.local/reports/pr478-release-recovery-diagnosis.html"
+type = "html"
+title = "PR #478 release recovery diagnosis"
+description = "Authentication findings, exact failing command, all 115 reproduced Phase 0 failures, preservation guidance and the approval-only recovery sequence."
+logical_id = "b275f0a2-1807-44b4-9825-580fd06b5313"
+content_hash = "sha256:30e3344b2c62b9e7987110d9e8d7fe3863dac62a698c747b07ed819138a1b12d"
+size = 39040
+mtime_ms = 1795101759603
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/b275f0a2-1807-44b4-9825-580fd06b5313/805f4f79-5809-4d7a-bce6-43f117faa9dd"
+storage_version_token = "1795101760732232"
+content_type = "text/html"
