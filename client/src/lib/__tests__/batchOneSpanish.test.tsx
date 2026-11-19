@@ -259,12 +259,50 @@ test("Menu keeps original generated ideas while localizing category and replacem
   expect(screen.getByRole("button", { name: "Probar 3 más" })).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Probar 3 más" }));
   expect(screen.getByText("¿Probar 3 ideas nuevas?")).toBeVisible();
+  for (const button of screen.getByRole("alertdialog").querySelectorAll("button")) {
+    expect(button.className).not.toMatch(/hover:/);
+    expect(button).toHaveClass("text-white", "min-h-11");
+  }
   captureReview("menu-replacement-dialog-es");
   fireEvent.click(screen.getByRole("button", { name: "Conservar estas ideas" }));
   expect(screen.getByText("ORIGINAL_IDEA_0")).toBeVisible();
   const posted = (global.fetch as jest.Mock).mock.calls.find(([url, init]) => String(url).endsWith("/concepts") && init?.method === "POST");
   expect(JSON.parse(posted![1].body).ideaType).toBe("breakfast");
   expect(mockGenerate).not.toHaveBeenCalled();
+});
+
+test("Menu snack-switch confirmation uses black glass, white copy and touch-first buttons", async () => {
+  const fallbackFetch = global.fetch;
+  global.fetch = jest.fn(async (url: any, init: any = {}) => {
+    if (String(url).endsWith("/concepts") && init.method === "POST") return {
+      ok: true, status: 200, json: async () => ({
+        builder: mockBuilder, concepts: [{
+          id: "offline-dessert", ideaType: "snack", snackType: "dessert",
+          title: "Coconut Mousse", description: "Coconut mousse with fresh mango.",
+        }],
+      }),
+    };
+    return fallbackFetch(url, init);
+  }) as any;
+  render(<MyPerfectMenu />);
+  await waitFor(() => expect(screen.queryByText("Restoring your saved menu ideas…")).not.toBeInTheDocument());
+  fireEvent.click(screen.getByRole("button", { name: /Snack Ideas/ }));
+  fireEvent.click(await screen.findByRole("button", { name: /Dessert Snack/ }));
+  expect(await screen.findByText("Coconut Mousse")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Change snack type" }));
+  fireEvent.click(await screen.findByRole("button", { name: /Food Snack/ }));
+  const dialog = await screen.findByRole("alertdialog");
+  expect(dialog).toHaveClass("bg-black/95", "text-white", "backdrop-blur-xl");
+  expect(screen.getByText("Replace your current snack ideas?")).toHaveClass("text-white");
+  expect(screen.getByText(/Switching snack types replaces/)).toHaveClass("text-white/80");
+  for (const button of dialog.querySelectorAll("button")) {
+    expect(button.className).not.toMatch(/hover:/);
+    expect(button).toHaveClass("text-white", "min-h-11");
+    expect(button).not.toHaveAttribute("disableHover");
+  }
+  fireEvent.click(screen.getByRole("button", { name: "Keep These Ideas" }));
+  expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  expect(screen.getByText("Coconut Mousse")).toBeVisible();
 });
 
 test.each([
