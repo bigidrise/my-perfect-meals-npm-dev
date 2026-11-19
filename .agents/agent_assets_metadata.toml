@@ -1559,3 +1559,17 @@ mtime_ms = 1795111407926
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d7603312-fec4-479d-9586-418ab81dee9e/4b3278b2-a2dd-404d-b4b9-dd414b3ec1ec"
 storage_version_token = "1795111466107583"
 content_type = "text/csv"
+
+[[outputs]]
+id = "Zbm8S8HjPOHq4EYh68wrS"
+uri = "file://.local/reconciliation/dev-production-20261119/docs/localization/release-clinical-approval-package.md"
+type = "text"
+title = "Six-explanation clinical approval package"
+description = "Exact held wording, current source locations, observed implementation, reviewer evidence requirements and no inferred approvals."
+logical_id = "d189d44b-8117-4432-ae56-00e4899195b8"
+content_hash = "sha256:e0d4a83d43f7a0e4dabd59880e06aa0f67cf05e35e697be0c26ca3c59b03f9ea"
+size = 7208
+mtime_ms = 1795112042441
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d189d44b-8117-4432-ae56-00e4899195b8/512780b1-335f-4c1a-999f-5b7f2caa4fc4"
+storage_version_token = "1795112382252730"
+content_type = "text/markdown"
