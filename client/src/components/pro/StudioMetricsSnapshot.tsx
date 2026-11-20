@@ -1,3 +1,4 @@
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { apiRequest } from "@/lib/apiRequest";
 import { Loader2, TrendingDown, TrendingUp, Minus, RefreshCw } from "lucide-react";
@@ -59,6 +60,7 @@ function DeltaBadge({ delta }: { delta: number }) {
 }
 
 export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapshotProps) {
+  const { t } = useConsumerCopy();
   const [todayMacros, setTodayMacros] = useState<MacroTotals | null>(null);
   const [dbTargets, setDbTargets] = useState<DbMacroTargets | null>(null);
   const [bodyComp, setBodyComp] = useState<BodyCompEntry | null>(null);
@@ -180,16 +182,16 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
   const rows = [
     { label: "Calories", target: targetCal, logged: todayMacros?.kcal ?? null, unit: "", color: "text-white" },
     { label: "Protein", target: targetProtein, logged: todayMacros?.protein ?? null, unit: "g", color: "text-blue-300" },
-    { label: "Total Carbs", target: targetCarbs, logged: todayMacros?.carbs ?? null, unit: "g", color: "text-orange-300" },
-    { label: "Starchy Carbs", target: dbTargets?.starchyCarbs_g ?? null, logged: todayMacros?.starchyCarbs ?? null, unit: "g", color: "text-orange-300" },
-    { label: "Fibrous Carbs", target: dbTargets?.fibrousCarbs_g ?? null, logged: todayMacros?.fibrousCarbs ?? null, unit: "g", color: "text-emerald-300" },
+    { label: t("Total Carbs"), target: targetCarbs, logged: todayMacros?.carbs ?? null, unit: "g", color: "text-orange-300" },
+    { label: t("Starchy Carbs"), target: dbTargets?.starchyCarbs_g ?? null, logged: todayMacros?.starchyCarbs ?? null, unit: "g", color: "text-orange-300" },
+    { label: t("Fibrous Carbs"), target: dbTargets?.fibrousCarbs_g ?? null, logged: todayMacros?.fibrousCarbs ?? null, unit: "g", color: "text-emerald-300" },
     { label: "Fat", target: targetFat, logged: todayMacros?.fat ?? null, unit: "g", color: "text-yellow-300" },
   ];
 
   return (
     <div className="space-y-3">
       <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-        <h4 className="text-xs font-medium text-white/60 mb-2">Active Macro Targets</h4>
+        <h4 className="text-xs font-medium text-white/60 mb-2">{t("Active Macro Targets")}</h4>
         {!hasTargets ? (
           <p className="text-xs text-white/30 text-center italic py-1">
             No macro targets set yet

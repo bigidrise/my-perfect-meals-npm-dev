@@ -55,6 +55,9 @@ jest.mock('@/components/ui/pill-button', () => ({ PillButton: () => null }));
 import React from 'react';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import i18next from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import { consumerEnglish } from '@/i18n/consumerJourney';
 import { post, get } from '@/lib/api';
 import GroceryStoreCoachSheet from '@/components/shopping/GroceryStoreCoachSheet';
 
@@ -128,11 +131,24 @@ async function renderAndGetMeal() {
 
 // ── Setup / teardown ──────────────────────────────────────────────────────────
 
+// Exercise real interpolation and the connected shopping catalog. Without an
+// initialized instance, the translated Replace title contains no item name.
+beforeAll(async () => {
+  await i18next.use(initReactI18next).init({
+    lng: 'en',
+    fallbackLng: 'en',
+    interpolation: { escapeValue: false },
+    resources: { en: { consumerJourney: consumerEnglish, shopping: {} } },
+  });
+});
+
 beforeEach(() => {
   localStorage.clear();
   jest.clearAllMocks();
+  jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
   setupMocks();
 });
+afterEach(() => jest.restoreAllMocks());
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Swap overlay opens with a clinical response (alternatives: [])

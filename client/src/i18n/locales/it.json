@@ -1,4 +1,32 @@
 {
+  "measurementPreferences": {
+    "title": "Preferenze di misurazione",
+    "country": "Paese",
+    "system": "Sistema di misura",
+    "auto": "Automatico",
+    "imperial": "Unità statunitensi",
+    "metric": "Metrico",
+    "country_US": "Stati Uniti",
+    "country_CA": "Canada",
+    "country_AU": "Australia",
+    "country_UK": "Regno Unito",
+    "country_NZ": "Nuova Zelanda",
+    "resolved": "Automatico: {{system}} · {{country}}",
+    "hint": "La modalità automatica segue il Paese salvato, non la lingua o il dispositivo. Se non è stato salvato alcun Paese, vengono usati gli Stati Uniti. Le scelte manuali restano invariate quando cambia il Paese.",
+    "saveFailed": "Impossibile salvare le preferenze di misurazione. Le scelte sono conservate qui; riprova.",
+    "refreshFailed": "Le scelte sono state salvate, ma non è stato possibile aggiornarle. Rimani qui e riprova per confermarle.",
+    "equivalent": "Equivalente: {{quantity}}",
+    "invalidQuantity": "Inserisci un numero o una frazione chiari. La quantità salvata non è stata modificata.",
+    "periodQuantity": "{{quantity}} in questo periodo",
+    "weekQuantity": "{{quantity}} questa settimana",
+    "currentAverage": "Media attuale",
+    "weeklyChange": "Variazione settimanale",
+    "totalChange": "Variazione totale",
+    "weightLabel": "Peso ({{unit}})",
+    "waistLabel": "Vita ({{unit}})",
+    "quantityPlaceholder": "es. {{quantity}}",
+    "fluidOunces": "fl oz"
+  },
   "localeFoundation": {
     "wakingUp": "Preparazione del tuo motore dei pasti…",
     "startupHint": "Il primo caricamento richiede qualche secondo in più. Un momento!",
@@ -132,6 +160,9 @@
     "adjustPreferences": "Modifica le mie preferenze"
   },
   "language": {
+    "enDesc": "Usa l’inglese per l’interfaccia, indipendentemente dalla lingua di questo dispositivo.",
+    "esDesc": "Usa lo spagnolo per l’interfaccia, indipendentemente dalla lingua di questo dispositivo. Alcune funzioni potrebbero ancora apparire in inglese.",
+    "measurementLink": "Paese e misure in Modifica profilo",
     "pageTitle": "Lingua",
     "intro": "My Perfect Meals genera nomi di pasti, ricette, consigli su ristoranti, indicazioni per la spesa e risposte di coaching nativamente nella tua lingua.",
     "auto": "Automatico (Dispositivo)",

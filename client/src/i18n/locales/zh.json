@@ -1,4 +1,32 @@
 {
+  "measurementPreferences": {
+    "title": "计量偏好",
+    "country": "国家",
+    "system": "计量单位制",
+    "auto": "自动",
+    "imperial": "美制",
+    "metric": "公制",
+    "country_US": "美国",
+    "country_CA": "加拿大",
+    "country_AU": "澳大利亚",
+    "country_UK": "英国",
+    "country_NZ": "新西兰",
+    "resolved": "自动：{{system}} · {{country}}",
+    "hint": "自动模式依据您保存的国家，而非语言或设备。未保存国家时使用美国。更改国家不会改变手动选择。",
+    "saveFailed": "无法保存计量偏好。您的选择仍保留在此处，请重试。",
+    "refreshFailed": "您的选择已保存，但无法刷新。请留在此页重试以确认。",
+    "equivalent": "等值：{{quantity}}",
+    "invalidQuantity": "请输入明确的数字或分数。已保存的数量未被更改。",
+    "periodQuantity": "本期 {{quantity}}",
+    "weekQuantity": "本周 {{quantity}}",
+    "currentAverage": "当前平均值",
+    "weeklyChange": "每周变化",
+    "totalChange": "总变化",
+    "weightLabel": "体重（{{unit}}）",
+    "waistLabel": "腰围（{{unit}}）",
+    "quantityPlaceholder": "例如 {{quantity}}",
+    "fluidOunces": "液量盎司"
+  },
   "localeFoundation": {
     "wakingUp": "正在准备您的膳食引擎…",
     "startupHint": "首次加载需要多几秒钟，请稍候！",
@@ -132,6 +160,9 @@
     "adjustPreferences": "调整我的偏好"
   },
   "language": {
+    "enDesc": "无论此设备使用何种语言，界面均使用英语。",
+    "esDesc": "无论此设备使用何种语言，界面均使用西班牙语。部分功能可能仍以英语显示。",
+    "measurementLink": "在编辑个人资料中设置国家和计量单位",
     "pageTitle": "语言",
     "intro": "My Perfect Meals 以您的语言原生生成餐食名称、食谱、餐厅推荐、购物指导和教练回应。",
     "auto": "自动（设备）",

@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "file": "client/src/pages/AcademyLandingPage.tsx",
+      "proposedKey": "academylandingpage.clinical_deep_dives",
+      "text": "Clinical Deep Dives",
+      "disposition": "retired",
+      "sourceSha256": "9f8efb97144168360374bb3496de0e9ed0168b0d41143b8b25c4862858b86e96",
+      "reason": "Approved retirement of an already-removed Coming Soon heading/topic; no active replacement.",
+      "evidence": "docs/localization/release-recovery-clinical-source-review.md"
+    },
+    {
+      "file": "client/src/pages/AcademyLandingPage.tsx",
+      "proposedKey": "academylandingpage.diabetes_nutrition",
+      "text": "Diabetes Nutrition",
+      "disposition": "retired",
+      "sourceSha256": "9f8efb97144168360374bb3496de0e9ed0168b0d41143b8b25c4862858b86e96",
+      "reason": "Approved retirement of an already-removed Coming Soon heading/topic; no active replacement.",
+      "evidence": "docs/localization/release-recovery-clinical-source-review.md"
+    },
+    {
+      "file": "client/src/pages/AcademyLandingPage.tsx",
+      "proposedKey": "academylandingpage.glp1_support",
+      "text": "GLP-1 Support",
+      "disposition": "retired",
+      "sourceSha256": "9f8efb97144168360374bb3496de0e9ed0168b0d41143b8b25c4862858b86e96",
+      "reason": "Approved retirement of an already-removed Coming Soon heading/topic; no active replacement.",
+      "evidence": "docs/localization/release-recovery-clinical-source-review.md"
+    },
+    {
+      "file": "client/src/pages/academy/AcademyHome.tsx",
+      "proposedKey": "academyhome.diabetes_nutrition",
+      "text": "Diabetes Nutrition",
+      "disposition": "retired",
+      "sourceSha256": "78d51b92575422d6affc8d6c7127cdd017f2c142e5f45b83678ada0ade5e4582",
+      "reason": "Approved retirement of an already-removed Coming Soon heading/topic; no active replacement.",
+      "evidence": "docs/localization/release-recovery-clinical-source-review.md"
+    },
+    {
+      "file": "client/src/pages/academy/AcademyHome.tsx",
+      "proposedKey": "academyhome.glp1_support",
+      "text": "GLP-1 Support",
+      "disposition": "retired",
+      "sourceSha256": "78d51b92575422d6affc8d6c7127cdd017f2c142e5f45b83678ada0ade5e4582",
+      "reason": "Approved retirement of an already-removed Coming Soon heading/topic; no active replacement.",
+      "evidence": "docs/localization/release-recovery-clinical-source-review.md"
+    },
+    {
+      "file": "client/src/pages/physician/DiabeticMenuBuilder.tsx",
+      "proposedKey": "diabeticmenubuilder.diabetes_hub",
+      "text": "Diabetes Hub",
+      "disposition": "localized-display-owner",
+      "sourceSha256": "9db503a91ceab930724ce05becd046afc37b2f6d6f1a4d4cd80c5c720ae3b4c8",
+      "reason": "Unchanged English navigation label now owned by its existing EN/ES dictionary and bound translation call.",
+      "evidence": "docs/localization/release-recovery-clinical-source-review.md",
+      "resource": {
+        "namespace": "translation",
+        "key": "diabeticBuilder.backLabel"
+      }
+    }
+  ]
+}

@@ -19,6 +19,10 @@
 import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
+import { createRequire } from "node:module";
+const requireValidation = createRequire(import.meta.url);
+const { validateSourceDispositions } = requireValidation("./localization-check/clinical-source.cjs");
+const { loadResources } = requireValidation("./localization-check/resources.cjs");
 
 const CI_MODE = process.argv.includes("--ci");
 const LOCALES_DIR = path.resolve("client/src/i18n/locales");
@@ -172,7 +176,18 @@ if (!fs.existsSync(CLINICAL_REGISTRY)) {
   // are still hardcoded (pre-migration).
   let sourceMissing = 0;
   const sourceCache = new Map<string, string | null>();
-  for (const s of (registry.allStrings ?? []) as Array<{ file: string; line: number; text: string }>) {
+  let dispositions = new Map<string, string>();
+  const dispositionsPath = "docs/localization/release-source-dispositions.json";
+  if (fs.existsSync(dispositionsPath)) {
+    try {
+      const read = (file: string) => fs.readFileSync(path.resolve(file), "utf8");
+      dispositions = validateSourceDispositions(registry, JSON.parse(read(dispositionsPath)), read, loadResources(read));
+      pass(`${dispositions.size} exact clinical source dispositions verified; registry identities and translation-review requirements retained`);
+    } catch (error) {
+      fail(`Clinical source disposition invalid: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  for (const s of (registry.allStrings ?? []) as Array<{ file: string; line: number; text: string; proposedKey: string }>) {
     if (!sourceCache.has(s.file)) {
       sourceCache.set(s.file, fs.existsSync(s.file) ? fs.readFileSync(s.file, "utf8") : null);
     }
@@ -180,7 +195,7 @@ if (!fs.existsSync(CLINICAL_REGISTRY)) {
     if (src === null) {
       sourceMissing++;
       fail(`Clinical source file missing: ${s.file} — registry is stale or file deleted without clinical sign-off`);
-    } else if (!src!.includes(s.text)) {
+    } else if (!src!.includes(s.text) && !dispositions.has(`${s.file}#${s.proposedKey}`)) {
       sourceMissing++;
       fail(`Clinical string changed/removed without controlled process: ${s.file}:${s.line} "${s.text.slice(0, 60)}${s.text.length > 60 ? "…" : ""}" — regenerate registry with [clinical-translation] sign-off`);
     }

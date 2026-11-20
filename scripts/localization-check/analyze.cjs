@@ -1,5 +1,6 @@
 const ts = require("typescript");
 const { unwrap, lookup, variables, protectedWords } = require("./resources.cjs");
+const { displayConnection } = require("./display-owners.cjs");
 const literal = node => {
   node = unwrap(node);
   return node && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) ? node.text : null;
@@ -12,7 +13,7 @@ function scopeOf(node) {
   for (let p = node.parent; p; p = p.parent)
     if (ts.isSourceFile(p) || ts.isFunctionLike(p) || ts.isBlock(p)) return p;
 }
-function analyze(owner, text, resources, protectedTexts = new Set()) {
+function analyze(owner, text, resources, protectedTexts = new Set(), displayOwners = new Map()) {
   const ast = ts.createSourceFile(owner, text, ts.ScriptTarget.Latest, true, /\.[jt]sx$/.test(owner) ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
   if (ast.parseDiagnostics.length) throw Error(`Cannot parse ${owner}: ${ts.flattenDiagnosticMessageText(ast.parseDiagnostics[0].messageText, " ")}`);
   const imports = new Map(), bindings = new Map(), connected = new Set(), records = [];
@@ -150,11 +151,27 @@ function analyze(owner, text, resources, protectedTexts = new Set()) {
       : literal(node);
     if (value === null) return;
     const parent = node.parent;
+    // Comparison operands are machine state/enum values, not rendered branches.
+    // Their surrounding JSX and the actual displayed alternatives remain scanned.
+    if (ts.isBinaryExpression(parent) && [
+      ts.SyntaxKind.EqualsEqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsEqualsToken,
+      ts.SyntaxKind.EqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsToken,
+    ].includes(parent.operatorToken.kind)) return;
+    // A template with only runtime substitutions has no authored interface copy.
+    if (ts.isTemplateExpression(node) &&
+        !/[A-Za-zÀ-ž]{2}/.test(node.head.text + node.templateSpans.map(span => span.literal.text).join(""))) return;
     // Ignore resource/technical attributes including event-handler source and CSS.
     for (let p = node; p && !ts.isSourceFile(p); p = p.parent) {
       if (ts.isFunctionLike(p)) break; // Notification producers inside event callbacks still count.
       if (ts.isJsxAttribute(p)) {
         const name = p.name.getText(ast);
+        const connection = displayConnection(p, imports, displayOwners, node);
+        if (connection) {
+          if ([connection.en, connection.es, value].some(text => protectedWords.test(text) || protectedTexts.has(normalize(text))))
+            add(node, `${connection.namespace}:${connection.key}`, "connection", "protected-review",
+              "Shared display owner connects EN/ES; protected wording review remains required.");
+          return;
+        }
         if (displayNames.test(name)) add(node, value, `attribute:${name}`, "interface");
         return;
       }

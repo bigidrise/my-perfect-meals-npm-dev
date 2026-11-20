@@ -45,7 +45,7 @@ export default function CoachCornerCard() {
                 src="/assets/ask-chef-desk-160.webp"
                 srcSet="/assets/ask-chef-desk-160.webp 160w, /assets/ask-chef-desk-240.webp 240w, /assets/ask-chef-desk.webp 500w"
                 sizes="(min-width: 640px) 80px, 72px"
-                alt="Flame Chef"
+                alt={t("Flame Chef")}
                 width={80}
                 height={80}
                 className="h-full w-full object-cover"
@@ -59,7 +59,7 @@ export default function CoachCornerCard() {
               <h3 className="font-bold leading-none tracking-tight text-white">
                 <img
                   src="/assets/ask-chef-wordmark.webp"
-                  alt="Ask Chef"
+                  alt={t("Ask Chef")}
                   width={600}
                   height={200}
                   className="h-[3.12rem] w-auto max-w-full object-contain object-left sm:h-[3.96rem]"

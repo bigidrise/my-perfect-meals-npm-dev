@@ -608,20 +608,20 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
       result={buildResultFromSavedItem(displayedItem!)}
       savedContext={<section className="rounded-xl border border-white/20 p-3 my-3 text-sm space-y-2">
         <p>{savedAnalysisKind(displayedItem!) === "full" ? "Analysis saved" : savedAnalysisKind(displayedItem!) === "recommendation" ? "Recommendation saved" : "Saved product — original analysis may be unavailable"}</p>
-        {itemPackageSize(displayedItem!) && <p>Package: <ProductLabelQuantity label={itemPackageSize(displayedItem!)} /></p>}
+        {itemPackageSize(displayedItem!) && <p>{t("Package:")} <ProductLabelQuantity label={itemPackageSize(displayedItem!)} /></p>}
         <p>{savedProductStatus(analysisItem)}</p>
         {analysisItem.compliance.reason && <p>{analysisItem.compliance.reason}</p>}
         <p>Saving analysis does not verify the current label. Historical analysis is not current safety approval.</p>
         {/certif/i.test(analysisItem.compliance.reason || "") && <p>An ingredient photo alone cannot establish independent certification.</p>}
-        {!!analysisItem.productMeta?.evidenceHistory?.length && <label>Evidence version{" "}
-          <select aria-label="Evidence version" className="bg-slate-800 p-2" value={historyIndex} onChange={e => setHistoryIndex(Number(e.target.value))}>
-            <option value={-1}>Current saved analysis</option>
+        {!!analysisItem.productMeta?.evidenceHistory?.length && <label>{t("Evidence version")}{" "}
+          <select aria-label={t("Evidence version")} className="bg-slate-800 p-2" value={historyIndex} onChange={e => setHistoryIndex(Number(e.target.value))}>
+            <option value={-1}>{t("Current saved analysis")}</option>
             {analysisItem.productMeta.evidenceHistory.map((_: unknown, i: number) => <option key={i} value={i}>Previous evidence {i + 1}</option>)}
           </select>
         </label>}
         {onVerifyProduct && <button className="border border-orange-400 rounded-lg p-2" onClick={() => {
           setAnalysisItem(null); onOpenChange(false); onVerifyProduct(analysisItem);
-        }}>Scan current ingredient label</button>}
+        }}>{t("Scan current ingredient label")}</button>}
         {analysisItem.compliance.category === "profile_unavailable" && <button className="border rounded-lg p-2" onClick={async () => {
           await fetchItems(); setAnalysisItem(null);
         }}>Retry current profile check</button>}

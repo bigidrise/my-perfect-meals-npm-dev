@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import React from "react";
 import {
   CopilotContextInfo,
@@ -20,16 +21,16 @@ export const buildBaseSuggestions = (
     return [
       {
         id: "menu-how-it-works",
-        label: "How does My Perfect Menu work?",
-        description: "Learn how My Perfect Menu helps you choose, then creates the meal and adds it to your plan.",
+        label: i18n.t("How does My Perfect Menu work?", { ns: "consumerJourney", keySeparator: false, nsSeparator: false }),
+        description: i18n.t("Learn how My Perfect Menu helps you choose, then creates the meal and adds it to your plan.", { ns: "consumerJourney", keySeparator: false, nsSeparator: false }),
         badge: "My Perfect Menu",
         emphasis: "high",
         action: makeAction({ type: "navigate", to: "/learn?topic=my-perfect-menu" }),
       },
       {
         id: "menu-food-preferences",
-        label: "Improve my menu choices",
-        description: "Update Foods I Enjoy so future suggestions better match your tastes.",
+        label: i18n.t("Improve my menu choices", { ns: "consumerJourney", keySeparator: false, nsSeparator: false }),
+        description: i18n.t("Update Foods I Enjoy so future suggestions better match your tastes.", { ns: "consumerJourney", keySeparator: false, nsSeparator: false }),
         badge: "Personalize",
         emphasis: "medium",
         action: makeAction({ type: "navigate", to: "/foods-i-enjoy/preferences" }),

@@ -1,3 +1,4 @@
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 // client/src/components/shopping/GroceryExportModal.tsx
 // Grocery export modal — one item per retailer search.
 //
@@ -34,6 +35,7 @@ export default function GroceryExportModal({
   defaultRetailerId = "walmart",
   onClose,
 }: GroceryExportModalProps) {
+  const { t } = useConsumerCopy();
   const [activeRetailerId, setActiveRetailerId] =
     useState<GroceryRetailerId>(defaultRetailerId);
   const [opened, setOpened] = useState<Set<string>>(new Set());
@@ -85,7 +87,7 @@ export default function GroceryExportModal({
           </div>
           <button
             onClick={onClose}
-            aria-label="Close Shop Online"
+            aria-label={t("Close Shop Online")}
             className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 active:text-white transition-colors"
           >
             <X className="h-4 w-4" />

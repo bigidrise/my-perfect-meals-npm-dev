@@ -5,6 +5,7 @@ const crypto = require("node:crypto");
 const { execFileSync } = require("node:child_process");
 const { analyze, introduced, normalize } = require("./analyze.cjs");
 const { loadResources, resourceFindings } = require("./resources.cjs");
+const { loadDisplayOwners } = require("./display-owners.cjs");
 const configPath = "docs/localization/new-interface-text.json";
 const hash = text => crypto.createHash("sha256").update(text).digest("hex");
 const inScope = file => /^(client\/src|server|shared)\/.*\.[jt]sx?$/.test(file) &&
@@ -33,6 +34,7 @@ function check(root, { base: explicitBase } = {}) {
     ...git("ls-files", "--others", "--exclude-standard", "--", "client/src", "server", "shared").split("\n"),
   ].filter(inScope));
   const beforeResources = loadResources(oldRead), afterResources = loadResources(read);
+  const beforeDisplays = loadDisplayOwners(oldRead, beforeResources), afterDisplays = loadDisplayOwners(read, afterResources);
   function protectedTexts(reader) {
     const registry = JSON.parse(reader("docs/localization/clinical-registry.json"));
     return new Set((registry.allStrings || []).map(item => normalize(item.text)));
@@ -43,8 +45,8 @@ function check(root, { base: explicitBase } = {}) {
   for (const file of [...changed].sort()) {
     if (!fs.existsSync(path.join(root, file))) continue; // Deletions cannot introduce rendered copy.
     const text = read(file);
-    const previous = baseFiles.has(file) ? analyze(file, oldRead(file), beforeResources, beforeProtected) : [];
-    findings.push(...introduced(previous, analyze(file, text, afterResources, afterProtected)));
+    const previous = baseFiles.has(file) ? analyze(file, oldRead(file), beforeResources, beforeProtected, beforeDisplays) : [];
+    findings.push(...introduced(previous, analyze(file, text, afterResources, afterProtected, afterDisplays)));
     scanned++;
   }
   const applied = [], seen = new Set();

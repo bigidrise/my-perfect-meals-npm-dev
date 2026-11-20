@@ -720,6 +720,17 @@ export default function ShoppingListMasterView() {
               {t("Voice Add")}
             </Button>
             <Button
+              onClick={() => {
+                setBarcodeScanMode("manual");
+                setBarcodeModalOpen(true);
+              }}
+              className="bg-black/60 border border-white/20 text-white hover:bg-black/70 text-sm"
+              size="sm"
+              data-testid="button-barcode-scan"
+            >
+              {t("Scan Barcode")}
+            </Button>
+            <Button
               data-wt="msl-bulk-add-button"
               onClick={() => setBulkModalOpen(true)}
               className="bg-black/60 border border-white/20 text-white hover:bg-black/70 text-sm"
