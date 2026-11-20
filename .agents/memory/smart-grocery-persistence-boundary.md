@@ -23,7 +23,12 @@ ingredient without replacing its name or recipe quantity; allow change/clear.
 The founder confirmed Find a Product's generic-to-branded personalized
 recommendation experience as the intended source for Shopping List options.
 Reuse that experience rather than treating a parallel catalog-only presentation
-as equivalent. Independently enforce the existing selection requirements:
+as equivalent. Reuse the actual Find a Product recommendation presentation
+where practical; sharing its service or explanation text alone is not sufficient.
+The founder explicitly rejected simply restyling ShoppingProductPicker and
+calling it the same experience. Report the reusable components and minimal
+adapter first, then obtain approval before changing that implementation.
+Independently enforce the existing selection requirements:
 an AI recommendation or Add/Save action does not establish verified eligibility.
 Show up to three eligible branded choices without weakening rules to fill the
 count. Preserve existing Product Scan identity and require explicit alternative
