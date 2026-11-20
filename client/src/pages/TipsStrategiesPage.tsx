@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft, ChevronDown, ChevronUp, Lightbulb, BookOpen, Bot, Library, Wrench, ChevronRight } from "lucide-react";
@@ -292,7 +293,7 @@ export default function TipsStrategiesPage() {
             onClick={() => setLocation("/more")}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
           >
-            <ArrowLeft className="h-4 w-4" /> Back
+            <ArrowLeft className="h-4 w-4" /> <BackNavigationLabel />
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-white">Tips & Strategies</h1>

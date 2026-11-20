@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Award, CheckCircle2, Download } from "lucide-react";
@@ -264,7 +265,7 @@ export default function PlatformMasteryComplete() {
           onClick={() => setLocation("/academy")}
           className="w-full p-3 rounded-2xl text-white/60 font-medium text-sm active:scale-[0.98] transition-transform"
         >
-          Back to Academy
+          <BackNavigationLabel label="Back to Academy" />
         </button>
       </div>
     </motion.div>

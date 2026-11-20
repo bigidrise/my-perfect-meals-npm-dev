@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import React, { useState } from "react";
 import {
   Box,
@@ -69,7 +70,7 @@ const Step4: React.FC<Step4Props> = ({ nextStep, prevStep }) => {
       </Grid>
 
       <Box mt={3} display="flex" justifyContent="space-between">
-        <Button onClick={prevStep}>Back</Button>
+        <Button onClick={prevStep}><BackNavigationLabel /></Button>
         <Button variant="contained" color="primary" onClick={handleContinue}>
           Continue
         </Button>

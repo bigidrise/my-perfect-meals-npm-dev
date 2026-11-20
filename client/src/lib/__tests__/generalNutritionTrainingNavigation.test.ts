@@ -13,7 +13,7 @@ const read = (file: string) => fs.readFileSync(path.join(process.cwd(), file), "
 describe("General Nutrition training schedule connection", () => {
   it("opens the schedule directly above the weekly panel, without toggling mode", () => {
     const source = read("client/src/pages/pro/GeneralNutritionBuilder.tsx");
-    const label = source.indexOf(">Training Nutrition Schedule</p>");
+    const label = source.indexOf('{t("Training Nutrition Schedule")}</p>');
     expect(label).toBeGreaterThan(0);
     expect(label).toBeLessThan(source.indexOf("{/* ROW 1: Week Navigation */}"));
     expect(source).toContain('onClick={() => setLocation("/general-nutrition/training")}');

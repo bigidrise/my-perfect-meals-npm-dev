@@ -16,7 +16,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import { useProUnreadCount } from "@/hooks/useProUnreadCount";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import type { WorkspaceAvailability } from "@shared/workspaceAvailability";
 import {
   fetchWorkspaceAvailability,
@@ -180,13 +180,13 @@ export default function DesktopLayout({ children }: Props) {
           {availability && (
             <button onClick={() => setShowWorkspaceChooser(true)}
               className="mx-3 mb-3 rounded-lg border border-white/20 px-3 py-2 text-left text-sm text-white/80">
-              Workspaces{availability.organization.available ? " · Business / Organization" : ""}
+              {t("Workspaces")}{availability.organization.available ? ` · ${t("Business / Organization")}` : ""}
             </button>
           )}
           {workspaceError && (
             <div role="alert" className="mx-3 mb-3 rounded-lg border border-amber-500/30 p-3 text-xs text-amber-200">
-              Workspace discovery failed. Studio and Organization access could not be determined.
-              <button className="mt-2 block underline" onClick={() => window.location.reload()}>Retry workspace discovery</button>
+              {t("Workspace discovery failed. Studio and Organization access could not be determined.")}
+              <button className="mt-2 block underline" onClick={() => window.location.reload()}>{t("Retry workspace discovery")}</button>
             </div>
           )}
           {availability?.restriction && (

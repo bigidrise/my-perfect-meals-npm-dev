@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import "@/styles/entry-readability.css";
+import { entryReadabilityClassName } from "@/styles/entryReadabilityGate";
 import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { login, signUp, getProCareSignupData, getAuthHeaders } from "@/lib/auth";
@@ -14,11 +16,16 @@ import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck
 import { MfaChallengeModal } from "@/components/MfaChallengeModal";
 import { MfaSetupSection } from "@/components/MfaSetupSection";
 import { createProfessionalLegalRecoveryUrl } from "@/lib/professionalLegalRecovery";
+import { professionalAgreementsAreCurrent } from "@/lib/professionalLegalStatus";
+import { isCanonicalPractitionerRole } from "@shared/professionalRoles";
 import { saveNewAccountProfessionalDraft, professionalRequestsEnabled } from "@/lib/professionalOnboarding";
 import { IS_DEVELOPMENT } from "@/lib/developmentAuthRoutes";
 import { pendingBusinessPilotReturn } from "@/lib/businessPilotEntrance";
 
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+
 export default function Auth() {
+  const { t } = useConsumerCopy();
   const [, setLocation] = useLocation();
   const search = useSearch();
   const { user, setUser, refreshUser } = useAuth();
@@ -192,15 +199,23 @@ export default function Auth() {
       return;
     }
 
+    const fullUser = await refreshUser();
+    if (fullUser?.isProCare && isCanonicalPractitionerRole(fullUser.professionalRole)) {
+      if (!(await professionalAgreementsAreCurrent(fullUser.professionalRole))) {
+        setLocation(createProfessionalLegalRecoveryUrl(
+          urlReturnTo || "/professional-dashboard", "professional-workspace", fullUser.id,
+        ));
+        return;
+      }
+    }
+
     // If a returnTo path was preserved (e.g. /join/studio after a ProCare invite
     // deep-link redirected an unauthenticated user to login), send them there now.
     if (urlReturnTo) {
-      try { await refreshUser(); } catch { /* non-fatal */ }
       setLocation(urlReturnTo);
       return;
     }
 
-    const fullUser = await refreshUser();
     const onboardingDone = fullUser?.onboardingCompletedAt;
 
     const isBusinessUser = fullUser?.professionalRole === "business";
@@ -331,12 +346,12 @@ export default function Auth() {
 
   if (showMfaEnrollment) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 text-white bg-gradient-to-br from-neutral-700 via-black to-black">
+      <div className={`min-h-screen flex items-center justify-center p-6 text-white bg-gradient-to-br from-neutral-700 via-black to-black ${entryReadabilityClassName}`}>
         <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/70 p-6 shadow-2xl">
           <div className="mb-5">
-            <h1 className="text-xl font-semibold text-white">Secure your account</h1>
+            <h1 className="text-xl font-semibold text-white">{t("Secure your account")}</h1>
             <p className="mt-2 text-sm text-white/60">
-              Two-factor authentication is required for privileged access. Set it up to continue.
+              {t("Two-factor authentication is required for privileged access. Set it up to continue.")}
             </p>
           </div>
           <MfaSetupSection
@@ -357,7 +372,7 @@ export default function Auth() {
 
   if (showMfaChallenge) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 text-white bg-gradient-to-br from-neutral-700 via-black to-black">
+      <div className={`min-h-screen flex items-center justify-center p-6 text-white bg-gradient-to-br from-neutral-700 via-black to-black ${entryReadabilityClassName}`}>
         <MfaChallengeModal
           onSuccess={async (u: User) => {
             try {
@@ -375,15 +390,14 @@ export default function Auth() {
   }
 
   if (showWorkspaceChooser) {
-    return (
-      <WorkspaceChooser
-        onSelected={() => setShowWorkspaceChooser(false)}
-      />
-    );
+    const chooser = <WorkspaceChooser onSelected={() => setShowWorkspaceChooser(false)} />;
+    return entryReadabilityClassName
+      ? <div className={entryReadabilityClassName}>{chooser}</div>
+      : chooser;
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 text-white bg-gradient-to-br from-neutral-700 via-black to-black">
+    <div className={`min-h-screen flex items-center justify-center p-6 text-white bg-gradient-to-br from-neutral-700 via-black to-black ${entryReadabilityClassName}`}>
       <div className="relative isolate w-full max-w-sm rounded-2xl p-6
                       bg-black/25 backdrop-blur-xl border border-white/10 shadow-xl">
         <span className="absolute inset-0 -z-0 pointer-events-none rounded-2xl
@@ -396,8 +410,8 @@ export default function Auth() {
             </svg>
             <p className="text-xs text-orange-200">
               {isSessionExpired
-                ? "Your session has expired. Please sign in again to continue."
-                : "You were signed out after a period of inactivity. Please sign in again to continue."}
+                ? t("Your session has expired. Please sign in again to continue.")
+                : t("You were signed out after a period of inactivity. Please sign in again to continue.")}
             </p>
           </div>
         )}
@@ -406,7 +420,7 @@ export default function Auth() {
           <div className="relative z-10 mb-4 flex justify-center">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-900/40 rounded-full border border-blue-400/30">
               <Stethoscope className="w-4 h-4 text-blue-400" />
-              <span className="text-xs font-semibold text-blue-300">Team Invitation</span>
+              <span className="text-xs font-semibold text-blue-300">{t("Team Invitation")}</span>
             </div>
           </div>
         )}
@@ -416,7 +430,7 @@ export default function Auth() {
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-900/40 rounded-full border border-blue-400/30">
               <Stethoscope className="w-4 h-4 text-blue-400" />
               <span className="text-xs font-semibold text-blue-300">
-                {urlRole === "trainer" ? "Trainer Account" : urlRole === "physician" ? "Physician Account" : urlRole === "business" ? "Business Account" : "Professional Account"}
+                {urlRole === "trainer" ? t("Trainer Account") : urlRole === "physician" ? t("Physician Account") : urlRole === "business" ? t("Business Account") : t("Professional Account")}
               </span>
             </div>
           </div>
@@ -424,35 +438,36 @@ export default function Auth() {
 
         <h1 className="relative z-10 text-2xl font-bold mb-1">
           {urlInvite
-            ? mode === "signup" ? "Join Your Team" : "Sign In to Accept Invite"
+            ? mode === "signup" ? t("Join Your Team") : t("Sign In to Accept Invite")
             : mode === "signup"
-            ? urlRole === "trainer" ? "Create Trainer Account"
-            : urlRole === "physician" ? "Create Physician Account"
-            : urlRole === "business" ? "Create Business Account"
-            : isProCare ? "Create Professional Account"
-            : "Create Your Account"
-            : "Welcome Back"}
+            ? urlRole === "trainer" ? t("Create Trainer Account")
+            : urlRole === "physician" ? t("Create Physician Account")
+            : urlRole === "business" ? t("Create Business Account")
+            : isProCare ? t("Create Professional Account")
+            : t("Create Your Account")
+            : t("Welcome Back")}
         </h1>
         <p className="relative z-10 text-sm text-white/85 mb-6">
           {urlInvite
             ? mode === "signup"
-              ? "Create an account with the email address that received the invite to join your team."
-              : "Sign in with the email address that received the invite."
+              ? t("Create an account with the email address that received the invite to join your team.")
+              : t("Sign in with the email address that received the invite.")
             : mode === "signup" && (isProCare || urlRole)
-            ? "Enter your email and a password to get started."
+            ? t("Enter your email and a password to get started.")
             : mode === "signup"
-            ? "Enter your email and a password to get started."
-            : "Sign in with your email and password."}
+            ? t("Enter your email and a password to get started.")
+            : t("Sign in with your email and password.")}
         </p>
 
         <form onSubmit={onSubmit} className="relative z-10">
           <input
             type="email"
-            placeholder="Email"
+            aria-label={t("Email")}
+            placeholder={t("Email")}
             className="w-full p-3 mb-3 rounded-xl
                        bg-white/10 border border-white/20
                        text-white placeholder-white/60
-                       focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
+                       focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -460,11 +475,12 @@ export default function Auth() {
           <div className="space-y-2 mb-2">
             <input
               type={showPassword ? "text" : "password"}
-              placeholder="Password"
+              aria-label={t("Password")}
+              placeholder={t("Password")}
               className="w-full h-12 px-3 rounded-xl
                          bg-white/10 border border-white/20
                          text-white placeholder-white/60
-                         focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
+                         focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
               required
               minLength={mode === "signup" ? 12 : undefined}
               autoCorrect="off"
@@ -472,14 +488,14 @@ export default function Auth() {
               value={pwd}
               onChange={(e) => setPwd(e.target.value)}
             />
-            <label className="flex items-center gap-2 text-sm text-white/80 select-none cursor-pointer">
+            <label className="mpm-show-password flex items-center gap-2 text-sm text-white/80 select-none cursor-pointer">
               <input
                 type="checkbox"
                 checked={showPassword}
                 onChange={(e) => setShowPassword(e.target.checked)}
                 className="h-4 w-4 rounded border-white/30 bg-white/10 text-orange-500 focus:ring-orange-500/50"
               />
-              Show password
+              {t("Show password")}
             </label>
           </div>
 
@@ -488,17 +504,17 @@ export default function Auth() {
               <button
                 type="button"
                 onClick={() => setLocation("/forgot-password")}
-                className="text-xs text-indigo-300 underline active:scale-[0.98]"
+                className="mpm-forgot-password text-xs text-indigo-300 underline active:scale-[0.98]"
                 data-testid="link-forgot-password"
               >
-                Forgot password?
+                {t("Forgot password?")}
               </button>
             </div>
           )}
 
           {err && (
             <div className="text-sm text-red-300 mb-3">
-              {err}
+              {t(err)}
               {mode === "login" && loginFailCount >= 1 && (
                 <span>
                   {" "}
@@ -507,7 +523,7 @@ export default function Auth() {
                     onClick={() => setLocation("/forgot-password")}
                     className="underline text-orange-300 font-medium"
                   >
-                    Reset your password?
+                    {t("Reset your password?")}
                   </button>
                 </span>
               )}
@@ -522,7 +538,7 @@ export default function Auth() {
             <span className="absolute inset-0 -z-0 pointer-events-none rounded-xl
                              bg-gradient-to-r from-white/10 via-transparent to-transparent" />
             <span className="relative z-10">
-              {mode === "signup" ? "Create Account" : "Sign In"}
+              {mode === "signup" ? t("Create Account") : t("Sign In")}
             </span>
           </button>
         </form>
@@ -530,22 +546,22 @@ export default function Auth() {
         <div className="relative z-10 mt-4 text-sm text-center text-white/85">
           {mode === "signup" ? (
             <>
-              Already have an account?{" "}
+              {t("Already have an account?")}{" "}
               <button
                 className="underline text-indigo-300 active:scale-[0.98]"
                 onClick={() => setMode("login")}
               >
-                Log in
+                {t("Log in")}
               </button>
             </>
           ) : (
             <>
-              New here?{" "}
+              {t("New here?")}{" "}
               <button
                 className="underline text-indigo-300 active:scale-[0.98]"
                 onClick={() => setMode("signup")}
               >
-                Create account
+                {t("Create account")}
               </button>
             </>
           )}

@@ -26,7 +26,10 @@ interface UpdateBannerProps {
   releaseId?: string;
 }
 
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+
 export function UpdateBanner({ show, releaseNotes = [], releaseId = "" }: UpdateBannerProps) {
+  const { t } = useConsumerCopy();
   const [acknowledgedReleaseId, setAcknowledgedReleaseId] = useState("");
   const dismissed =
     !!releaseId &&
@@ -39,7 +42,7 @@ export function UpdateBanner({ show, releaseNotes = [], releaseId = "" }: Update
   return (
     <div data-release-update-banner className="fixed bottom-20 left-0 right-0 z-[9999] flex justify-center px-4 pointer-events-none">
       <div className="pointer-events-auto w-full max-w-sm bg-black/95 border border-orange-500/50 backdrop-blur-lg rounded-2xl px-5 py-4 shadow-lg shadow-orange-500/20">
-        <p className="text-sm font-semibold text-white mb-2">What's new</p>
+        <p className="text-sm font-semibold text-white mb-2">{t("What's new")}</p>
 
         <ul className="mb-4 space-y-1">
           {releaseNotes.slice(0, 4).map((note, i) => (
@@ -59,7 +62,7 @@ export function UpdateBanner({ show, releaseNotes = [], releaseId = "" }: Update
             }}
             className="flex-1 text-sm font-semibold text-center bg-orange-600 text-white rounded-full py-2 active:scale-[0.98] transition-transform"
           >
-            Refresh now
+            {t("Refresh now")}
           </button>
           <button
             onClick={() => {
@@ -69,7 +72,7 @@ export function UpdateBanner({ show, releaseNotes = [], releaseId = "" }: Update
             }}
             className="text-sm font-semibold text-white/40 active:scale-[0.98] transition-transform"
           >
-            Later
+            {t("Later")}
           </button>
         </div>
       </div>

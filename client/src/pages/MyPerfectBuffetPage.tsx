@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 /**
  * My Perfect Buffet
  *
@@ -134,7 +135,7 @@ export default function MyPerfectBuffetPage() {
             onClick={() => setLocation("/social-hub")}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
           >
-            ← Back
+            ← <BackNavigationLabel />
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-white">My Perfect Buffet</h1>
@@ -156,7 +157,7 @@ export default function MyPerfectBuffetPage() {
             className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-2 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="text-sm font-medium">Social Hub</span>
+            <span className="text-sm font-medium"><BackNavigationLabel label="Social Hub" /></span>
           </button>
         )}
         <div className="flex justify-end">

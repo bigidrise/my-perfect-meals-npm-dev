@@ -5,6 +5,7 @@
 .agents/
 .config/
 .pythonlibs/
+/generated-artifacts/
 
 # Uploaded source/reference assets are not served by the production app.
 attached_assets/

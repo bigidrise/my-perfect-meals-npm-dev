@@ -13,13 +13,7 @@ import {
 } from "@/hooks/useGlp1Shots";
 import { Capacitor } from "@capacitor/core";
 import { logEnvironmentFingerprint, ApiError } from "@/lib/api";
-
-const LABEL: Record<InjectionLocation, string> = {
-  abdomen: "Abdomen",
-  thigh: "Thigh",
-  upper_arm: "Upper Arm",
-  buttock: "Buttock",
-};
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 const MEDICATION_OPTIONS = [
   "Ozempic",
@@ -32,6 +26,11 @@ const MEDICATION_OPTIONS = [
 ];
 
 export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => void; userId: string }) {
+  const { t, i18n } = useConsumerCopy();
+  const locale = i18n.resolvedLanguage === "es" ? "es" : "en";
+  const LABEL: Record<InjectionLocation, string> = {
+    abdomen: t("Abdomen"), thigh: t("Thigh"), upper_arm: t("Upper Arm"), buttock: t("Buttock"),
+  };
   const shotsQ = useGlp1Shots(userId, { enabled: !!userId });
   const createM = useCreateShot(userId);
   const updateM = useUpdateShot(userId);
@@ -83,10 +82,10 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
 
   const addShot = async () => {
     if (!hasValidAuth) {
-      alert("Session not available — please sign in again.");
+      alert(t("Session not available — please sign in again."));
       return;
     }
-    if (!doseMg || doseMg <= 0) return alert("Enter a valid dose (mg).");
+    if (!doseMg || doseMg <= 0) return alert(t("Enter a valid dose (mg)."));
     const asUTC = new Date(dateLocal).toISOString();
     try {
       if (isNative) {
@@ -108,14 +107,14 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
       setDateLocal(new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16));
     } catch (err: any) {
       console.error("[ShotTracker] Error saving shot:", err);
-      let errorMsg = "Connection error";
+      let errorMsg = t("Connection error");
       if (err instanceof ApiError) {
         if (err.isAuthError) {
-          errorMsg = "Session expired — please sign in again";
+          errorMsg = t("Session expired — please sign in again");
         } else if (err.isNetworkError) {
-          errorMsg = "No network connection";
+          errorMsg = t("No network connection");
         } else if (err.isServerError) {
-          errorMsg = "Server error — please try again later";
+          errorMsg = t("Server error — please try again later");
         } else {
           errorMsg = `Error ${err.status}: ${err.body || err.statusText}`;
         }
@@ -123,7 +122,7 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
         errorMsg = err.message;
       }
       if (isNative) {
-        alert(`Failed to save shot: ${errorMsg}`);
+        alert(t("Failed to save shot: {{error}}", { error: errorMsg }));
       }
     }
   };
@@ -154,41 +153,41 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
   const remove = async (id: string) => { await deleteM.mutateAsync(id); };
 
   const nextHint = useMemo(() => {
-    if (shots.length === 0) return "Not scheduled — log your first shot.";
+    if (shots.length === 0) return t("Not scheduled — log your first shot.");
     const last = new Date(shots[0].dateUtc);
     const next = new Date(last); next.setDate(last.getDate() + 7);
-    return `Estimated next: ${next.toLocaleDateString()} (${next.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })})`;
-  }, [shots]);
+    return t("Estimated next: {{date}} ({{time}})", { date: next.toLocaleDateString(locale), time: next.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) });
+  }, [shots, locale, t]);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-white font-bold text-lg">Shot Tracker</h3>
+        <h3 className="text-white font-bold text-lg">{t("Shot Tracker")}</h3>
         <div className="flex flex-col items-center gap-1">
-          <PillButton onClick={onClose}>
+          <PillButton onClick={onClose} aria-label={t("Close")}>
             <X className="w-3 h-3" />
           </PillButton>
-          <span className="text-[11px] text-white font-medium">Close</span>
+          <span className="text-[11px] text-white font-medium">{t("Close")}</span>
         </div>
       </div>
 
       {/* Quick Add */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="text-white/80 text-sm">Medication</label>
+          <label className="text-white/80 text-sm">{t("Medication")}</label>
           <select
             value={medicationName}
             onChange={(e) => setMedicationName(e.target.value)}
             className="w-full mt-1 rounded-md border border-white/20 bg-black/40 text-white p-2"
           >
-            <option value="">Select medication…</option>
+            <option value="">{t("Select medication…")}</option>
             {MEDICATION_OPTIONS.map((m) => (
-              <option key={m} value={m}>{m}</option>
+              <option key={m} value={m}>{m === "Other" ? t("Other medication") : m}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className="text-white/80 text-sm">Dose (mg)</label>
+          <label className="text-white/80 text-sm">{t("Dose (mg)")}</label>
           <input
             type="number" inputMode="decimal" step="0.1" min="0" max="20"
             value={doseMg || ""} onChange={(e) => setDoseMg(Number(e.target.value))}
@@ -197,7 +196,7 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
           />
         </div>
         <div>
-          <label className="text-white/80 text-sm">Date & time</label>
+          <label className="text-white/80 text-sm">{t("Date & time")}</label>
           <input
             type="datetime-local" value={dateLocal}
             onChange={(e) => setDateLocal(e.target.value)}
@@ -205,21 +204,21 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
           />
         </div>
         <div>
-          <label className="text-white/80 text-sm">Injection Site (optional)</label>
+          <label className="text-white/80 text-sm">{t("Injection Site (optional)")}</label>
           <select
             value={site}
             onChange={(e) => setSite(e.target.value as any)}
             className="w-full mt-1 rounded-md border border-white/20 bg-black/40 text-white p-2"
           >
-            <option value="">Select site…</option>
-            <option value="abdomen">Abdomen</option>
-            <option value="thigh">Thigh</option>
-            <option value="upper_arm">Upper Arm</option>
-            <option value="buttock">Buttock</option>
+            <option value="">{t("Select site…")}</option>
+            <option value="abdomen">{t("Abdomen")}</option>
+            <option value="thigh">{t("Thigh")}</option>
+            <option value="upper_arm">{t("Upper Arm")}</option>
+            <option value="buttock">{t("Buttock")}</option>
           </select>
         </div>
         <div className="sm:col-span-2">
-          <label className="text-white/80 text-sm">Notes (optional)</label>
+          <label className="text-white/80 text-sm">{t("Notes (optional)")}</label>
           <input
             value={notes} onChange={(e) => setNotes(e.target.value)}
             placeholder="e.g., 2 inches from navel"
@@ -231,6 +230,7 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
         <div className="flex flex-col items-center gap-1">
           <PillButton
             onClick={addShot}
+            aria-label={t("Save Shot")}
             disabled={createM.isPending}
             active
             variant="emerald"
@@ -238,7 +238,7 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
             <Check className="w-3 h-3" />
           </PillButton>
           <span className="text-[11px] text-white font-medium">
-            {createM.isPending ? "Saving…" : "Save Shot"}
+            {createM.isPending ? t("Saving…") : t("Save Shot")}
           </span>
         </div>
         <div className="text-white/60 text-sm">{nextHint}</div>
@@ -246,13 +246,13 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
 
       {/* History */}
       <div className="bg-black/40 border border-white/15 rounded-xl p-3 mt-4">
-        <h4 className="text-white font-semibold mb-2">History</h4>
+        <h4 className="text-white font-semibold mb-2">{t("History")}</h4>
         {!hasValidAuth ? (
           <div className="text-amber-400/80 text-sm">
-            Please sign in to view shot history.
+            {t("Please sign in to view shot history.")}
           </div>
         ) : shotsQ.isLoading ? (
-          <div className="text-white/50 text-sm">Loading history...</div>
+          <div className="text-white/50 text-sm">{t("Loading history...")}</div>
         ) : shotsQ.isError ? (
           (() => {
             const error = shotsQ.error as ApiError | Error | null;
@@ -262,25 +262,25 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
             return (
               <div className="text-red-400/80 text-sm space-y-1">
                 <div>
-                  {isAuthError ? "Session expired — please sign in again" : "History unavailable"}
+                  {isAuthError ? t("Session expired — please sign in again") : t("History unavailable")}
                 </div>
                 {isNative && (
                   <div className="text-xs text-red-300/60">
-                    {statusCode !== null ? `Status ${statusCode}: ` : ''}
-                    {error?.message || "Connection failed"}
+                    {statusCode !== null ? `${t("Status {{status}}:", { status: statusCode })} ` : ''}
+                    {error?.message || t("Connection failed")}
                   </div>
                 )}
                 <Button
                   onClick={() => shotsQ.refetch()}
                   className="mt-2 bg-white/10 hover:bg-white/20 text-white h-7 px-3 text-xs"
                 >
-                  Retry
+                  {t("Retry")}
                 </Button>
               </div>
             );
           })()
         ) : shots.length === 0 ? (
-          <div className="text-white/70 text-sm">No shots logged yet.</div>
+          <div className="text-white/70 text-sm">{t("No shots logged yet.")}</div>
         ) : (
           <ul className="space-y-2">
             {shots.map((s: any) => (
@@ -293,9 +293,9 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
                         onChange={(e) => setEditMedicationName(e.target.value)}
                         className="rounded-md border border-white/20 bg-black/40 text-white p-2"
                       >
-                        <option value="">Select medication…</option>
+                        <option value="">{t("Select medication…")}</option>
                         {MEDICATION_OPTIONS.map((m) => (
-                          <option key={m} value={m}>{m}</option>
+                          <option key={m} value={m}>{m === "Other" ? t("Other medication") : m}</option>
                         ))}
                       </select>
                       <input
@@ -303,7 +303,7 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
                         value={editDose}
                         onChange={(e) => setEditDose(Number(e.target.value))}
                         className="rounded-md border border-white/20 bg-black/40 text-white p-2"
-                        placeholder="Dose (mg)"
+                        placeholder={t("Dose (mg)")}
                       />
                       <input
                         type="datetime-local"
@@ -316,23 +316,23 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
                         onChange={(e) => setEditSite(e.target.value as any)}
                         className="rounded-md border border-white/20 bg-black/40 text-white p-2"
                       >
-                        <option value="">Select site…</option>
-                        <option value="abdomen">Abdomen</option>
-                        <option value="thigh">Thigh</option>
-                        <option value="upper_arm">Upper Arm</option>
-                        <option value="buttock">Buttock</option>
+                        <option value="">{t("Select site…")}</option>
+                        <option value="abdomen">{t("Abdomen")}</option>
+                        <option value="thigh">{t("Thigh")}</option>
+                        <option value="upper_arm">{t("Upper Arm")}</option>
+                        <option value="buttock">{t("Buttock")}</option>
                       </select>
                     </div>
                     <input
                       value={editNotes}
                       onChange={(e) => setEditNotes(e.target.value)}
                       className="w-full rounded-md border border-white/20 bg-black/40 text-white p-2"
-                      placeholder="Notes (optional)"
+                      placeholder={t("Notes (optional)")}
                     />
                     <div className="flex gap-2 justify-end">
-                      <Button onClick={() => setEditingId(null)} className="bg-white/10 hover:bg-white/20 text-white h-8 px-3 text-xs">Cancel</Button>
+                      <Button onClick={() => setEditingId(null)} className="bg-white/10 hover:bg-white/20 text-white h-8 px-3 text-xs">{t("Cancel")}</Button>
                       <Button onClick={saveEdit} disabled={updateM.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 px-3 text-xs">
-                        {updateM.isPending ? "Saving..." : "Save"}
+                        {updateM.isPending ? t("Saving...") : t("Save")}
                       </Button>
                     </div>
                   </div>
@@ -340,7 +340,7 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
                   <div className="flex items-center justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-normal flex flex-wrap items-center gap-2">
-                        <span>{new Date(s.dateUtc).toLocaleDateString()} — {s.doseMg} mg</span>
+                        <span>{new Date(s.dateUtc).toLocaleDateString(locale)} — {s.doseMg} mg</span>
                         {s.medicationName && (
                           <span className="px-2 py-0.5 rounded-full text-xs bg-orange-600/30 border border-orange-400/50 text-orange-300">
                             {s.medicationName}
@@ -356,17 +356,17 @@ export default function ShotTrackerPanel({ onClose, userId }: { onClose: () => v
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-white/60 text-xs">
-                        {new Date(s.dateUtc).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(s.dateUtc).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
                       </span>
-                      <Button onClick={() => startEdit(s)} className="bg-white/10 hover:bg-white/20 text-white px-2 py-1 h-7 text-xs">Edit</Button>
+                      <Button onClick={() => startEdit(s)} className="bg-white/10 hover:bg-white/20 text-white px-2 py-1 h-7 text-xs">{t("Edit")}</Button>
                       <TrashButton
                         onClick={() => remove(s.id)}
                         disabled={deleteM.isPending}
                         size="sm"
                         confirm
-                        confirmMessage="Delete this shot log?"
-                        ariaLabel="Delete shot"
-                        title="Delete shot"
+                        confirmMessage={t("Delete this shot log?")}
+                        ariaLabel={t("Delete shot")}
+                        title={t("Delete shot")}
                         data-testid={`button-delete-shot-${s.id}`}
                       />
                     </div>

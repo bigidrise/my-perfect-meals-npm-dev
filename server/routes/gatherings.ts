@@ -14,6 +14,7 @@ import {
   evaluateWholeFoodCandidate,
 } from "../services/wholeFoodStandard";
 import OpenAI from "openai";
+import { getLanguageInstruction, resolveRequestLanguagePreference } from "../utils/languageInstruction";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -447,10 +448,11 @@ function deduplicateIngredients(
 // expanded=true (Simple Preparation mode): 6 sections, 3 cooking methods, primary output
 // expanded=false (Complete/Gathering mode): 5 sections, brief pre-course companion
 // ─────────────────────────────────────────────
-async function generateHarvestToTableGuide(
+export async function generateHarvestToTableGuide(
   ingredient: string,
   cookingMethod?: string,
   expanded = false,
+  preferredLanguage?: string,
 ): Promise<{ title: string; sections: { heading: string; text: string }[] } | null> {
   try {
     const methodNote = cookingMethod ? ` The user's preferred cooking method is: ${cookingMethod}.` : "";
@@ -501,7 +503,7 @@ Respond ONLY with valid JSON in this exact shape:
 
     const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content: getLanguageInstruction(preferredLanguage) + prompt }],
       response_format: { type: "json_object" },
       temperature: 0.4,
       max_tokens: expanded ? 1200 : 800,
@@ -592,10 +594,11 @@ router.post("/generate", async (req: Request, res: Response) => {
   }
 
   // ── Generate Nature-to-Table Guide for Great Outdoors (pre-course educational block) ──
+  const generationLanguage = resolveRequestLanguagePreference(gatheringsEnvelope.preferredLanguage);
   let harvestGuide: { title: string; sections: { heading: string; text: string }[] } | null = null;
   if (situation === "outdoor" && proteinSource) {
     const expanded = experienceType === "simple";
-    harvestGuide = await generateHarvestToTableGuide(proteinSource, cookingMethod, expanded);
+    harvestGuide = await generateHarvestToTableGuide(proteinSource, cookingMethod, expanded, generationLanguage);
     console.log(`🪵 [Gatherings] ${expanded ? "Expanded" : "Brief"} Nature-to-Table guide ${harvestGuide ? "generated" : "failed"} for "${proteinSource}" [mode=${experienceType}]`);
   }
 

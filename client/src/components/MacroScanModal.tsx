@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { UniversalDialog } from "@/components/ui/universal-modal";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -58,6 +59,7 @@ export default function MacroScanModal({
   onOpenChange,
   onSuccess,
 }: MacroScanModalProps) {
+  const { t } = useConsumerCopy();
   const [mode, setMode] = useState<InputMode>("upload");
   const [phase, setPhase] = useState<Phase>("capture");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -179,7 +181,7 @@ export default function MacroScanModal({
         {/* Header */}
         <DialogHeader className="mb-5">
           <div className="flex items-center justify-center">
-            <DialogTitle className="text-xl font-bold text-white">Nutrition Label Scan</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-white">{t("Nutrition Label Scan")}</DialogTitle>
           </div>
           <p className="text-white/60 text-sm text-center mt-1">
             Take a photo of the Nutrition Facts label — not the barcode.
@@ -259,14 +261,14 @@ export default function MacroScanModal({
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="rounded-lg border border-emerald-500/35 bg-emerald-500/10 p-3">
-                    <div className="font-bold text-emerald-300">✓ THIS</div>
-                    <div className="mt-1 font-semibold text-white">Nutrition Facts</div>
-                    <div className="mt-1 text-white/60">Calories · Protein · Carbs · Fat</div>
+                    <div className="font-bold text-emerald-300">{t("✓ THIS")}</div>
+                    <div className="mt-1 font-semibold text-white">{t("Nutrition Facts")}</div>
+                    <div className="mt-1 text-white/60">{t("Calories · Protein · Carbs · Fat")}</div>
                   </div>
                   <div className="rounded-lg border border-red-500/35 bg-red-500/10 p-3">
-                    <div className="font-bold text-red-300">✕ NOT THIS</div>
+                    <div className="font-bold text-red-300">{t("✕ NOT THIS")}</div>
                     <div className="mt-1 font-mono tracking-tighter text-white">|||| ||| ||||||</div>
-                    <div className="mt-1 text-white/60">Do not scan the barcode</div>
+                    <div className="mt-1 text-white/60">{t("Do not scan the barcode")}</div>
                   </div>
                 </div>
               </div>

@@ -1,0 +1,141 @@
+{
+  "status": "DRAFT ONLY — not approved or connected to runtime resources",
+  "scope": "Development Batch 1 correction review. Training excerpts are accounted for as adjacent, out-of-scope screenshots, not an authorized implementation expansion.",
+  "reviewRequirement": "Qualified clinical/legal review is still required. These translations preserve source claims; they do not certify the accuracy of those claims or change existing behavior. No new targets, thresholds, advice, contraindications or warnings were added.",
+  "records": "User-entered and clinician-entered instructions, notes, free text, medication names, recipes and unknown service details remain original. No record is translated or overwritten. Placeholder values and units remain exactly those supplied by the existing display logic.",
+  "groups": [
+    {
+      "source": "client/src/components/HydrationFourDoorPanels.tsx",
+      "surface": "Hydration doors, support descriptions, sick-day warnings and liquid-instruction review",
+      "classification": "Clinical scope/authority wording or clinical guidance; not activated",
+      "entries": [
+        {"id":"H01","english":"One Hub, four kinds of support. Everyday tools stay simple; the other doors add context without creating an automatic medical plan.","spanish":"Un centro, cuatro tipos de apoyo. Las herramientas cotidianas se mantienen sencillas; las otras opciones añaden contexto sin crear un plan médico automático."},
+        {"id":"H02","english":"Log a fluid, save optional preferences, or ask for a practical barrier-based option. These tools never create a personal target.","spanish":"Registra un líquido, guarda preferencias opcionales o pide una opción práctica basada en tus dificultades. Estas herramientas nunca crean un objetivo personal."},
+        {"id":"H03","english":"Capture context for a practical beverage idea. This does not calculate fluid replacement, electrolytes, sodium, or a sports-medicine prescription.","spanish":"Registra el contexto para una idea práctica de bebida. Esto no calcula la reposición de líquidos, los electrolitos, el sodio ni una prescripción de medicina deportiva."},
+        {"id":"H04","english":"Choose what is making fluids difficult so the Hub can keep support practical and tolerable. This is not a diagnosis or a treatment calculator.","spanish":"Selecciona qué te dificulta beber líquidos para que el centro mantenga el apoyo práctico y tolerable. Esto no es un diagnóstico ni una calculadora de tratamiento."},
+        {"id":"H05","english":"If any selected warning sign is happening now, seek urgent medical help or local emergency guidance rather than relying on this Hub.","spanish":"Si cualquiera de las señales de alarma seleccionadas está ocurriendo ahora, busca ayuda médica urgente o indicaciones de los servicios de emergencia locales en lugar de depender de este centro."},
+        {"id":"H06","english":"Practical ideas: choose a familiar temperature, keep an easy-to-reach fluid nearby, and take comfortable sips as tolerated. Stop and seek care if you are getting worse or cannot keep fluids down.","spanish":"Ideas prácticas: elige una temperatura conocida, ten cerca un líquido de fácil acceso y toma sorbos que te resulten cómodos según los toleres. Detente y busca atención si estás empeorando o no puedes retener líquidos."},
+        {"id":"H07","classification":"Legal acknowledgment and professional-verification boundary; not activated","english":"I reviewed the fields above and confirm they reflect the instruction I supplied. I understand this is not professional verification.","spanish":"Revisé los campos anteriores y confirmo que reflejan la indicación que proporcioné. Entiendo que esto no constituye una verificación profesional."},
+        {"id":"H08","english":"Active only through the supplied end date. The Hub does not advance or reinterpret it automatically.","spanish":"Activo solo hasta la fecha de finalización indicada. El centro no lo hace avanzar ni lo reinterpreta automáticamente."},
+        {"id":"H09","english":"Creator handoff is unavailable because this source is user-entered and unverified or still needs clarification.","spanish":"El envío al creador no está disponible porque esta fuente fue introducida por el usuario y no está verificada, o todavía necesita aclaración."},
+        {"id":"H10","english":"Explicit instruction carried across {{count}} dated day.","spanish":"La indicación explícita se trasladó a {{count}} día con fecha.","placeholder":"count = existing executionPlan.days.length; singular branch only"},
+        {"id":"H11","english":"Explicit instruction carried across {{count}} dated days.","spanish":"La indicación explícita se trasladó a {{count}} días con fecha.","placeholder":"count = existing executionPlan.days.length; plural branch only"},
+        {"id":"H12","english":"No complete schedule was invented. The unresolved item must stay visible until clarified.","spanish":"No se inventó un horario completo. El elemento sin resolver debe permanecer visible hasta que se aclare."}
+      ]
+    },
+    {
+      "source": "client/src/components/HydrationHubGuide.tsx",
+      "surface": "Hydration how-to guide, clinical limitations and verified-consideration explanation",
+      "classification": "Clinical scope/authority wording or clinical guidance; not activated",
+      "entries": [
+        {"id":"H13","english":"Today shows what you have logged so far. Descriptive history lets you review previous entries and patterns without turning them into a diagnosis or an invented target.","spanish":"Hoy muestra lo que has registrado hasta ahora. El historial descriptivo te permite revisar registros y patrones anteriores sin convertirlos en un diagnóstico ni en un objetivo inventado."},
+        {"id":"H14","english":"Athletic Hydration provides bounded, practical guidance. It does not automatically prescribe fluid or electrolyte amounts unless a legitimate authorized numeric plan exists.","spanish":"La hidratación deportiva ofrece orientación práctica dentro de límites definidos. No prescribe automáticamente cantidades de líquidos ni de electrolitos, salvo que exista un plan numérico legítimo y autorizado."},
+        {"id":"H15","english":"My Perfect Hydration Center uses what you selected to show practical, low-effort support and safety or escalation guidance when symptoms may need professional attention.","spanish":"Mi centro de hidratación utiliza lo que seleccionaste para mostrar apoyo práctico y de poco esfuerzo, e indicaciones de seguridad o sobre cuándo buscar más ayuda si los síntomas pueden requerir atención profesional."},
+        {"id":"H16","english":"This door does not diagnose you or create medical treatment. Seek medical care when symptoms are serious, worsening, or you cannot safely keep fluids down.","spanish":"Esta opción no te diagnostica ni crea un tratamiento médico. Busca atención médica cuando los síntomas sean graves, estén empeorando o no puedas retener líquidos de forma segura."},
+        {"id":"H17","english":"Choose this only for temporary liquid or fluid instructions already provided by a physician or care team.","spanish":"Elige esta opción solo para indicaciones temporales sobre líquidos que ya te haya proporcionado un médico o tu equipo de cuidado."},
+        {"id":"H18","classification":"Professional-instruction form guidance and authority boundary; not activated","english":"Enter the reason and original instruction, then review the dates, instruction type, allowed or restricted categories, texture requirements, and timing when those details were provided.","spanish":"Introduce el motivo y la indicación original; después revisa las fechas, el tipo de indicación, las categorías permitidas o restringidas, los requisitos de textura y el horario cuando se hayan proporcionado esos detalles."},
+        {"id":"H19","english":"The instruction stays in review until you confirm what was captured. Verified active instructions can limit Beverage Creator suggestions; missing or conflicting medical details remain withheld for clarification.","spanish":"La indicación permanece en revisión hasta que confirmes la información registrada. Las indicaciones activas verificadas pueden limitar las sugerencias del creador de bebidas; los detalles médicos que falten o sean contradictorios no se aplican hasta que se aclaren."},
+        {"id":"H20","english":"MPM organizes the instructions you provide. It does not invent missing medical instructions, choose a protocol, or fill in a cadence or dosing amount.","spanish":"MPM organiza las indicaciones que proporcionas. No inventa indicaciones médicas que falten, no elige un protocolo ni completa una frecuencia o una dosis."},
+        {"id":"H21","english":"means MPM checked applicable saved nutrition information, preferences, allergies, active programs, restrictions, or professional instructions when preparing the support shown. Only verified considerations are used.","spanish":"significa que MPM comprobó la información nutricional guardada que corresponda, las preferencias, las alergias, los programas activos, las restricciones o las indicaciones profesionales al preparar el apoyo mostrado. Solo se utilizan los factores verificados.","note":"Follows the separately localized ordinary label “Considered for you”."}
+      ]
+    },
+    {
+      "source": "client/src/lib/hydrationHubContent.ts",
+      "surface": "Hydration guide shared clinical-boundary statements",
+      "classification": "Clinical authority and medical/legal limitation; not activated",
+      "entries": [
+        {"id":"H22","english":"Considered for you means My Perfect Hydration Center used applicable dietary preferences, allergies, nutrition settings, active MPM programs, and professional guidance that the system was authorized and able to verify. It never means that MPM invented a medical requirement.","spanish":"Considerado para ti significa que Mi centro de hidratación utilizó las preferencias alimentarias, las alergias, los ajustes nutricionales, los programas activos de MPM y las indicaciones profesionales que correspondan y que el sistema estaba autorizado y pudo verificar. Nunca significa que MPM haya inventado un requisito médico."},
+        {"id":"H23","english":"My Perfect Hydration Center does not diagnose or treat illness, independently prescribe fluid or electrolyte requirements, invent Liquid Nutrition instructions, or replace professional care. Current professional instructions remain the source of truth when they apply.","spanish":"Mi centro de hidratación no diagnostica ni trata enfermedades, no prescribe por su cuenta requisitos de líquidos o electrolitos, no inventa indicaciones de nutrición líquida ni sustituye la atención profesional. Las indicaciones profesionales vigentes siguen siendo la fuente de referencia cuando corresponden."}
+      ]
+    },
+    {
+      "source": "client/src/pages/HydrationCenter.tsx",
+      "surface": "Numeric policy, optional setup, consent, history, sources and commercial disclosure",
+      "classification": "Clinical scope/authority wording; not activated",
+      "entries": [
+        {"id":"H24","english":"No personal numeric target has been set by an authorized clinician. You can still track fluids and get practical help.","spanish":"Ningún profesional clínico autorizado ha establecido un objetivo numérico personal. Aun así, puedes registrar líquidos y recibir ayuda práctica."},
+        {"id":"H25","english":"A safety or access requirement is not satisfied. Practical, nonnumeric help is still available.","spanish":"No se cumple un requisito de seguridad o de acceso. Sigue habiendo ayuda práctica sin cantidades numéricas."},
+        {"id":"H26","english":"The saved directive needs review. Your fluid history and practical support remain available.","spanish":"La directiva guardada necesita revisión. Tu historial de líquidos y el apoyo práctico siguen disponibles."},
+        {"id":"H27","english":"{{remaining}} remains before the clinician-set maximum. This is a limit, not a goal.","spanish":"Quedan {{remaining}} antes de alcanzar el máximo establecido por el profesional clínico. Es un límite, no un objetivo.","placeholder":"remaining = existing displayVolume(headroomToMaximumMl); preserve its value and unit"},
+        {"id":"H28","english":"{{minimum}} to the lower bound; {{maximum}} before the upper bound.","spanish":"{{minimum}} hasta el límite inferior; {{maximum}} antes de alcanzar el límite superior.","placeholder":"Existing formatted remainingToMinimumMl and headroomToMaximumMl; no recalculation"},
+        {"id":"H29","english":"The clinician-set minimum has been reached.","spanish":"Se ha alcanzado el mínimo establecido por el profesional clínico."},
+        {"id":"H30","english":"{{remaining}} remains.","spanish":"Quedan {{remaining}}.","placeholder":"Existing displayVolume(remainingToMinimumMl); preserve its value and unit"},
+        {"id":"H31","english":"The clinician-set target has been reached.","spanish":"Se ha alcanzado el objetivo establecido por el profesional clínico."},
+        {"id":"H32","english":"{{remaining}} remains today.","spanish":"Quedan {{remaining}} hoy.","placeholder":"Existing displayVolume(remainingMl); preserve its value and unit"},
+        {"id":"H33","english":"Preferences may change practical suggestions, never physiological requirements.","spanish":"Las preferencias pueden cambiar las sugerencias prácticas, pero nunca los requisitos fisiológicos."},
+        {"id":"H34","english":"Optional setup helps choose practical strategies. It never changes a hydration requirement.","spanish":"La configuración opcional ayuda a elegir estrategias prácticas. Nunca cambia un requisito de hidratación."},
+        {"id":"H35","classification":"Legal consent wording; not activated","english":"I consent to saving these optional preferences and barriers for My Perfect Hydration Center suggestions.","spanish":"Doy mi consentimiento para guardar estas preferencias y dificultades opcionales para las sugerencias de Mi centro de hidratación."},
+        {"id":"H36","english":"Practical options use only the preferences you consent to share.","spanish":"Las opciones prácticas utilizan solo las preferencias que aceptas compartir."},
+        {"id":"H37","english":"History describes what you logged. It does not diagnose hydration status or prescribe a target.","spanish":"El historial describe lo que registraste. No diagnostica tu estado de hidratación ni prescribe un objetivo."},
+        {"id":"H38","english":"Reviewed sources explain hydration concepts without converting population references into a personal target.","spanish":"Las fuentes revisadas explican conceptos de hidratación sin convertir las referencias poblacionales en un objetivo personal."},
+        {"id":"H39","classification":"Commercial/legal disclosure and clinical independence; not activated","english":"Products, sponsorships, and affiliate relationships never determine nutrition or clinical eligibility. My Perfect Hydration Center does not recommend products or supplements.","spanish":"Los productos, los patrocinios y las relaciones de afiliación nunca determinan la elegibilidad nutricional o clínica. Mi centro de hidratación no recomienda productos ni suplementos."}
+      ]
+    },
+    {
+      "source": "server/services/hydration/hydrationHubService.ts",
+      "surface": "Built-in simple-fluid intervention description; clinical suffixes on any saved intervention remain original",
+      "classification": "Authored clinical-boundary statement; not activated",
+      "entries": [
+        {"id":"H40","english":"Start with a fluid that fits your existing food and nutrition preferences; the Hub does not create a medical target.","spanish":"Empieza con un líquido que se ajuste a tus preferencias alimentarias y nutricionales existentes; el centro no crea un objetivo médico."}
+      ]
+    },
+    {
+      "source": "client/src/components/diabetic/GlycemicSettingsModal.tsx",
+      "surface": "Glucose-Based Carb Choices explanation and range descriptions",
+      "classification": "Clinical food/glucose guidance and effect claims; not activated",
+      "entries": [
+        {"id":"G01","english":"Your body needs different types of carbs depending on your blood sugar level. My Perfect Meals uses your glucose reading and your selected foods to adjust how meals are built for you.","spanish":"Tu cuerpo necesita distintos tipos de carbohidratos según tu nivel de azúcar en sangre. My Perfect Meals utiliza tu lectura de glucosa y los alimentos que seleccionaste para ajustar cómo se preparan tus comidas."},
+        {"id":"G02","english":"When your glucose is low, the system allows faster-acting carbs — like fruit and simple carbs — to help bring your levels back up quickly.","spanish":"Cuando tu glucosa está baja, el sistema permite carbohidratos de acción más rápida, como frutas y carbohidratos simples, para ayudar a que tus niveles vuelvan a subir rápidamente."},
+        {"id":"G03","english":"When your glucose is in range, meals stay balanced with steady, low-glycemic carbs to keep you there.","spanish":"Cuando tu glucosa está dentro del intervalo, las comidas se mantienen equilibradas con carbohidratos de aporte sostenido y bajo índice glucémico para mantenerte en ese intervalo."},
+        {"id":"G04","english":"When your glucose is elevated, meals shift toward lower-impact carbs, more protein, and lighter options.","spanish":"Cuando tu glucosa está elevada, las comidas pasan a incluir carbohidratos de menor impacto, más proteínas y opciones más ligeras."},
+        {"id":"G05","english":"When your blood sugar is low — what helps you recover","spanish":"Cuando tu azúcar en sangre está baja: lo que te ayuda a recuperarte"},
+        {"id":"G06","english":"When your blood sugar is stable — balanced carbs for steady energy","spanish":"Cuando tu azúcar en sangre está estable: carbohidratos equilibrados para una energía constante"},
+        {"id":"G07","english":"When your blood sugar is elevated — low-glycemic options to bring it down","spanish":"Cuando tu azúcar en sangre está elevada: opciones de bajo índice glucémico para reducirla"}
+      ]
+    },
+    {
+      "source": "client/src/pages/MyPerfectMenu.tsx",
+      "surface": "Performance prescription explanation and GLP-1 safety blocks",
+      "classification": "Clinical guidance and safety state; not activated",
+      "entries": [
+        {"id":"M01","english":"Your Performance Builder can change fuel and starch guidance by day and meal slot.","spanish":"Tu creador de rendimiento puede cambiar la orientación sobre energía y almidones según el día y el espacio de comida."},
+        {"id":"M02","english":"Your current GLP-1 guidance needs attention before creating meal ideas. Review it in the GLP-1 Hub.","spanish":"Tus indicaciones actuales de GLP-1 requieren atención antes de crear ideas de comidas. Revísalas en el centro de GLP-1."},
+        {"id":"M03","english":"Your current GLP-1 guidance needs attention before creating meal ideas. Review the safety guidance in the GLP-1 Hub.","spanish":"Tus indicaciones actuales de GLP-1 requieren atención antes de crear ideas de comidas. Revisa las indicaciones de seguridad en el centro de GLP-1."}
+      ]
+    },
+    {
+      "source": "client/src/pages/physician/DiabeticHub.tsx",
+      "surface": "Glucose-history interpretation and meal-generator supporting claims",
+      "classification": "Clinical food/glucose context claims; not activated",
+      "entries": [
+        {"id":"D01","english":"Meals generated by the Diabetic Builder remember the glucose context that was used to create them. Save meals you enjoy and My Perfect Meals will help you quickly find options that match similar glucose situations in the future.","spanish":"Las comidas generadas por el creador para la diabetes conservan el contexto de glucosa que se utilizó para crearlas. Guarda las comidas que disfrutas y My Perfect Meals te ayudará a encontrar rápidamente opciones que correspondan a situaciones de glucosa similares en el futuro."},
+        {"id":"D02","english":"Low-GI meals based on your guardrails","spanish":"Comidas de bajo índice glucémico basadas en tus límites de seguridad"},
+        {"id":"D03","english":"Low-GI meals built for your glucose guardrails","spanish":"Comidas de bajo índice glucémico elaboradas según tus límites de seguridad de glucosa"}
+      ]
+    },
+    {
+      "source": "client/src/pages/glp1/ShotTrackerPanel.tsx",
+      "surface": "Dose and injection-note examples in the create form",
+      "classification": "Medication/injection examples; not activated",
+      "entries": [
+        {"id":"S01","english":"e.g., 2.5, 5, 7.5, 10, 12.5, 15","spanish":"p. ej., 2.5, 5, 7.5, 10, 12.5, 15","note":"All dose numbers and decimal points preserved; this is not an approved dosing instruction."},
+        {"id":"S02","english":"e.g., 2 inches from navel","spanish":"p. ej., a 2 pulgadas del ombligo","note":"Preserve the original 2 inches. No conversion or new injection guidance."}
+      ]
+    },
+    {
+      "source": "client/src/pages/TrainingNutritionHub.tsx (rendered through client/src/pages/GLP1TrainingPage.tsx)",
+      "surface": "Adjacent Training Nutrition Schedule screenshots 16.08.41, 16.08.50 and 16.08.58",
+      "classification": "Clinical/performance guidance in an adjacent page; outside Batch 1 implementation; draft only",
+      "entries": [
+        {"id":"T01","english":"Caloric targets are slightly reduced — energy expenditure is lower on full rest days.","spanish":"Los objetivos calóricos se reducen ligeramente: el gasto energético es menor en los días de descanso completo."},
+        {"id":"T02","english":"Lean protein and fibrous vegetables are the priority — no large carbohydrate anchor is needed.","spanish":"La prioridad son las proteínas magras y las verduras con fibra; no se necesita una base abundante de carbohidratos."},
+        {"id":"T03","english":"Use this day to hydrate, sleep, and prepare your body for the next training block.","spanish":"Aprovecha este día para hidratarte, dormir y preparar el cuerpo para el siguiente bloque de entrenamiento."},
+        {"id":"T04","english":"Your low fuel demand means meals focus on lean protein and fibrous vegetables, with minimal starchy carbohydrates — this is a deficit or low-volume training phase.","spanish":"Tu baja demanda de energía hace que las comidas se centren en proteínas magras y verduras con fibra, con una cantidad mínima de carbohidratos con almidón; esta es una fase de déficit o de entrenamiento de bajo volumen."},
+        {"id":"T05","english":"Your high recovery demand means omega-3-rich proteins, antioxidant-dense vegetables, turmeric, ginger, and magnesium-rich foods are actively prioritized in every meal to support tissue repair.","spanish":"Tu alta demanda de recuperación hace que se prioricen activamente en cada comida las proteínas ricas en omega-3, las verduras con abundantes antioxidantes, la cúrcuma, el jengibre y los alimentos ricos en magnesio para favorecer la reparación de los tejidos."},
+        {"id":"T06","english":"Explosive output nutrients — lean red meat, zinc-rich foods, magnesium-rich leafy greens, and fast-digesting post-workout carbs — are emphasized for your power and speed adaptation.","spanish":"Se da prioridad a nutrientes para el esfuerzo explosivo, como la carne roja magra, los alimentos ricos en zinc, las verduras de hoja ricas en magnesio y los carbohidratos de digestión rápida después del entrenamiento, para tu adaptación a la potencia y la velocidad."},
+        {"id":"T07","english":"Build meals calibrated for your training phase","spanish":"Crea comidas ajustadas a tu fase de entrenamiento"},
+        {"id":"T08","english":"Build sport-calibrated meals from this plan","spanish":"Crea comidas ajustadas al deporte a partir de este plan"}
+      ]
+    }
+  ]
+}

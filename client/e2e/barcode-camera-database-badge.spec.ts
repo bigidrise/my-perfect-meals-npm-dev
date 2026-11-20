@@ -16,6 +16,10 @@
  */
 
 import { test, expect, type Page } from "@playwright/test";
+import type { IngredientScanResult } from "../src/lib/photoIngredientCapture";
+
+// Synthetic 32-byte base64url token matching the real session CSRF contract.
+const FAKE_CSRF_TOKEN = Buffer.alloc(32, 0x42).toString("base64url");
 
 // ── Shared fake user ──────────────────────────────────────────────────────────
 
@@ -25,9 +29,11 @@ const FAKE_USER = {
   username: "Barcode Tester",
   firstName: "Barcode",
   lastName: "Tester",
-  planLookupKey: "premium",
+  planLookupKey: "mpm_premium",
   entitlements: ["grocery_coach"],
   subscriptionStatus: "active",
+  onboardingCompletedAt: "2026-01-01T00:00:00.000Z",
+  hasSavedMacroProfile: true,
   trialEndsAt: null,
   isEmailVerified: true,
   createdAt: new Date().toISOString(),
@@ -58,27 +64,44 @@ const FAKE_USER = {
   procareTrainingCompleted: false,
 };
 
-// ── Minimal scan result the barcode API returns ───────────────────────────────
+// ── Complete scan result the barcode API returns ──────────────────────────────
 
-function makeBarcodeScanResult(overrides: Record<string, unknown> = {}) {
+function makeBarcodeScanResult(
+  overrides: Partial<IngredientScanResult> = {}
+): IngredientScanResult {
+  const productName = overrides.productName ?? "Organic Whole Milk";
+  const verificationNote =
+    "Name-based product guidance, not a verified label scan. Check the current ingredient list, allergens, nutrition label, and serving size.";
   return {
-    productName: "Organic Whole Milk",
+    productName,
     alignmentGrade: "B",
-    verdictLevel: "buy",
-    analysisMethod: "by_label",
+    gradeUnavailable: true,
+    overallSummary: `${productName}: product information is unverified until the current package label is checked.`,
+    verdict: "For consideration only — confirm the current label before choosing.",
+    verdictLevel: "caution",
+    analysisMethod: "by_name",
     scoreCards: {
-      kids:        { verdict: "thumbsUp", reason: "Good calcium source" },
-      adults:      { verdict: "thumbsUp", reason: "Whole-food dairy" },
-      diet:        { verdict: "neutral",  reason: "Fits most diets" },
-      fitnessGoal: { verdict: "thumbsUp", reason: "Protein and fat balance" },
+      kids:        { verdict: "neutral", reason: "Check the current label and each child's needs." },
+      adults:      { verdict: "neutral", reason: "Review ingredients and serving size." },
+      diet:        { verdict: "neutral", reason: "Dietary fit requires the current ingredient label." },
+      fitnessGoal: { verdict: "neutral", reason: "Confirm nutrition values before assessing goal fit." },
     },
     outcomeCards: [],
-    goodThings: [],
-    watchOut: [],
-    profileInsights: [],
+    analysisProfile: [],
     ingredientDecoder: [],
+    ingredientConsiderations: [verificationNote],
+    mayNotAlignWith: [],
+    betterFor: [],
+    householdNotes: [],
+    educationalFooter: `${verificationNote} General wellness education, not medical advice.`,
+    extractedIngredients: [],
+    highRiskFindings: [],
+    ocrConfidenceLow: false,
+    fallbackUsed: false,
+    isFrontLabel: false,
+    productNameMissing: false,
     betterAlternatives: [],
-    profileFactors: [],
+    profileFactorsUsed: [],
     whatMattersMost: [],
     ...overrides,
   };
@@ -88,6 +111,16 @@ function makeBarcodeScanResult(overrides: Record<string, unknown> = {}) {
 
 /** Mock all auth + infrastructure routes so the page can mount. */
 async function mockInfraRoutes(page: Page) {
+  // Playwright evaluates the last matching handler first. Register the
+  // fallback before specific mocks so it cannot shadow authentication.
+  await page.route("/api/**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({}),
+    })
+  );
+
   await page.route("/api/user/profile", (route) =>
     route.fulfill({
       status: 200,
@@ -101,6 +134,15 @@ async function mockInfraRoutes(page: Page) {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ authenticated: true }),
+    })
+  );
+
+  await page.route("/api/auth/csrf", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "Cache-Control": "no-store" },
+      body: JSON.stringify({ csrfToken: FAKE_CSRF_TOKEN }),
     })
   );
 
@@ -146,15 +188,24 @@ async function mockInfraRoutes(page: Page) {
     })
   );
 
-  // Catch-all for any other API route (walking-tour, feature flags, etc.)
-  await page.route("/api/**", (route) => {
-    // Only fulfill if not already handled
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({}),
-    });
-  });
+}
+
+/** Complete the normal first-session welcome choice before opening Shopping List. */
+async function openShoppingListAfterWelcome(page: Page) {
+  await page.goto("/shopping-list");
+  await page.getByRole("button", { name: /Explore on My Own/ }).click();
+  await expect(page).toHaveURL(/\/dashboard(?:[?#].*)?$/, { timeout: 10_000 });
+  await page.goto("/shopping-list");
+  await expect(page.getByTestId("button-barcode-scan")).toBeVisible({ timeout: 10_000 });
+}
+
+/** Expand the sheet's existing disclosure before checking its barcode badge. */
+async function expandIngredientAnalysisDetails(page: Page) {
+  const details = page.getByRole("button", { name: /More Analysis Details/i });
+  await expect(details).toBeVisible({ timeout: 8_000 });
+  await details.click();
+  await expect(details).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByTestId("analysis-details")).toBeVisible();
 }
 
 /** Open the Scan Barcode modal and switch to Camera mode. */
@@ -221,7 +272,7 @@ test.describe("Camera barcode scan → BarcodeDatabaseBadge", () => {
         })
       );
 
-      await page.goto("/shopping-list");
+      await openShoppingListAfterWelcome(page);
 
       // Wait for the page shell to be ready
       await expect(
@@ -232,6 +283,8 @@ test.describe("Camera barcode scan → BarcodeDatabaseBadge", () => {
 
       // Simulate a camera barcode detection
       await fireCameraBarcode(page, "012000030901");
+
+      await expandIngredientAnalysisDetails(page);
 
       // IngredientIntelligenceSheet should open and show the DB match badge
       await expect(
@@ -259,7 +312,7 @@ test.describe("Camera barcode scan → BarcodeDatabaseBadge", () => {
         })
       );
 
-      await page.goto("/shopping-list");
+      await openShoppingListAfterWelcome(page);
 
       await expect(
         page.getByTestId("button-barcode-scan")
@@ -268,6 +321,8 @@ test.describe("Camera barcode scan → BarcodeDatabaseBadge", () => {
       await openBarcodeModalCameraMode(page);
 
       await fireCameraBarcode(page, "099999999999");
+
+      await expandIngredientAnalysisDetails(page);
 
       // IngredientIntelligenceSheet should open and show the AI estimate badge
       await expect(
@@ -299,7 +354,7 @@ test.describe("Manual barcode entry → BarcodeDatabaseBadge", () => {
         })
       );
 
-      await page.goto("/shopping-list");
+      await openShoppingListAfterWelcome(page);
 
       await expect(
         page.getByTestId("button-barcode-scan")
@@ -310,6 +365,8 @@ test.describe("Manual barcode entry → BarcodeDatabaseBadge", () => {
 
       // Type the barcode and submit via the "Look Up" button
       await typeAndSubmitBarcode(page, "012000030901");
+
+      await expandIngredientAnalysisDetails(page);
 
       // IngredientIntelligenceSheet should open and show the DB match badge
       await expect(
@@ -337,7 +394,7 @@ test.describe("Manual barcode entry → BarcodeDatabaseBadge", () => {
         })
       );
 
-      await page.goto("/shopping-list");
+      await openShoppingListAfterWelcome(page);
 
       await expect(
         page.getByTestId("button-barcode-scan")
@@ -349,6 +406,8 @@ test.describe("Manual barcode entry → BarcodeDatabaseBadge", () => {
       // Type the barcode and submit by pressing Enter
       await page.getByTestId("input-barcode").fill("099999999999");
       await page.getByTestId("input-barcode").press("Enter");
+
+      await expandIngredientAnalysisDetails(page);
 
       // IngredientIntelligenceSheet should open and show the AI estimate badge
       await expect(

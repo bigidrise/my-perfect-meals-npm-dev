@@ -1,3 +1,7 @@
+import { startupEnglish, startupSpanish } from "../shared/consumerStartupCopy";
+// This is a dependency-free, browser-safe preference contract, not a UI module.
+import { LANGUAGE_PREFERENCE_KEY, CUSTOMER_UI_LANGUAGES } from "../client/src/i18n/languagePreference";
+
 /**
  * Development-only first-paint presentation. Keep crawler-readable HTML intact:
  * without JavaScript, the splash stays hidden and public content stays visible.
@@ -29,6 +33,29 @@ export function addDevelopmentStartupPresentation(html: string): string {
       (function () {
         var page = document.documentElement;
         var timer, finished = false, failed = false;
+        var preference = "auto", language = "en";
+        var supported = ${JSON.stringify(CUSTOMER_UI_LANGUAGES)};
+        try { preference = localStorage.getItem(${JSON.stringify(LANGUAGE_PREFERENCE_KEY)}) || "auto"; } catch (_) {}
+        var chosen = preference.split("-")[0].toLowerCase();
+        if (chosen !== "auto" && chosen !== "null" && supported.indexOf(chosen) < 0) chosen = "en";
+        if (chosen === "null") chosen = "auto";
+        language = chosen === "auto" ? (navigator.language || "en").split("-")[0].toLowerCase() : chosen;
+        if (supported.indexOf(language) < 0) language = "en";
+        var english = ${JSON.stringify(startupEnglish).replace(/</g, "\\u003c")};
+        var spanish = ${JSON.stringify(startupSpanish).replace(/</g, "\\u003c")};
+        var copy = language === "es" ? spanish : english;
+        if (language === "es" || language === "en") { page.lang = language; page.dir = "ltr"; }
+        if (document.title === english.publicTitle || document.title === spanish.publicTitle) document.title = copy.publicTitle;
+        function applyCopy() {
+          var splash = document.getElementById("mpm-development-startup");
+          if (!splash) return;
+          splash.setAttribute("aria-label", copy.label);
+          document.getElementById("mpm-startup-message").textContent = failed ? copy.failed : copy.loading;
+          document.getElementById("mpm-startup-reload").textContent = copy.reload;
+          document.getElementById("mpm-startup-public").textContent = copy.publicPage;
+        }
+        window.addEventListener("mpm:startup-present", applyCopy);
+        applyCopy();
         page.classList.add("mpm-starting");
         function clearLoading() {
           clearTimeout(timer);
@@ -38,6 +65,7 @@ export function addDevelopmentStartupPresentation(html: string): string {
           window.removeEventListener("mpm:startup-failed", failure);
           window.removeEventListener("mpm:app-mounted", complete);
           window.removeEventListener("error", moduleError, true);
+          window.removeEventListener("mpm:startup-present", applyCopy);
           document.removeEventListener("click", startupAction);
         }
         function complete() { if (!failed) { finished = true; clearLoading(); } }
@@ -48,7 +76,7 @@ export function addDevelopmentStartupPresentation(html: string): string {
           page.classList.remove("mpm-starting");
           page.classList.add("mpm-startup-error");
           var message = document.getElementById("mpm-startup-message");
-          if (message) message.textContent = "My Perfect Meals could not finish starting. Reload to try again, or view the public page. Technical details are available in the browser console.";
+          if (message) message.textContent = copy.failed;
         }
         function moduleError(event) {
           if (event.target && event.target.tagName === "SCRIPT" && event.target.type === "module") failure();
@@ -72,6 +100,7 @@ export function addDevelopmentStartupPresentation(html: string): string {
           if (finished) return;
           if (!document.getElementById("root")) { failure(); return; }
           if (failed) failure();
+          else applyCopy();
         }, { once: true });
       })();
     </script>`;
@@ -83,6 +112,7 @@ export function addDevelopmentStartupPresentation(html: string): string {
         <button id="mpm-startup-reload" type="button">Reload</button>
         <button id="mpm-startup-public" type="button">View public page</button>
       </div>
-    </div>`;
+    </div>
+    <script data-mpm-startup-ready>window.dispatchEvent(new Event("mpm:startup-present"));</script>`;
   return html.replace("</head>", `${head}</head>`).replace(/<body([^>]*)>/, `<body$1>${splash}`);
 }

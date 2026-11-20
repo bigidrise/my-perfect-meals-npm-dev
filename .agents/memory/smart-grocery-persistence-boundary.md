@@ -8,6 +8,39 @@ Development-only. Unrestricted recommendations, clinical-rule changes, catalog
 ranking and prompt changes still require separate approval; stored product
 assessments are historical evidence, not lasting medical clearance.
 
+## Explicit shopping-reference permission
+
+"A shopping reference represents the customer's intended product, not medical or
+dietary clearance." The user approved a separate, explicitly labeled unverified
+shopping-reference workflow in Development. This supersedes the earlier
+view-only restriction for this intent-only workflow, NOT verified-selection rules.
+Keep verified selections and unverified references distinguishable. Preserve all
+unresolved warnings, exact-product identity requirements and known-conflict
+exclusions. Update the existing row without duplicates or changes to quantities
+or recipe contributions. Never mark a reference verified, medically cleared or
+suitable for a restricted diet. No Production deployment, live paid-provider
+calls or real-account writes without separate authorization.
+
+**Why:** The user explicitly chose unverified references after the actual
+Development recommendations remained unselectable despite a synthetic eligible
+button demonstration.
+
+**How to apply:** Treat saving shopping intent as a separate action and validation
+path. Missing eligibility checks stay unresolved. Synthetic verification must
+exercise the actual unresolved service-response contract, not assume an eligible
+fixture proves the customer's workflow.
+
+For offline browser fixtures, align both profile endpoints, local storage,
+capability owner and row ownership with the unchanged server-composed reference
+subject before interactive checks. Count Shopping mutations separately from
+advisor POST lookups, and inspect the active confirmation controls rather than
+requiring every below-fold recommendation action to be in view simultaneously.
+
+**Why:** Reused fixture identity defaults stopped the browser before persistence;
+broad POST and viewport assertions then falsely flagged the working reference
+journey. Never relax account guards or rewrite the service payload to repair
+fixture identity.
+
 **Why:** The user approved the minimal existing-catalog picker after the persistence
 foundation, not a medical-needs-first recommendation engine.
 
@@ -19,6 +52,26 @@ choices, not a third recommendation engine. Keep the existing list, use a small
 Choose Product action only where packaged-product selection matters, and start
 lookups only when the member taps it. Show a saved choice beneath the original
 ingredient without replacing its name or recipe quantity; allow change/clear.
+
+The founder confirmed Find a Product's generic-to-branded personalized
+recommendation experience as the intended source for Shopping List options.
+Reuse that experience rather than treating a parallel catalog-only presentation
+as equivalent. Reuse the actual Find a Product recommendation presentation
+where practical; sharing its service or explanation text alone is not sufficient.
+The founder explicitly rejected simply restyling ShoppingProductPicker and
+calling it the same experience. Report the reusable components and minimal
+adapter first, then obtain approval before changing that implementation.
+Independently enforce the existing selection requirements:
+an AI recommendation or Add/Save action does not establish verified eligibility.
+Show up to three eligible branded choices without weakening rules to fill the
+count. Preserve existing Product Scan identity and require explicit alternative
+selection.
+
+**Why:** The founder confirmed the intended behavior using Development screenshots
+and explicitly distinguished recommendation Add/Save from Shopping List
+replacement. Development integration and offline verification are approved.
+Live paid-provider calls, real-account writes, Production deployment, and GitHub
+push or merge require separate authorization.
 
 **Why:** The user explicitly approved this simpler Development-only direction and
 prohibited a new engine, clinical-rule system, additional migrations, automatic
@@ -71,13 +124,26 @@ Missing reviewed profile-specific product checks are not evidence that a product
 contains a restricted ingredient. Explain policy gaps, missing product information,
 and unsupported requested qualifiers separately in member-friendly language,
 without internal identifiers. Useful review-needed catalog products may be shown
-as view-only references with a clear current-label notice; only existing eligible
-structured choices may be selected. Never display established conflicting products.
+as review-needed references with a clear current-label notice; only existing eligible
+structured choices may be saved as verified selections. The separate intent-only
+reference permission above now governs saving unverified shopping intent. Never display established conflicting products.
+Review-only cards should offer available exact-source identity and label evidence
+without gaining verified-selection permission. Bind selectable recommendations to the
+named brand, product and variant; word overlap alone is not that binding. An
+unresolved avoidance check proves neither presence nor absence of the ingredient.
+Do not describe the customer selection workflow as fixed merely because a
+synthetic eligible fixture renders Choose. An unimplemented verification path
+still prevents verified selections; saving a reference does not resolve it.
 
 **Why:** The user explicitly asked to remember this distinction after finding that
 Smart Grocery's stricter selection boundary can exclude products Grocery Coach
 displays, then separately approved view-only references and simple fallback tips
 without changing selection eligibility or Grocery Coach behavior.
+The founder subsequently approved evidence-first identity/review corrections,
+not fabricated verification or bypassing unresolved avoidance checks.
+The founder then reported that the screenshot showed Choose while the actual
+Development app still allowed no selections; fixture evidence is not acceptance
+of the actual customer workflow.
 
 **How to apply:** Keep Smart Grocery concise and useful, not a medical product
 certification system. If nothing is selectable, provide one short shopping tip

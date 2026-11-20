@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useEffectiveClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
 import { isClinicalIndicatorActive } from "@shared/clinicalProtocolIdentity";
@@ -607,7 +608,7 @@ export default function TrainerClientDashboard() {
             className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />
-            <span className="text-sm font-medium">Back</span>
+            <span className="text-sm font-medium"><BackNavigationLabel /></span>
           </button>
           <div className="flex flex-col flex-1 min-w-0">
             <h1 className="text-base font-bold text-white truncate">

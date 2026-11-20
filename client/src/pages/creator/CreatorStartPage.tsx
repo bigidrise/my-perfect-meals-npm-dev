@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
@@ -102,7 +103,7 @@ export default function CreatorStartPage() {
           onClick={() => setLocation("/creator-studio")}
           className="w-full mt-3 py-3 text-sm text-white/50 hover:text-white/80 transition-colors"
         >
-          Back
+          <BackNavigationLabel />
         </button>
 
       </div>

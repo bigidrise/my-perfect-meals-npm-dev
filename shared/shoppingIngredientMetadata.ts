@@ -45,6 +45,7 @@ export const shoppingIngredientMetadataSchema = z.object({
     source: text.optional(),
   }).strict()).max(1000),
   selectedProduct: z.object({
+    selectionKind: z.enum(["verified_selection", "unverified_shopping_reference"]).optional(),
     productKey: text,
     name: text,
     brand: text.optional(),
@@ -70,6 +71,11 @@ export const shoppingIngredientMetadataSchema = z.object({
     }).strict(),
   }).strict().nullable().optional(),
 }).strict().superRefine((value, ctx) => {
+  if (value.selectedProduct?.selectionKind === "unverified_shopping_reference" &&
+    (value.selectedProduct.assessment.status !== "review_required" ||
+      !value.selectedProduct.assessment.unresolvedRequirements.length)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "An unverified shopping reference must retain review-required warnings" });
+  }
   if (new Set(value.contributions.map(c => c.id)).size !== value.contributions.length) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Duplicate contribution identity" });
   }

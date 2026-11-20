@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
@@ -678,7 +679,7 @@ export default function OrganizationSuccessCenter() {
             className="flex items-center gap-1.5 text-orange-400 text-sm font-medium mb-4"
           >
             <ArrowLeft className="h-4 w-4" />
-            Organization Dashboard
+            <BackNavigationLabel label="Organization Dashboard" />
           </button>
         )}
         <div className="bg-gradient-to-br from-orange-600/20 via-orange-600/10 to-transparent border border-orange-500/20 rounded-2xl p-5">

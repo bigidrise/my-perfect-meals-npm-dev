@@ -1,3 +1,4 @@
+import { BackNavigationLabel, useBackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 // 🔒🔒🔒 CRAVING CREATOR FINAL LOCKDOWN (JANUARY 3, 2025) - DO NOT MODIFY
 // Complete system lockdown per user command: API endpoints, JSX structure, macro logging, medical badges, image generation
 // Zero-tolerance policy for modifications - system working perfectly for production deployment
@@ -11,6 +12,7 @@
 // DO NOT MODIFY WITHOUT USER APPROVAL
 
 import { useState, useEffect, useRef } from "react";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
@@ -241,6 +243,7 @@ const CRAVING_TOUR_STEPS: TourStep[] = [
 ];
 
 export default function CravingCreator() {
+  const navigationLabel = useBackNavigationLabel();
   const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
   const { toast } = useToast();
@@ -1034,21 +1037,21 @@ export default function CravingCreator() {
           {isDesktop && (
             <button
               onClick={() => setLocation("/craving-creator-landing")}
-              aria-label="Back to Craving Creator Hub"
+              aria-label={navigationLabel("Back to Craving Creator Hub")}
               className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="text-sm font-medium">Craving Creator Hub</span>
+              <span className="text-sm font-medium"><BackNavigationLabel label="Craving Creator Hub" /></span>
             </button>
           )}
           {!isDesktop && (
             <button
               onClick={() => setLocation("/craving-creator-landing")}
-              aria-label="Back to Craving Creator Hub"
+              aria-label={navigationLabel("Back to Craving Creator Hub")}
               className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="text-sm font-medium">Back</span>
+              <span className="text-sm font-medium"><BackNavigationLabel /></span>
             </button>
           )}
           <div className="flex items-center justify-between mb-4">
@@ -1062,7 +1065,7 @@ export default function CravingCreator() {
                 }}
                 className="bg-black/10 backdrop-blur-none text-gray-700 border-white/30 hover:bg-white"
               >
-                Return to Meal Hub Now
+                <BackNavigationLabel label="Return to Meal Hub Now" />
               </GlassButton>
             )}
           </div>
@@ -1913,19 +1916,19 @@ export default function CravingCreator() {
 
                                 if (ingredient.displayText) {
                                   return (
-                                    <li key={i}>{ingredient.displayText}</li>
+                                    <li key={i}><IngredientDisplay ingredient={ingredient} legacyText={ingredient.displayText} /></li>
                                   );
                                 }
 
                                 if (amount) {
                                   return (
                                     <li key={i}>
-                                      {amount}{unit ? ` ${unit}` : ""} {name}
+                                      <IngredientDisplay ingredient={ingredient} legacyText={<>{amount}{unit ? ` ${unit}` : ""} {name}</>} />
                                     </li>
                                   );
                                 }
 
-                                return <li key={i}>{name}</li>;
+                                return <li key={i}><IngredientDisplay ingredient={ingredient} legacyText={name} /></li>;
                               },
                             )}
                           </ul>

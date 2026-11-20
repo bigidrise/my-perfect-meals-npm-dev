@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useLocation } from "wouter";
 import { ArrowLeft, ChevronRight, Handshake, Pill, Dumbbell, GraduationCap, HeartPulse, Code2, HelpCircle } from "lucide-react";
 import { motion } from "framer-motion";
@@ -135,7 +136,7 @@ export default function IndustryPartnerships() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
             >
               <ArrowLeft className="h-4 w-4" />
-              {backLabel}
+              <BackNavigationLabel label={backLabel} />
             </button>
           </div>
         </div>
@@ -152,7 +153,7 @@ export default function IndustryPartnerships() {
           className="flex items-center gap-1.5 text-orange-400 text-sm font-medium"
         >
           <ArrowLeft className="h-4 w-4" />
-          Partner Programs
+          <BackNavigationLabel label="Partner Programs" />
         </button>
 
         {/* Hero */}

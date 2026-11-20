@@ -33,6 +33,12 @@ The shared variety generator may preserve a dish's recognizable name but omit de
 
 **How to apply:** Retain the stored concept's required ingredients and physical form as immutable constraints across attempts. Recheck repaired output through the same safety and final gates, and return no card when safe preservation remains impossible.
 
+DISH ideas must name the specific foods behind unspecified ingredient groups before presentation, including when the idea is localized.
+
+**Why:** A Spanish idea promised an unspecified vegetable mixture that passed an English-only concreteness check, then failed ingredient evidence in every recipe and bounded repair. Weakening final matching would conceal an unresolved promise rather than repair it.
+
+**How to apply:** Resolve groups during concept generation and bounded refill. Preserve valid sibling ideas and final food checks. Do not silently rewrite an already selected concept or broaden Craving/manual Creator behavior to fix DISH generation.
+
 A passed negative protocol scan cannot serve as positive evidence of a compositional diet or a numeric clinical limit, and model-estimated macros are not independently verified nutrition. Unsupported evidence must stay review-required or be rejected, even if this reduces the number of concepts that can finish automatically.
 
 **Why:** A scan can miss a high-risk diabetic macro excess or an unmeasured specialty limit; labeling either as compliant would make an apparently finished card unsafe.

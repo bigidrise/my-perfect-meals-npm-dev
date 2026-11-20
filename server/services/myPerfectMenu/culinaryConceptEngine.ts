@@ -149,6 +149,9 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
     input.requiredCuisine
       ? `Cuisine requirement: every candidate must be recognizably ${input.requiredCuisine}; adapt that cuisine to higher-priority requirements rather than changing cuisines.`
       : "Use the resolved cuisine guidance when available.",
+    input.requiredCuisine
+      ? `For a candidate that genuinely follows that cuisine, use the supplied cuisine label ${JSON.stringify(input.requiredCuisine)} in its cuisine metadata field, even when the title and description use another language. Do not relabel a different cuisine to pass validation.`
+      : "",
     "Foods I Enjoy and learned preferences improve ranking but never override protections.",
     input.occasion === "snack"
       ? "SNACK DEFINITION: snack is an eating occasion, not a narrow food category. Dessert is a normal possible snack family alongside savory, fruit-based, baked, chilled/frozen, dairy or dairy-alternative, grain-based, and protein-oriented foods. Rank styles from this person's context and recent variety. Do not force a dessert or any sweet/savory quota."

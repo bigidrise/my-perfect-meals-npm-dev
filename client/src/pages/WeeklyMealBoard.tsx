@@ -1,3 +1,4 @@
+import { useBackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { apiRequest } from "@/lib/apiRequest";
@@ -194,6 +195,7 @@ const WEEKLY_TOUR_STEPS: TourStep[] = [
 ];
 
 export default function WeeklyMealBoard() {
+  const navigationLabel = useBackNavigationLabel();
   usePageTitle("Weekly Meal Builder");
   const [, setLocation] = useLocation();
   const search = useSearch();
@@ -1379,7 +1381,7 @@ export default function WeeklyMealBoard() {
             {/* ROW 1: Week Navigation */}
             <div className="flex items-center justify-center">
               <div className="flex items-center gap-3">
-                <PillButton onClick={onPrevWeek} aria-label="Previous week" className="px-3">
+                <PillButton onClick={onPrevWeek} aria-label={navigationLabel("Previous week")} className="px-3">
                   <ChevronLeft className="h-3 w-3" />
                 </PillButton>
                 <div className="text-sm font-medium text-white/90">

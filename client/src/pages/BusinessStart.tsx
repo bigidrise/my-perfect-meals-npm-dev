@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import {
@@ -125,7 +126,7 @@ export default function BusinessStart() {
           <Building2 className="w-6 h-6 text-blue-400" />
           <span className="font-bold tracking-tight">My Perfect Meals</span>
           <span className="hidden sm:inline text-xs px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-200 border border-blue-500/25">
-            Business Suite
+            <BackNavigationLabel label="Business Suite" />
           </span>
         </button>
         {!loading && !user && (

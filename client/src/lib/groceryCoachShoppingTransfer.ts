@@ -10,7 +10,7 @@ import type { IngredientScanResult } from "./photoIngredientCapture";
 export function groceryCoachSelectedProductMetadata(
   ingredient: GroceryIngredient,
   product: CatalogProductMatch | { name: string; byNameAnalysis: IngredientScanResult },
-  recipe: { id?: string; name: string },
+  recipe: { id?: string; name?: string } = {},
 ) {
   const metadata = makeIngredientMetadata({
     name: ingredient.item, quantity: ingredient.quantity, unit: ingredient.unit,
@@ -72,4 +72,12 @@ export function groceryCoachSelectedProductMetadata(
       },
     },
   })!;
+}
+
+/** Preserve a standalone Product Scan identity without inventing a recipe. */
+export function groceryCoachStandaloneProductMetadata(
+  name: string,
+  product: Parameters<typeof groceryCoachSelectedProductMetadata>[1],
+) {
+  return groceryCoachSelectedProductMetadata({ item: name, quantity: "1", unit: "" }, product);
 }

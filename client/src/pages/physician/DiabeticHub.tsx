@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { useGlucoseContextLabels } from "@/i18n/useConsumerChoiceLabels";
 import { useLocation } from "wouter";
 import {
   Activity,
@@ -28,6 +29,7 @@ import {
   useDiabetesProfile,
 } from "@/hooks/useDiabetes";
 import { useToast } from "@/hooks/use-toast";
+import { useConsumerNotice } from "@/i18n/ConsumerNotice";
 import { GLUCOSE_THRESHOLDS } from "@/content/diabetesEducation";
 import { DIABETIC_PRESETS } from "@/data/diabeticPresets";
 import type { GlucoseContext } from "@/hooks/useDiabetes";
@@ -44,6 +46,7 @@ import { GLP1CompanionModal } from "@/components/diabetic/GLP1CompanionModal";
 import { isClinicalOrAbove } from "@/lib/subscriptionCheck";
 import { useGLP1CurrentUse } from "@/hooks/useGLP1CurrentUse";
 import GLP1DailyCheckin from "@/components/glp1/GLP1DailyCheckin";
+import { isDevelopmentRuntime } from "@/lib/developmentRuntimeFlag";
 
 function getDeviceId(): string {
   let deviceId = localStorage.getItem("deviceId");
@@ -55,11 +58,13 @@ function getDeviceId(): string {
 }
 
 export default function DiabeticHub() {
-  const { t } = useTranslation();
+  const { t, i18n } = useConsumerCopy();
+  const contextLabels = useGlucoseContextLabels();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const canAccessTrainingNutrition = isClinicalOrAbove(user);
   const { toast } = useToast();
+  const notice = useConsumerNotice();
   const userId = user?.id?.toString() || getDeviceId();
   const quickTour = useQuickTour("diabetic-hub");
   const glp1CurrentUse = useGLP1CurrentUse();
@@ -100,7 +105,7 @@ export default function DiabeticHub() {
   const [showGlycemicModal, setShowGlycemicModal] = useState(false);
   const [showGlp1Companion, setShowGlp1Companion] = useState(false);
 
-  const isGlp1Active = import.meta.env.DEV ? glp1CurrentUse.data?.effectiveActive === true : !!(
+  const isGlp1Active = isDevelopmentRuntime ? glp1CurrentUse.data?.effectiveActive === true : !!(
     (user?.medicalConditions as string[] | undefined)?.includes("glp1") ||
     (user?.healthConditions as string[] | undefined)?.includes("glp1") ||
     user?.selectedMealBuilder === "glp1" ||
@@ -174,19 +179,19 @@ export default function DiabeticHub() {
     const postMaxNum = parseInt(postMealMax);
 
     if (!carbNum || carbNum < 30 || carbNum > 400) {
-      toast({ title: t("diabeticHub.validCarbLimit"), variant: "destructive" });
+      toast({ title: notice("diabeticHub.validCarbLimit"), variant: "destructive" });
       return;
     }
     if (!freqNum || freqNum < 2 || freqNum > 8) {
-      toast({ title: t("diabeticHub.validMealFreq"), variant: "destructive" });
+      toast({ title: notice("diabeticHub.validMealFreq"), variant: "destructive" });
       return;
     }
     if (!fastMinNum || !fastMaxNum || fastMinNum >= fastMaxNum) {
-      toast({ title: t("diabeticHub.validFastingRange"), variant: "destructive" });
+      toast({ title: notice("diabeticHub.validFastingRange"), variant: "destructive" });
       return;
     }
     if (!postMaxNum || postMaxNum < fastMaxNum) {
-      toast({ title: t("diabeticHub.validPostMeal"), variant: "destructive" });
+      toast({ title: notice("diabeticHub.validPostMeal"), variant: "destructive" });
       return;
     }
 
@@ -208,15 +213,15 @@ export default function DiabeticHub() {
       });
       setSelectedPreset("");
       setHasCustomizedGuardrails(true);
-      toast({ title: t("diabeticHub.guardrailsSaved") });
+      toast({ title: notice("diabeticHub.guardrailsSaved") });
     } catch (error) {
-      toast({ title: t("diabeticHub.guardrailsFailed"), variant: "destructive" });
+      toast({ title: notice("diabeticHub.guardrailsFailed"), variant: "destructive" });
     }
   };
 
   const handleLogGlucose = async () => {
     if (!glucoseReading) {
-      toast({ title: t("diabeticHub.pleaseEnterReading"), variant: "destructive" });
+      toast({ title: notice("diabeticHub.pleaseEnterReading"), variant: "destructive" });
       return;
     }
 
@@ -234,12 +239,12 @@ export default function DiabeticHub() {
         recordedAt: new Date().toISOString(),
       });
       setGlucoseReading("");
-      toast({ title: t("diabeticHub.readingLogged") });
+      toast({ title: notice("diabeticHub.readingLogged") });
     } catch (error: any) {
       console.error("[GlucoseLog] Failed to log reading:", error);
       const errorMsg = error?.message || error?.body || "Unknown error";
       toast({ 
-        title: t("diabeticHub.readingLogFailed"), 
+        title: notice("diabeticHub.readingLogFailed"), 
         description: errorMsg.slice(0, 100),
         variant: "destructive" 
       });
@@ -303,7 +308,7 @@ export default function DiabeticHub() {
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
           <div className="flex justify-center">
-            <HowThisWorksLink featureKey="diabeticHub" label="Hub Tutorial" />
+            <HowThisWorksLink featureKey="diabeticHub" label={t("Hub Tutorial")} />
           </div>
           {/* ── Quick Launch ── */}
           <button
@@ -323,8 +328,8 @@ export default function DiabeticHub() {
             <div className="flex items-center gap-3 text-left">
               <ChefHat className="w-5 h-5 text-lime-400" />
               <div>
-                <p className="font-bold text-sm">My Perfect Menu</p>
-                <p className="text-white/60 text-xs mt-0.5">Create ideas for your Diabetes Builder</p>
+                <p className="font-bold text-sm">{t("My Perfect Menu")}</p>
+                <p className="text-white/60 text-xs mt-0.5">{t("Create ideas for your Diabetes Builder")}</p>
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-white/40 flex-shrink-0" />
@@ -343,7 +348,7 @@ export default function DiabeticHub() {
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="font-semibold text-sm text-white leading-tight">{t("diabeticHub.trainingTitle")}</p>
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-300 bg-orange-600/20 border border-orange-500/30 px-2 py-0.5 rounded-full flex-shrink-0">
-                  Clinical
+            {t("Clinical")}
                 </span>
               </div>
               <p className="text-white/40 text-xs mt-0.5">{t("diabeticHub.trainingSub")}</p>
@@ -398,7 +403,7 @@ export default function DiabeticHub() {
           </div>
 
           {/* Preserve the released activation entry while Development trials symptoms. */}
-          {!import.meta.env.DEV && !isGlp1Active && (
+          {!isDevelopmentRuntime && !isGlp1Active && (
             <div className="rounded-xl border border-orange-500/20 bg-orange-950/10 px-4 py-3 flex items-start gap-3">
               <span className="text-orange-400 text-base mt-0.5 shrink-0" aria-hidden="true">💉</span>
               <div className="flex-1 min-w-0">
@@ -414,19 +419,19 @@ export default function DiabeticHub() {
               </div>
             </div>
           )}
-          {import.meta.env.DEV && glp1CurrentUse.isError && (
+          {isDevelopmentRuntime && glp1CurrentUse.isError && (
             <p role="alert" className="text-sm text-orange-200">
-              GLP-1 medication status could not be loaded.{" "}
-              <button type="button" className="underline" onClick={() => glp1CurrentUse.refetch()}>Retry</button>
+              {t("GLP-1 medication status could not be loaded.")}{" "}
+              <button type="button" className="underline" onClick={() => glp1CurrentUse.refetch()}>{t("Retry")}</button>
             </p>
           )}
-          {import.meta.env.DEV && isGlp1Active && (
+          {isDevelopmentRuntime && isGlp1Active && (
             <section className="rounded-xl border border-orange-500/20 p-4 space-y-3">
-              <p className="text-sm text-white/80">Using GLP-1 medication support? Keep today’s symptoms up to date.</p>
+              <p className="text-sm text-white/80">{t("Using GLP-1 medication support? Keep today’s symptoms up to date.")}</p>
               <Button type="button" className="h-auto whitespace-normal bg-orange-600 text-white hover:bg-orange-500" aria-expanded={showDailySymptoms}
                 aria-controls="diabetic-glp1-daily-symptoms"
                 onClick={() => setShowDailySymptoms((open) => !open)}>
-                {showDailySymptoms ? "Hide daily symptom panel" : "Update daily GLP-1 symptoms"}
+                {showDailySymptoms ? t("Hide daily symptom panel") : t("Update daily GLP-1 symptoms")}
               </Button>
               {showDailySymptoms && <div id="diabetic-glp1-daily-symptoms"><GLP1DailyCheckin /></div>}
             </section>
@@ -560,15 +565,15 @@ export default function DiabeticHub() {
                     type="number"
                     value={fastingMin}
                     onChange={(e) => setFastingMin(e.target.value)}
-                    placeholder="Min"
-                    className="w-full px-3 py-2 rounded-xl bg-white/20 border border-white/40 text-white placeholder-white/60 focus:outline-none focus:border-orange-300"
+                    placeholder={t("Min")}
+                    className="min-w-0 w-full flex-1 px-3 py-2 rounded-xl bg-white/20 border border-white/40 text-white placeholder-white/60 focus:outline-none focus:border-orange-300"
                   />
                   <input
                     type="number"
                     value={fastingMax}
                     onChange={(e) => setFastingMax(e.target.value)}
-                    placeholder="Max"
-                    className="w-full px-3 py-2 rounded-xl bg-white/20 border border-white/40 text-white placeholder-white/60 focus:outline-none focus:border-orange-300"
+                    placeholder={t("Max")}
+                    className="min-w-0 w-full flex-1 px-3 py-2 rounded-xl bg-white/20 border border-white/40 text-white placeholder-white/60 focus:outline-none focus:border-orange-300"
                   />
                 </div>
               </div>
@@ -821,7 +826,7 @@ export default function DiabeticHub() {
                             />
                             <div className="text-white/60 text-xs text-center">
                               {new Date(log.recordedAt).toLocaleDateString(
-                                undefined,
+                                i18n.resolvedLanguage,
                                 { month: "short", day: "numeric" },
                               )}
                             </div>
@@ -835,7 +840,7 @@ export default function DiabeticHub() {
                 <div className="grid grid-cols-3 gap-4">
                   <div className="bg-emerald-500/20 backdrop-blur-sm rounded-xl p-4 border border-emerald-400/30">
                     <div className="text-emerald-200 text-xs mb-1">
-                      7-Day Average
+                      {t("7-Day Average")}
                     </div>
                     <div className="text-white text-lg font-semi-bold">
                       {Math.round(
@@ -852,7 +857,7 @@ export default function DiabeticHub() {
 
                   <div className="bg-blue-500/20 backdrop-blur-sm rounded-xl p-4 border border-blue-400/30">
                     <div className="text-blue-200 text-xs mb-1">
-                      Target Range
+                      {t("Target Range")}
                     </div>
                     <div className="text-white text-lg font-semi-bold">
                       {targetMin}-{targetMax} mg/dL
@@ -860,7 +865,7 @@ export default function DiabeticHub() {
                   </div>
 
                   <div className="bg-purple-500/20 backdrop-blur-sm rounded-xl p-4 border border-purple-400/30">
-                    <div className="text-purple-200 text-xs mb-1">In Range</div>
+                    <div className="text-purple-200 text-xs mb-1">{t("In Range")}</div>
                     <div className="text-white text-lg font-semi-bold">
                       {Math.round(
                         (glucoseLogs.data
@@ -882,7 +887,7 @@ export default function DiabeticHub() {
                 <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden">
                   <div className="px-4 py-3 bg-white/10 border-b border-white/20">
                     <h3 className="text-white font-semi-bold">
-                      Recent Readings
+                      {t("Recent Readings")}
                     </h3>
                   </div>
                   <div className="divide-y divide-white/10">
@@ -904,11 +909,11 @@ export default function DiabeticHub() {
                                 {log.valueMgdl} mg/dL
                               </span>
                               <span className="text-white/60 text-md ml-2">
-                                ({log.context})
+                                ({contextLabels[log.context] ?? log.context})
                               </span>
                             </div>
                             <div className="text-white/60 text-md">
-                              {new Date(log.recordedAt).toLocaleString()}
+                              {new Date(log.recordedAt).toLocaleString(i18n.resolvedLanguage)}
                             </div>
                           </div>
                         );
@@ -920,9 +925,9 @@ export default function DiabeticHub() {
               <div className="h-64 bg-yellow-500/10 backdrop-blur-sm rounded-xl border border-yellow-400/30 flex items-center justify-center relative z-10">
                 <div className="text-center text-white/80">
                   <TrendingUp className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium">No readings yet</p>
+                  <p className="text-lg font-medium">{t("No readings yet")}</p>
                   <p className="text-md">
-                    Log your first glucose reading above to start tracking
+                    {t("Log your first glucose reading above to start tracking")}
                   </p>
                 </div>
               </div>
@@ -949,7 +954,7 @@ export default function DiabeticHub() {
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/3 pointer-events-none" />
             <div className="mb-6 relative z-10">
               <h2 className="text-lg font-bold text-white">
-                AI Diabetic Meal Generator
+                {t("AI Diabetic Meal Generator")}
               </h2>
               <p className="text-white/80 text-md">
                 Low-GI meals based on your guardrails
@@ -961,7 +966,7 @@ export default function DiabeticHub() {
               className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-lime-600/20 border border-lime-500/30 text-white"
             >
               <div className="text-left">
-                <p className="font-bold text-sm">Launch Diabetic Builder</p>
+                <p className="font-bold text-sm">{t("Launch Diabetic Builder")}</p>
                 <p className="text-white/80 text-xs mt-0.5">Low-GI meals built for your glucose guardrails</p>
               </div>
               <ChevronRight className="w-5 h-5 text-lime-400 flex-shrink-0" />

@@ -1,7 +1,8 @@
+import { ClinicalSupportLabel } from "@/components/ClinicalSupportLabel";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useEffectiveClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
 import { isClinicalIndicatorActive } from "@shared/clinicalProtocolIdentity";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -129,7 +130,7 @@ import { getBuilderProtocolBadges } from "@/lib/nutritionPersonalization";
 // Using noon UTC anchor pattern to prevent day-shift bugs
 
 export default function GLP1MealBuilder() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   usePageTitle(t("metabolicBuilder.pageTitle"));
 
   const GLP1_BUILDER_TOUR_STEPS = useMemo<TourStep[]>(() => [
@@ -431,7 +432,7 @@ export default function GLP1MealBuilder() {
         variant: "destructive"
       });
     }
-  }, [board, planningMode, activeDayISO, saveBoard, weekStartISO, toast]);
+  }, [board, planningMode, activeDayISO, saveBoard, weekStartISO, toast, t]);
 
   // Handler for premade meal selection
   const handlePremadeSelect = useCallback(async (meal: any) => {
@@ -478,7 +479,7 @@ export default function GLP1MealBuilder() {
         variant: "destructive"
       });
     }
-  }, [board, premadePickerSlot, planningMode, activeDayISO, saveBoard, weekStartISO, toast]);
+  }, [board, premadePickerSlot, planningMode, activeDayISO, saveBoard, weekStartISO, toast, t]);
 
   // Guided Tour state
   const [hasSeenInfo, setHasSeenInfo] = useState(false);
@@ -674,20 +675,20 @@ export default function GLP1MealBuilder() {
         }
 
         if (result.errors.length > 0) {
-          toast({ title: "Partial duplicate", description: `${result.currentWeekDayCount + result.otherWeeksSaved} of ${result.totalDays} days saved.`, variant: "destructive" });
+          toast({ title: t("metabolicBuilder.partialDuplicate"), description: t("metabolicBuilder.partialDuplicateDesc", { count: result.currentWeekDayCount + result.otherWeeksSaved, total: result.totalDays }), variant: "destructive" });
         } else if (result.otherWeeksSaved > 0 && result.currentWeekDayCount === 0) {
-          toast({ title: "Saved to future week", description: `Meals copied to ${result.otherWeeksSaved} day(s). Swipe forward to see them.` });
+          toast({ title: t("metabolicBuilder.savedFutureWeek"), description: t("metabolicBuilder.savedFutureWeekDesc", { count: result.otherWeeksSaved }) });
         } else if (result.otherWeeksSaved > 0) {
-          toast({ title: "Day duplicated", description: `${result.currentWeekDayCount} day(s) this week + ${result.otherWeeksSaved} day(s) in future weeks` });
+          toast({ title: t("metabolicBuilder.dayDuplicated"), description: t("metabolicBuilder.dayDuplicatedBoth", { thisWeek: result.currentWeekDayCount, future: result.otherWeeksSaved }) });
         } else {
-          toast({ title: "Day duplicated", description: `Copied to ${result.currentWeekDayCount} day(s)` });
+          toast({ title: t("metabolicBuilder.dayDuplicated"), description: t("metabolicBuilder.dayDuplicatedDesc", { count: result.currentWeekDayCount }) });
         }
       } catch (error) {
         console.error("Failed to duplicate day:", error);
-        toast({ title: "Failed to duplicate", description: "Please try again", variant: "destructive" });
+        toast({ title: t("metabolicBuilder.failedToDuplicate"), description: t("metabolicBuilder.tryAgain"), variant: "destructive" });
       }
     },
-    [board, activeDayISO, weekStartISO, saveBoard, toast],
+    [board, activeDayISO, weekStartISO, saveBoard, toast, t],
   );
 
 
@@ -757,7 +758,7 @@ export default function GLP1MealBuilder() {
         description: t("metabolicBuilder.aiMealCreatedDesc", { name: generatedMeal.name, slot }),
       });
     },
-    [board, activeDayISO, toast, saveBoard, weekStartISO],
+    [board, activeDayISO, toast, saveBoard, weekStartISO, t],
   );
 
   const profile = useOnboardingProfile();
@@ -1046,7 +1047,7 @@ export default function GLP1MealBuilder() {
         variant: "destructive",
       });
     }
-  }, [board, toast, queryClient]);
+  }, [board, toast, queryClient, t]);
 
   if (loading || !board)
     return (
@@ -1064,7 +1065,7 @@ export default function GLP1MealBuilder() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24 overflow-x-hidden"
     >
-      <BuilderHeader title={t("metabolicBuilder.pageTitle")} onOpenTour={quickTour.openTour} clientId={proClientId} backTo="/glp1-hub" backLabel="Metabolic Hub" protocols={getBuilderProtocolBadges(user)} />
+      <BuilderHeader title={t("metabolicBuilder.pageTitle")} onOpenTour={quickTour.openTour} clientId={proClientId} backTo="/glp1-hub" backLabel={t("Metabolic Hub")} protocols={getBuilderProtocolBadges(user)} />
 
 
       {/* Main Content */}
@@ -1094,20 +1095,20 @@ export default function GLP1MealBuilder() {
                 type="button"
                 onClick={onPrevWeek}
                 className="rounded-md px-2 py-1 border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
-                aria-label="Previous week"
+                aria-label={t("metabolicBuilder.prevWeek")}
               >
                 ‹
               </button>
 
               <div className="text-sm font-medium text-white/90">
-                {weekStartISO ? formatWeekLabel(weekStartISO) : "Loading…"}
+                {weekStartISO ? formatWeekLabel(weekStartISO, undefined, i18n.resolvedLanguage === "es" ? "es" : "en") : t("Loading…")}
               </div>
 
               <button
                 type="button"
                 onClick={onNextWeek}
                 className="rounded-md px-2 py-1 border border-white/20 text-white/80 hover:bg-white/10 transition-colors"
-                aria-label="Next week"
+                aria-label={t("metabolicBuilder.nextWeek")}
               >
                 ›
               </button>
@@ -1151,7 +1152,7 @@ export default function GLP1MealBuilder() {
               {(() => {
                 const flags = nutritionTargets.flags;
                 return [
-                  { key: "anti-inflammatory", label: t("metabolicBuilder.clinicalAntiInflam") + (personalAntiSupport.enabled ? " (optional)" : ""), isActive: personalAntiSupport.enabled || !!flags?.antiInflammatory, activeColor: "text-green-400", dotColor: "bg-green-400", dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]" },
+                  { key: "anti-inflammatory", label: personalAntiSupport.enabled ? "Anti-Inflammatory (optional)" : "Anti-Inflammatory", isActive: personalAntiSupport.enabled || !!flags?.antiInflammatory, activeColor: "text-green-400", dotColor: "bg-green-400", dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]" },
                   { key: "cardiac",            label: t("metabolicBuilder.clinicalCardiac"),    isActive: !!flags?.cardiac           || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
                   { key: "kidney-disease",     label: t("metabolicBuilder.clinicalKidney"),     isActive: !!flags?.renal             || labDerivedConditions.includes('kidney-disease'),   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
                   { key: "liver-support",      label: t("metabolicBuilder.clinicalLiverSupport"),isActive: !!flags?.liverSupport      || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
@@ -1162,7 +1163,7 @@ export default function GLP1MealBuilder() {
                   ].map(indicator => ({ ...indicator, isActive: isClinicalIndicatorActive(indicator.key, scConditions) })).map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
                   <span key={key} title={key === "anti-inflammatory" && personalAntiSupport.enabled ? "Optional personal nutrition support — not a clinical diagnosis" : undefined} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
                     <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
-                    {label}
+                    <ClinicalSupportLabel label={label} />
                   </span>
                 ));
               })()}
@@ -1183,7 +1184,7 @@ export default function GLP1MealBuilder() {
               ].map(({ key, label, activeColor, dotColor, dotGlow }) => (
                 <span key={key} className={`flex items-center gap-1 ${scConditions.includes(key) ? `${activeColor} font-semibold` : "text-white/25"}`}>
                   <span className={`inline-block w-1.5 h-1.5 rounded-full ${scConditions.includes(key) ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
-                  {label}
+                  <ClinicalSupportLabel label={label} />
                 </span>
               ))}
             </div>
@@ -1519,7 +1520,7 @@ export default function GLP1MealBuilder() {
                       });
                       toast({
                         title: t("metabolicBuilder.daySaved"),
-                        description: `${formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' })} has been locked.`,
+                        description: t("{{date}} has been locked.", { date: formatDateDisplay(activeDayISO, { weekday: 'long', month: 'short', day: 'numeric' }, undefined, i18n.resolvedLanguage === "es" ? "es" : "en") }),
                       });
                       setLocation('/my-biometrics');
                     }

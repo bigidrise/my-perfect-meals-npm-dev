@@ -1,0 +1,636 @@
+{
+  "method": "TypeScript AST import/route discovery and bounded UI syntax scan; not rendered coverage or enforcement",
+  "sourceFiles": 1300,
+  "routeRegistrations": 248,
+  "uniqueLiteralRoutePaths": 247,
+  "unresolvedRouteOwners": [
+    "client/src/components/Router.tsx:1211",
+    "client/src/components/Router.tsx:1269",
+    "client/src/components/Router.tsx:1379",
+    "client/src/components/Router.tsx:1385",
+    "client/src/components/Router.tsx:1409",
+    "client/src/components/Router.tsx:1433"
+  ],
+  "textCandidateRecords": 14741,
+  "translationCalls": 3200,
+  "translationStatus": {
+    "EN/ES values present": 2986,
+    "missing-or-fallback-candidate": 20,
+    "dynamic-key; unresolved": 111,
+    "EN/ES plural forms present": 4,
+    "namespace-needs-review": 79
+  },
+  "transientSurfaceOccurrences": 734,
+  "catalog": {
+    "legacyEnglishKeys": 3423,
+    "legacyEnglishKeysWithSpanish": 3423,
+    "legacyEnglishKeysMissingSpanish": [],
+    "legacyIdenticalValues": [
+      {
+        "key": "common.no",
+        "value": "No"
+      },
+      {
+        "key": "routeTitles.myPerfectBeginning",
+        "value": "My Perfect Beginnings"
+      },
+      {
+        "key": "routeTitles.appName",
+        "value": "My Perfect Meals"
+      },
+      {
+        "key": "routeTitles.creatorBrandStudio",
+        "value": "Creator & Brand Studio"
+      },
+      {
+        "key": "routeTitles.procareCertified",
+        "value": "ProCare Certified"
+      },
+      {
+        "key": "routeTitles.myPerfectPets",
+        "value": "My Perfect Pets"
+      },
+      {
+        "key": "businessCenter.title",
+        "value": "Business Center"
+      },
+      {
+        "key": "businessCenter.back",
+        "value": "Back"
+      },
+      {
+        "key": "businessCenter.tagline",
+        "value": "Every way to grow with My Perfect Meals — as a partner, a professional, or a creator."
+      },
+      {
+        "key": "businessCenter.pillars.partners",
+        "value": "Partner Programs"
+      },
+      {
+        "key": "businessCenter.pillars.partnersDesc",
+        "value": "Founding Business Partner, Industry & Strategic, Healthcare & Clinical, White Label Solutions, and Partner Program — all in one place."
+      },
+      {
+        "key": "businessCenter.pillars.procare",
+        "value": "ProCare"
+      },
+      {
+        "key": "businessCenter.pillars.procareDesc",
+        "value": "The professional platform for coaches, trainers, physicians, and dietitians managing clients with My Perfect Meals."
+      },
+      {
+        "key": "businessCenter.pillars.academy",
+        "value": "My Perfect Meals Academy"
+      },
+      {
+        "key": "businessCenter.pillars.academyDesc",
+        "value": "Platform certification and ProCare training for everyone who represents My Perfect Meals professionally."
+      },
+      {
+        "key": "businessCenter.pillars.promotions",
+        "value": "Promotions"
+      },
+      {
+        "key": "businessCenter.pillars.promotionsDesc",
+        "value": "Create trial extensions and discount codes for patients, clients, and campaigns. One engine — trials, discounts, invite links."
+      },
+      {
+        "key": "businessCenter.pillars.creatorBrand",
+        "value": "Creator & Brand Studio"
+      },
+      {
+        "key": "businessCenter.pillars.creatorBrandDesc",
+        "value": "Build a custom branded experience for chefs, supplement companies, beverage brands, and culinary creators."
+      },
+      {
+        "key": "businessCenter.completeProfile",
+        "value": "Complete Your Personal Nutrition Profile"
+      },
+      {
+        "key": "businessCenter.completeProfileDesc",
+        "value": "Set up your own nutrition profile whenever you're ready to experience My Perfect Meals personally and see what your clients will experience."
+      },
+      {
+        "key": "businessCenter.completeProfileBtn",
+        "value": "Complete My Nutrition Profile →"
+      },
+      {
+        "key": "businessCenter.certifications",
+        "value": "Professional Certifications"
+      },
+      {
+        "key": "businessCenter.certified",
+        "value": "Certified"
+      },
+      {
+        "key": "businessCenter.certDesc",
+        "value": "Your professional learning center. Complete certifications, track progress, and expand your expertise."
+      },
+      {
+        "key": "businessCenter.certifiedBadge",
+        "value": "Certified My Perfect Meals Professional"
+      },
+      {
+        "key": "businessCenter.viewCertifications",
+        "value": "View Certifications →"
+      },
+      {
+        "key": "businessCenter.continueCertification",
+        "value": "Continue Certification →"
+      },
+      {
+        "key": "businessCenter.newOpportunities",
+        "value": "New opportunities added regularly"
+      },
+      {
+        "key": "dashboard.proBadge",
+        "value": "Pro"
+      },
+      {
+        "key": "dashboard.macroScanCard",
+        "value": "MacroScan"
+      },
+      {
+        "key": "dashboard.original",
+        "value": "Original: {{text}}"
+      },
+      {
+        "key": "dashboard.sourcesOrgs",
+        "value": "NIH · USDA · WHO · ADA · AHA · NCI · ACOG · ATA · AND · FDA · NKF · AAP"
+      },
+      {
+        "key": "dashboard.calUnit",
+        "value": "cal"
+      },
+      {
+        "key": "dashboard.mpmLabel",
+        "value": "MPM"
+      },
+      {
+        "key": "builders.badgePro",
+        "value": "Pro"
+      },
+      {
+        "key": "builders.badgeProCare",
+        "value": "ProCare"
+      },
+      {
+        "key": "savedMeals.cal",
+        "value": "Cal"
+      },
+      {
+        "key": "shopping.proLabel",
+        "value": "Pro"
+      },
+      {
+        "key": "onboarding.sweetStevia",
+        "value": "Stevia"
+      },
+      {
+        "key": "onboarding.sweetEqual",
+        "value": "Equal (Aspartame)"
+      },
+      {
+        "key": "onboarding.dietKosher",
+        "value": "Kosher"
+      },
+      {
+        "key": "onboarding.dietHalal",
+        "value": "Halal"
+      },
+      {
+        "key": "more.procareLabel",
+        "value": "ProCare"
+      },
+      {
+        "key": "weeklyBoard.snacks",
+        "value": "Snacks"
+      },
+      {
+        "key": "desktopNav.appName",
+        "value": "My Perfect Meals"
+      },
+      {
+        "key": "desktopNav.personal",
+        "value": "Personal"
+      },
+      {
+        "key": "metabolicBuilder.allMealsLoggedTitle",
+        "value": "All Meals Logged!"
+      },
+      {
+        "key": "metabolicBuilder.snacks",
+        "value": "Snacks"
+      },
+      {
+        "key": "coachCorner.title",
+        "value": "Ask Chef"
+      },
+      {
+        "key": "pro.boardViewer.slots.snacks",
+        "value": "Snacks"
+      },
+      {
+        "key": "careTeam.invite.emailPlaceholder",
+        "value": "professional@example.com"
+      },
+      {
+        "key": "trainerCareTeam.invite.emailPlaceholder",
+        "value": "client@example.com"
+      },
+      {
+        "key": "physicianCareTeam.roles.np",
+        "value": "Nurse Practitioner"
+      },
+      {
+        "key": "physicianCareTeam.roles.rn",
+        "value": "RN"
+      },
+      {
+        "key": "physicianCareTeam.roles.pa",
+        "value": "Physician Assistant"
+      },
+      {
+        "key": "businessDashboard.academy",
+        "value": "My Perfect Meals Academy"
+      },
+      {
+        "key": "mealCard.protocol_sport_powerlifting",
+        "value": "Powerlifting"
+      },
+      {
+        "key": "mealCard.protocol_sport_mma",
+        "value": "MMA"
+      },
+      {
+        "key": "mealCard.protocol_sport_bjj",
+        "value": "BJJ / Grappling"
+      },
+      {
+        "key": "mealCard.protocol_sport_crossfit",
+        "value": "CrossFit"
+      },
+      {
+        "key": "mealCard.protocol_comptype_mens_physique",
+        "value": "Men's Physique"
+      },
+      {
+        "key": "mealCard.protocol_comptype_classic_physique",
+        "value": "Classic Physique"
+      },
+      {
+        "key": "mealCard.protocol_comptype_figure",
+        "value": "Figure"
+      },
+      {
+        "key": "mealCard.protocol_comptype_bikini",
+        "value": "Bikini"
+      },
+      {
+        "key": "mealCard.protocol_comptype_wellness",
+        "value": "Wellness"
+      },
+      {
+        "key": "mealCard.protocol_comptype_strongman_competition",
+        "value": "Strongman"
+      },
+      {
+        "key": "mealCard.protocol_comptype_hyrox",
+        "value": "Hyrox"
+      },
+      {
+        "key": "mealCard.protocol_comptype_spartan_race",
+        "value": "Spartan Race"
+      },
+      {
+        "key": "performanceCompetitionBuilder.snacksLabel",
+        "value": "Snacks"
+      },
+      {
+        "key": "sharedComponents.navigation.appName",
+        "value": "My Perfect Meals"
+      },
+      {
+        "key": "sharedComponents.mealSlots.snack",
+        "value": "Snack"
+      },
+      {
+        "key": "sharedComponents.enhancedMealCard.error",
+        "value": "Error:"
+      },
+      {
+        "key": "remainingMacros.coach.info",
+        "value": "Info"
+      },
+      {
+        "key": "performanceSetup.toast.errorTitle",
+        "value": "Error"
+      },
+      {
+        "key": "performanceSetup.trainingTypes.powerlifting",
+        "value": "Powerlifting"
+      },
+      {
+        "key": "performanceSetup.trainingTypes.mma",
+        "value": "MMA"
+      },
+      {
+        "key": "performanceSetup.trainingTypes.bjj",
+        "value": "BJJ"
+      },
+      {
+        "key": "performanceSetup.trainingTypes.crossfit",
+        "value": "CrossFit"
+      },
+      {
+        "key": "performanceSetup.frequency.no",
+        "value": "No"
+      },
+      {
+        "key": "performanceSetup.durations.thirtySixty.label",
+        "value": "30–60 min"
+      },
+      {
+        "key": "performanceSetup.durations.sixtyNinety.label",
+        "value": "60–90 min"
+      },
+      {
+        "key": "performanceSetup.durations.ninetyPlus.label",
+        "value": "90 min+"
+      },
+      {
+        "key": "performanceSetup.sessionTypes.recovery.short",
+        "value": "Rec"
+      },
+      {
+        "key": "performanceSetup.sessionTypes.off.short",
+        "value": "Off"
+      },
+      {
+        "key": "performanceSetup.compTypes.bikini",
+        "value": "Bikini"
+      },
+      {
+        "key": "performanceSetup.compTypes.wellness",
+        "value": "Wellness"
+      },
+      {
+        "key": "performanceSetup.compTypes.strongman",
+        "value": "Strongman"
+      },
+      {
+        "key": "performanceSetup.compTypes.hyrox",
+        "value": "Hyrox"
+      },
+      {
+        "key": "performanceSetup.compTypes.spartanRace",
+        "value": "Spartan Race"
+      },
+      {
+        "key": "therapeuticCard.toast.errorTitle",
+        "value": "Error"
+      },
+      {
+        "key": "clinicalLabs.normal",
+        "value": "Normal"
+      },
+      {
+        "key": "clinicalLabs.status.normal",
+        "value": "Normal"
+      },
+      {
+        "key": "clinicalLabs.fields.ldl",
+        "value": "LDL"
+      },
+      {
+        "key": "clinicalLabs.fields.hdl",
+        "value": "HDL"
+      },
+      {
+        "key": "clinicalLabs.fields.a1c",
+        "value": "A1C"
+      },
+      {
+        "key": "athletePicker.errorShort",
+        "value": "Error"
+      },
+      {
+        "key": "athletePicker.slots.snacks",
+        "value": "Snacks"
+      },
+      {
+        "key": "inspiration.copilotTitle",
+        "value": "Recipe Maker"
+      },
+      {
+        "key": "inspiration.recipeMaker",
+        "value": "Recipe Maker"
+      },
+      {
+        "key": "inspiration.calValue",
+        "value": "{{value}} cal"
+      },
+      {
+        "key": "inspiration.macroCal",
+        "value": "Cal"
+      },
+      {
+        "key": "dietStyleBadge.kosher",
+        "value": "Kosher ✓"
+      },
+      {
+        "key": "dietStyleBadge.halal",
+        "value": "Halal ✓"
+      },
+      {
+        "key": "dietStyleBadge.paleo",
+        "value": "Paleo ✓"
+      },
+      {
+        "key": "dietStyleBadge.keto",
+        "value": "Keto ✓"
+      },
+      {
+        "key": "glp1Checkin.opt.no",
+        "value": "No"
+      },
+      {
+        "key": "glp1Checkin.appetite.normal",
+        "value": "Normal"
+      },
+      {
+        "key": "joinStudio.appName",
+        "value": "My Perfect Meals"
+      },
+      {
+        "key": "joinStudio.loading",
+        "value": "Loading your invitation…"
+      },
+      {
+        "key": "joinStudio.joining",
+        "value": "Connecting you to the studio…"
+      },
+      {
+        "key": "joinStudio.inviteTitle",
+        "value": "ProCare Invitation"
+      },
+      {
+        "key": "joinStudio.invitedBySuffix",
+        "value": " has invited you to join their ProCare {{spaceLabel}}."
+      },
+      {
+        "key": "joinStudio.inviteAddress",
+        "value": "This invitation was sent to"
+      },
+      {
+        "key": "joinStudio.inviteAddressSuffix",
+        "value": "Make sure you’re signed in with that account."
+      },
+      {
+        "key": "joinStudio.joinButton",
+        "value": "Join {{spaceLabel}}"
+      },
+      {
+        "key": "joinStudio.joinDisclaimer",
+        "value": "Once connected, your {{roleLabel}} can guide your nutrition and progress through the platform."
+      },
+      {
+        "key": "joinStudio.successTitle",
+        "value": "You’re Connected!"
+      },
+      {
+        "key": "joinStudio.successBody",
+        "value": "You’ve successfully joined {{studioName}}. Your trainer can now work with you through the platform."
+      },
+      {
+        "key": "joinStudio.goToApp",
+        "value": "Go to My Perfect Meals"
+      },
+      {
+        "key": "joinStudio.wrongAccountTitle",
+        "value": "Wrong Account"
+      },
+      {
+        "key": "joinStudio.wrongAccountAddress",
+        "value": "This invitation was sent to"
+      },
+      {
+        "key": "joinStudio.wrongAccountDiffAccount",
+        "value": "You’re currently signed in with a different account."
+      },
+      {
+        "key": "joinStudio.wrongAccountHint",
+        "value": "Sign out and sign in with the correct email address, then click the invitation link again."
+      },
+      {
+        "key": "joinStudio.backToApp",
+        "value": "Back to App"
+      },
+      {
+        "key": "joinStudio.expiredTitle",
+        "value": "Invitation Expired"
+      },
+      {
+        "key": "joinStudio.expiredBody",
+        "value": "This invitation has expired. Ask your trainer to send a new one — it only takes a moment."
+      },
+      {
+        "key": "joinStudio.backupCodeHint",
+        "value": "You can also enter your backup code manually:"
+      },
+      {
+        "key": "joinStudio.backupCodePath",
+        "value": "More → Connect with Access Code"
+      },
+      {
+        "key": "joinStudio.alreadyConnectedTitle",
+        "value": "Already Connected"
+      },
+      {
+        "key": "joinStudio.alreadyConnectedBody",
+        "value": "This invitation has already been used. If you’re not seeing your trainer’s studio, try refreshing the app."
+      },
+      {
+        "key": "joinStudio.subscriptionRequiredTitle",
+        "value": "Subscription Required"
+      },
+      {
+        "key": "joinStudio.subscriptionRequiredBody",
+        "value": "Connecting with a ProCare provider requires a Clinical (Ultimate) subscription."
+      },
+      {
+        "key": "joinStudio.viewPlans",
+        "value": "View Plans"
+      },
+      {
+        "key": "joinStudio.trainerNotSubscribedTitle",
+        "value": "Trainer Not Subscribed"
+      },
+      {
+        "key": "joinStudio.trainerNotSubscribedBody",
+        "value": "Your trainer’s ProCare subscription is not currently active. Let them know and ask them to re-invite you once it’s resolved."
+      },
+      {
+        "key": "joinStudio.errorTitle",
+        "value": "Something Went Wrong"
+      },
+      {
+        "key": "joinStudio.errorFallback",
+        "value": "Please try again."
+      },
+      {
+        "key": "joinStudio.errorNoToken",
+        "value": "No invitation token found. Please use the link from your invitation email."
+      },
+      {
+        "key": "joinStudio.errorNotFound",
+        "value": "This invitation was not found. It may have expired or already been used."
+      },
+      {
+        "key": "joinStudio.errorLoadDetails",
+        "value": "Could not load invitation details. Please try again."
+      },
+      {
+        "key": "joinStudio.errorLoadDetailsNetwork",
+        "value": "Could not load invitation details. Please check your connection and try again."
+      },
+      {
+        "key": "joinStudio.errorConnectionIssue",
+        "value": "Connection error. Please check your connection and try again."
+      },
+      {
+        "key": "joinStudio.errorGenericFallback",
+        "value": "Something went wrong. Please try again."
+      },
+      {
+        "key": "joinStudio.roleDoctor",
+        "value": "doctor"
+      },
+      {
+        "key": "businessCenterSection.backBtn",
+        "value": "Business Suite"
+      },
+      {
+        "key": "procareInfo.title",
+        "value": "ProCare Coaching"
+      }
+    ],
+    "consumerEnglishKeys": 453,
+    "consumerSpanishKeys": 453,
+    "consumerMissingSpanish": [],
+    "consumerEmptySpanish": []
+  },
+  "approvedComparison": {
+    "denominator": 32,
+    "exactEnglishAndSpanishMatches": 32,
+    "differences": [],
+    "limit": "Resource equality only; existing consent behavior evidence is reused, not rerun."
+  },
+  "limits": [
+    "Import closure includes inactive conditional imports and type imports; not runtime reachability.",
+    "JSX, selected display attributes and named config/message properties only; arbitrary concatenation, custom translation aliases, rendered dynamic data, CSS pseudo-content and portals may escape discovery.",
+    "State and device signals are source hints, not enumerated accessible runtime states.",
+    "No network, database, server bootstrap, account creation or provider requests were made.",
+    "No application-wide translation percentage can be computed from these denominators."
+  ]
+}

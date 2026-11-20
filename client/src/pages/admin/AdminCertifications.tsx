@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft, Plus, Trash2, Edit3, Save, X, ChevronDown, ChevronUp, RefreshCw, Mail, Send, ArrowUpDown, RotateCcw } from "lucide-react";
@@ -364,7 +365,7 @@ export default function AdminCertifications() {
       <div className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="px-4 py-3 flex items-center gap-3 max-w-3xl mx-auto">
           <button onClick={() => setLocation("/")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform">
-            <ArrowLeft className="h-4 w-4" /> Back
+            <ArrowLeft className="h-4 w-4" /> <BackNavigationLabel />
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-white">Certification Admin</h1>

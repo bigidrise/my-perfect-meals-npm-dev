@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { UniversalDialog } from "@/components/ui/universal-modal";
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ function labelNormalField(field: string): string {
     tsh:                      "TSH",
     free_t4:                  "Free T4",
     free_t3:                  "Free T3",
+    reverse_t3:               "Reverse T3",
     tpo_antibodies:           "TPO Antibodies",
     thyroglobulin_antibodies: "Thyroglobulin Antibodies",
     ldl:                      "LDL Cholesterol",
@@ -56,6 +58,7 @@ export default function ProtocolDowngradeModal({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  const { t: displayT } = useConsumerCopy();
   const citation = CITATIONS[signal.protocol];
 
   async function postDecision(status: "removed" | "advisory") {
@@ -94,14 +97,14 @@ export default function ProtocolDowngradeModal({
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="w-5 h-5 text-emerald-400 shrink-0" />
               <span className="text-[10px] font-semibold tracking-widest text-emerald-400/80 uppercase">
-                Review your nutrition guidance
+                {displayT("Review your nutrition guidance")}
               </span>
             </div>
             <DialogTitle className="text-white text-xl font-bold leading-snug">
-              Review the measurements you entered.
+              {displayT("Review the measurements you entered.")}
             </DialogTitle>
             <DialogDescription className="text-emerald-300/70 text-sm mt-1">
-              {signal.protocolLabel} — this entry does not establish that a medical condition has resolved
+              {displayT(signal.protocolLabel)} {displayT("— this entry does not establish that a medical condition has resolved")}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -111,22 +114,20 @@ export default function ProtocolDowngradeModal({
 
           {/* Plain language explanation */}
           <p className="text-sm text-white/80 leading-relaxed">
-            Your recent lab results show that the markers used for{" "}
-            <span className="text-emerald-300 font-medium">{signal.protocolLabel}</span> are
-            now within a healthy range. You can choose to keep your current plan, or
-            deactivate the protocol and return to your Anti-Inflammatory foundation.
+            {displayT("Your recent lab results show that the markers used for")}{" "}
+            <span className="text-emerald-300 font-medium">{displayT(signal.protocolLabel)}</span> {displayT("are now within a healthy range. You can choose to keep your current plan, or deactivate the protocol and return to your Anti-Inflammatory foundation.")}
           </p>
 
           {/* Normalized markers */}
           {signal.normalFields.length > 0 && (
             <div className="bg-emerald-900/25 border border-emerald-500/20 rounded-xl px-4 py-3 space-y-1.5">
               <p className="text-[10px] text-emerald-400/70 uppercase tracking-widest font-semibold mb-2">
-                Markers now within normal range
+                {displayT("Markers now within normal range")}
               </p>
               {signal.normalFields.map((f) => (
                 <div key={f} className="flex items-center gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span className="text-xs text-white/75">{labelNormalField(f)}</span>
+                  <span className="text-xs text-white/75">{displayT(labelNormalField(f))}</span>
                 </div>
               ))}
             </div>
@@ -135,10 +136,8 @@ export default function ProtocolDowngradeModal({
           {/* What deactivating means */}
           <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
             <p className="text-xs text-white/55 leading-relaxed">
-              Deactivating{" "}
-              <span className="text-white/75">{signal.protocolLabel}</span> means your meals
-              will follow the broad Anti-Inflammatory plan without the specialized
-              modifications. You can re-activate it at any time if your numbers change.
+              {displayT("Deactivating")}{" "}
+              <span className="text-white/75">{displayT(signal.protocolLabel)}</span> {displayT("means your meals will follow the broad Anti-Inflammatory plan without the specialized modifications. You can re-activate it at any time if your numbers change.")}
             </p>
           </div>
 
@@ -152,8 +151,8 @@ export default function ProtocolDowngradeModal({
         </div>
 
         {/* Footer buttons */}
-        {error && <p role="alert" className="px-6 text-sm text-red-300">{error}</p>}
-        {physicianLocked && <p className="px-6 text-sm text-amber-200">Your clinical assignments require care-team review. This entry does not authorize stopping physician-directed guidance.</p>}
+        {error && <p role="alert" className="px-6 text-sm text-red-300">{displayT(error)}</p>}
+        {physicianLocked && <p className="px-6 text-sm text-amber-200">{displayT("Your clinical assignments require care-team review. This entry does not authorize stopping physician-directed guidance.")}</p>}
         <div className="px-6 pb-6 pt-2 flex gap-3">
           <Button
             className="flex-1 bg-white/10 border border-white/15 text-white font-semibold active:bg-white/20 transition"
@@ -161,7 +160,7 @@ export default function ProtocolDowngradeModal({
             onClick={() => postDecision("advisory")}
           >
             {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Stay the Same
+            {displayT("Stay the Same")}
           </Button>
           <Button
             className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold"
@@ -169,7 +168,7 @@ export default function ProtocolDowngradeModal({
             onClick={() => postDecision("removed")}
           >
             {busy && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-            Turn Off Self-Managed {signal.protocolLabel}
+            {displayT("Turn Off Self-Managed {{protocol}}", { protocol: displayT(signal.protocolLabel) })}
           </Button>
         </div>
     </UniversalDialog>

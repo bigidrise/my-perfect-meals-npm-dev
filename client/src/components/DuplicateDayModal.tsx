@@ -2,8 +2,8 @@ import { useState, useMemo } from "react";
 import { FormModal } from "@/components/ui/universal-modal";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { getDayNameLong, formatDateShort } from "@/utils/week";
-import { getTodayISOSafe, getWeekStartFromDate, addDaysISOSafe } from "@/utils/midnight";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { getTodayISOSafe, getWeekStartFromDate, addDaysISOSafe, formatDateDisplay } from "@/utils/midnight";
 
 const TZ = "America/Chicago";
 
@@ -22,6 +22,10 @@ export function DuplicateDayModal({
   sourceDateISO, 
   availableDates 
 }: DuplicateDayModalProps) {
+  const { t, i18n } = useConsumerCopy();
+  const locale = i18n.resolvedLanguage === "es" ? "es" : "en";
+  const getDayNameLong = (iso: string) => formatDateDisplay(iso, { weekday: "long" }, TZ, locale);
+  const formatDateShort = (iso: string) => formatDateDisplay(iso, { month: "short", day: "numeric" }, TZ, locale);
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
 
   const todayISO = useMemo(() => getTodayISOSafe(TZ), []);
@@ -94,18 +98,18 @@ export function DuplicateDayModal({
   const sourceDayName = getDayNameLong(sourceDateISO);
 
   const weekGroupLabel = (weekStart: string): string => {
-    if (weekStart === sourceWeekStart) return "This Week";
+    if (weekStart === sourceWeekStart) return t("This Week");
     const nextWeekStart = addDaysISOSafe(sourceWeekStart, 7);
-    if (weekStart === nextWeekStart) return "Next Week";
-    return `Week of ${formatDateShort(weekStart)}`;
+    if (weekStart === nextWeekStart) return t("Next Week");
+    return t("Week of {{date}}", { date: formatDateShort(weekStart) });
   };
 
   return (
     <FormModal
       open={isOpen}
       onOpenChange={handleClose}
-      title={`Duplicate ${sourceDayName}`}
-      description={`Copy all meals from ${sourceDayName} to any other day.`}
+      title={t("Duplicate {{day}}", { day: sourceDayName })}
+      description={t("Copy all meals from {{day}} to any other day.", { day: sourceDayName })}
       className="bg-gradient-to-br from-black/90 via-gray-800/90 to-black/90 border-white/20 text-white max-w-md"
       footer={
         <>
@@ -114,7 +118,7 @@ export function DuplicateDayModal({
             onClick={handleClose}
             className="bg-white/10 border-white/20 text-white"
           >
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button
             onClick={handleConfirm}
@@ -122,7 +126,7 @@ export function DuplicateDayModal({
             className="bg-gradient-to-r from-blue-600 to-blue-700 text-white disabled:opacity-50"
             data-testid="duplicate-confirm-button"
           >
-            Duplicate to {selectedDates.length} day{selectedDates.length !== 1 ? "s" : ""}
+            {selectedDates.length === 1 ? t("Duplicate to {{count}} day", { count: selectedDates.length }) : t("Duplicate to {{count}} days", { count: selectedDates.length })}
           </Button>
         </>
       }
@@ -136,7 +140,7 @@ export function DuplicateDayModal({
               onClick={handleSelectAll}
               className="bg-white/10 border-white/20 text-white"
             >
-              Select All
+              {t("Select All")}
             </Button>
             <Button
               variant="outline"
@@ -144,14 +148,14 @@ export function DuplicateDayModal({
               onClick={handleDeselectAll}
               className="bg-white/10 border-white/20 text-white"
             >
-              Clear All
+              {t("Clear All")}
             </Button>
           </div>
 
           <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
             {targetDates.length === 0 ? (
               <div className="text-white/50 text-sm text-center py-4">
-                No other days available.
+                {t("No other days available.")}
               </div>
             ) : (
               groupedDates.map(({ weekStart, dates }) => (
@@ -182,7 +186,7 @@ export function DuplicateDayModal({
                               <span className="font-medium text-white text-sm">{dayName}</span>
                               {isToday && (
                                 <span className="text-[10px] px-1.5 py-0.5 bg-green-600/30 text-green-300 rounded-full font-medium">
-                                  Today
+                                  {t("Today")}
                                 </span>
                               )}
                             </div>

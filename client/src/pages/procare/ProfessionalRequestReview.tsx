@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
@@ -55,7 +56,7 @@ export default function ProfessionalRequestReview() {
   return (
     <div className="min-h-screen bg-black text-white px-4 pt-8 pb-24">
       <div className="max-w-lg mx-auto space-y-6">
-        <button className="text-sm text-white/60" onClick={() => navigate("/procare-identity")}>Back to professional information</button>
+        <button className="text-sm text-white/60" onClick={() => navigate("/procare-identity")}><BackNavigationLabel label="Back to professional information" /></button>
         <h1 className="text-2xl font-bold">Professional application</h1>
         <p className="text-white/70">An application or identity approval does not establish professional readiness.</p>
         {user?.isProCare && isCanonicalPractitionerRole(user.professionalRole) && <a className="block underline text-sm" href="/procare-attestation?legalOnly=true">Review required professional agreements separately</a>}
@@ -85,11 +86,11 @@ export default function ProfessionalRequestReview() {
               <p>Account prerequisites: {readiness.accountPrerequisitesReady ? "satisfied" : "incomplete"}. Client access has not been evaluated.</p>
               {Object.entries(readiness.checks).map(([key, value]) => <p key={key}>{key}: {value.status} — {value.code}</p>)}
             </div>}
-            <Button onClick={() => navigate("/more")}>Return to your account</Button>
+            <Button onClick={() => navigate("/more")}><BackNavigationLabel label="Return to your account" /></Button>
           </div> : submitted ? <div role="status" className="space-y-3">
             <h2 className="text-xl font-semibold">Request submitted — access unchanged</h2>
             <p className="text-white/70">Your request is awaiting an authorized review. Submitting has not changed your identity or access.</p>
-            <Button onClick={() => navigate("/more")}>Return to your account</Button>
+            <Button onClick={() => navigate("/more")}><BackNavigationLabel label="Return to your account" /></Button>
           </div> : user ? <>
             {request && !status.isLoading && !status.error ? <>
               <label className="flex gap-3 text-sm"><input type="checkbox" checked={acknowledged} onChange={event => setAcknowledged(event.target.checked)} />I understand this submits a request only and does not change my account access.</label>

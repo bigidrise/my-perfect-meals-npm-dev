@@ -1,0 +1,1278 @@
+[
+  {
+    "owner": "client/src/components/shopping/SavedGroceriesSheet.tsx",
+    "sourceSha256": "bd6b63d55b984c81c30f57e284fd945cf6de294fc5f233d22c32d387ce018bbf",
+    "snapshotHashUnchanged": false,
+    "candidateCount": 25,
+    "exactCandidateSamples": [
+      {
+        "text": "Saved Groceries",
+        "kind": "jsx-text",
+        "line": 383,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "saved",
+        "kind": "jsx-text",
+        "line": 385,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "· remembered across sessions",
+        "kind": "jsx-text",
+        "line": 385,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Search saved groceries",
+        "kind": "placeholder",
+        "line": 414,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Search saved groceries",
+        "kind": "aria-label",
+        "line": 415,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "shown ·",
+        "kind": "jsx-text",
+        "line": 426,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "selected",
+        "kind": "jsx-text",
+        "line": 426,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Choose the products you want to buy. Selections stay selected when you search.",
+        "kind": "jsx-text",
+        "line": 429,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Loading saved groceries…",
+        "kind": "jsx-text",
+        "line": 450,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "No saved groceries yet",
+        "kind": "jsx-text",
+        "line": 469,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "When Grocery Coach recommends a brand you like,",
+        "kind": "jsx-text",
+        "line": 472,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "tap the bookmark icon to save it here.",
+        "kind": "jsx-text",
+        "line": 473,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "No saved groceries match your search.",
+        "kind": "jsx-text",
+        "line": 480,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Analysis",
+        "kind": "jsx-text",
+        "line": 537,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Remove from saved groceries",
+        "kind": "title",
+        "line": 546,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Delete",
+        "kind": "jsx-text",
+        "line": 558,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Package:",
+        "kind": "jsx-text",
+        "line": 604,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Saving analysis does not verify the current label. Historical analysis is not current safety approval.",
+        "kind": "jsx-text",
+        "line": 607,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "An ingredient photo alone cannot establish independent certification.",
+        "kind": "jsx-text",
+        "line": 608,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "Evidence version",
+        "kind": "jsx-text",
+        "line": 609,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Evidence version",
+        "kind": "aria-label",
+        "line": 610,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Current saved analysis",
+        "kind": "jsx-text",
+        "line": 611,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Previous evidence",
+        "kind": "jsx-text",
+        "line": 612,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Scan current ingredient label",
+        "kind": "jsx-text",
+        "line": 617,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Retry current profile check",
+        "kind": "jsx-text",
+        "line": 620,
+        "review": "ordinary-display-candidate"
+      }
+    ],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": [
+      383,
+      385,
+      385,
+      414,
+      415,
+      426,
+      426,
+      429,
+      450,
+      469,
+      472,
+      473,
+      480,
+      537,
+      546,
+      558,
+      604,
+      607,
+      608,
+      609,
+      610,
+      611,
+      612,
+      617,
+      620
+    ]
+  },
+  {
+    "owner": "client/src/components/shopping/SavedGroceryEvidenceUpdate.tsx",
+    "sourceSha256": "e8e5247586a6a36f6313de9801655118b5c0c35b5a0dba2eef8160c6dc4af96e",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 11,
+    "exactCandidateSamples": [
+      {
+        "text": "Update label evidence:",
+        "kind": "jsx-text",
+        "line": 59,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "This does not grant safety approval. Your previous evidence is retained; current profile checks still apply.",
+        "kind": "jsx-text",
+        "line": 60,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "Scanned product:",
+        "kind": "jsx-text",
+        "line": 61,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Optional label fat (g per serving)",
+        "kind": "jsx-text",
+        "line": 62,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Label fat",
+        "kind": "aria-label",
+        "line": 63,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Optional label carbohydrates (g per serving)",
+        "kind": "jsx-text",
+        "line": 65,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Label carbohydrates",
+        "kind": "aria-label",
+        "line": 66,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Serving size exactly as shown on the label",
+        "kind": "jsx-text",
+        "line": 68,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Label serving basis",
+        "kind": "aria-label",
+        "line": 69,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "I confirm this is the current ingredient label for this exact brand and product.",
+        "kind": "jsx-text",
+        "line": 72,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Cancel update",
+        "kind": "jsx-text",
+        "line": 78,
+        "review": "ordinary-display-candidate"
+      }
+    ],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": [
+      59,
+      60,
+      61,
+      62,
+      63,
+      65,
+      66,
+      68,
+      69,
+      72,
+      78
+    ]
+  },
+  {
+    "owner": "client/src/components/biometrics/IngredientIntelligenceSheet.tsx",
+    "sourceSha256": "e225fd04a28f5ff7e4af16d2d9f7d3cbe5c744b3dd4bd51d24138a3643166c66",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 1,
+    "exactCandidateSamples": [
+      {
+        "text": "Temporary history on this device; not Saved Groceries",
+        "kind": "jsx-text",
+        "line": 1014,
+        "review": "ordinary-display-candidate"
+      }
+    ],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": [
+      1014
+    ]
+  },
+  {
+    "owner": "client/src/pages/Learn.tsx",
+    "sourceSha256": "fe3a30eb09886113fba58e2630f2cfb40270a7a3d7df2bbb1641bea6baeaa26f",
+    "snapshotHashUnchanged": false,
+    "candidateCount": 8,
+    "exactCandidateSamples": [
+      {
+        "text": "Read",
+        "kind": "jsx-text",
+        "line": 3230,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Listen",
+        "kind": "jsx-text",
+        "line": 3237,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "10s",
+        "kind": "jsx-text",
+        "line": 3264,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Next",
+        "kind": "jsx-text",
+        "line": 3268,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Sources",
+        "kind": "jsx-text",
+        "line": 3352,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Back",
+        "kind": "jsx-text",
+        "line": 3400,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "App Library",
+        "kind": "jsx-text",
+        "line": 3403,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Learn how My Perfect Meals works",
+        "kind": "jsx-text",
+        "line": 3405,
+        "review": "ordinary-display-candidate"
+      }
+    ],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": [
+      3230,
+      3237,
+      3264,
+      3268,
+      3352,
+      3400,
+      3403,
+      3405
+    ]
+  },
+  {
+    "owner": "client/src/pages/BusinessCenter.tsx",
+    "sourceSha256": "4897b2cb227066913a0f3f492091c7cad45abb0b3640de2074ed1dbeb0436674",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 0,
+    "exactCandidateSamples": [],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": []
+  },
+  {
+    "owner": "client/src/pages/BusinessCenterSection.tsx",
+    "sourceSha256": "93f7b374b87c96b5d9bc3f9e174bcb52d58e53a04d8dd8c161995ee9cbed2e12",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 0,
+    "exactCandidateSamples": [],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": []
+  },
+  {
+    "owner": "client/src/pages/pro/PhysicianPortal.tsx",
+    "sourceSha256": "1d717677c01580002d08bf9b9e760dc43891393c8e686197f09d361c9310de3a",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 1,
+    "exactCandidateSamples": [
+      {
+        "text": "Open Care Team",
+        "kind": "jsx-text",
+        "line": 95,
+        "review": "ordinary-display-candidate"
+      }
+    ],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": [
+      95
+    ]
+  },
+  {
+    "owner": "client/src/pages/pro/ProClientsPhysician.tsx",
+    "sourceSha256": "7726151e475e543bc9f5572236ea226dccc39d0eea737783ab27da22bd9efb27",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 0,
+    "exactCandidateSamples": [],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": []
+  },
+  {
+    "owner": "client/src/pages/procare/ProCareIdentity.tsx",
+    "sourceSha256": "9458033ec584e5713a5369a463b78d82e7896ce98f07f0e2dfbec6c2f31fbcc2",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 25,
+    "exactCandidateSamples": [
+      {
+        "text": "Back",
+        "kind": "jsx-text",
+        "line": 232,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "ProCare Professional",
+        "kind": "jsx-text",
+        "line": 238,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Professional Identity",
+        "kind": "jsx-text",
+        "line": 240,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Tell us about your professional role and credentials.",
+        "kind": "jsx-text",
+        "line": 242,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Your Professional Role",
+        "kind": "jsx-text",
+        "line": 248,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Your Credential Status",
+        "kind": "jsx-text",
+        "line": 274,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "License Information",
+        "kind": "jsx-text",
+        "line": 311,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "License Number",
+        "kind": "jsx-text",
+        "line": 316,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "License State",
+        "kind": "jsx-text",
+        "line": 333,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "e.g. CA, TX, NY",
+        "kind": "placeholder",
+        "line": 338,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Professional Credentials",
+        "kind": "jsx-text",
+        "line": 347,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "(optional — e.g. MD, DO, RD, RDN, NP, PA)",
+        "kind": "jsx-text",
+        "line": 348,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Certification Information",
+        "kind": "jsx-text",
+        "line": 371,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "All fields are optional for trainers and coaches.",
+        "kind": "jsx-text",
+        "line": 372,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Certification Body",
+        "kind": "jsx-text",
+        "line": 378,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "(optional)",
+        "kind": "jsx-text",
+        "line": 378,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "e.g. NASM, ISSA, ACE, ACSM…",
+        "kind": "placeholder",
+        "line": 385,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Certification Number",
+        "kind": "jsx-text",
+        "line": 414,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "(optional)",
+        "kind": "jsx-text",
+        "line": 414,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "e.g. CPT-123456",
+        "kind": "placeholder",
+        "line": 419,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Year Certified",
+        "kind": "jsx-text",
+        "line": 427,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "(optional)",
+        "kind": "jsx-text",
+        "line": 427,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "e.g. 2021",
+        "kind": "placeholder",
+        "line": 432,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Reload draft",
+        "kind": "jsx-text",
+        "line": 442,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Use locally entered information",
+        "kind": "jsx-text",
+        "line": 446,
+        "review": "ordinary-display-candidate"
+      }
+    ],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": [
+      232,
+      238,
+      240,
+      242,
+      248,
+      274,
+      311,
+      316,
+      333,
+      338,
+      347,
+      348,
+      371,
+      372,
+      378,
+      378,
+      385,
+      414,
+      414,
+      419,
+      427,
+      427,
+      432,
+      442,
+      446
+    ]
+  },
+  {
+    "owner": "client/src/pages/procare/ProCareWelcome.tsx",
+    "sourceSha256": "5eda348cf922eba843797ca3a1f518bf694b15a501fc1bd5f15161e1cd722c4b",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 7,
+    "exactCandidateSamples": [
+      {
+        "text": "Personal profile already complete — continuing to certification",
+        "kind": "jsx-text",
+        "line": 98,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "Welcome to My Perfect Meals Professional",
+        "kind": "jsx-text",
+        "line": 134,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Before you begin working with clients, every professional completes a three-step onboarding process.",
+        "kind": "jsx-text",
+        "line": 140,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Hear the full journey explained by Chef Copilot",
+        "kind": "jsx-text",
+        "line": 147,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Your Professional Journey",
+        "kind": "jsx-text",
+        "line": 155,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Why every professional begins with certification",
+        "kind": "jsx-text",
+        "line": 177,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "\"Every My Perfect Meals professional completes this certification before entering the Studio. Professionals who go through it are more confident, provide better client outcomes, and grow their businesses faster.\"",
+        "kind": "jsx-text",
+        "line": 191,
+        "review": "protected-review-candidate"
+      }
+    ],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": [
+      98,
+      134,
+      140,
+      147,
+      155,
+      177,
+      191
+    ]
+  },
+  {
+    "owner": "client/src/components/ShoppingAggregateBar.tsx",
+    "sourceSha256": "9244e7e308a6649b4d38e064c4a9f408a4466a943906418928a90bc43bee001b",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 5,
+    "exactCandidateSamples": [
+      {
+        "text": "Grocery List Ready",
+        "kind": "jsx-text",
+        "line": 253,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "ingredients",
+        "kind": "jsx-text",
+        "line": 256,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Grocery List Ready",
+        "kind": "jsx-text",
+        "line": 260,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "ingredients",
+        "kind": "jsx-text",
+        "line": 262,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Share",
+        "kind": "jsx-text",
+        "line": 274,
+        "review": "ordinary-display-candidate"
+      }
+    ],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": [
+      253,
+      256,
+      260,
+      262,
+      274
+    ]
+  },
+  {
+    "owner": "client/src/components/ace/CoachCornerCard.tsx",
+    "sourceSha256": "a10ce5140dd9f271e1d4a6d63aaa195e3e17a4c1d7d4c3ac2c09cbd63d183fab",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 3,
+    "exactCandidateSamples": [
+      {
+        "text": "Your food &amp; platform guide",
+        "kind": "jsx-text",
+        "line": 57,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Platform Concierge",
+        "kind": "jsx-text",
+        "line": 69,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Ask about food, explore meal ideas, or find your way around My Perfect Meals.",
+        "kind": "jsx-text",
+        "line": 72,
+        "review": "ordinary-display-candidate"
+      }
+    ],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": [
+      57,
+      69,
+      72
+    ]
+  },
+  {
+    "owner": "client/src/pages/fridge-rescue.tsx",
+    "sourceSha256": "2ca4a424c7113ea03b5786cecc719acd38e54ce07ef3f76b0667552a669de5ad",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 56,
+    "exactCandidateSamples": [
+      {
+        "text": "Fridge Rescue",
+        "kind": "title",
+        "line": 200,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Back",
+        "kind": "jsx-text",
+        "line": 815,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Lifestyle Hub",
+        "kind": "jsx-text",
+        "line": 841,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Cook What You Have",
+        "kind": "jsx-text",
+        "line": 846,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Turn the ingredients already in your kitchen into perfectly matched meals.",
+        "kind": "jsx-text",
+        "line": 847,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Powered by Emotion AI™",
+        "kind": "jsx-text",
+        "line": 870,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Step-by-step guided meal creation from your ingredients with Chef voice assistance",
+        "kind": "jsx-text",
+        "line": 882,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Free AI Meals Today",
+        "kind": "jsx-text",
+        "line": 894,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "You've used today's free AI meal.",
+        "kind": "jsx-text",
+        "line": 907,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Quick Create",
+        "kind": "jsx-text",
+        "line": 917,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Enter ingredients from your fridge:",
+        "kind": "jsx-text",
+        "line": 930,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "e.g., chicken breast, broccoli, rice, onions, eggs",
+        "kind": "placeholder",
+        "line": 941,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Clear ingredients",
+        "kind": "title",
+        "line": 951,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Use keyboard or speech-to-text for input",
+        "kind": "jsx-text",
+        "line": 966,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Cooking method",
+        "kind": "jsx-text",
+        "line": 1018,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "(optional)",
+        "kind": "jsx-text",
+        "line": 1018,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Meal Safety",
+        "kind": "jsx-text",
+        "line": 1043,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "Flavor Preference",
+        "kind": "jsx-text",
+        "line": 1056,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Ingredient Control",
+        "kind": "jsx-text",
+        "line": 1073,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Servings",
+        "kind": "jsx-text",
+        "line": 1090,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Saved in an older session — regenerate to get the image.",
+        "kind": "jsx-text",
+        "line": 1223,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Scroll up to regenerate",
+        "kind": "jsx-text",
+        "line": 1229,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Refine Meal",
+        "kind": "jsx-text",
+        "line": 1269,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Showing refined version",
+        "kind": "jsx-text",
+        "line": 1276,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Restore original",
+        "kind": "jsx-text",
+        "line": 1293,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Nutrition per serving • Recipe makes",
+        "kind": "jsx-text",
+        "line": 1311,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "servings",
+        "kind": "jsx-text",
+        "line": 1311,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Cal",
+        "kind": "jsx-text",
+        "line": 1319,
+        "review": "ordinary-display-candidate"
+      }
+    ],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": [
+      200,
+      815,
+      841,
+      846,
+      847,
+      870,
+      882,
+      894,
+      907,
+      917,
+      930,
+      941,
+      951,
+      966,
+      1018,
+      1018,
+      1043,
+      1056,
+      1073,
+      1090,
+      1223,
+      1229,
+      1269,
+      1276,
+      1293,
+      1311,
+      1311,
+      1319,
+      1325,
+      1329,
+      1350,
+      1368,
+      1375,
+      1389,
+      1456,
+      1527,
+      1541,
+      1645,
+      1684,
+      1686,
+      1692,
+      1707,
+      1709,
+      1712,
+      1719,
+      1725,
+      1734,
+      1738,
+      1739,
+      1743,
+      1744,
+      1748,
+      1749,
+      1753,
+      1754,
+      1764
+    ]
+  },
+  {
+    "owner": "client/src/pages/DashboardNew.tsx",
+    "sourceSha256": "e4b9946ba387c82398566288c032ac4165c9cdbbce5a812408f15d64f69f2308",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 10,
+    "exactCandidateSamples": [
+      {
+        "text": ". You can retry playback below.",
+        "kind": "jsx-text",
+        "line": 1318,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "&middot;",
+        "kind": "jsx-text",
+        "line": 1382,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "This video could not be verified and cannot be played. Its private media is managed automatically.",
+        "kind": "jsx-text",
+        "line": 1432,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "This video was blocked during moderation and cannot be played. Its private media is managed automatically.",
+        "kind": "jsx-text",
+        "line": 1436,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Automatic private-media cleanup is pending. This video cannot be played.",
+        "kind": "jsx-text",
+        "line": 1440,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "This video is still being verified and cannot be played yet.",
+        "kind": "jsx-text",
+        "line": 1444,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "After verified completion, this video is available for 15 more minutes before private media is removed. The transcript remains available independently until you choose Delete for me, subject to the platform's applicable retention policy.",
+        "kind": "jsx-text",
+        "line": 1477,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "Available until",
+        "kind": "jsx-text",
+        "line": 1488,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "&middot;",
+        "kind": "jsx-text",
+        "line": 1703,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "My Perfect Menu",
+        "kind": "jsx-text",
+        "line": 1802,
+        "review": "ordinary-display-candidate"
+      }
+    ],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": [
+      1318,
+      1382,
+      1432,
+      1436,
+      1440,
+      1444,
+      1477,
+      1488,
+      1703,
+      1802
+    ]
+  },
+  {
+    "owner": "client/src/pages/lifestyle/GatheringsPage.tsx",
+    "sourceSha256": "62045eaf7521082e0456a06b3b89008828911635c774c87653c057ded8372a5b",
+    "snapshotHashUnchanged": true,
+    "candidateCount": 53,
+    "exactCandidateSamples": [
+      {
+        "text": "My Perfect Gatherings",
+        "kind": "jsx-text",
+        "line": 637,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Back",
+        "kind": "jsx-text",
+        "line": 654,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Gather & Feast",
+        "kind": "jsx-text",
+        "line": 660,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "AI-planned multi-course meals for holidays, camping, tailgates, and every occasion.",
+        "kind": "jsx-text",
+        "line": 661,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Plan Your Gathering",
+        "kind": "jsx-text",
+        "line": 673,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Full multi-course meals for holidays, camping, tailgates, Great Outdoors &amp; more",
+        "kind": "jsx-text",
+        "line": 676,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "What's the occasion?",
+        "kind": "jsx-text",
+        "line": 684,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Which holiday?",
+        "kind": "jsx-text",
+        "line": 712,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Family Recipes",
+        "kind": "jsx-text",
+        "line": 736,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "(optional)",
+        "kind": "jsx-text",
+        "line": 737,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Your family recipes will be preserved and adapted to your dietary needs",
+        "kind": "jsx-text",
+        "line": 803,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Traditional Dishes",
+        "kind": "jsx-text",
+        "line": 842,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "+ Add yours",
+        "kind": "jsx-text",
+        "line": 934,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "What would you like to create?",
+        "kind": "jsx-text",
+        "line": 977,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "What did you find, catch, harvest, or grow?",
+        "kind": "jsx-text",
+        "line": 996,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "e.g., Trout, Wild Mushrooms, Blackberries, Venison, Zucchini...",
+        "kind": "placeholder",
+        "line": 1003,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Cooking method",
+        "kind": "jsx-text",
+        "line": 1025,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "(optional)",
+        "kind": "jsx-text",
+        "line": 1026,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "(optional)",
+        "kind": "jsx-text",
+        "line": 1049,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "How many courses?",
+        "kind": "jsx-text",
+        "line": 1071,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "courses",
+        "kind": "jsx-text",
+        "line": 1085,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Serving size",
+        "kind": "jsx-text",
+        "line": 1103,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Add anything you'd like the chef to include or adjust",
+        "kind": "jsx-text",
+        "line": 1136,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "e.g., no nuts, extra spicy, low sodium, someone is lactose intolerant...",
+        "kind": "placeholder",
+        "line": 1141,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Meal Safety",
+        "kind": "jsx-text",
+        "line": 1207,
+        "review": "protected-review-candidate"
+      },
+      {
+        "text": "Flavor",
+        "kind": "jsx-text",
+        "line": 1223,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Ingredients",
+        "kind": "jsx-text",
+        "line": 1234,
+        "review": "ordinary-display-candidate"
+      },
+      {
+        "text": "Your Preparation Guide —",
+        "kind": "jsx-text",
+        "line": 1283,
+        "review": "ordinary-display-candidate"
+      }
+    ],
+    "note": "Static display candidates, not a semantic approval or exhaustive clinical classification. Preserve user/product evidence and hidden-control distinctions.",
+    "allCandidateSourceLines": [
+      637,
+      654,
+      660,
+      661,
+      673,
+      676,
+      684,
+      712,
+      736,
+      737,
+      803,
+      842,
+      934,
+      977,
+      996,
+      1003,
+      1025,
+      1026,
+      1049,
+      1071,
+      1085,
+      1103,
+      1136,
+      1141,
+      1207,
+      1223,
+      1234,
+      1283,
+      1366,
+      1371,
+      1401,
+      1433,
+      1439,
+      1447,
+      1462,
+      1462,
+      1465,
+      1471,
+      1477,
+      1482,
+      1487,
+      1492,
+      1498,
+      1504,
+      1510,
+      1516,
+      1570,
+      1577,
+      1594,
+      1635,
+      1693,
+      1722,
+      1788
+    ]
+  }
+]

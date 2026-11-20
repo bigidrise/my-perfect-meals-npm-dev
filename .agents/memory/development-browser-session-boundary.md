@@ -34,3 +34,43 @@ Do not assume that credentials present in the shell environment are securely ava
 **Why:** A release-readiness check found the authorized test secrets in the shell, but the browser notebook had no `process.env` access or documented secure secret binding. The login page loaded, but this did not establish either account eligibility or authenticated access.
 
 **How to apply:** Check the browser tooling's supported credential mechanism first. If none exists, use a supported user sign-in takeover when appropriate or report authenticated coverage as unverified. Do not bridge raw credentials through tool output, ad hoc endpoints or credential files just to complete a test.
+
+Fixture-only testing under a strict no-backend-effects constraint requires
+verified network isolation before the application starts. A fetch-only shim is
+not a substitute for request interception.
+
+**Why:** The hosted browser exposed initialization scripts and extra headers,
+but not request interception/fulfillment. Injected meta-CSP probes did not enforce
+the proposed policy, so they could not establish that unknown requests were
+blocked.
+
+**How to apply:** Check the current harness capabilities before promising a
+synthetic signed-in review. If interception or an independently verified
+equivalent is unavailable, report the browser checks as unable. Keep component
+unit tests and anonymous startup screenshots separate from responsive or
+authenticated browser evidence; do not create an unapproved runtime to bypass
+the limitation.
+
+Passive static markup is a separate review option: the testing browser can
+load local, script-free component HTML into an about:blank document using
+document.open/write. This can establish text wrapping and responsive geometry,
+but not authenticated flows, persistence, interactive callbacks or eligibility.
+
+**Why:** A bounded localization review verified real shared-component markup
+and compiled CSS without loading the app, accessing customer data or weakening
+Vite's intentional restriction on generated artifacts.
+
+**How to apply:** Use only synthetic, self-contained markup with no scripts,
+remote assets or application startup. State the composed-fixture limitation;
+never treat this as a substitute for required full-page or write-path evidence.
+
+Full-page API fixtures need coherent, per-identity profile state: every profile
+read alias must return the updates accepted by its mocked profile writes.
+
+**Why:** Frozen profile reads paired with echo-only writes caused a continuous
+client synchronization loop during an isolated Shopping review. Returning the
+same updated fixture state removed the loop without application changes.
+
+**How to apply:** Model accepted mutations in the fixture before checking request
+counts or reload behavior. Distinguish fixture synchronization failures from
+application regressions, and never replace fixtures with unapproved live writes.

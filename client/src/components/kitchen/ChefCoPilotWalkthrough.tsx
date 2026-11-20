@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 // client/src/components/kitchen/ChefCoPilotWalkthrough.tsx
 // "Inside the Kitchen Network" — 10-step premium chef partnership walkthrough.
 // Voice: ElevenLabs via ttsService (same voice as the rest of the app CoPilot).
@@ -463,7 +464,7 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
                     className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all active:scale-95 disabled:opacity-20"
                     style={{ backgroundColor: "#ffffff0f", color: "rgba(255,255,255,0.65)" }}>
                     <ChevronLeft className="h-4 w-4" />
-                    Back
+                    <BackNavigationLabel />
                   </button>
 
                   <div className="flex gap-1.5">

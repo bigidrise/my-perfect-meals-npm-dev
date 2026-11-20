@@ -1,4 +1,13 @@
 {
+  "localeFoundation": {
+    "wakingUp": "[!! Ŵåķîñĝ ûþ ýöûŕ ḿéåļ éñĝîñé… !!]",
+    "startupHint": "[!! First load takes a few extra seconds. Hang tight! !!]",
+    "sessionUnavailable": "[!! We couldn’t verify your session. Check your connection and try again. !!]",
+    "sessionRetry": "[!! Retry session check !!]",
+    "required": "[!! Required !!]",
+    "invalidEmail": "[!! Invalid email !!]",
+    "preferencesNote": "[!! Auto follows this device’s language. An explicit language choice is saved to your account. Some feature content is still being localized. !!]"
+  },
   "_meta": {
     "locale": "xq",
     "name": "Pseudo-locale (layout stress test)",

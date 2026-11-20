@@ -81,6 +81,9 @@ export async function discoverProductCandidates(input: {
   targetCount: number;
   /** Limit expensive enrichment to candidates actually presented after known conflicts. */
   maxEvaluatedCandidates?: number;
+  /** Additional source-lead relevance filter; cannot establish eligibility. */
+  acceptCandidate?: (candidate: ProductCandidate) => boolean;
+  onSubjectResolved?: (milliseconds: number) => void;
 }): Promise<ProductDiscoveryResult> {
   const { maxCandidates, maxPages, targetCount } = input;
   if (![maxCandidates, maxPages, targetCount].every((value) =>
@@ -89,7 +92,9 @@ export async function discoverProductCandidates(input: {
     !input.adapters.length || new Set(input.adapters.map((adapter) => adapter.source)).size !== input.adapters.length) {
     throw new Error("Product discovery requires distinct providers and bounded positive search limits.");
   }
+  const subjectStarted = performance.now();
   const subject = await resolveProductSubjectAuthority(input.subject, input.sources);
+  input.onSubjectResolved?.(performance.now() - subjectStarted);
   const policy = resolveProductRulePolicy(subject, input.registry, input.evaluatedAt);
   const result: ProductDiscoveryResult = {
     status: "authority_unresolved",
@@ -161,6 +166,7 @@ export async function discoverProductCandidates(input: {
           throw new Error("Evidence provider returned a different source record.");
         }
         let candidate = normalizeProductEvidence(record);
+        if (input.acceptCandidate && !input.acceptCandidate(candidate)) continue;
         // Never combine facts from separate source versions or conflicting
         // variants merely because the barcode or display name is similar.
         const signature = productCandidateSignature(candidate);

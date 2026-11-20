@@ -15,6 +15,14 @@
 import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
+const requireAudit = createRequire(import.meta.url);
+const { auditContext } = requireAudit("./localization-check/audit-context.cjs");
+const { loadDisplayOwners } = requireAudit("./localization-check/display-owners.cjs");
+const { loadResources } = requireAudit("./localization-check/resources.cjs");
+const readAuditSource = (file: string) => fs.readFileSync(path.resolve(file), "utf8");
+let displayOwners: Map<string, unknown> | undefined;
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const CLIENT_SRC = path.resolve("client/src");
@@ -93,7 +101,7 @@ function getAllTsxFiles(dir: string): string[] {
   return results;
 }
 
-function isExempt(str: string): boolean {
+export function isExempt(str: string): boolean {
   const trimmed = str.trim();
   if (trimmed.length < 2) return true;
   if (EXEMPT_LITERALS.has(trimmed)) return true;
@@ -142,7 +150,7 @@ function isSharedComponent(filePath: string): boolean {
 //   1. JSX text content between tags (not inside {})
 //   2. String literals in JSX attributes like title="..." placeholder="..."
 //   3. Strings in arrays/objects that look user-facing (label:, title:, description:, text:, message:)
-function extractHardcodedStrings(source: string, filePath: string): Array<{
+export function extractHardcodedStrings(source: string, filePath: string): Array<{
   line: number;
   original: string;
   context: string;
@@ -151,6 +159,11 @@ function extractHardcodedStrings(source: string, filePath: string): Array<{
 }> {
   const results: Array<{ line: number; original: string; context: string; inJSX: boolean; inConfig: boolean }> = [];
   const lines = source.split("\n");
+  displayOwners ??= loadDisplayOwners(readAuditSource, loadResources(readAuditSource));
+  const isActualSource = auditContext(source, filePath, displayOwners);
+  const lineStarts: number[] = [];
+  let offset = 0;
+  for (const line of lines) { lineStarts.push(offset); offset += line.length + 1; }
 
   // Pattern 1: JSX text content — text between > and < that is not whitespace-only and contains letters
   // We look for lines containing JSX-like text (not inside braces)
@@ -180,6 +193,7 @@ function extractHardcodedStrings(source: string, filePath: string): Array<{
     const jsxCopy = jsxTextPattern;
     jsxCopy.lastIndex = 0;
     while ((m = jsxCopy.exec(line)) !== null) {
+      if (!isActualSource(lineStarts[idx] + m.index + 1, "text")) continue;
       const str = m[1].trim();
       if (str.length >= 2 && /[a-zA-Z]/.test(str) && !str.includes("{") && !str.includes("}")) {
         results.push({ line: lineNum, original: str, context: line, inJSX: true, inConfig: false });
@@ -190,6 +204,7 @@ function extractHardcodedStrings(source: string, filePath: string): Array<{
     const propCopy = /(?:title|label|placeholder|aria-label|alt|description|tooltip|message|text|heading|subheading|caption|helper|hint|buttonText|actionLabel)=["']([^"']{2,})["']/g;
     propCopy.lastIndex = 0;
     while ((m = propCopy.exec(line)) !== null) {
+      if (!isActualSource(lineStarts[idx] + m.index + m[0].indexOf(m[1]), "prop")) continue;
       const str = m[1].trim();
       if (/[a-zA-Z]/.test(str)) {
         results.push({ line: lineNum, original: str, context: line, inJSX: true, inConfig: false });
@@ -200,6 +215,7 @@ function extractHardcodedStrings(source: string, filePath: string): Array<{
     const confCopy = /(?:label|title|description|text|message|heading|name|placeholder|body|subtitle|copy|content):\s*["']([^"']{2,})["']/g;
     confCopy.lastIndex = 0;
     while ((m = confCopy.exec(line)) !== null) {
+      if (!isActualSource(lineStarts[idx] + m.index + m[0].indexOf(m[1]), "config")) continue;
       const str = m[1].trim();
       if (/[a-zA-Z]/.test(str)) {
         results.push({ line: lineNum, original: str, context: line, inJSX: false, inConfig: true });
@@ -450,4 +466,6 @@ async function main() {
   console.log("═══════════════════════════════════════════════════════════\n");
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((e) => { console.error(e); process.exit(1); });
+}

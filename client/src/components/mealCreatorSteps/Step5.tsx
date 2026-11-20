@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import React, { useState } from "react";
 import { Box, Typography, Button, CircularProgress } from "@mui/material";
 import axios from "axios";
@@ -68,7 +69,7 @@ const Step5: React.FC<Step5Props> = ({ prevStep }) => {
 
       <Box mb={3}>
         <Button variant="outlined" onClick={prevStep}>
-          Back
+          <BackNavigationLabel />
         </Button>
         <Button
           variant="contained"

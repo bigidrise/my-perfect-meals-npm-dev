@@ -1,4 +1,4 @@
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import { formatBuilderMacro, type BuilderMacroKey } from "@/lib/builderMacroCalculation";
 import { resolveDisplayCarbTargets } from "@/lib/macroResolver";
 
@@ -117,12 +117,12 @@ export function DailyMacroTotalsRow({ totals, prescription, activeDayISO, fallba
     ? { ...targetSnapshot, ...resolveDisplayCarbTargets(targetSnapshot) }
     : null;
   const indicators: { key: BuilderMacroKey; label: string; target: number | undefined }[] = [
-    { key: "calories", label: "Calories", target: targets?.calories_kcal },
-    { key: "protein", label: "Protein", target: targets?.protein_g },
-    { key: "carbs", label: "Total Carbs", target: targets?.carbs_g },
-    { key: "starchyCarbs", label: "Starchy Carbs", target: targets?.starchyCarbs_g },
-    { key: "fibrousCarbs", label: "Fibrous Carbs", target: targets?.fibrousCarbs_g },
-    { key: "fat", label: "Fat", target: targets?.fat_g },
+    { key: "calories", label: t("Calories"), target: targets?.calories_kcal },
+    { key: "protein", label: t("Protein"), target: targets?.protein_g },
+    { key: "carbs", label: t("Total Carbs"), target: targets?.carbs_g },
+    { key: "starchyCarbs", label: t("Starchy Carbs"), target: targets?.starchyCarbs_g },
+    { key: "fibrousCarbs", label: t("Fibrous Carbs"), target: targets?.fibrousCarbs_g },
+    { key: "fat", label: t("Fat"), target: targets?.fat_g },
   ];
   return (
     <div className="space-y-1 px-1" data-testid="builder-today-macros">
@@ -141,16 +141,16 @@ export function DailyMacroTotalsRow({ totals, prescription, activeDayISO, fallba
                 )}`}>
               {label} {unknown ? "—" : formatBuilderMacro(value, incomplete)}
               {target !== undefined ? ` / ${formatBuilderMacro(target)}` : " / —"}{key === "calories" ? " cal" : "g"}
-              {over && ` (${incomplete ? "≥ " : ""}+${formatBuilderMacro(value! - target!)}${key === "calories" ? " cal" : "g"} over)`}
+              {over && t(" ({{bound}}+{{amount}}{{unit}} over)", { bound: incomplete ? "≥ " : "", amount: formatBuilderMacro(value! - target!), unit: key === "calories" ? " cal" : "g" })}
             </span>
           );
         })}
       </div>
       {(totals.estimated || totals.issues?.length || (totals.unclassifiedCarbs ?? 0) > 0.01) && (
         <p className="text-[10px] text-white/60">
-          {totals.estimated && "Carb split estimated. "}
-          {(totals.unclassifiedCarbs ?? 0) > 0.01 && `${Math.round(totals.unclassifiedCarbs!)}g other/unclassified carbs. `}
-          {totals.issues?.join(". ")}{totals.uncertainFields?.length ? " · Totals incomplete (≥ known amounts)." : ""}
+          {totals.estimated && t("Carb split estimated. ")}
+          {(totals.unclassifiedCarbs ?? 0) > 0.01 && t("{{grams}}g other/unclassified carbs. ", { grams: Math.round(totals.unclassifiedCarbs!) })}
+          {totals.issues?.join(". ")}{totals.uncertainFields?.length ? t(" · Totals incomplete (≥ known amounts).") : ""}
         </p>
       )}
     </div>

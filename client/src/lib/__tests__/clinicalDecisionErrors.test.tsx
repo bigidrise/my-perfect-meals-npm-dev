@@ -2,6 +2,9 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom";
+import { createInstance } from "i18next";
+import { initReactI18next } from "react-i18next";
+import { consumerEnglish } from "@/i18n/consumerJourney";
 import Recommendation from "@/components/clinical/ProtocolRecommendationModal";
 import Downgrade from "@/components/clinical/ProtocolDowngradeModal";
 import Thyroid from "@/components/clinical/ThyroidRecommendationModal";
@@ -31,6 +34,13 @@ const thyroidSignal = {
   triggerFields: ["tsh_high"], subtypeConditions: [], isAutoimmune: false,
 } as const;
 const fetchMock = jest.fn();
+beforeAll(async () => {
+  await createInstance().use(initReactI18next).init({
+    lng: "en", fallbackLng: "en",
+    resources: { en: { consumerJourney: consumerEnglish } },
+    interpolation: { escapeValue: false },
+  });
+});
 beforeEach(() => { global.fetch = fetchMock; fetchMock.mockReset(); });
 afterEach(cleanup);
 

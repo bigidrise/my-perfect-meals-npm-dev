@@ -37,6 +37,28 @@ export function shoppingSelectionBridge(
       ? shoppingRejectionExplanation(decision, subject, unresolved)
       : "Your current food profile could not be confirmed for this product. Your ingredient is unchanged." };
   }
+  try {
+    const selection = parseShoppingProductSelection({
+      ingredient,
+      product: {
+        ...shoppingProductSnapshot(candidate, decision),
+        assessment: {
+          status: "eligible_at_evaluation", unresolvedRequirements: [],
+          reasons: ["Evidence-supported catalog choice at evaluation, not current-package or permanent medical clearance."],
+          evaluatedAt: decision.evaluatedAt,
+          policyVersion: DEVELOPMENT_CATALOG_IDENTITY_POLICY.version,
+          subjectReference: decision.subjectId, contextReference: decision.contextFingerprint,
+        },
+      },
+    });
+    return { eligible: true, selection };
+  } catch {
+    return { eligible: false, reason: "This product's information can't be saved reliably. Keep this ingredient generic." };
+  }
+}
+
+/** One historical identity/fact projection for both separately validated workflows. */
+export function shoppingProductSnapshot(candidate: ProductCandidate, decision: ProductEligibilityDecision) {
   const provenance = (source: ProductCandidate["identity"]["provenance"]) => ({
     source: source.source, sourceRecordId: source.sourceRecordId,
     ...(source.observedAt ? { observedAt: source.observedAt } : {}),
@@ -50,10 +72,7 @@ export function shoppingSelectionBridge(
       ...(fact.nutritionMeasurement ? { measurement: { ...fact.nutritionMeasurement } } : {}),
       provenance: provenance(fact.provenance),
     }));
-  try {
-    const selection = parseShoppingProductSelection({
-      ingredient,
-      product: {
+  return {
         productKey: candidate.identity.key, name: candidate.identity.name,
         brand: candidate.identity.brand, variant: candidate.identity.variant,
         ...(candidate.identity.barcode ? { upc: candidate.identity.barcode } : {}),
@@ -64,18 +83,5 @@ export function shoppingSelectionBridge(
         sourcePayloadJson: JSON.stringify({ identity: candidate.identity, facts: candidate.facts, decision,
           policyVersion: DEVELOPMENT_CATALOG_IDENTITY_POLICY.version }),
         evidence,
-        assessment: {
-          status: "eligible_at_evaluation", unresolvedRequirements: [],
-          reasons: ["Evidence-supported catalog choice at evaluation, not current-package or permanent medical clearance."],
-          evaluatedAt: decision.evaluatedAt,
-          policyVersion: DEVELOPMENT_CATALOG_IDENTITY_POLICY.version,
-          subjectReference: decision.subjectId, contextReference: decision.contextFingerprint,
-        },
-      },
-    });
-    return { eligible: true, selection };
-  } catch {
-    // Oversized/malformed source records cannot be silently trimmed into approvals.
-    return { eligible: false, reason: "This product's information can't be saved reliably. Keep this ingredient generic." };
-  }
+  };
 }

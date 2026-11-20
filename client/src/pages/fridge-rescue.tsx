@@ -2,6 +2,7 @@
 // BACKUP: backups/fridge-rescue-stable-version.tsx
 // FEATURES: Perfect fridge ingredient rescue, AI meal generation, ingredient optimization, medical personalization
 import { useState, useRef, useEffect } from "react";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { fridgeRescueResultNotice, restoredFridgeRescueNotice } from "@/lib/fridgeRescueResultNotice";
 import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { usePageTitle } from "@/contexts/PageTitleContext";
@@ -69,7 +70,7 @@ import { LockedBuilderCard } from "@/components/upgrade/LockedBuilderCard";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
 import { StarchGuardIntercept } from "@/components/StarchGuardIntercept";
 import { useAuth } from "@/contexts/AuthContext";
@@ -98,22 +99,6 @@ import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
-
-const FRIDGE_RESCUE_TOUR_STEPS: TourStep[] = [
-  {
-    title: "Enter Your Ingredients",
-    description: "Type or speak the ingredients you already have at home.",
-  },
-  {
-    title: "Generate Meals",
-    description:
-      "Tap generate to get three meals built entirely from your ingredients.",
-  },
-  {
-    title: "Cook Without Shopping",
-    description: "Use what you have and skip unnecessary grocery trips.",
-  },
-];
 
 interface StructuredIngredient {
   name: string;
@@ -161,6 +146,20 @@ const FridgeRescuePage = () => {
   usePageTitle("Fridge Rescue");
   const { toast } = useToast();
   const { t } = useTranslation("fridgeRescue");
+  const fridgeRescueTourSteps: TourStep[] = [
+    {
+      title: t("Enter Your Ingredients"),
+      description: t("Type or speak the ingredients you already have at home."),
+    },
+    {
+      title: t("Generate Meals"),
+      description: t("Tap generate to get three meals built entirely from your ingredients."),
+    },
+    {
+      title: t("Cook Without Shopping"),
+      description: t("Use what you have and skip unnecessary grocery trips."),
+    },
+  ];
   const { t: tRouteTitle } = useTranslation("routeTitles");
   const { runAction, open, startWalkthrough } = useCopilot();
   const quickTour = useQuickTour("fridge-rescue");
@@ -451,7 +450,7 @@ const FridgeRescuePage = () => {
     window.dispatchEvent(interactedEvent);
 
     if (!submittedIngredients.trim()) {
-      alert("Please enter some ingredients first!");
+      alert(t("Please enter some ingredients first!"));
       return;
     }
 
@@ -781,7 +780,7 @@ const FridgeRescuePage = () => {
       }
     } catch (error) {
       console.error("Replace meal error:", error);
-      alert("Failed to replace meal. Please try again.");
+      alert(t("Failed to replace meal. Please try again."));
     } finally {
       setIsReplacing((prev) => ({ ...prev, [mealId]: false }));
     }
@@ -812,7 +811,7 @@ const FridgeRescuePage = () => {
               className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
-              <span className="text-sm font-medium">Back</span>
+              <span className="text-sm font-medium">{t("Back")}</span>
             </button>
             {/* Title */}
             <h1
@@ -838,13 +837,13 @@ const FridgeRescuePage = () => {
               className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="text-sm font-medium">Lifestyle Hub</span>
+              <span className="text-sm font-medium">{t("Lifestyle Hub")}</span>
             </button>
           )}
           {/* Hub Intro — matches Pairings Hub pattern */}
           <div className="text-center mb-4 max-w-2xl mx-auto">
-            <h2 className="text-2xl font-bold text-white mb-2">Cook What You Have</h2>
-            <p className="text-sm text-white/70">Turn the ingredients already in your kitchen into perfectly matched meals.</p>
+            <h2 className="text-2xl font-bold text-white mb-2">{t("Cook What You Have")}</h2>
+            <p className="text-sm text-white/70">{t("Turn the ingredients already in your kitchen into perfectly matched meals.")}</p>
           </div>
 
           {/* Server-resolved protocol indicator — shows when GLP-1 or Performance overlay is active */}
@@ -891,7 +890,7 @@ const FridgeRescuePage = () => {
             <div className="max-w-2xl mx-auto mb-4">
               <div className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm">
                 <div className="flex justify-between items-center">
-                  <span className="text-white/70">Free AI Meals Today</span>
+                  <span className="text-white/70">{t("Free AI Meals Today")}</span>
                   <span className="font-semibold text-white">
                     {quotaInfo.used} / {quotaInfo.limit}
                   </span>
@@ -904,7 +903,7 @@ const FridgeRescuePage = () => {
                 </div>
                 {quotaInfo.remaining === 0 && (
                   <p className="text-xs text-amber-400 mt-2">
-                    You've used today's free AI meal.
+                    {t("You've used today's free AI meal.")}
                   </p>
                 )}
               </div>
@@ -914,10 +913,10 @@ const FridgeRescuePage = () => {
           <div className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl p-8 max-w-2xl mx-auto">
             <div className="space-y-2">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white">Quick Create</h2>
+                <h2 className="text-xl font-bold text-white">{t("Quick Create")}</h2>
                 <HowThisWorksLink
                   featureKey="fridgeRescue"
-                  label="How It Works"
+                  labelKey="tutorialControl.howItWorks"
                 />
               </div>
 
@@ -927,7 +926,7 @@ const FridgeRescuePage = () => {
                     htmlFor="ingredients"
                     className="block text-lg font-medium text-white"
                   >
-                    Enter ingredients from your fridge:
+                    {t("Enter ingredients from your fridge:")}
                   </label>
                   <div className="relative">
                     <textarea
@@ -938,7 +937,7 @@ const FridgeRescuePage = () => {
                       onChange={(e) => commitTextInputValue(e, setIngredients)}
                       onInput={(e) => commitTextInputValue(e, setIngredients)}
                       onCompositionEnd={(e) => commitTextInputValue(e, setIngredients)}
-                      placeholder="e.g., chicken breast, broccoli, rice, onions, eggs"
+                      placeholder={t("e.g., chicken breast, broccoli, rice, onions, eggs")}
                       className="w-full p-3 pr-10 border border-white/20 bg-black/20 rounded-xl focus:ring-2 focus:ring-white/50 focus:border-white/50 text-sm text-white"
                       rows={3}
                     />
@@ -947,8 +946,8 @@ const FridgeRescuePage = () => {
                         data-wt="fridge-clear-ingredients-button"
                         onClick={() => setIngredients("")}
                         size="sm"
-                        ariaLabel="Clear ingredients"
-                        title="Clear ingredients"
+                        ariaLabel={t("Clear ingredients")}
+                        title={t("Clear ingredients")}
                         data-testid="button-clear-ingredients"
                         className="absolute top-2 right-2"
                       />
@@ -959,11 +958,11 @@ const FridgeRescuePage = () => {
                     onChange={setIngredients}
                     mode="append"
                     separator=", "
-                    label="Add ingredients by voice"
+                    label={t("Add ingredients by voice")}
                     className="mt-2"
                   />
                   <p className="text-md text-white mt-1 text-center">
-                    Use keyboard or speech-to-text for input
+                    {t("Use keyboard or speech-to-text for input")}
                   </p>
                 </div>
 
@@ -1015,23 +1014,23 @@ const FridgeRescuePage = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">
-                    Cooking method <span className="text-white/40 font-normal">(optional)</span>
+                    {t("Cooking method")} <span className="text-white/40 font-normal">{t("(optional)")}</span>
                   </label>
                   <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
                     {[
-                      { label: "Stovetop", emoji: "🍳" },
-                      { label: "Oven", emoji: "🔥" },
-                      { label: "Air Fryer", emoji: "💨" },
-                      { label: "Grill", emoji: "🥩" },
-                      { label: "Slow Cooker", emoji: "🫕" },
-                      { label: "No-Cook", emoji: "🥗" },
-                    ].map(({ label, emoji }) => (
+                      { value: "Stovetop", label: t("Stovetop"), emoji: "🍳" },
+                      { value: "Oven", label: t("Oven"), emoji: "🔥" },
+                      { value: "Air Fryer", label: t("Air Fryer"), emoji: "💨" },
+                      { value: "Grill", label: t("Grill"), emoji: "🥩" },
+                      { value: "Slow Cooker", label: t("Slow Cooker"), emoji: "🫕" },
+                      { value: "No-Cook", label: t("No-Cook"), emoji: "🥗" },
+                    ].map(({ value, label, emoji }) => (
                       <IconPillOption
-                        key={label}
+                        key={value}
                         icon={emoji}
                         label={label}
-                        active={cookMethod === label}
-                        onClick={() => setCookMethod(cookMethod === label ? "" : label)}
+                        active={cookMethod === value}
+                        onClick={() => setCookMethod(cookMethod === value ? "" : value)}
                       />
                     ))}
                   </div>
@@ -1053,7 +1052,7 @@ const FridgeRescuePage = () => {
                 {/* Flavor Preference Section */}
                 <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
                   <span className="text-xs text-white/60 block mb-2">
-                    Flavor Preference
+                    {t("Flavor Preference")}
                   </span>
                   <FlavorToggle
                     flavorPersonal={flavorPersonal}
@@ -1062,15 +1061,15 @@ const FridgeRescuePage = () => {
                   />
                   <p className="text-xs text-white/40 mt-1">
                     {flavorPersonal
-                      ? "Using your palate preferences"
-                      : "Neutral seasoning for others"}
+                      ? t("Using your palate preferences")
+                      : t("Neutral seasoning for others")}
                   </p>
                 </div>
 
                 {/* Keep It Simple Section */}
                 <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
                   <span className="text-xs text-white/60 block mb-2">
-                    Ingredient Control
+                    {t("Ingredient Control")}
                   </span>
                   <KeepItSimpleToggle
                     keepItSimple={keepItSimple}
@@ -1079,15 +1078,15 @@ const FridgeRescuePage = () => {
                   />
                   <p className="text-xs text-white/40 mt-1">
                     {keepItSimple
-                      ? "AI will use only what you listed — nothing added"
-                      : "AI may add complementary ingredients"}
+                      ? t("AI will use only what you listed — nothing added")
+                      : t("AI may add complementary ingredients")}
                   </p>
                 </div>
 
                 {/* Serving Size Selector */}
                 <div className="mb-4 py-2 px-3 bg-black/30 rounded-lg border border-white/10">
                   <span className="text-xs text-white/60 block mb-2">
-                    Servings
+                    {t("Servings")}
                   </span>
                   <div className="flex gap-2">
                     {[1, 2, 3, 4, 5, 6].map((n) => (
@@ -1108,8 +1107,8 @@ const FridgeRescuePage = () => {
                   </div>
                   <p className="text-xs text-white/40 mt-1">
                     {servings === 1
-                      ? "Single serving"
-                      : `${servings} servings — great for ${servings <= 2 ? "a couple" : "the family"}`}
+                      ? t("Single serving")
+                      : servings <= 2 ? t("{{count}} servings — great for a couple", { count: servings }) : t("{{count}} servings — great for the family", { count: servings })}
                   </p>
                 </div>
 
@@ -1220,13 +1219,13 @@ const FridgeRescuePage = () => {
                       ) : (
                         <div className="h-48 mb-0 flex flex-col items-center justify-center gap-2 bg-black/40 border-b border-orange-400/30 text-center px-4">
                           <p className="text-white/70 text-xs mb-2">
-                            Saved in an older session — regenerate to get the image.
+                            {t("Saved in an older session — regenerate to get the image.")}
                           </p>
                           <button
                             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
                             className="px-3 py-1.5 rounded-full bg-orange-600 text-white text-xs font-medium"
                           >
-                            Scroll up to regenerate
+                            {t("Scroll up to regenerate")}
                           </button>
                         </div>
                       )}
@@ -1266,14 +1265,14 @@ const FridgeRescuePage = () => {
                         className="mt-2 w-full flex items-center justify-center gap-2 rounded-xl border border-violet-500/40 bg-violet-950/30 py-2.5 text-sm font-semibold text-violet-300 active:bg-violet-900/40 transition-colors"
                       >
                         <Wand2 className="h-4 w-4" />
-                        Refine Meal
+                        {t("Refine Meal")}
                       </button>
                       {/* Undo refinement banner */}
                       {preRefinedMealsByIndex[index] && (
                         <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-violet-950/40 border border-violet-500/30 px-3 py-2 text-xs">
                           <span className="flex items-center gap-1.5 text-violet-300">
                             <Wand2 className="h-3 w-3 shrink-0" />
-                            Showing refined version
+                            {t("Showing refined version")}
                           </span>
                           <button
                             className="flex items-center gap-1 text-violet-400 font-medium active:opacity-70"
@@ -1290,7 +1289,7 @@ const FridgeRescuePage = () => {
                             }}
                           >
                             <RotateCcw className="h-3 w-3" />
-                            Restore original
+                            {t("Restore original")}
                           </button>
                         </div>
                       )}
@@ -1308,7 +1307,7 @@ const FridgeRescuePage = () => {
 
                     <CardContent className="space-y-4 flex-1 flex flex-col">
                       <p className="text-xs text-white/70 text-center">
-                        Nutrition per serving • Recipe makes {meal.servings ?? servings} servings
+                        {t("Nutrition per serving • Recipe makes {{count}} servings", { count: meal.servings ?? servings })}
                       </p>
                       {/* Nutrition Grid */}
                       <div className="grid grid-cols-4 gap-2 text-center">
@@ -1322,11 +1321,11 @@ const FridgeRescuePage = () => {
                           <div className="text-sm font-bold text-blue-400">
                             {Math.round(creatorMealNutrition(meal, servings).protein)}g
                           </div>
-                          <div className="text-xs text-white/70">Protein</div>
+                          <div className="text-xs text-white/70">{t("Protein")}</div>
                         </div>
                         <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
                           <div className="text-sm font-bold text-orange-400">{Math.round(creatorMealNutrition(meal, servings).carbs)}g</div>
-                          <div className="text-xs text-white/70">Carbs</div>
+                          <div className="text-xs text-white/70">{t("Carbs")}</div>
                           {(() => {
                             const totalCarbs = creatorMealNutrition(meal, servings).carbs;
                             const oneServing = creatorMealNutrition(meal, servings);
@@ -1347,7 +1346,7 @@ const FridgeRescuePage = () => {
                           <div className="text-sm font-bold text-purple-400">
                             {Math.round(creatorMealNutrition(meal, servings).fat)}g
                           </div>
-                          <div className="text-xs text-white/70">Fat</div>
+                          <div className="text-xs text-white/70">{t("Fat")}</div>
                         </div>
                       </div>
 
@@ -1371,8 +1370,8 @@ const FridgeRescuePage = () => {
                           <TrashButton
                             size="sm"
                             appearance="meal-card"
-                            ariaLabel="Remove meal"
-                            title="Remove meal"
+                            ariaLabel={t("Remove meal")}
+                            title={t("Remove meal")}
                             confirm={true}
                             confirmMessage="Remove this meal?"
                             onClick={() => setMeals(prev => prev.filter((_, i) => i !== index))}
@@ -1386,7 +1385,7 @@ const FridgeRescuePage = () => {
                       {/* Ingredients */}
                       <div className="space-y-2">
                         <h4 className="text-sm font-semibold text-white">
-                          Ingredients:
+                          {t("Ingredients:")}
                         </h4>
                         <ul className="text-xs text-white/80 space-y-1">
                           {meal.ingredients
@@ -1398,7 +1397,7 @@ const FridgeRescuePage = () => {
                                     <span className="text-green-400 mr-1">
                                       •
                                     </span>
-                                    <span>{ingredient}</span>
+                                    <span><IngredientDisplay ingredient={ingredient} legacyText={ingredient} /></span>
                                   </li>
                                 );
                               }
@@ -1415,7 +1414,7 @@ const FridgeRescuePage = () => {
                                     <span className="text-green-400 mr-1">
                                       •
                                     </span>
-                                    <span>{ingredient.displayText}</span>
+                                    <span><IngredientDisplay ingredient={ingredient} legacyText={ingredient.displayText} /></span>
                                   </li>
                                 );
                               }
@@ -1428,7 +1427,7 @@ const FridgeRescuePage = () => {
                                       •
                                     </span>
                                     <span>
-                                      {amount} {unit} {name}
+                                      <IngredientDisplay ingredient={ingredient} legacyText={<>{amount} {unit} {name}</>} />
                                     </span>
                                   </li>
                                 );
@@ -1438,7 +1437,7 @@ const FridgeRescuePage = () => {
                               return (
                                 <li key={i} className="flex items-start">
                                   <span className="text-green-400 mr-1">•</span>
-                                  <span>{name}</span>
+                                  <span><IngredientDisplay ingredient={ingredient} legacyText={name} /></span>
                                 </li>
                               );
                             })}
@@ -1453,7 +1452,7 @@ const FridgeRescuePage = () => {
                                   ])
                                 }
                               >
-                                + {meal.ingredients.length - 4} more ingredients
+                                + {meal.ingredients.length - 4} {t("more ingredients")}
                               </li>
                             )}
                           {expandedIngredients.includes(meal.id) &&
@@ -1469,7 +1468,7 @@ const FridgeRescuePage = () => {
                                       <span className="text-green-400 mr-1">
                                         •
                                       </span>
-                                      <span>{ingredient}</span>
+                                      <span><IngredientDisplay ingredient={ingredient} legacyText={ingredient} /></span>
                                     </li>
                                   );
                                 }
@@ -1486,7 +1485,7 @@ const FridgeRescuePage = () => {
                                       <span className="text-green-400 mr-1">
                                         •
                                       </span>
-                                      <span>{ingredient.displayText}</span>
+                                      <span><IngredientDisplay ingredient={ingredient} legacyText={ingredient.displayText} /></span>
                                     </li>
                                   );
                                 }
@@ -1500,7 +1499,7 @@ const FridgeRescuePage = () => {
                                         •
                                       </span>
                                       <span>
-                                        {amount} {unit} {name}
+                                        <IngredientDisplay ingredient={ingredient} legacyText={<>{amount} {unit} {name}</>} />
                                       </span>
                                     </li>
                                   );
@@ -1510,7 +1509,7 @@ const FridgeRescuePage = () => {
                                     <span className="text-green-400 mr-1">
                                       •
                                     </span>
-                                    <span>{name}</span>
+                                    <span><IngredientDisplay ingredient={ingredient} legacyText={name} /></span>
                                   </li>
                                 );
                               })}
@@ -1524,7 +1523,7 @@ const FridgeRescuePage = () => {
                                   )
                                 }
                               >
-                                Show less
+                                {t("Show less")}
                               </li>
                             )}
                         </ul>
@@ -1538,7 +1537,7 @@ const FridgeRescuePage = () => {
                         const visibleSteps = expanded ? steps : steps.slice(0, 3);
                         return (
                           <div className="space-y-2">
-                            <h4 className="text-sm font-semibold text-white">Instructions:</h4>
+                            <h4 className="text-sm font-semibold text-white">{t("Instructions:")}</h4>
                             <div className="space-y-2">
                               {visibleSteps.map((step, index) => (
                                 <div key={index}
@@ -1552,7 +1551,7 @@ const FridgeRescuePage = () => {
                             {steps.length > 3 && (
                               <button className="mt-1 text-xs text-orange-400 font-medium cursor-pointer active:text-orange-300 select-none"
                                 onClick={() => { setStepsExpanded((prev) => ({ ...prev, [meal.id]: !expanded })); if (expanded) setActiveSteps((prev) => ({ ...prev, [meal.id]: null })); }}>
-                                {expanded ? "Show less" : `Show all ${steps.length} steps`}
+                                {expanded ? t("Show less") : t("Show all {{count}} steps", { count: steps.length })}
                               </button>
                             )}
                           </div>
@@ -1642,7 +1641,7 @@ const FridgeRescuePage = () => {
                             }}
                           >
                             {isFree && <Lock className="h-3 w-3" />}
-                            Guided Cooking
+                            {t("Guided Cooking")}
                           </Button></MealCardAction>
                           <MealCardAction kind="share"><ShareRecipeButton
                             recipe={{
@@ -1681,15 +1680,15 @@ const FridgeRescuePage = () => {
                   <div className="flex items-start gap-4">
                     <Sparkles className="h-6 w-6 text-orange-400 mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
-                      <h3 className="text-white font-semibold text-base mb-1">Want unlimited Fridge Rescue?</h3>
+                      <h3 className="text-white font-semibold text-base mb-1">{t("Want unlimited Fridge Rescue?")}</h3>
                       <p className="text-white/70 text-sm mb-3">
-                        You've used today's free generation. Upgrade to generate unlimited meals every day, plus unlock Craving Creator, Dessert Builder, and more.
+                        {t("You've used today's free generation. Upgrade to generate unlimited meals every day, plus unlock Craving Creator, Dessert Builder, and more.")}
                       </p>
                       <button
                         onClick={() => setLocation("/pricing")}
                         className="bg-black/70 hover:bg-orange-800 text-white font-semibold text-sm px-5 py-2 rounded-lg transition-colors"
                       >
-                        View Plans
+                        {t("View Plans")}
                       </button>
                     </div>
                   </div>
@@ -1704,25 +1703,25 @@ const FridgeRescuePage = () => {
                 <div className="w-14 h-14 bg-orange-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Sparkles className="h-7 w-7 text-orange-400" />
                 </div>
-                <h2 className="text-xl font-bold text-white mb-2">Daily Limit Reached</h2>
+                <h2 className="text-xl font-bold text-white mb-2">{t("Daily Limit Reached")}</h2>
                 <p className="text-white/70 text-sm mb-1">
-                  Free accounts get 1 Fridge Rescue per day. Your next generation resets at midnight UTC.
+                  {t("Free accounts get 1 Fridge Rescue per day. Your next generation resets at midnight UTC.")}
                 </p>
                 <p className="text-white/50 text-xs mb-6">
-                  Upgrade for unlimited AI meal generation across all builders.
+                  {t("Upgrade for unlimited AI meal generation across all builders.")}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <button
                     onClick={() => setLocation("/pricing")}
                     className="bg-orange-600 hover:bg-orange-500 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors"
                   >
-                    Upgrade Now
+                    {t("Upgrade Now")}
                   </button>
                   <button
                     onClick={() => setLocation("/dashboard")}
                     className="bg-white/10 hover:bg-white/20 text-white/80 font-medium px-6 py-2.5 rounded-lg transition-colors"
                   >
-                    Back to Dashboard
+                    {t("Back to Dashboard")}
                   </button>
                 </div>
               </div>
@@ -1731,27 +1730,27 @@ const FridgeRescuePage = () => {
 
           {userIsFree && (showResults || dailyLimitHit) && (
             <div className="max-w-4xl mx-auto mt-8">
-              <h3 className="text-white/60 text-sm font-medium uppercase tracking-wider mb-4">More AI Builders with Upgrade</h3>
+              <h3 className="text-white/60 text-sm font-medium uppercase tracking-wider mb-4">{t("More AI Builders with Upgrade")}</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <LockedBuilderCard
                   icon="🍫"
-                  title="Craving Creator"
-                  description="Turn any craving into a macro-friendly meal"
+                  title={t("Craving Creator")}
+                  description={t("Turn any craving into a macro-friendly meal")}
                 />
                 <LockedBuilderCard
                   icon="🍰"
-                  title="Dessert Builder"
-                  description="Guilt-free desserts that fit your macros"
+                  title={t("Dessert Builder")}
+                  description={t("Guilt-free desserts that fit your macros")}
                 />
                 <LockedBuilderCard
                   icon="🍹"
-                  title="Beverage Creator"
-                  description="Custom drinks from smoothies to cocktails"
+                  title={t("Beverage Creator")}
+                  description={t("Custom drinks from smoothies to cocktails")}
                 />
                 <LockedBuilderCard
                   icon="📋"
-                  title="Weekly Meal Planner"
-                  description="Full AI-generated weekly meal plans"
+                  title={t("Weekly Meal Planner")}
+                  description={t("Full AI-generated weekly meal plans")}
                 />
               </div>
             </div>
@@ -1761,8 +1760,8 @@ const FridgeRescuePage = () => {
         <QuickTourModal
           isOpen={quickTour.shouldShow}
           onClose={quickTour.closeTour}
-          title="How to Use Fridge Rescue"
-          steps={FRIDGE_RESCUE_TOUR_STEPS}
+          title={t("How to Use Fridge Rescue")}
+          steps={fridgeRescueTourSteps}
           onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
         />
         <UpgradeLockModal

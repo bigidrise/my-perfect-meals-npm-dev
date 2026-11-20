@@ -1,0 +1,36 @@
+/** Closed built-in profile labels only; never match or rewrite advice sentences. */
+export const ingredientAnalysisLabelsSpanish: Record<string, string> = {
+  "Performance Nutrition Protocol": "Protocolo de nutrición para el rendimiento",
+  "Performance Nutrition": "Nutrición para el rendimiento",
+  "Testosterone Replacement Therapy": "Terapia de reemplazo de testosterona",
+  "Diabetes Management": "Control de la diabetes",
+  "Weight-loss goal": "Objetivo de pérdida de peso",
+  "Muscle-gain goal": "Objetivo de aumento de masa muscular",
+  "Maintenance goal": "Objetivo de mantenimiento",
+  "Type 1 Diabetes": "Diabetes tipo 1",
+  "Type 2 Diabetes": "Diabetes tipo 2",
+  "Prediabetes": "Prediabetes",
+  "GLP-1 protocol": "Protocolo GLP-1",
+  "Hypertension": "Hipertensión",
+  "Cardiac protocol": "Protocolo cardíaco",
+  "Renal protocol": "Protocolo renal",
+  "Anti-inflammatory protocol": "Protocolo antiinflamatorio",
+  "Oncology protocol": "Protocolo oncológico",
+  "Hypothyroid support": "Apoyo para el hipotiroidismo",
+  "Hashimoto's support": "Apoyo para la enfermedad de Hashimoto",
+  "Hyperthyroid support": "Apoyo para el hipertiroidismo",
+  "Thyroid support": "Apoyo tiroideo",
+  "Hormone optimization": "Optimización hormonal",
+  "Vegan diet": "Dieta vegana",
+  "Vegetarian diet": "Dieta vegetariana",
+  "Keto diet": "Dieta cetogénica",
+  "Gluten-free": "Sin gluten",
+  "Paleo diet": "Dieta paleo",
+  "Halal": "Halal",
+  "Kosher": "Kosher",
+  "Low-FODMAP": "Baja en FODMAP",
+  "Recent blood glucose logs": "Registros recientes de glucosa en sangre",
+};
+
+export const isBuiltInAnalysisLabel = (text: string) =>
+  Object.prototype.hasOwnProperty.call(ingredientAnalysisLabelsSpanish, text);

@@ -1,3 +1,4 @@
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { useState, useMemo } from "react";
 import { PickerModal } from "@/components/ui/universal-modal";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ export function ReplaceMealMenu({
   mealIndex,
   currentMeal,
 }: ReplaceMealMenuProps) {
+  const { t } = useConsumerCopy();
   const [cravingText, setCravingText] = useState("");
   const [searchText, setSearchText] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
@@ -217,7 +219,7 @@ export function ReplaceMealMenu({
                   value={cravingText}
                   onChange={(value) => setCravingText(value)}
                   mode="append"
-                  label="Add craving by voice"
+                  label={t("Add craving by voice")}
                 />
               </div>
 

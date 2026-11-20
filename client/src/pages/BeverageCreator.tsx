@@ -1,4 +1,6 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect, useMemo, useRef } from "react";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
@@ -627,7 +629,7 @@ export default function BeverageCreator() {
               className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="text-sm font-medium">Beverage Creator Hub</span>
+              <span className="text-sm font-medium"><BackNavigationLabel label="Beverage Creator Hub" /></span>
             </button>
           )}
           {!isDesktop && (
@@ -636,7 +638,7 @@ export default function BeverageCreator() {
               className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="text-sm font-medium">Back</span>
+              <span className="text-sm font-medium"><BackNavigationLabel /></span>
             </button>
           )}
           <Card className="shadow-2xl bg-black/10 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto mb-6">
@@ -1123,8 +1125,8 @@ export default function BeverageCreator() {
                         {generatedBeverage.ingredients.map(
                           (ing: any, i: number) => (
                             <li key={i}>
-                              {ing.displayText ||
-                                `${ing.amount || ""} ${ing.unit || ""} ${ing.name || ing.item}`}
+                              <IngredientDisplay ingredient={ing} legacyText={ing.displayText ||
+                                `${ing.amount || ""} ${ing.unit || ""} ${ing.name || ing.item}`} />
                             </li>
                           ),
                         )}

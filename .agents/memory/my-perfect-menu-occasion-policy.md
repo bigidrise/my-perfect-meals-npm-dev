@@ -17,6 +17,13 @@ Mocked classifier tests alone do not establish culinary suitability or recipe id
 
 The user authorized Production snack reliability: retain one or two fully verified snack choices when three cannot be completed, including persistence, restoration, and explanatory UI. Other occasions' partial-choice rollout, independent occasion-review activation, and diagnostic/test endpoints retain their existing boundaries.
 
+Equivalent translations are not changes of dish identity. Keep this judgment specific to Menu's selected concept and full recipe, rather than imposing English-name overlap or changing shared food rules. Name-vocabulary misses need meaningful ingredients and preparation evidence plus an independent preserved-identity judgment; clear format changes, uncertainty and unavailable review remain blocking.
+
+**Why:** Equivalent English/Spanish recipe names must not fail solely because of vocabulary differences; independent recipe identity verification remains required.
+
+**How to apply:** Preserve Food Snack versus Dessert Snack identity, dessert structure, ingredient safeguards, and independent review. The additional recipe-identity repair remains Development-only until separately authorized; the previously approved Production snack reliability behavior remains authorized.
+
+
 **Why:** On 2026-11-14, the user approved enabling the Production repair after a real snack request retained two valid choices but failed the three-choice requirement. Importing the merged source had not activated Development-gated partial success.
 
 **How to apply:** Enable only the approved snack reliability behavior, keep all existing safety checks and opt-in caller boundaries, and keep test endpoints Development-only. Workspace changes do not authorize live publication.

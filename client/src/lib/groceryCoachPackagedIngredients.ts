@@ -9,7 +9,10 @@ export interface GroceryIngredient {
  * Unknown names stay ordinary ingredients; categories never grant eligibility.
  * Keep this independent of generation so restored meals work without rewriting them.
  */
-export function packagedProductEligibility(item: string): {
+export function packagedProductEligibility(
+  item: string,
+  options: { surface?: "smart_shopping" } = {},
+): {
   eligible: boolean;
   reason: "packaged_product" | "ordinary_or_unknown";
 } {
@@ -17,7 +20,18 @@ export function packagedProductEligibility(item: string): {
   const excluded = /\b(homemade|home-made|from scratch|spaghetti squash|fresh tomatoes?|cherry tomatoes?|cucumbers?|lemons?|mixed greens|chicken breast|ground turkey)\b/.test(name);
   const packaged = /\b(sauce|marinara|pasta|spaghetti|noodles|parmesan|cheese|yogurt|bread|tortillas?|crackers?|cereal|broth|stock|tofu|plant-based milk|almond milk|soy milk|oat milk|salad dressing)\b/.test(name)
     || /^(?:plain\s+)?milk$/.test(name);
-  return !excluded && packaged
+  // Opt in only on Smart Shopping; other product workflows keep their existing
+  // recognition. This controls a lookup affordance, never product suitability.
+  const smartShopping = options.surface === "smart_shopping";
+  const freshOrHomemade = smartShopping &&
+    /\b(fresh|raw|home[\s-]?made|from scratch)\b/.test(name);
+  const additionalPackaged = smartShopping && (
+    /\b(oatmeal|oats|seasonings?|spices?|spice blends?|spice mixes?|salt|black pepper|ground pepper|paprika|cumin|cinnamon|chili powder|garlic powder|onion powder|dried herbs?|dried oregano|dried basil|condiments?|ketchup|mustard|mayonnaise|mayo|relish|salsa|vinegar|tamari|honey|maple syrup|peanut butter|nut butter|jam|jelly|preserves)\b/.test(name) ||
+    /\b(cooking|olive|avocado|canola|sunflower|safflower|sesame|vegetable|coconut|peanut|grapeseed|corn|soybean)\s+oils?\b/.test(name) ||
+    /^oils?$/.test(name) ||
+    /\b(canned|tinned|jarred)\s+(?:(?:black|kidney|pinto|white|navy|green|baked|refried|garbanzo|diced|crushed|whole|sliced|organic|low[- ]sodium|no[- ]salt[- ]added)\s+)*(?:beans?|chickpeas?|lentils?|tomatoes?|tomato paste|corn|peas|carrots?|pumpkin|tuna|salmon|sardines?|anchovies?|peaches?|pears?|pineapple|applesauce|coconut milk)\b/.test(name)
+  );
+  return !excluded && !freshOrHomemade && (packaged || additionalPackaged)
     ? { eligible: true, reason: "packaged_product" }
     : { eligible: false, reason: "ordinary_or_unknown" };
 }

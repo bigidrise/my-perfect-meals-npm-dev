@@ -32,3 +32,11 @@ The user approved Development-only shopping-list foundation work: preserve origi
 **Why:** The user wants reliable transfer, consolidation, saving, and restoration before connecting product-selection UI.
 
 **How to apply:** No new selection UI, AI/catalog lookups, recommendation algorithms, prompts, clinical rules, or ranking changes. Inspect persistence first and stop for separate approval before any required migration or destructive change. No real customer data changes, GitHub push, or Production deployment. Use focused synthetic tests for transfer, identity, qualifiers, persistence, hydration, and consolidation.
+
+## Mobile composer reference
+
+The mobile Make a Meal input should match Find a Product: a large full-width text box above a separate row with voice on the left and send on the right.
+
+**Why:** The founder compared the two mobile views and explicitly chose Find a Product as the reference because Make a Meal was bunched onto one line.
+
+**How to apply:** Preserve that reference when changing the Grocery Coach mobile composer; keep the existing text, voice and submission behavior.

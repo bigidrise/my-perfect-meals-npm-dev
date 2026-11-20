@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { Download, Building2 } from "lucide-react";
@@ -141,7 +142,7 @@ export default function CertificationCertificateView() {
                 onClick={() => setLocation("/business-center/affiliate/dashboard")}
                 className="w-full p-4 rounded-2xl bg-white/10 text-white font-bold text-sm active:scale-[0.98] transition-transform print:hidden"
               >
-                Back to Dashboard
+                <BackNavigationLabel label="Back to Dashboard" />
               </button>
 
               <button

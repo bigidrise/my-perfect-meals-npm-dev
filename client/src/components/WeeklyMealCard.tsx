@@ -8,6 +8,7 @@ import { ChefHat, Clock, ChevronDown, ChevronUp, RefreshCw } from "lucide-react"
 import { useState } from "react";
 import HealthBadgesPopover from "./badges/HealthBadgesPopover";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import BuilderSourcePill from "@/components/BuilderSourcePill";
 import { getClinicalCoachingLine } from "@/utils/clinicalCoachingLine";
@@ -273,7 +274,7 @@ export default function WeeklyMealCard({
                   return (
                     <li key={i} className="flex items-start">
                       <span className="text-green-400 mr-1">•</span>
-                      <span>{ingredient}</span>
+                      <span><IngredientDisplay ingredient={ingredient} legacyText={ingredient} /></span>
                     </li>
                   );
                 }
@@ -288,7 +289,7 @@ export default function WeeklyMealCard({
                   <li key={i} className="flex items-start">
                     <span className="text-green-400 mr-1">•</span>
                     <span>
-                      {`${converted.quantity} ${converted.unit} ${ingredient.name || ingredient.item}`.trim()}
+                      <IngredientDisplay ingredient={ingredient} legacyText={`${converted.quantity} ${converted.unit} ${ingredient.name || ingredient.item}`.trim()} />
                     </span>
                   </li>
                 );

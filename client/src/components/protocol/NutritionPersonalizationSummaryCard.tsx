@@ -14,7 +14,7 @@ import { useState } from "react";
 import { Bell, ChevronDown, ChevronUp, ShieldCheck, Layers, FlaskConical, Activity, Droplets } from "lucide-react";
 import { useNutritionSummary } from "@/hooks/useNutritionSummary";
 import type { NutritionPersonalizationSummary, NutritionSummaryHealthItem } from "@/types/nutritionSummary";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import { useLocation } from "wouter";
 import {
   CLINICAL_NUTRITION_PRIORITY_SUMMARY_COPY,
@@ -22,6 +22,7 @@ import {
   resolveActiveNutritionPriorityLabels,
 } from "@/lib/nutritionPriorityDisplay";
 import { resolveNutritionSummaryCardData } from "@/lib/nutritionSummaryDisplay";
+import { nutritionSummaryLabelSources } from "@/i18n/consumerDailyDisplayCopy";
 
 interface Props {
   summary?: NutritionPersonalizationSummary;
@@ -100,7 +101,10 @@ export function NutritionPersonalizationSummaryCard({
   const data = resolveNutritionSummaryCardData(source, summaryProp, hook.data);
   const isLoading = isLoadingProp ?? (source === "self" ? hook.isLoading : false);
   const [expanded, setExpanded] = useState(defaultExpanded);
-  const { t } = useTranslation("nutritionPlan");
+  const { t, i18n } = useTranslation("nutritionPlan");
+  const locale = i18n?.resolvedLanguage || i18n?.language || "en";
+  // Closed application-authored labels only, never arbitrary professional copy.
+  const displayLabel = (value: string) => nutritionSummaryLabelSources.has(value) ? t(value) : value;
   const [, navigate] = useLocation();
   const [acknowledgedUpdateId, setAcknowledgedUpdateId] = useState<string | null>(null);
 
@@ -115,10 +119,10 @@ export function NutritionPersonalizationSummaryCard({
         <div className="px-4 pb-4" aria-busy={isLoading}>
           <p role="status" className="text-xs text-white/60">
             {isLoading
-              ? t("loadingPlan", { defaultValue: "Loading your personalized plan…" })
+              ? t("Loading your personalized plan…", { defaultValue: "Loading your personalized plan…" })
               : failed
-                ? t("planUnavailable", { defaultValue: "Your nutrition plan is temporarily unavailable." })
-                : t("planEmpty", { defaultValue: "No nutrition plan is available yet." })}
+                ? t("Your nutrition plan is temporarily unavailable.", { defaultValue: "Your nutrition plan is temporarily unavailable." })
+                : t("No nutrition plan is available yet.", { defaultValue: "No nutrition plan is available yet." })}
           </p>
           {isLoading && (
             <div aria-hidden="true" className="mt-3 space-y-2 animate-pulse">
@@ -132,7 +136,7 @@ export function NutritionPersonalizationSummaryCard({
               onClick={() => { void hook.refetch(); }}
               className="mt-3 rounded-lg border border-orange-400/40 px-3 py-2 text-xs font-semibold text-orange-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
             >
-              {t("retryPlan", { defaultValue: "Retry loading plan" })}
+              {t("Retry loading plan", { defaultValue: "Retry loading plan" })}
             </button>
           )}
         </div>
@@ -165,10 +169,10 @@ export function NutritionPersonalizationSummaryCard({
     ml === null ? null : `${Math.round(ml / 29.5735)} oz (${ml.toLocaleString()} mL)`;
   const hydrationDetail = (() => {
     const tracking = data.hydration?.tracking;
-    if (!tracking) return "Hydration status is unavailable.";
-    if (tracking.status === "TRACK_ONLY") return "Tracking active — no numeric target established.";
-    if (tracking.status === "PLAN_WITHHELD") return "A numeric plan is currently withheld.";
-    if (tracking.status === "NEEDS_REVIEW") return "Hydration guidance needs review.";
+    if (!tracking) return t("Hydration status is unavailable.");
+    if (tracking.status === "TRACK_ONLY") return t("Tracking active — no numeric target established.");
+    if (tracking.status === "PLAN_WITHHELD") return t("A numeric plan is currently withheld.");
+    if (tracking.status === "NEEDS_REVIEW") return t("Hydration guidance needs review.");
     if (tracking.targetKind === "range") {
       return `${displayMl(tracking.minimumMl)}–${displayMl(tracking.maximumMl)} per day`;
     }
@@ -201,7 +205,7 @@ export function NutritionPersonalizationSummaryCard({
       </div>
       {source === "self" && (hook.isDynamicLoading || hook.isDynamicError) && (
         <p className="px-4 pb-2 text-[10px] text-white/50">
-          {hook.isDynamicError ? "Today's context is temporarily unavailable." : "Updating today's context…"}
+          {hook.isDynamicError ? t("Today's context is temporarily unavailable.") : t("Updating today's context…")}
         </p>
       )}
 
@@ -214,9 +218,9 @@ export function NutritionPersonalizationSummaryCard({
         >
           <Bell className="mt-0.5 h-4 w-4 shrink-0 text-orange-300" />
           <span className="min-w-0">
-            <span className="block text-xs font-bold text-orange-200">New update from your care team</span>
+            <span className="block text-xs font-bold text-orange-200">{t("New update from your care team")}</span>
             <span className="mt-0.5 block text-xs text-white/80">{latestProfessionalUpdate.title}</span>
-            <span className="mt-1 block text-[10px] font-semibold text-orange-300">Review update</span>
+            <span className="mt-1 block text-[10px] font-semibold text-orange-300">{t("Review update")}</span>
           </span>
         </button>
       )}
@@ -227,17 +231,17 @@ export function NutritionPersonalizationSummaryCard({
         const hasCarbSplit = !!(m.starchyCarbsG || m.fibrousCarbsG);
         const pills = hasCarbSplit
           ? [
-              { label: "Cal",     value: m.calories ? m.calories.toLocaleString() : "—" },
-              { label: "Protein", value: m.proteinG ? `${m.proteinG}g`            : "—" },
-              { label: "Starchy", value: m.starchyCarbsG ? `${m.starchyCarbsG}g` : "—" },
-              { label: "Fibrous", value: m.fibrousCarbsG ? `${m.fibrousCarbsG}g` : "—" },
-              { label: "Fat",     value: m.fatG ? `${m.fatG}g`                   : "—" },
+              { label: t("Cal"),     value: m.calories ? m.calories.toLocaleString() : "—" },
+              { label: t("Protein"), value: m.proteinG ? `${m.proteinG}g`            : "—" },
+              { label: t("Starchy"), value: m.starchyCarbsG ? `${m.starchyCarbsG}g` : "—" },
+              { label: t("Fibrous"), value: m.fibrousCarbsG ? `${m.fibrousCarbsG}g` : "—" },
+              { label: t("Fat"),     value: m.fatG ? `${m.fatG}g`                   : "—" },
             ]
           : [
-              { label: "Cal",     value: m.calories ? m.calories.toLocaleString() : "—" },
-              { label: "Protein", value: m.proteinG ? `${m.proteinG}g`            : "—" },
-              { label: "Carbs",   value: m.carbsG   ? `${m.carbsG}g`             : "—" },
-              { label: "Fat",     value: m.fatG     ? `${m.fatG}g`               : "—" },
+              { label: t("Cal"),     value: m.calories ? m.calories.toLocaleString() : "—" },
+              { label: t("Protein"), value: m.proteinG ? `${m.proteinG}g`            : "—" },
+              { label: t("Carbs"),   value: m.carbsG   ? `${m.carbsG}g`             : "—" },
+              { label: t("Fat"),     value: m.fatG     ? `${m.fatG}g`               : "—" },
             ];
         return (
           <div className="px-4 pb-3">
@@ -289,7 +293,7 @@ export function NutritionPersonalizationSummaryCard({
                 return (
                   <div key={h.key} className={`${c.bg} border ${c.border} rounded-xl px-3 py-2.5`}>
                     <p className={`text-[11px] font-black uppercase tracking-widest ${c.text}`}>
-                      {h.label}
+                      {displayLabel(h.label)}
                     </p>
                   </div>
                 );
@@ -303,21 +307,21 @@ export function NutritionPersonalizationSummaryCard({
                 <div className="flex items-start gap-2">
                   <Droplets className="mt-0.5 h-4 w-4 shrink-0 text-sky-300" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-sky-300">Hydration</p>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-sky-300">{t("Hydration")}</p>
                     <p className="mt-1 text-[11px] leading-relaxed text-white/75">{hydrationDetail}</p>
                     {data.hydration.tracking.validThrough && data.hydration.tracking.status === "NUMERIC_ACTIVE" && (
                       <p className="mt-1 text-[10px] text-white/55">
-                        Active through {new Date(data.hydration.tracking.validThrough).toLocaleDateString()}
+                        {t("Active through {{date}}", { date: new Date(data.hydration.tracking.validThrough).toLocaleDateString(locale) })}
                       </p>
                     )}
                     {data.hydration.liquidNutrition?.status === "active" && (
                       <div className="mt-2 rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
-                        <p className="text-[10px] font-semibold text-sky-200">Liquid Nutrition Support</p>
+                        <p className="text-[10px] font-semibold text-sky-200">{t("Liquid Nutrition Support")}</p>
                         <p className="mt-0.5 text-[10px] text-white/65">
                           {data.hydration.liquidNutrition.currentDay
-                            ? `Day ${data.hydration.liquidNutrition.currentDay} · `
+                            ? <>{t("Day {{day}}", { day: data.hydration.liquidNutrition.currentDay })}{" · "}</>
                             : ""}
-                          Ends {new Date(`${data.hydration.liquidNutrition.endsOn}T12:00:00`).toLocaleDateString()}
+                          {t("Ends {{date}}", { date: new Date(`${data.hydration.liquidNutrition.endsOn}T12:00:00`).toLocaleDateString(locale) })}
                         </p>
                       </div>
                     )}
@@ -326,7 +330,7 @@ export function NutritionPersonalizationSummaryCard({
                       onClick={() => navigate(data.hydration!.href)}
                       className="mt-2 text-[10px] font-semibold text-sky-300"
                     >
-                      Open Hydration
+                      {t("Open Hydration")}
                     </button>
                   </div>
                 </div>
@@ -477,7 +481,7 @@ export function NutritionPersonalizationSummaryCard({
                 {t("cuisine")}
               </p>
               <p className="text-[12px] font-bold uppercase tracking-wide text-amber-300">
-                {activeInputs.cuisine}
+                {displayLabel(activeInputs.cuisine)}
               </p>
             </div>
           )}
@@ -489,7 +493,7 @@ export function NutritionPersonalizationSummaryCard({
                 {t("goal")}
               </p>
               <p className="text-[12px] font-bold uppercase tracking-wide text-orange-300">
-                {activeInputs.goal}
+                {displayLabel(activeInputs.goal)}
               </p>
             </div>
           )}
@@ -501,7 +505,7 @@ export function NutritionPersonalizationSummaryCard({
                 {t("mealBuilder")}
               </p>
               <p className="text-[12px] font-bold uppercase tracking-wide text-amber-300">
-                {data.mealBuilderLabel}
+                {displayLabel(data.mealBuilderLabel!)}
               </p>
             </div>
           )}
@@ -536,7 +540,7 @@ export function NutritionPersonalizationSummaryCard({
                 {nutritionPriorities.map((p, i) => (
                   <div key={i} className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-orange-400/70 flex-shrink-0 mt-1.5" />
-                    <span className="text-xs text-white/70 leading-snug">{p}</span>
+                    <span className="text-xs text-white/70 leading-snug">{displayLabel(p)}</span>
                   </div>
                 ))}
               </div>

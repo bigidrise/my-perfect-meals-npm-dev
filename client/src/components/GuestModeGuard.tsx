@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 // client/src/components/GuestModeGuard.tsx
 // Apple App Review Compliant: Wraps pages with guest mode checks and banners
 
@@ -117,7 +118,7 @@ function AccountRequiredScreen() {
               className="w-full text-white/60 hover:text-white hover:bg-white/10"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Guest Builder
+              <BackNavigationLabel label="Back to Guest Builder" />
             </Button>
           </div>
 

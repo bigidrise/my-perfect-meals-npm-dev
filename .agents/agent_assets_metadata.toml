@@ -1041,3 +1041,591 @@ mtime_ms = 1794886038249
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/ebe1c8e7-3e78-4643-a0d6-a67d2a14fe21/08203ba6-65d5-4f5b-979b-0680a6df8be1"
 storage_version_token = "1794886060163158"
 content_type = "text/html"
+
+[[outputs]]
+id = "8aa1MRGyC6SFUUa8X_GjO"
+uri = "file://.local/reports/spanish-localization-audit.html"
+type = "html"
+title = "Spanish localization architecture and coverage audit"
+description = "Full findings, feature coverage matrix, current diagnostics, risks, proposed remediation increments, and verification plan."
+logical_id = "d62acc3e-956a-47b1-a08b-137f37aa9b2b"
+content_hash = "sha256:99a5254d568a9635fb9f1a04780cccb53910c8366ba6438f1d0c57faa74a6e89"
+size = 45266
+mtime_ms = 1794952143398
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d62acc3e-956a-47b1-a08b-137f37aa9b2b/8e01531f-209e-46f6-ae15-0068c163048a"
+storage_version_token = "1794952173877873"
+content_type = "text/html"
+
+[[outputs]]
+id = "mpc8JDDGf1Nhz5CPnyJ4U"
+uri = "file://.local/reports/spanish-localization-file-inventory.csv"
+type = "table"
+title = "Spanish localization source inventory"
+description = "806 scanned client files with static coverage status, source examples, reachability, priorities, and verification limits."
+logical_id = "b4fe9fd8-4f3f-4644-9837-af0ed35920e4"
+content_hash = "sha256:78b27012bb94059437192d58202a2de1dd8aa6f658acfd5211069cafd19f7f92"
+size = 220688
+mtime_ms = 1794952143082
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/b4fe9fd8-4f3f-4644-9837-af0ed35920e4/c32c1b09-0526-4a15-a27c-a1bba28b94b2"
+storage_version_token = "1794952174921126"
+content_type = "text/csv"
+
+[[outputs]]
+id = "cblNEN_z7W-fHu3X3Wt3e"
+uri = "file://.local/reports/spanish-localization-diagnostics.txt"
+type = "text"
+title = "Reproduced localization diagnostics"
+description = "Fresh Development and Production-source validator output, Spanish catalog scans, 36 AI-language checks, and 79 passing tests."
+logical_id = "5568365c-a3ad-4260-85c4-300a9ce4ceea"
+content_hash = "sha256:2e1c9d8584372623b302893f8fb3f0c0bc380419c6294f9fa9b249c8871b29b0"
+size = 62450
+mtime_ms = 1794952143946
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/5568365c-a3ad-4260-85c4-300a9ce4ceea/9175fae7-e0cb-4846-8c2c-0a47b0d093e0"
+storage_version_token = "1794952175673623"
+content_type = "text/plain"
+
+[[outputs]]
+id = "QhfZ-MmuZzqJtzddSn4rV"
+uri = "file://.local/reports/spanish-phase1-review.html"
+type = "html"
+title = "Spanish Phase 1 — implementation and founder review"
+description = "Implementation summary, files changed, English/Spanish desktop/mobile screenshots, 114 passing tests, remaining blockers, and recommended Phase 2 scope."
+logical_id = "eab965a8-a4cb-4e69-a12a-825bb7b14800"
+content_hash = "sha256:00ad498a1c0cf38d4e249e61254c7cda729c0df4bc7f7c941df68f323ceaac02"
+size = 377584
+mtime_ms = 1794953357617
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/eab965a8-a4cb-4e69-a12a-825bb7b14800/a76f92a0-4b25-4a05-bf4e-4d23ea707d0d"
+storage_version_token = "1794953359746646"
+content_type = "text/html"
+
+[[outputs]]
+id = "WgU-IrNGkpYew0O8HqFQa"
+uri = "file://.local/reports/spanish-phase1-verification.txt"
+type = "text"
+title = "Spanish Phase 1 — verification evidence"
+description = "Focused tests, strict localization results, full type-gate output, safety types, compilation results, and browser-fixture limitations."
+logical_id = "f9e9672c-933a-486d-a6bf-f54f8146bbc7"
+content_hash = "sha256:baf7e44422378f362a96a06ce0dc391ff0a41072953817751283ae7a553c6607"
+size = 139894
+mtime_ms = 1794953358737
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/f9e9672c-933a-486d-a6bf-f54f8146bbc7/721d2dd4-68ef-4132-99de-5db93a261b84"
+storage_version_token = "1794953360423055"
+content_type = "text/plain"
+
+[[outputs]]
+id = "c01uAIHXY_gVrif4dETik"
+uri = "file://generated-artifacts/spanish-phase2/review.html"
+type = "html"
+title = "Spanish Phase 2 — Development review"
+description = "Implementation summary, screenshot references, changed files, test evidence and explicit release blockers."
+logical_id = "c3f5e204-b80a-4929-80bb-e6360f29a987"
+content_hash = "sha256:19e1cf12ffa33a903248011595b82a2285383a66fb0e87362f2e958559461736"
+size = 17746
+mtime_ms = 1794956884404
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/c3f5e204-b80a-4929-80bb-e6360f29a987/b3b37ec0-2875-42ea-9a57-8bb7d94ea40b"
+storage_version_token = "1794956885406871"
+content_type = "text/html"
+
+[[outputs]]
+id = "6HFt3KtKrrw4EoDrVbCKM"
+uri = "file://generated-artifacts/spanish-phase2/onboarding-wording-comparison.html"
+type = "html"
+title = "Spanish onboarding — side-by-side founder review"
+description = "All 32 English/Spanish sections, medical and AI disclosure fidelity notes, both consent labels and unchanged-flow requirements. Not activated."
+logical_id = "7f7f7493-71dc-49bc-8c76-b4d81aa3ff5c"
+content_hash = "sha256:e7cdca92f365ac1c6cb05edb01264d1ed9f58a7cd83dc86a6418ecd5dd7fcb38"
+size = 22365
+mtime_ms = 1794957685292
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7f7f7493-71dc-49bc-8c76-b4d81aa3ff5c/7bd22592-4cbc-4bc5-b579-40a214adabd6"
+storage_version_token = "1794957752905768"
+content_type = "text/html"
+
+[[outputs]]
+id = "V1TnyqOPQNw4m7ry911kK"
+uri = "file://generated-artifacts/spanish-phase2/localization-inventory-scope.html"
+type = "html"
+title = "Application-wide localization inventory — proposed scope"
+description = "Documents every surface and shared-owner mapping needed for a future inventory. No audit, implementation or coverage percentages claimed."
+logical_id = "80b60be5-9f95-4a72-9f67-c76065cf4e7b"
+content_hash = "sha256:fede31d9c3edfe3ac6e4b124edfba2cbdb0115e8337c1793e2d1083282729e70"
+size = 6870
+mtime_ms = 1794957685864
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/80b60be5-9f95-4a72-9f67-c76065cf4e7b/2d615252-3361-4c06-b2e6-672121c93b4e"
+storage_version_token = "1794957753510553"
+content_type = "text/html"
+
+[[outputs]]
+id = "imkQtw4W6MbsYBSnDth-U"
+uri = "file://generated-artifacts/spanish-phase2/approved-onboarding-verification.html"
+type = "html"
+title = "Approved Spanish onboarding — verification"
+description = "21 focused tests, desktop/mobile consent checks, healthy Spanish onboarding navigation, release-gate status and verification limits."
+logical_id = "d8551755-afdc-4fc6-a19f-de831c08ec5e"
+content_hash = "sha256:45e559db2f151719c392cbca715812ecc5aea1240750eb16fc723cc1df48954e"
+size = 8195
+mtime_ms = 1794959079756
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d8551755-afdc-4fc6-a19f-de831c08ec5e/4bb63fd9-8e0d-45e5-a258-848de7f7c295"
+storage_version_token = "1794959080544434"
+content_type = "text/html"
+
+[[outputs]]
+id = "Z8ZxxKLArBznLTR-maBAJ"
+uri = "file://.local/reports/international-layout-measurement-audit.html"
+type = "html"
+title = "International layout and measurement audit"
+description = "Read-only Development review: EN/ES layout evidence, RTL limits, storage-to-display unit inventory, prioritized recommendations and release blockers."
+logical_id = "66d52047-4a46-4c5b-b31d-1bedd8a51437"
+content_hash = "sha256:a0986ae349e327cb0fbb351d8006893ed3f715e527a3caa80b63e89bfc64855c"
+size = 23467
+mtime_ms = 1794959425112
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/66d52047-4a46-4c5b-b31d-1bedd8a51437/ea21be99-9014-4e22-858e-e409119c2aed"
+storage_version_token = "1794959449437082"
+content_type = "text/html"
+
+[[outputs]]
+id = "_PmfCYMZ-DVrqIGNwPdyn"
+uri = "file://docs/localization/application-inventory/inventory.html"
+type = "html"
+title = "Completed localization inventory — findings and proposed batches"
+description = "Actual completed report: shared-owner map, reviewed findings, 36 feature/state groups, route evidence, limitations and proposed implementation batches 0–5."
+logical_id = "dbe4d0aa-50e8-472a-b329-3caecb4d0550"
+content_hash = "sha256:be55b222f5e8df1bd274ba74d6c296778f7a89b830b9208898658a6f847ba7b4"
+size = 241885
+mtime_ms = 1794967338020
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/dbe4d0aa-50e8-472a-b329-3caecb4d0550/9e2a6187-a376-4987-9b6b-c4553809ec6b"
+storage_version_token = "1794967646436071"
+content_type = "text/html"
+
+[[outputs]]
+id = "cnqlpcY_LKc3M0JSSEdVG"
+uri = "file://docs/localization/application-inventory/feature-state-review.csv"
+type = "table"
+title = "Localization feature/state matrix"
+description = "36 reviewed groups covering consumer, food, shopping, clinical, Studio and business surfaces, with verification limits. Import CSV columns as text."
+logical_id = "92fcabf1-b4e9-48dd-b073-0afc65b8e1cd"
+content_hash = "sha256:10facb0cca76c929c3e1ca29bdbcb6f7965e003d2bcac134b9d0a81658945f37"
+size = 18980
+mtime_ms = 1794967338020
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/92fcabf1-b4e9-48dd-b073-0afc65b8e1cd/db8dd263-d3d9-4fb1-9216-75af482e1338"
+storage_version_token = "1794967647707016"
+content_type = "text/csv"
+
+[[outputs]]
+id = "DWXYm97LT84f_BfiGZ0u0"
+uri = "file://docs/localization/application-inventory/reviewed-findings.csv"
+type = "table"
+title = "54 reviewed localization ownership records"
+description = "Deduplicated findings with source owners, shared callers, EN/ES connections, visibility evidence and proposed batches. Import CSV columns as text; do not enable spreadsheet formulas."
+logical_id = "7cd5554d-4549-430b-884c-6d0bbb72205b"
+content_hash = "sha256:d9550df7a86c843c881a1c96efe6d40ce76335015a5f8d151074bc72dc5c2971"
+size = 110630
+mtime_ms = 1794967338020
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7cd5554d-4549-430b-884c-6d0bbb72205b/efe2f037-06a5-408d-ae99-9961164a1905"
+storage_version_token = "1794967647119894"
+content_type = "text/csv"
+
+[[outputs]]
+id = "5mSy3zCSPCXRORz-1h5Wq"
+uri = "file://docs/localization/FOOD_WORKFLOWS_REVIEW.md"
+type = "text"
+title = "Spanish food-tool implementation review"
+description = "Coverage, tests, browser evidence, exact protected English, language-persistence assessment, and release limits."
+logical_id = "09b37630-0fbf-4c34-810a-433b7a385121"
+content_hash = "sha256:7e0fdcfed5325f0294295945c94918bbc68ef4d40ca60f6010a7bde9223f1b1f"
+size = 15945
+mtime_ms = 1794971679157
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/09b37630-0fbf-4c34-810a-433b7a385121/fe7ff349-cd72-438c-8e72-7bab0bf8cd3c"
+storage_version_token = "1794971712303050"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "G5azt4y7Kln5PZQM7fkHA"
+uri = "file://.local/tasks/spanish-next-phase-overview.md"
+type = "text"
+title = "Next Spanish Development phase — prioritized plan"
+description = "Task boundaries, sequencing, verification requirements, remaining risks and the findings on deleting voice secrets."
+logical_id = "7d42b106-7a61-4502-a656-3d60c1e22856"
+content_hash = "sha256:ceb0b3ca1a4466d8add93f9189cc61deab447dd93d7aa7a550b0e96f7fe006f0"
+size = 7875
+mtime_ms = 1794973272388
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7d42b106-7a61-4502-a656-3d60c1e22856/2db367bf-aba2-4010-a902-d3e809e4d017"
+storage_version_token = "1794973308023164"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "gq0TEuly1slum6emBH4MR"
+uri = "file://.local/reports/measurement-language-development-verification.html"
+type = "html"
+title = "Development verification report"
+description = "Language and measurement coverage, test results, and explicit release blockers."
+logical_id = "857df5ee-24c0-4f7e-9351-03d2b77cd294"
+content_hash = "sha256:7a49ae29b6a29b8c5c471be91c6457b8d3ec82dd674d9c4a2be2094db2d35e78"
+size = 11500
+mtime_ms = 1794977017743
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/857df5ee-24c0-4f7e-9351-03d2b77cd294/593e7922-9986-4aa4-b472-9fe7678a9bfd"
+storage_version_token = "1794977030367229"
+content_type = "text/html"
+
+[[outputs]]
+id = "qRKWUOI4Ww-ICAGvwea4B"
+uri = "file://.local/reports/release-fingerprint-approval.html"
+type = "html"
+title = "Exact release fingerprint comparison"
+description = "All 109 reviewed/current diagnostics, six mapped positions, and fresh historical reproduction."
+logical_id = "e1fc3e65-d137-4629-b4cd-d4685149cd64"
+content_hash = "sha256:11c98f7812478a98f20d1a598f66b3b88b11a7c530c962ffc7c1580d855c1531"
+size = 81795
+mtime_ms = 1794978326700
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/e1fc3e65-d137-4629-b4cd-d4685149cd64/81906a11-c38a-417b-8b7f-02a31b8f6b8e"
+storage_version_token = "1794978327503174"
+content_type = "text/html"
+
+[[outputs]]
+id = "J02F4xDndoakxH7A5eJLG"
+uri = "file://.local/reports/final-spanish-fingerprint-review.html"
+type = "html"
+title = "Final four-position fingerprint review"
+description = "All 109 messages match the approved set; four Gatherings positions moved two lines and 105 blocks are unchanged."
+logical_id = "7bde4071-5ed0-4be5-a198-1be66598b8b5"
+content_hash = "sha256:d760454fcb9d76206e309366680679efbd7b3582ade3d53955d06715b5e1b5a3"
+size = 32827
+mtime_ms = 1794980336183
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7bde4071-5ed0-4be5-a198-1be66598b8b5/f2ea56d4-cb14-404a-b7ac-9b7c8d54b38d"
+storage_version_token = "1794980337025175"
+content_type = "text/html"
+
+[[outputs]]
+id = "P4V7Wo0uBtEr9dXDwwQwT"
+uri = "file://.local/reports/four-screen-spanish-execution.html"
+type = "html"
+title = "Spanish implementation, owners and verification limits"
+description = "Four Development surfaces; 103 passing focused tests, 27 guard self-tests, protected English, exact type-gate approval and unverified signed-in layouts."
+logical_id = "d71c7b7d-ab17-409e-af6a-06be5d048c90"
+content_hash = "sha256:a47f8eee2872de3a3f66271660fa760d99f1ed6bd43499a3fb824d01d9e82b44"
+size = 11322
+mtime_ms = 1794981097276
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d71c7b7d-ab17-409e-af6a-06be5d048c90/9dfd1bb1-3c9e-45d6-ad95-d3e74972819a"
+storage_version_token = "1794981098086839"
+content_type = "text/html"
+
+[[outputs]]
+id = "ugmMzq65ryoCMQdSBUJiR"
+uri = "file://generated-artifacts/ask-chef-getaway-protected-spanish-founder-review.html"
+type = "html"
+title = "Protected Spanish passages — founder wording accepted"
+description = "Passages 1–7 accepted without revisions. All seven remain pending qualified clinical/medical translation review and are not activated."
+logical_id = "c08e919a-3acd-4918-830d-b73676c38d5e"
+content_hash = "sha256:5cf7e2f036b736df61b8451c63cee0435ec6ee83d2e9fe3ecbf0228ee514c2d9"
+size = 12619
+mtime_ms = 1795021874366
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/c08e919a-3acd-4918-830d-b73676c38d5e/455f0e23-972d-46bb-b43f-3f4d375e7186"
+storage_version_token = "1795021875046491"
+content_type = "text/html"
+
+[[outputs]]
+id = "RdloHvoZ1LXQFKCKFbYE7"
+uri = "file://generated-artifacts/targeted-spanish-screen-evidence.html"
+type = "html"
+title = "Targeted Spanish corrections — verification evidence"
+description = "Root cause, before/after regression evidence, four real desktop/mobile screenshots and the complete Development verification report."
+logical_id = "9d0bcab8-4288-469b-a07f-68f65792e1f8"
+content_hash = "sha256:c7c9141c2f457107dc08cda57ba5b2461d62666c82d3c2cf204770042bec2e3c"
+size = 166434
+mtime_ms = 1795023206394
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/9d0bcab8-4288-469b-a07f-68f65792e1f8/5b5b5990-cbe2-47ac-9a85-0d00d8280b83"
+storage_version_token = "1795023207455384"
+content_type = "text/html"
+
+[[outputs]]
+id = "fKgarMoWCZpSEeycpWsOu"
+uri = "file://generated-artifacts/spanish-messages-startup-evidence.html"
+type = "html"
+title = "Spanish Messages and startup flash — evidence"
+description = "Root-cause trace, exact corrections, 102-test results and public desktop/mobile first-visible-heading evidence, with authenticated verification limits stated."
+logical_id = "4b6ba5fc-c05d-4342-a5c9-d9a2fd4c39d9"
+content_hash = "sha256:06e767a90b06da4c93025af70e7d17e64d07ef104da5a192c9e84db2ff692141"
+size = 81620
+mtime_ms = 1795024662042
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/4b6ba5fc-c05d-4342-a5c9-d9a2fd4c39d9/438c0b1c-f7ad-4bf9-b6b2-82a6cdad547d"
+storage_version_token = "1795024662821035"
+content_type = "text/html"
+
+[[outputs]]
+id = "qjuA6KsuVA18ww5FOs5rq"
+uri = "file://docs/localization/MEDICAL_RESOURCES_LOCALIZATION_RECOMMENDATION.html"
+type = "html"
+title = "Medical resources localization recommendation"
+description = "Reference ownership and counts, centralized EN/ES display design, metadata preservation, and clinical-review boundaries. No medical translations activated."
+logical_id = "8e623b91-3a54-47e6-8091-46749c5bb0d3"
+content_hash = "sha256:3006e4a0c2ba0bd47859e18748f98d92a1939b3b84aaaad5fd03c70cba515ac5"
+size = 11907
+mtime_ms = 1795025414954
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/8e623b91-3a54-47e6-8091-46749c5bb0d3/d374fe17-5d1d-44c9-9b6c-95a604352299"
+storage_version_token = "1795025431739982"
+content_type = "text/html"
+
+[[outputs]]
+id = "IQ8XkoQnEMxvCZbgJWgIK"
+uri = "file://docs/localization/SPANISH_SHARED_BUILDERS_GENERAL_NUTRITION.html"
+type = "html"
+title = "Spanish shared builders — verification report"
+description = "Exact guard corrections, 194 passing focused tests, unchanged release fingerprint, shared inheritance, remaining English areas and browser-verification limits."
+logical_id = "eff63223-a930-4830-87ef-e215364fa6b3"
+content_hash = "sha256:023f749b49fcf3575fa7e2f06285dde3a704e5a79ec9cd460ee50ae81eee2c20"
+size = 12596
+mtime_ms = 1795026371019
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/eff63223-a930-4830-87ef-e215364fa6b3/0c951a39-7e90-4baf-906c-90521c754dd9"
+storage_version_token = "1795026395053832"
+content_type = "text/html"
+
+[[outputs]]
+id = "91gWsut0UhDKK9xfdurTD"
+uri = "file://generated-artifacts/spanish-four-builders/verification-report.html"
+type = "html"
+title = "Four-builder Spanish localization — Development report"
+description = "Exact shared and builder-specific scope, central resource additions, 227 passing tests, 32 passive responsive cases, screenshots, unchanged release fingerprint and remaining limits."
+logical_id = "662853fc-790a-478a-b79d-1301666c23cf"
+content_hash = "sha256:9c9e341a6de7cda63d8143f8f65134a716da661e7a23767c64c911569a07094a"
+size = 149246
+mtime_ms = 1795027452890
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/662853fc-790a-478a-b79d-1301666c23cf/688a2a0a-bdcd-47d0-a6fa-e9da5be8ef72"
+storage_version_token = "1795027453747910"
+content_type = "text/html"
+
+[[outputs]]
+id = "Hiz4S91d0eh86ECAxhfXA"
+uri = "file://generated-artifacts/spanish-builder-entry/verification-report.html"
+type = "html"
+title = "Builder entry screens and Chef modal — Development report"
+description = "Exact coverage and remaining protected English, 269 passing tests, 56 passive responsive cases, screenshots and unchanged release baseline."
+logical_id = "ee0ce817-49df-41d9-8196-ab4bc333b161"
+content_hash = "sha256:4ee42f79b3dfe3b0848efcbae7febee5f4662e2a984e5166efe7d6096221cd23"
+size = 219049
+mtime_ms = 1795029256915
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/ee0ce817-49df-41d9-8196-ab4bc333b161/ab3d7cd6-e0ee-4938-8cf7-c293f0373e99"
+storage_version_token = "1795029257861596"
+content_type = "text/html"
+
+[[outputs]]
+id = "OCxvrQTqVCEL8gwklJcOJ"
+uri = "file://generated-artifacts/release-type-repair/complete-diagnostic-comparison.csv"
+type = "table"
+title = "Complete 109-diagnostic comparison"
+description = "Every reviewed/current full diagnostic message, position, error code and independently verified source mapping."
+logical_id = "42742271-b89d-4c25-bfd0-e6c46ef0aff6"
+content_hash = "sha256:7e087008612c8fa77620652c8a85f8d3eb9e58a6a4112d998565795ade88a601"
+size = 56664
+mtime_ms = 1795054540097
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/42742271-b89d-4c25-bfd0-e6c46ef0aff6/a8c35837-fa03-40af-82da-ada0adefcbfa"
+storage_version_token = "1795054660292012"
+content_type = "text/csv"
+
+[[outputs]]
+id = "Sc4t1TM9fzPhhY-UCKiw6"
+uri = "file://docs/localization/RELEASE_TYPECHECK_RESTORATION_REVIEW.md"
+type = "text"
+title = "Verified release typecheck restoration"
+description = "Approved exact fingerprint, passing canonical gate, unchanged full compiler output, restoration and lock-cleanup evidence, and the separate localization blocker."
+logical_id = "4a42b1e4-4551-445d-994f-2e3f126f7efa"
+content_hash = "sha256:62204e518024a9f70d2a4ba489a37909f91d2fe9d8b632a2a676177b46978191"
+size = 9110
+mtime_ms = 1795055092934
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/4a42b1e4-4551-445d-994f-2e3f126f7efa/31c393c3-23fe-42f7-9915-71a8ffeb646a"
+storage_version_token = "1795055118400688"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "jb4DLD6gYEgX_FlVluELf"
+uri = "file://.local/reports/pr478-release-recovery-diagnosis.html"
+type = "html"
+title = "PR #478 release recovery diagnosis"
+description = "Authentication findings, exact failing command, all 115 reproduced Phase 0 failures, preservation guidance and the approval-only recovery sequence."
+logical_id = "b275f0a2-1807-44b4-9825-580fd06b5313"
+content_hash = "sha256:30e3344b2c62b9e7987110d9e8d7fe3863dac62a698c747b07ed819138a1b12d"
+size = 39040
+mtime_ms = 1795101759603
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/b275f0a2-1807-44b4-9825-580fd06b5313/805f4f79-5809-4d7a-bce6-43f117faa9dd"
+storage_version_token = "1795101760732232"
+content_type = "text/html"
+
+[[outputs]]
+id = "Ep9BZM-CNHG_k3P-EQHp4"
+uri = "file://.local/reports/pr478-targeted-release-recovery.html"
+type = "html"
+title = "PR #478 — Targeted recovery results"
+description = "All 19 changed files, authentication limits, exact validation results, individual clinical-source review, inventory provenance, and remaining release blockers."
+logical_id = "82a73382-2f6a-419a-8097-a2388df3c12d"
+content_hash = "sha256:ce81514345c25d501d58e706e8c4345891bcb9167ce1bf5dd13bd029c92a1535"
+size = 57741
+mtime_ms = 1795106558514
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/82a73382-2f6a-419a-8097-a2388df3c12d/d2689eb1-3331-4fc3-9a82-d7167ddc767b"
+storage_version_token = "1795106616813073"
+content_type = "text/html"
+
+[[outputs]]
+id = "MofHFRY44u2ht3OB1cbmX"
+uri = "file://.local/reconciliation/dev-production-20261119/generated-artifacts/reconciliation-validation/recovery-inventory-review.csv"
+type = "table"
+title = "Localization inventory — 88-file review"
+description = "Separates the 20 per-file regressions and 68 inventory differences by approved Development/Production provenance."
+logical_id = "6b8c548f-47d5-4d2f-86a8-717aa505afc6"
+content_hash = "sha256:35a3e7a26a4a1e5669462eddf4999d1c2c5566283d7ca5e849436ebd03095612"
+size = 8854
+mtime_ms = 1795106385209
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/6b8c548f-47d5-4d2f-86a8-717aa505afc6/02cb4a43-2505-4abc-9e22-eaf4849d7499"
+storage_version_token = "1795106617593349"
+content_type = "text/csv"
+
+[[outputs]]
+id = "xVqjsuZOqYiip6KylmB2v"
+uri = "file://.local/reports/pr478-final-blocker-classification.html"
+type = "html"
+title = "PR #478 — Final blocker classification"
+description = "Exact 101-check classification, six TypeScript line movements, remaining authentication action, and one recommended release path. No candidate changes."
+logical_id = "9f978220-0abf-4569-9111-1e98790713a1"
+content_hash = "sha256:cb10533c38654e50672c267d36c02e6c275d1bc9a4175cf594064c9b2a5a5d58"
+size = 58509
+mtime_ms = 1795107949566
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/9f978220-0abf-4569-9111-1e98790713a1/2f658a69-faec-4f7e-8548-376f528d778c"
+storage_version_token = "1795108096649393"
+content_type = "text/html"
+
+[[outputs]]
+id = "9AjZC0N9jRtWKofluLEf4"
+uri = "file://.local/reports/pr478-future-reuse-architecture-inspection.html"
+type = "html"
+title = "Future enhancements — existing architecture reuse"
+description = "Read-only product-finder and Recipe Maker inspection: exact owners, reusable flows, grading differences, persistence limits and required future regression coverage."
+logical_id = "b6e991cc-39aa-453d-b7e7-0d83fcf94b89"
+content_hash = "sha256:91728c1bf0167c1aaae1f3865b8578f1d72cddf8b76b04edee58782d355ae7df"
+size = 21062
+mtime_ms = 1795108047283
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/b6e991cc-39aa-453d-b7e7-0d83fcf94b89/096d7511-80e4-41c8-a262-ac8ea699f4cc"
+storage_version_token = "1795108097371103"
+content_type = "text/html"
+
+[[outputs]]
+id = "3HT62c6ZMG_i6A6rh_jYH"
+uri = "file://.local/reports/pr478-bounded-corrections-final.html"
+type = "html"
+title = "PR #478 — bounded corrections and remaining holds"
+description = "Validation results, all 27 changed paths, exact six unchanged clinical explanations, preserved candidate inventory and every remaining review finding."
+logical_id = "ff21c27f-13ff-4783-a602-46fd59482795"
+content_hash = "sha256:5e88b7e327f612f3bb18982d7977c093611ef90b0cbfa5405989b892dbbf95b1"
+size = 264258
+mtime_ms = 1795109935514
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/ff21c27f-13ff-4783-a602-46fd59482795/ab6f0328-f025-4b65-b8b1-222e982bc4f1"
+storage_version_token = "1795109994468358"
+content_type = "text/html"
+
+[[outputs]]
+id = "-YgZ2dek0XOlCKttaUCxZ"
+uri = "file://.local/reports/pr478-remaining-review-findings.csv"
+type = "table"
+title = "PR #478 — remaining review register"
+description = "All 568 retained protected/dynamic review findings, with exact source locations, keys or calls and causes. No ordinary interface findings remain."
+logical_id = "d00d765a-e58d-44eb-b647-28212bf6abd1"
+content_hash = "sha256:7431049705d29e263fbd57724c633c9db4ad04760a75bb449b6243d6d1b18c5e"
+size = 212205
+mtime_ms = 1795109935502
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d00d765a-e58d-44eb-b647-28212bf6abd1/461c7703-fdd6-4f42-9a90-228925643cfa"
+storage_version_token = "1795109995487359"
+content_type = "text/csv"
+
+[[outputs]]
+id = "0CarpsQUjyYDsmldt-LJL"
+uri = "file://.local/reports/pr478-final-clinical-localization-review.html"
+type = "html"
+title = "PR #478 — final clinical and localization review"
+description = "Six-row table with exact wording, Production comparisons, approval evidence, category totals, source-specific gate recommendations and all 568 expandable findings."
+logical_id = "30d8cab9-6a27-4ee2-b614-b01f94fbb2f7"
+content_hash = "sha256:5947662d9e1ff6ba89206db7d89a763f8e300053b73a479342fcb9bd3f85613b"
+size = 1318776
+mtime_ms = 1795111407962
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/30d8cab9-6a27-4ee2-b614-b01f94fbb2f7/8638d82e-ac10-45fe-8a44-2c9cef91493d"
+storage_version_token = "1795111464856809"
+content_type = "text/html"
+
+[[outputs]]
+id = "op6r20wCjMK8l69vtemzG"
+uri = "file://.local/reports/pr478-final-evidence-classification.csv"
+type = "table"
+title = "PR #478 — all 568 findings classified with evidence"
+description = "Preserves every original finding and source location; adds evidence category, exact values, source hashes, approval limits and proposed disposition."
+logical_id = "d7603312-fec4-479d-9586-418ab81dee9e"
+content_hash = "sha256:e38a552a6cd0665f1edb58a8f8351be1c3ef1c5be26a4e185606de5915c61a50"
+size = 1074818
+mtime_ms = 1795111407926
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d7603312-fec4-479d-9586-418ab81dee9e/4b3278b2-a2dd-404d-b4b9-dd414b3ec1ec"
+storage_version_token = "1795111466107583"
+content_type = "text/csv"
+
+[[outputs]]
+id = "Zbm8S8HjPOHq4EYh68wrS"
+uri = "file://.local/reconciliation/dev-production-20261119/docs/localization/release-clinical-approval-package.md"
+type = "text"
+title = "Six-explanation clinical approval package"
+description = "Exact held wording, current source locations, observed implementation, reviewer evidence requirements and no inferred approvals."
+logical_id = "d189d44b-8117-4432-ae56-00e4899195b8"
+content_hash = "sha256:e0d4a83d43f7a0e4dabd59880e06aa0f67cf05e35e697be0c26ca3c59b03f9ea"
+size = 7208
+mtime_ms = 1795112042441
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d189d44b-8117-4432-ae56-00e4899195b8/512780b1-335f-4c1a-999f-5b7f2caa4fc4"
+storage_version_token = "1795112382252730"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "MXUEpz3z6Y8lCyRZx8kVY"
+uri = "file://.local/shopping-product-options-1897/generated-artifacts/shopping-product-options/browser/02-product-options-dialog.png"
+type = "image"
+title = "Product options preview"
+description = "Development browser preview using clearly labeled synthetic test products, not live catalog results."
+logical_id = "1174b5ad-1473-42a4-89d7-a26b3e70c882"
+content_hash = "sha256:33cd21604158f8da14b9bd90a1a3372e448e76163177eaddc9f2f362b051e152"
+size = 133095
+mtime_ms = 1795132079904
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/1174b5ad-1473-42a4-89d7-a26b3e70c882/5fee9ba7-8205-48d3-8552-3ebe7f22f772"
+storage_version_token = "1795132347259747"
+content_type = "image/png"
+
+[[outputs]]
+id = "9UCGBy2pimVVoWLWBYeCB"
+uri = "file://.local/shopping-product-options-1897/generated-artifacts/shopping-product-options/browser/r-06-generic-after-reload.png"
+type = "image"
+title = "Clear and reload verification"
+description = "Isolated browser fixtures: oatmeal remains generic and checked after Clear and a normal reload. No live database or catalog verification is implied."
+logical_id = "bf5c24a6-9f11-499c-867d-78cfdaf0c551"
+content_hash = "sha256:119f3d23e061b0437cd874489f7621afb1beb78db41b6a10eb46d50c4aa1a9ae"
+size = 200231
+mtime_ms = 1795133034852
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/bf5c24a6-9f11-499c-867d-78cfdaf0c551/36c0af66-2333-4bc3-a8d0-c3496731f684"
+storage_version_token = "1795133355153247"
+content_type = "image/png"
+
+[[outputs]]
+id = "d-S-WOuY0gTHxZCXG1Jpu"
+uri = "file://generated-artifacts/smart-shopping-responsive/smart-grocery-responsive-report.html"
+type = "html"
+title = "Smart Grocery mobile layout: before and after"
+description = "Synthetic-browser screenshots at 320, 375, 390, 430, 768 and 1440px; 69 responsive checks passed. Includes picker and bottom-navigation clearance, with verification limits disclosed."
+logical_id = "90b9c7a9-1081-4a04-a093-5ed0f1d86d78"
+content_hash = "sha256:3c226303fc086506a1090bebe61fea03aea3a51027c273686ebd6cde7b3ebb70"
+size = 3559982
+mtime_ms = 1795139447682
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/90b9c7a9-1081-4a04-a093-5ed0f1d86d78/7aa3090b-b236-4102-b7ce-d4b38913c7ce"
+storage_version_token = "1795139472183593"
+content_type = "text/html"
+
+[[outputs]]
+id = "ob57q93S7rESA9qXhJ3O8"
+uri = "file://generated-artifacts/smart-shopping-shared-cards/evidence-375-readable.png"
+type = "image"
+title = "Synthetic mobile selection preview"
+description = "Actual shared recommendation component at 375px with Choose for My List and expandable source evidence. Offline synthetic products only—not live Rao’s results or verified medical suitability."
+logical_id = "6063837e-b6ca-4cc2-abef-a0a43c08c85e"
+content_hash = "sha256:70bfeda7d342187c5118a04dc447c83624e68ede3d06b9b455db614fe1dbaee6"
+size = 76503
+mtime_ms = 1795143042245
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/6063837e-b6ca-4cc2-abef-a0a43c08c85e/9329c04a-468d-455b-9da2-072e1d413540"
+storage_version_token = "1795143422257063"
+content_type = "image/png"

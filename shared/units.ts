@@ -9,6 +9,42 @@
  */
 
 export type MeasurementSystem = "imperial" | "metric";
+/** Saved intent is distinct from the two-value contract consumed by converters. */
+export type MeasurementPreference = "auto" | MeasurementSystem;
+export const MEASUREMENT_COUNTRIES = ["US", "CA", "AU", "UK", "NZ"] as const;
+export const DEFAULT_MEASUREMENT_COUNTRY = "US";
+
+export function measurementPreference(value: unknown): MeasurementPreference {
+  return value === "imperial" || value === "metric" ? value : "auto";
+}
+
+/** Missing/unsupported country retains the existing US fallback, never device locale. */
+export function resolveMeasurementSystem(preference: unknown, country?: unknown): MeasurementSystem {
+  if (preference === "imperial" || preference === "metric") return preference;
+  return country === "CA" || country === "AU" || country === "UK" || country === "NZ"
+    ? "metric" : "imperial";
+}
+
+/**
+ * Strict numeric quantity parsing, not punctuation stripping. A lone comma with
+ * three trailing digits is ambiguous grouping and remains unconverted.
+ */
+export function parseMeasurementNumber(value: string | number): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const glyphs: Record<string, string> = { "¼": "1/4", "½": "1/2", "¾": "3/4", "⅓": "1/3", "⅔": "2/3", "⅛": "1/8", "⅜": "3/8", "⅝": "5/8", "⅞": "7/8" };
+  const text = value.trim().replace(/(\d)([¼½¾⅓⅔⅛⅜⅝⅞])/g, "$1 $2")
+    .replace(/[¼½¾⅓⅔⅛⅜⅝⅞]/g, glyph => glyphs[glyph]);
+  const fraction = text.match(/^([+-])?(?:(\d+)\s+)?(\d+)\s*\/\s*(\d+)$/);
+  if (fraction) {
+    const denominator = Number(fraction[4]);
+    if (!denominator) return null;
+    return (fraction[1] === "-" ? -1 : 1) * (Number(fraction[2] || 0) + Number(fraction[3]) / denominator);
+  }
+  if (/^[+-]?[1-9]\d{0,2},\d{3}$/.test(text)) return null;
+  if (!/^[+-]?(?:\d+(?:[.,]\d+)?|[.,]\d+)$/.test(text)) return null;
+  const number = Number(text.replace(",", "."));
+  return Number.isFinite(number) ? number : null;
+}
 
 // ─── Weight ──────────────────────────────────────────────────────────────────
 
@@ -36,7 +72,7 @@ export function convertWeightLbsDisplay(lbs: number, system: MeasurementSystem):
     const kg = lbs * 0.453592;
     return `${+kg.toFixed(1).replace(/\.?0+$/, "")} kg`;
   }
-  return `${Math.round(lbs)} lbs`;
+  return `${+lbs.toFixed(1)} lbs`;
 }
 
 /** Convert a kg value to display string in the user's preferred system. */
@@ -48,10 +84,10 @@ export function convertWeightKgDisplay(kg: number, system: MeasurementSystem): s
   return `${Math.round(lbs)} lbs`;
 }
 
-/** Parse a user-entered weight string and normalize to lbs (for DB storage). */
+/** Normalize numeric input to lbs; callers must respect their own storage unit. */
 export function parseWeightToLbs(value: string, system: MeasurementSystem): number | null {
-  const num = parseFloat(value.replace(/[^0-9.]/g, ""));
-  if (isNaN(num)) return null;
+  const num = parseMeasurementNumber(value);
+  if (num === null || num < 0) return null;
   return system === "metric" ? num / 0.453592 : num;
 }
 
@@ -60,9 +96,9 @@ export function parseWeightToLbs(value: string, system: MeasurementSystem): numb
 /** Display height in cm as the user's preferred system. */
 export function convertHeightDisplay(cm: number, system: MeasurementSystem): string {
   if (system === "metric") return `${Math.round(cm)} cm`;
-  const totalInches = cm / 2.54;
+  const totalInches = Math.round(cm / 2.54);
   const feet = Math.floor(totalInches / 12);
-  const inches = Math.round(totalInches % 12);
+  const inches = totalInches % 12;
   return `${feet}' ${inches}"`;
 }
 
@@ -70,6 +106,8 @@ export function convertHeightDisplay(cm: number, system: MeasurementSystem): str
 
 /** Display a volume in ml in the user's preferred system. */
 export function convertVolumeDisplay(ml: number, system: MeasurementSystem): string {
+  if (!Number.isFinite(ml) || ml < 0) return "—";
+  if (ml === 0) return system === "metric" ? "0 ml" : "0 cup";
   if (system === "metric") {
     if (ml >= 1000) {
       const liters = ml / 1000;
@@ -81,9 +119,10 @@ export function convertVolumeDisplay(ml: number, system: MeasurementSystem): str
   if (ml >= 240) {
     const cups = ml / 240;
     if (cups >= 1) {
-      const whole = Math.floor(cups);
+      let whole = Math.floor(cups);
       const frac = cups - whole;
       const fracStr = frac < 0.1 ? "" : frac < 0.3 ? " 1/4" : frac < 0.55 ? " 1/2" : frac < 0.85 ? " 3/4" : "";
+      if (frac >= 0.85) whole += 1;
       return whole > 0 ? `${whole}${fracStr} cup` : `${fracStr.trim()} cup`;
     }
   }
@@ -103,12 +142,18 @@ export function convertServingDisplay(
   unit: string,
   system: MeasurementSystem
 ): string {
-  if (system === "imperial") return `${amount} ${unit}`;
-
-  const num = typeof amount === "string" ? parseFloat(amount) : amount;
-  if (isNaN(num)) return `${amount} ${unit}`;
+  const original = `${amount} ${unit}`.trim();
+  const num = parseMeasurementNumber(amount);
+  if (num === null || num < 0) return original;
 
   const u = unit.toLowerCase().trim();
+  if (system === "imperial") {
+    if (u === "g" || u === "gram" || u === "grams") return convertWeightDisplay(num, system);
+    if (u === "kg" || u === "kilogram" || u === "kilograms") return convertWeightDisplay(num * 1000, system);
+    if (u === "ml" || u === "milliliter" || u === "milliliters") return convertVolumeDisplay(num, system);
+    if (u === "l" || u === "liter" || u === "liters") return convertVolumeDisplay(num * 1000, system);
+    return original;
+  }
 
   // Weight: oz → g
   if (u === "oz" || u === "ounce" || u === "ounces") {
@@ -139,7 +184,15 @@ export function convertServingDisplay(
   }
 
   // Unknown unit — return as-is
-  return `${amount} ${unit}`;
+  return original;
+}
+
+/** Length display accepts an explicit source tag; never guesses history units. */
+export function convertLengthDisplay(value: number, unit: string, system: MeasurementSystem): string {
+  if (!Number.isFinite(value)) return "—";
+  if (unit !== "cm" && unit !== "in" && unit !== "inches") return `${value} ${unit}`;
+  const cm = unit === "cm" ? value : value * 2.54;
+  return system === "metric" ? `${+cm.toFixed(1)} cm` : `${+(cm / 2.54).toFixed(1)} in`;
 }
 
 // ─── AI Prompt instruction block ─────────────────────────────────────────────

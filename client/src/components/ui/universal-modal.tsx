@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 /**
  * UNIVERSAL MODAL SYSTEM
  *
@@ -456,7 +457,7 @@ export function WizardModal({
               onClick={onBack}
               className="shrink-0 bg-white/10 text-white/80 text-sm font-semibold px-4 py-2 rounded-xl active:bg-white/20"
             >
-              {backLabel}
+              <BackNavigationLabel label={backLabel} />
             </button>
           )}
           <div className="flex-1" />

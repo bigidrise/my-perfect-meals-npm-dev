@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,7 @@ export default function PersonalGuidanceInfoPage() {
               className="bg-black/10 hover:bg-black/50 text-white rounded-xl border border-white/10 backdrop-blur-none flex items-center gap-1.5 px-2.5 h-9 flex-shrink-0"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="text-xs font-medium">Back</span>
+              <span className="text-xs font-medium"><BackNavigationLabel /></span>
             </Button>
             <h1 className="text-lg font-bold text-white">MPM Personal Guidance</h1>
           </div>
@@ -73,7 +74,7 @@ export default function PersonalGuidanceInfoPage() {
           onClick={() => setLocation("/pricing")}
           className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-xl h-12"
         >
-          Back to Plans
+          <BackNavigationLabel label="Back to Plans" />
         </Button>
       </div>
     </motion.div>

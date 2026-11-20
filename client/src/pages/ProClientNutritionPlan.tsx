@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 /**
  * ProClientNutritionPlan
  *
@@ -68,7 +69,7 @@ export default function ProClientNutritionPlan() {
             className="flex items-center gap-2 text-white/70 active:text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm font-medium">Client Dashboard</span>
+            <span className="text-sm font-medium"><BackNavigationLabel label="Client Dashboard" /></span>
           </button>
           <div className="flex items-center gap-1.5 bg-white/8 border border-white/15 rounded-full px-3 py-1">
             <Eye className="w-3 h-3 text-white/40" />

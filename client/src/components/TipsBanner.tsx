@@ -4,7 +4,10 @@ import { X, Lightbulb } from "lucide-react";
 
 const DISMISS_KEY = "mpm.dismiss.tipsBanner";
 
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+
 export function TipsBanner() {
+  const { t } = useConsumerCopy();
   const [, setLocation] = useLocation();
   const [dismissed, setDismissed] = useState(() => !!localStorage.getItem(DISMISS_KEY));
 
@@ -22,19 +25,19 @@ export function TipsBanner() {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-white leading-snug">
-          Get more out of My Perfect Meals
+          {t("Get more out of My Perfect Meals")}
         </p>
         <p className="text-xs text-white/55 mt-0.5 leading-relaxed">
-          Hidden features, workflow shortcuts, and coaching strategies — all in one guide.
+          {t("Hidden features, workflow shortcuts, and coaching strategies — all in one guide.")}
         </p>
         <button
           onClick={() => { dismiss(); setLocation("/tips"); }}
           className="mt-2 px-3 py-1.5 rounded-xl bg-orange-600 text-white text-xs font-semibold active:scale-[0.97] transition-transform"
         >
-          Read the guide
+          {t("Read the guide")}
         </button>
       </div>
-      <button onClick={dismiss} className="p-1 text-white/30 active:text-white/60 flex-shrink-0">
+      <button onClick={dismiss} aria-label={t("Close")} className="p-1 text-white/30 active:text-white/60 flex-shrink-0">
         <X className="w-4 h-4" />
       </button>
     </div>

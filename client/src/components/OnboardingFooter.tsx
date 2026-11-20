@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 
@@ -30,7 +31,7 @@ export function OnboardingFooter({
           className="flex items-center gap-2 w-full sm:w-auto"
         >
           <ArrowLeft className="h-4 w-4" />
-          {backLabel}
+          <BackNavigationLabel label={backLabel} />
         </Button>
       ) : (
         <div /> // Spacer for alignment

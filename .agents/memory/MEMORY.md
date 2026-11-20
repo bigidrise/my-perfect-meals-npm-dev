@@ -1,4 +1,5 @@
 - [Production source and publication history](production-source-publication-history.md) — separate source authority from automatic publication checkpoints; clean builds alone cannot keep the branch fast-forwardable.
+- [Localization language policy](localization-language-policy.md) — preserve Auto as user intent; complete existing localization in approved phases using verified customer-facing evidence.
 - [Pregnancy visibility and safety hold](pregnancy-release-safety-pause.md) — Development may show the page with coaching hidden; activation and paused guidance stay unchanged; no Production promotion.
 - [Interface layout references](interface-layout-reference-index.md) — safe-area modals, mobile scrolling, compact selectors, frontend assets and CSS testing limits.
 - [Development runtime references](development-runtime-reference-index.md) — startup evidence, Vite caches, dependencies, provider runtime and bounded migration lifecycles.
@@ -36,7 +37,7 @@
 - [iOS capture diagnosis](ios-capture-diagnosis.md) — diagnose Grocery Voice Add separately from Studio capture, and sync the native bundle before device evidence.
 - [Shared Neon and workspace release boundary](runtime-database-identity.md) — both workspaces share Neon, but Development Publish does not update Production.
 - [Studio browser verification access](studio-browser-verification-access.md) — DEV browser recording checks can be blocked by workspace entitlements or browser media permissions.
-- [Development browser session boundary](development-browser-session-boundary.md) — app-preview screenshots do not inherit the user's signed-in Development preview session.
+- [Development browser session boundary](development-browser-session-boundary.md) — app-preview is unauthenticated; fixture-only checks require verified network isolation.
 - [Private Studio moderation policy](private-studio-moderation-policy.md) — ordinary profanity is flagged but deliverable in private Studio; serious categories and public policy stay unchanged.
 - [Beverage safeguard alternative parity](beverage-safeguard-alternative-parity.md) — alternative offers must use every original validation surface and stay DEV-gated until intentionally released.
 - [Pairing release boundary](pairing-foundation-release-boundary.md) — Phase 1 frozen; advisor verification and approved opt-in corrections are offline-only; no runtime activation.
@@ -145,6 +146,7 @@
 - [Ask Chef references](ask-chef-reference-index.md) — response authority, parent navigation naming, and founder-selected wordmark.
 - [Ask Chef personal history goal](ask-chef-personal-history-goal.md) — evidence-grounded recall across years is the priority; audit existing architecture before designing or activating memory.
 - [Feature Intelligence boundary](feature-intelligence-boundary.md) — automated offline discovery is approved; connecting it to Ask Chef requires separate approval.
+- [Copilot pause policy](copilot-pause-policy.md) — founder requested pausing Copilot and its voice features, explicitly including calculator, restaurant, nearby meals and App Library.
 - [Builder tutorial mapping](builder-tutorial-mapping.md) — Metabolic and Diabetic each cover hub and builder; General and Anti-Inflammatory share a video; Performance is separate.
 - [Academy tutorial education](academy-tutorial-education-policy.md) — preserve exact feature videos; missing links stay hidden; automatic education is off while manual help and safety remain.
 - [Builder entry choices](builder-entry-choice-experience.md) — founder prefers General Nutrition's choice-first entry across the other three builders.
@@ -153,3 +155,4 @@
 - [Meal-card presentation](meal-card-presentation-policy.md) — compact outlined meal deletion with red icons before hover; expanded Create a Dish puts controls above the full wrapping title.
 - [Clinical protocol repair governance](clinical-protocol-repair-governance.md) — all 17 conditions; preserve existing indicators and physician restrictions without treating ordinary trainer enrollment as authority.
 - [Restaurant cuisine correction](restaurant-cuisine-fidelity-boundary.md) — Development-only pending review; saved guidance, explicit cuisine, restaurant evidence and display language stay separate.
+- [Measurement preference authority](measurement-preference-authority.md) — country-based Auto and manual units stay independent of language; display changes never rewrite canonical data or product evidence.

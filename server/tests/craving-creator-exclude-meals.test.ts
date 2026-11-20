@@ -140,6 +140,38 @@ import {
   normalizeForExclusion,
 } from "../services/unifiedMealPipeline";
 import { buildCravingCategoryPrompt } from "../../shared/cravingCategories";
+import { requestLanguageContext } from "../utils/languageInstruction";
+describe("variety provider language across initial generation and retry", () => {
+  it.each([["es", "en", true], ["en", "es", false], ["auto", "es", true]])(
+    "saved %s with UI %s keeps one operation language", async (saved, uiLanguage, spanish) => {
+      const load = jest.requireMock("../services/protocolEnvelope").loadUserProtocolEnvelope;
+      const originalEnvelope = await load("offline-language-subject");
+      load.mockResolvedValue({ ...originalEnvelope, preferredLanguage: saved });
+      capturedCalls.length = 0;
+      mockCreate.mockReset();
+      let call = 0;
+      mockCreate.mockImplementation(async (params: any) => {
+        const content = params.messages.find((m: any) => m.role === "user")?.content || "";
+        capturedCalls.push({ prompt: content });
+        return { choices: [{ message: { content: call++ === 0 ? FIRST_CALL_ALL_EXCLUDED : RETRY_RESPONSE } }] };
+      });
+      try {
+        let pending: Promise<any>;
+        requestLanguageContext({ headers: { "x-mpm-ui-language": uiLanguage } }, null, () => {
+          pending = generateCravingMealOptions("chicken", "dinner", "test-user-exclude-001", [], EXCLUDED_NAMES, false, "meal");
+        });
+        await pending!;
+        expect(capturedCalls.length).toBeGreaterThanOrEqual(2);
+        for (const { prompt } of capturedCalls) {
+          expect(prompt.includes("entirely in Spanish")).toBe(spanish);
+          expect(prompt).toContain("ANTI-REPETITION");
+        }
+      } finally {
+        load.mockResolvedValue(originalEnvelope);
+      }
+    },
+  );
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. normalizeForExclusion — punctuation normalisation helper

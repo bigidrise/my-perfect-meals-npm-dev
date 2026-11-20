@@ -13,7 +13,7 @@ import { Share } from "@capacitor/share";
 import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
 import { recipeIngredientTransfer } from "@/lib/shoppingIngredientTransfer";
 import type { ShoppingIngredientMetadata } from "@shared/shoppingIngredientMetadata";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 
 type Ingredient = {
   name: string;
@@ -77,15 +77,15 @@ export default function ShoppingAggregateBar({
 
     setSharing(true);
     const text = [
-      "🛒 Shopping List",
-      source ? `From: ${source}` : "",
+      `🛒 ${t("Shopping List")}`,
+      source ? t("From: {{source}}", { source }) : "",
       "",
       ...ingredients.map(
         (i) =>
           `• ${i.name}${i.qty ? ` — ${formatQty(i.qty)}${i.unit ? " " + i.unit : ""}` : ""}`,
       ),
       "",
-      "Created with My Perfect Meals",
+      t("Created with My Perfect Meals"),
     ]
       .filter(Boolean)
       .join("\n");
@@ -93,13 +93,13 @@ export default function ShoppingAggregateBar({
     try {
       if (Capacitor.isNativePlatform()) {
         await Share.share({
-          title: "Shopping List",
+          title: t("Shopping List"),
           text: text,
-          dialogTitle: "Share Shopping List",
+          dialogTitle: t("Share Shopping List"),
         });
       } else if (navigator.share) {
         await navigator.share({
-          title: "Shopping List",
+          title: t("Shopping List"),
           text: text,
         });
       } else {
@@ -118,8 +118,8 @@ export default function ShoppingAggregateBar({
           document.body.removeChild(el);
         }
         toast({
-          title: "Copied to Clipboard",
-          description: `${ingredients.length} ingredients copied.`,
+          title: t("Copied to Clipboard"),
+          description: t("{{count}} ingredients copied.", { count: ingredients.length }),
         });
       }
     } catch (err: any) {
@@ -141,8 +141,8 @@ export default function ShoppingAggregateBar({
             document.body.removeChild(el);
           }
           toast({
-            title: "Copied to Clipboard",
-            description: `${ingredients.length} ingredients copied.`,
+            title: t("Copied to Clipboard"),
+            description: t("{{count}} ingredients copied.", { count: ingredients.length }),
           });
         } catch (clipboardErr) {
           // Last resort: textarea fallback
@@ -156,14 +156,14 @@ export default function ShoppingAggregateBar({
             document.execCommand("copy");
             document.body.removeChild(el);
             toast({
-              title: "Copied to Clipboard",
-              description: `${ingredients.length} ingredients copied.`,
+              title: t("Copied to Clipboard"),
+              description: t("{{count}} ingredients copied.", { count: ingredients.length }),
             });
           } catch (finalErr) {
             console.error("All copy methods failed:", finalErr);
             toast({
-              title: "Copy Failed",
-              description: "Unable to copy to clipboard. Please copy manually.",
+              title: t("Copy Failed"),
+              description: t("Unable to copy to clipboard. Please copy manually."),
               variant: "destructive",
             });
           }
@@ -219,8 +219,8 @@ export default function ShoppingAggregateBar({
 
     useShoppingListStore.getState().addItems(items);
     toast({
-      title: "Added to Shopping List",
-      description: `${ingredients.length} items added to your Smart Grocery List`,
+      title: t("Added to Shopping List"),
+      description: t("{{count}} items added to your Smart Grocery List", { count: ingredients.length }),
     });
 
     if (onAddComplete) {
@@ -250,16 +250,16 @@ export default function ShoppingAggregateBar({
         <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
           <div className="absolute left-0 right-0 text-white text-center pointer-events-none hidden sm:block">
             <div className="font-semibold text-sm sm:text-base">
-              Grocery List Ready
+              {t("Grocery List Ready")}
             </div>
             <div className="text-xs sm:text-sm text-white/80">
-              {ingredients.length} ingredients
+              {t("{{count}} ingredients", { count: ingredients.length })}
             </div>
           </div>
           <div className="text-white text-center sm:hidden">
-            <div className="font-semibold text-sm">Grocery List Ready</div>
+            <div className="font-semibold text-sm">{t("Grocery List Ready")}</div>
             <div className="text-xs text-white/80">
-              {ingredients.length} ingredients
+              {t("{{count}} ingredients", { count: ingredients.length })}
             </div>
           </div>
           <div className="flex gap-2 sm:ml-auto">
@@ -271,7 +271,7 @@ export default function ShoppingAggregateBar({
                 data-testid="button-share-shopping-list"
               >
                 <Share2 className="h-5 w-5 sm:mr-2" />
-                <span className="hidden sm:inline">Share</span>
+                <span className="hidden sm:inline">{t("Share")}</span>
               </Button>
             )}
             <Button
@@ -282,7 +282,7 @@ export default function ShoppingAggregateBar({
               data-wt="wmb-send-day-to-shopping"
             >
               <ShoppingCart className="h-5 w-5 sm:mr-2" />
-              <span>{shopping.pending ? "Saving…" : shopping.result?.committed === false ? "Update Shopping" : "Add & View List"}</span>
+              <span>{shopping.pending ? t("Saving…") : shopping.result?.committed === false ? t("Update Shopping") : t("Add & View List")}</span>
             </Button>
           </div>
         </div>

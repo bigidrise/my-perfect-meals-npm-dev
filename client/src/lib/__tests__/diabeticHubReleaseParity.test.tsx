@@ -12,9 +12,10 @@ const source = fs.readFileSync(path.resolve("client/src/pages/physician/Diabetic
 const start = source.indexOf("{/* Preserve the released activation entry");
 const end = source.indexOf("{/* Doctor / Coach Guardrail Card */}", start);
 if (start < 0 || end < 0) throw new Error("Diabetic Hub release section could not be located");
-const section = source.slice(start, end).replace(/import\.meta\.env\.DEV/g, "development");
+const section = source.slice(start, end);
 const compiled = ts.transpileModule(`
   function Fixture({ development, active, error = false }) {
+    const isDevelopmentRuntime = development;
     const isGlp1Active = active;
     const t = key => key;
     const setLocation = onNavigate;
@@ -31,6 +32,11 @@ const Fixture = new Function("React", "PillButton", "Button", "GLP1DailyCheckin"
   () => <div data-testid="daily-checkin" />, navigate) as React.ComponentType<{
     development: boolean; active: boolean; error?: boolean;
   }>;
+
+test("the isolated runtime flag retains Vite's compile-time Development boundary", () => {
+  const flag = fs.readFileSync(path.resolve("client/src/lib/developmentRuntimeFlag.ts"), "utf8");
+  expect(flag).toContain("export const isDevelopmentRuntime = import.meta.env.DEV;");
+});
 
 test("Production restores the inactive-member prompt and its existing profile destination", () => {
   render(<Fixture development={false} active={false} />);

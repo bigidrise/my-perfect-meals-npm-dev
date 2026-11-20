@@ -9,6 +9,7 @@ import { getAuthHeaders } from "@/lib/auth";
 import type { LabProtocolSignal } from "@shared/clinical/protocolDecision";
 import { refreshClinicalProtocols } from "@/hooks/useEffectiveClinicalProtocols";
 import { isAdvisoryLabProtocol, advisoryLabExplanation } from "@shared/clinicalProtocolIdentity";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 // ---------------------------------------------------------------------------
 // Citation map — protocol → authoritative guideline reference
@@ -88,6 +89,7 @@ export default function ProtocolRecommendationModal({
   physicianLocked,
   onAccepted,
 }: ProtocolRecommendationModalProps) {
+  const { t: displayT } = useConsumerCopy();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -121,7 +123,10 @@ export default function ProtocolRecommendationModal({
       }
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "The decision could not be saved.");
+      const declined = "The decision could not be saved. Your clinical settings were not changed. Refresh or contact your care team for review.";
+      setError(err instanceof Error && err.message === declined
+        ? declined
+        : "We couldn't confirm that your decision was saved. Refresh or contact your care team for review.");
     } finally {
       setBusy(false);
     }
@@ -167,14 +172,14 @@ export default function ProtocolRecommendationModal({
             <div className="flex items-center gap-2 mb-1">
               <FlaskConical className="w-5 h-5 text-cyan-400 shrink-0" />
               <span className="text-[10px] font-semibold tracking-widest text-cyan-400/80 uppercase">
-                Lab-Driven Recommendation
+                {displayT("Lab-Driven Recommendation")}
               </span>
             </div>
             <DialogTitle className="text-white text-lg font-bold leading-snug">
-              {title}
+              {displayT(title)}
             </DialogTitle>
             <DialogDescription className="text-white/50 text-sm mt-0.5">
-              Based on your most recent lab values
+              {displayT("Based on your most recent lab values")}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -187,20 +192,20 @@ export default function ProtocolRecommendationModal({
               variant="outline"
               className={`text-[10px] uppercase tracking-wider border ${confColor}`}
             >
-              {signal.confidence} signal
+              {displayT("{{confidence}} signal", { confidence: displayT(signal.confidence) })}
             </Badge>
           </div>
 
           {/* Advisory reason */}
           <p className="text-sm text-white/75 leading-relaxed">
-            {advisoryOnly ? advisoryLabExplanation(signal.protocol) : signal.reason}
+            {displayT(advisoryOnly ? advisoryLabExplanation(signal.protocol) : signal.reason)}
           </p>
 
           {/* Triggered values */}
           {signal.triggerFields && signal.triggerFields.length > 0 && (
             <div className="bg-white/5 rounded-xl px-4 py-3 border border-white/10">
               <p className="text-[10px] text-white/40 uppercase tracking-widest font-semibold mb-2">
-                Values Outside Optimal Range
+                {displayT("Values Outside Optimal Range")}
               </p>
               <ul className="space-y-1">
                 {signal.triggerFields.map((t) => (
@@ -209,7 +214,7 @@ export default function ProtocolRecommendationModal({
                     className="flex items-center gap-2 text-xs text-white/70"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                    {labelTrigger(t)}
+                    {displayT(labelTrigger(t))}
                   </li>
                 ))}
               </ul>
@@ -229,9 +234,7 @@ export default function ProtocolRecommendationModal({
             <div className="flex items-start gap-2 bg-violet-900/20 border border-violet-500/20 rounded-xl px-4 py-3">
               <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0 text-violet-400" />
               <p className="text-xs text-violet-300/80 leading-relaxed">
-                Your clinical settings include physician-directed or earlier clinical
-                assignments that require review. Your measurements were saved; your
-                care team must review protocol changes.
+                {displayT("Your clinical settings include physician-directed or earlier clinical assignments that require review. Your measurements were saved; your care team must review protocol changes.")}
               </p>
             </div>
           )}
@@ -239,7 +242,7 @@ export default function ProtocolRecommendationModal({
 
         {/* Footer actions */}
         <div className="px-6 pb-6 pt-2">
-          {error && <p role="alert" className="text-sm text-red-300 mb-3">{error}</p>}
+          {error && <p role="alert" className="text-sm text-red-300 mb-3">{displayT(error)}</p>}
           {physicianLocked || advisoryOnly ? (
             <Button
               className="w-full bg-white/10 hover:bg-white/15 text-white"
@@ -247,7 +250,7 @@ export default function ProtocolRecommendationModal({
               onClick={handleAdvisoryClose}
             >
               {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Understood
+              {displayT("Understood")}
             </Button>
           ) : (
             <div className="flex gap-3">
@@ -259,7 +262,7 @@ export default function ProtocolRecommendationModal({
                 {busy ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : null}
-                Stay the Same
+                {displayT("Stay the Same")}
               </Button>
               <Button
                 className="flex-1 bg-cyan-700 hover:bg-cyan-600 text-white font-semibold"
@@ -269,7 +272,7 @@ export default function ProtocolRecommendationModal({
                 {busy ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : null}
-                Activate {PROTOCOL_TITLE[signal.protocol]?.replace(" Nutrition Protocol", "") ?? signal.protocol}
+                {displayT("Activate {{protocol}}", { protocol: displayT(PROTOCOL_TITLE[signal.protocol]?.replace(" Nutrition Protocol", "") ?? signal.protocol) })}
               </Button>
             </div>
           )}

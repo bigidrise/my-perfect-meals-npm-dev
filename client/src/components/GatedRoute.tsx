@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { isFeatureEnabled, getGatedMessage, type GatedFeature } from '@/lib/productionGates';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -46,7 +47,7 @@ export function GatedRoute({ feature, children }: GatedRouteProps) {
         className="bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-black/80 hover:border-white/30 shadow-lg"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
-        Go Back
+        <BackNavigationLabel label="Go Back" />
       </Button>
     </div>
   );

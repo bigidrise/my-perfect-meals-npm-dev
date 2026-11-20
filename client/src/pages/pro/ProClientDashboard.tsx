@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 // client/src/pages/pro/ProClientDashboard.tsx
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
@@ -295,7 +296,7 @@ export default function ProClientDashboard() {
             className="flex items-center gap-1 text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg flex-shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />
-            <span className="text-sm font-medium">Back</span>
+            <span className="text-sm font-medium"><BackNavigationLabel /></span>
           </button>
           <h1 className="text-base font-bold text-white flex-1 min-w-0 truncate">
             Client Dashboard

@@ -101,7 +101,9 @@
   }
 
   .grocery-coach-sheet .grocery-coach-product-input {
-    white-space: pre !important;
-    overflow-wrap: normal !important;
+    height: auto;
+    resize: vertical !important;
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
   }
 }

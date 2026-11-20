@@ -19,6 +19,6 @@ describe("SavedGroceriesSheet item layout", () => {
   });
 
   it("labels the icon-only remove action", () => {
-    expect(source).toContain('aria-label={`Remove ${itemDisplayName(item)} from saved groceries`}');
+    expect(source).toContain('aria-label={t("Remove {{name}} from saved groceries", { name: itemDisplayName(item) })}');
   });
 });

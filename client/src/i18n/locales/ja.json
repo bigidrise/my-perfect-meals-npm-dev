@@ -1,4 +1,41 @@
 {
+  "measurementPreferences": {
+    "title": "単位の設定",
+    "country": "国",
+    "system": "単位系",
+    "auto": "自動",
+    "imperial": "米国慣用単位",
+    "metric": "メートル法",
+    "country_US": "アメリカ合衆国",
+    "country_CA": "カナダ",
+    "country_AU": "オーストラリア",
+    "country_UK": "イギリス",
+    "country_NZ": "ニュージーランド",
+    "resolved": "自動：{{system}} · {{country}}",
+    "hint": "自動設定は言語や端末ではなく、保存された国に従います。国が未設定の場合は米国を使用します。国を変更しても手動で選択した設定は変わりません。",
+    "saveFailed": "単位の設定を保存できませんでした。選択内容はここに保持されています。もう一度お試しください。",
+    "refreshFailed": "選択内容は保存されましたが、再読み込みできませんでした。この画面でもう一度試し、内容を確認してください。",
+    "equivalent": "換算値：{{quantity}}",
+    "invalidQuantity": "明確な数値または分数を入力してください。保存済みの数量は変更されていません。",
+    "periodQuantity": "この期間：{{quantity}}",
+    "weekQuantity": "今週：{{quantity}}",
+    "currentAverage": "現在の平均",
+    "weeklyChange": "週間変化",
+    "totalChange": "合計変化",
+    "weightLabel": "体重（{{unit}}）",
+    "waistLabel": "ウエスト（{{unit}}）",
+    "quantityPlaceholder": "例：{{quantity}}",
+    "fluidOunces": "液量オンス"
+  },
+  "localeFoundation": {
+    "wakingUp": "食事エンジンを準備しています…",
+    "startupHint": "初回の読み込みには少し時間がかかります。しばらくお待ちください。",
+    "sessionUnavailable": "セッションを確認できませんでした。接続を確認して、もう一度お試しください。",
+    "sessionRetry": "セッションを再確認",
+    "required": "必須",
+    "invalidEmail": "無効なメールアドレス",
+    "preferencesNote": "自動では、この端末の言語を使用します。明示的に選択した言語はアカウントに保存されます。一部の機能は引き続き翻訳中です。"
+  },
   "shoppingTransfer": {
     "addedTitle": "買い物リストに追加しました",
     "savedTitle": "買い物リストに保存しました",
@@ -123,6 +160,9 @@
     "adjustPreferences": "設定を調整する"
   },
   "language": {
+    "enDesc": "この端末の言語に関係なく、画面表示に英語を使用します。",
+    "esDesc": "この端末の言語に関係なく、画面表示にスペイン語を使用します。一部の機能は引き続き英語で表示される場合があります。",
+    "measurementLink": "プロフィール編集で国と単位を設定",
     "pageTitle": "言語",
     "intro": "My Perfect Mealsは、食事名、レシピ、レストランの推薦、買い物ガイダンス、コーチングの回答をあなたの言語でネイティブに生成します。",
     "auto": "自動（デバイス）",

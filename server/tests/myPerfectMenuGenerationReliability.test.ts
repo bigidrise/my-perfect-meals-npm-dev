@@ -286,7 +286,9 @@ describe("Verified partial My Perfect Menu choices with Production snack support
     expect(route).toContain("developmentPartialChoices: menuPartialChoicesEnabled(occasion)");
     expect(route).toContain("previousChoicesAvailability = menuPartialChoicesEnabled(parsed.data.ideaType)");
     expect(route).toContain('if (!developmentSnackRepairEnabled()) return res.sendStatus(404)');
-    expect(page).toContain("We could verify only {concepts.length} of three ideas");
+    expect(page).toContain("We could verify only {{count}} of three ideas");
+    expect(page).toContain("{ count: concepts.length }");
+
     expect(page).toContain("No unverified ideas are shown");
     expect(page).toContain('availability === "unavailable"');
   });

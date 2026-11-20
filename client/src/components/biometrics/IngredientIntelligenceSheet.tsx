@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import type { ReactNode } from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, ChevronDown, ChevronUp, ScanLine, ShoppingBag, Bookmark, ShoppingCart, Check } from 'lucide-react';
@@ -7,12 +8,15 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import RecommendedProductActions from '@/components/shopping/RecommendedProductActions';
+import { ProductRecommendationExplanation } from '@/components/shopping/ProductRecommendationExplanation';
 import { groceryProductLabel, recommendationIdentity, recommendationProductKey } from '@/lib/savedGroceryRecommendation';
 import { scanSavePayload, restoreSavedAnalysis, type SavedAnalysisKind } from '@/lib/savedGroceryAnalysis';
 import { isCompleteIngredientAnalysis } from '@shared/ingredientAnalysisSnapshot';
 import { useAuth } from '@/contexts/AuthContext';
 import { PillButton } from '@/components/ui/pill-button';
 import { distinctAnalysisText, primaryAnalysisPoints, visibleAnalysisRestrictions } from '@/lib/ingredientAnalysisPresentation';
+import { useConsumerCopy } from '@/i18n/useConsumerCopy';
+import { IngredientAnalysisTranslation, IngredientAnalysisText, IngredientAnalysisTranslationStatus } from './IngredientAnalysisTranslation';
 
 interface Props {
   /** Original human recommendation reasons; undefined preserves other presentations. */
@@ -112,7 +116,7 @@ function Section({ title, items, icon }: { title: string; items: string[]; icon:
         {items.map((item, i) => (
           <li key={i} className="text-sm text-white/75 flex items-start gap-2">
             <span className="text-white/25 mt-0.5">•</span>
-            <span>{item}</span>
+            <span><IngredientAnalysisText text={item} /></span>
           </li>
         ))}
       </ul>
@@ -143,7 +147,7 @@ function IngredientDecoder({ items }: { items: IngredientScanResult['ingredientD
                   <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${FLAG_DOT[item.flag]}`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-white/85">{item.name}</p>
-                    <p className="text-xs text-white/55 leading-snug mt-0.5">{item.plain}</p>
+                    <p className="text-xs text-white/55 leading-snug mt-0.5"><IngredientAnalysisText text={item.plain} /></p>
                   </div>
                 </div>
               ))}
@@ -174,7 +178,7 @@ function ProtocolImpactSummary({ cards }: { cards: IngredientScanResult['outcome
             {alignsWith.map(c => (
               <li key={c.protocolKey} className="flex items-center gap-2 text-sm text-white/75">
                 <span className="text-emerald-400 text-xs font-bold shrink-0">✓</span>
-                <span>{c.label}</span>
+                <span><IngredientAnalysisText text={c.label} /></span>
               </li>
             ))}
           </ul>
@@ -190,8 +194,8 @@ function ProtocolImpactSummary({ cards }: { cards: IngredientScanResult['outcome
                   {c.verdict === 'conflicts' ? '✕' : '⚠'}
                 </span>
                 <span>
-                  <span className="text-white/80">{c.label}</span>
-                  {c.reason && <span className="text-white/45"> — {c.reason}</span>}
+                  <span className="text-white/80"><IngredientAnalysisText text={c.label} /></span>
+                  {c.reason && <span className="text-white/45"> — <IngredientAnalysisText text={c.reason} /></span>}
                 </span>
               </li>
             ))}
@@ -215,13 +219,13 @@ function OutcomeCardsGrid({ cards }: { cards: IngredientScanResult['outcomeCards
           return (
             <div key={card.protocolKey} className={`rounded-xl border p-3 ${cfg.bg} ${cfg.border}`}>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold text-white/65 leading-tight">{icon} {card.label}</span>
+                <span className="text-xs font-semibold text-white/65 leading-tight">{icon} <IngredientAnalysisText text={card.label} /></span>
                 <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0 ml-1 ${cfg.badgeBg} ${cfg.badgeText}`}>
                   {cfg.label}
                 </span>
               </div>
               {card.reason && (
-                <p className="text-[11px] text-white/50 leading-snug">{card.reason}</p>
+                <p className="text-[11px] text-white/50 leading-snug"><IngredientAnalysisText text={card.reason} /></p>
               )}
             </div>
           );
@@ -241,6 +245,8 @@ export function BetterAlternativesSection({
   source,
   subjectKind,
   showEvidenceNote = true,
+  renderAction,
+  badgeLabel,
 }: {
   alternatives: BetterAlternative[];
   branded?: boolean;
@@ -251,6 +257,10 @@ export function BetterAlternativesSection({
   source?: "scanner" | "grocery-coach";
   subjectKind?: string;
   showEvidenceNote?: boolean;
+  /** Optional presentation adapter. When supplied, replaces both shared actions. */
+  renderAction?: (alternative: BetterAlternative, index: number) => ReactNode;
+  /** Adapter-specific neutral heading; default Coach presentation stays unchanged. */
+  badgeLabel?: string;
 }) {
   const { t } = useTranslation();
   const [addedIndex, setAddedIndex] = useState<number | null>(null);
@@ -273,7 +283,7 @@ export function BetterAlternativesSection({
         <p className="text-sm font-bold text-white/80">{headingText}</p>
         {verdictLevel !== 'buy' && (
           <span className="text-[10px] font-semibold text-orange-400 bg-orange-500/15 border border-orange-500/25 rounded-full px-2 py-0.5 uppercase tracking-wide">
-            {t('ingredientSheet.alternatives.profileMatched')}
+            {badgeLabel ?? t('ingredientSheet.alternatives.profileMatched')}
           </span>
         )}
       </div>
@@ -282,7 +292,7 @@ export function BetterAlternativesSection({
           <div key={recommendationProductKey(recommendationIdentity(alt))} className="rounded-xl border border-orange-500/25 bg-orange-500/8 p-3.5">
             <div className="flex items-start justify-between gap-2 mb-2">
               <p className="text-sm font-semibold text-white flex-1">{groceryProductLabel(recommendationIdentity(alt))}</p>
-              {onAddToList && (
+              {!renderAction && onAddToList && (
                 <button
                   onClick={() => handleAdd(groceryProductLabel(recommendationIdentity(alt)), i)}
                   className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-95 ${
@@ -298,22 +308,10 @@ export function BetterAlternativesSection({
                 </button>
               )}
             </div>
-            {alt.whyBetter.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {alt.whyBetter.map((why, j) => (
-                  <span key={j} className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-300 bg-emerald-500/15 border border-emerald-500/25 rounded-full px-2 py-0.5">
-                    <span className="text-[9px] font-bold">✓</span>
-                    {why}
-                  </span>
-                ))}
-              </div>
-            )}
-            {alt.targetCriteria && (
-              <p className="text-[11px] text-white/50 leading-snug border-t border-white/8 pt-2">
-                📍 {alt.targetCriteria}
-              </p>
-            )}
-            <RecommendedProductActions alternative={alt} query={query} educationalFooter={educationalFooter} source={source} subjectKind={subjectKind} />
+            <ProductRecommendationExplanation whyBetter={alt.whyBetter} targetCriteria={alt.targetCriteria} marker="📍 " />
+            {renderAction
+              ? renderAction(alt, i)
+              : <RecommendedProductActions alternative={alt} query={query} educationalFooter={educationalFooter} source={source} subjectKind={subjectKind} />}
           </div>
         ))}
       </div>
@@ -341,7 +339,7 @@ function ProfileFactorsSection({ factors }: { factors: string[] }) {
             className="inline-flex items-center gap-1 text-[11px] font-semibold text-white/80 bg-white/8 border border-white/15 rounded-full px-2.5 py-1"
           >
             <span className="text-orange-400 text-[10px]">✓</span>
-            {factor}
+            <IngredientAnalysisText text={factor} />
           </span>
         ))}
       </div>
@@ -371,7 +369,7 @@ function LegacyScoreCardsGrid({ scoreCards }: { scoreCards: IngredientScanResult
                 <LegacyScoreIcon verdict={card.verdict} />
               </div>
               {card.reason && (
-                <p className="text-[11px] text-white/55 leading-snug">{card.reason}</p>
+                <p className="text-[11px] text-white/55 leading-snug"><IngredientAnalysisText text={card.reason} /></p>
               )}
             </div>
           );
@@ -472,7 +470,7 @@ function WhatMattersMostSection({ items }: { items: string[] }) {
         {items.slice(0, 3).map((item, i) => (
           <li key={i} className="flex items-start gap-2.5">
             <span className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0 mt-1.5" />
-            <p className="text-sm text-white/85 leading-snug">{item}</p>
+            <p className="text-sm text-white/85 leading-snug"><IngredientAnalysisText text={item} /></p>
           </li>
         ))}
       </ul>
@@ -498,7 +496,7 @@ function AnalysisProfileSection({ items }: { items: string[] }) {
                 className="inline-flex items-center gap-1 text-[11px] font-medium text-white/70 bg-white/8 border border-white/12 rounded-full px-2.5 py-1"
               >
                 <span className="text-orange-400 text-[10px] font-bold">✓</span>
-                {item}
+                <IngredientAnalysisText text={item} />
               </span>
             ))}
           </div>
@@ -522,7 +520,7 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
   const saveSession = useRef({ owner, result });
   if (saveSession.current.owner !== owner || saveSession.current.result !== result) saveSession.current = { owner, result };
   const savingSession = useRef<object | null>(null);
-  const { t } = useTranslation();
+  const { t } = useConsumerCopy();
   const { toast } = useToast();
   const [byNameLoading, setByNameLoading] = useState(false);
   const [byNameResult, setByNameResult] = useState<IngredientScanResult | null>(null);
@@ -699,6 +697,8 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
   };
 
   return (
+    <IngredientAnalysisTranslation open={open && !companionName} owner={owner} result={activeResult}
+      extra={[...(savedRecommendationReasons ?? []), savedRestriction ?? ""]}>
     <AnimatePresence>
       {open && result && (
         <>
@@ -804,6 +804,7 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
               {/* ── PATH 3: Full result (back-label scan or completed by-name analysis) ── */}
               {!showFrontLabelChoice && !byNameLoading && activeResult && (
                 <>
+                  <IngredientAnalysisTranslationStatus />
                   {savedAnalysisKind && savedAnalysisKind !== "full" && !isSavedRecommendation && (
                     <section className="rounded-xl border border-white/20 bg-white/5 p-3.5 mb-4">
                       <p className="text-sm font-semibold text-white">
@@ -886,7 +887,7 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                       <img src="/icons/ChefMascotLogo.png" alt="" className="w-7 h-7 rounded-full shrink-0 mt-0.5 border border-orange-500/30" />
                       <div>
                         <p className={`text-xs font-bold uppercase tracking-wide mb-0.5 ${verdictCfg.color}`}>{t('ingredientSheet.simple.chef', { defaultValue: "Chef's Heads Up" })}</p>
-                        <p className="text-sm text-white/85 leading-snug">{activeResult.verdict}</p>
+                        <p className="text-sm text-white/85 leading-snug"><IngredientAnalysisText text={activeResult.verdict} /></p>
                       </div>
                     </div>
                   )}
@@ -902,7 +903,7 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                     items={visibleAnalysisRestrictions(isSavedRecommendation
                       ? { ...activeResult, ingredientConsiderations: savedRecommendationReasons }
                       : activeResult)} icon="!" />
-                  {savedRestriction && <p className="text-sm text-amber-200 mb-4">{savedRestriction}</p>}
+                  {savedRestriction && <p className="text-sm text-amber-200 mb-4"><IngredientAnalysisText text={savedRestriction} /></p>}
 
                   {/* Better Product Options — always shown immediately after verdict */}
                   <BetterAlternativesSection
@@ -928,7 +929,7 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
 
                   {/* Overall coach summary */}
                   <div className="rounded-xl border border-white/10 bg-white/5 p-4 mb-4">
-                    <p className="text-sm text-white/85 leading-relaxed">{activeResult.overallSummary}</p>
+                    <p className="text-sm text-white/85 leading-relaxed"><IngredientAnalysisText text={activeResult.overallSummary} /></p>
                   </div>
 
                   {/* Protocol Impact summary */}
@@ -952,7 +953,7 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                   <Section title={t('ingredientSheet.sections.worksWellFor')} items={activeResult.betterFor} icon="✓" />
                   <Section title={t('ingredientSheet.sections.familyNotes')} items={activeResult.householdNotes} icon="🏠" />
                   <Section title={t('ingredientSheet.simple.allPoints', { defaultValue: "Original personalized points" })} items={activeResult.whatMattersMost ?? []} icon="" />
-                  {activeResult.educationalFooter && <p className="text-xs text-white/65 mt-3">{activeResult.educationalFooter}</p>}
+                  {activeResult.educationalFooter && <p className="text-xs text-white/65 mt-3"><IngredientAnalysisText text={activeResult.educationalFooter} /></p>}
                   {savedContext}
 
                   {/* Detected ingredients (collapsed) — back-label path only */}
@@ -1011,7 +1012,7 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                         >
                           <Bookmark className="w-3.5 h-3.5" />
                           {t('ingredientSheet.saveScan')}
-                        <span className="text-[10px]">Temporary history on this device; not Saved Groceries</span>
+                        <span className="text-[10px]">{t("Temporary history on this device; not Saved Groceries")}</span>
                         </button>
                       )}
                     </div>
@@ -1054,5 +1055,6 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
         </>
       )}
     </AnimatePresence>
+    </IngredientAnalysisTranslation>
   );
 }

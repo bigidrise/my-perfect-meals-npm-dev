@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Camera, CameraOff, RotateCcw, Zap, ZapOff } from "lucide-react";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 interface MobileBarcodeCameraProps {
   onBarcode?: (code: string) => void; // Called when barcode is detected
@@ -18,20 +19,20 @@ type ZXingReader = {
 const supportsBarcodeDetector = () =>
   typeof (window as any).BarcodeDetector !== "undefined";
 
-const explainError = (e: any): string => {
-  const name = e?.name || "";
-  if (name.includes("NotAllowed")) return "Camera permission denied. Please allow camera access.";
-  if (name.includes("NotFound")) return "No camera found. Make sure your device has a camera.";
-  if (name.includes("NotReadable")) return "Camera is busy or unavailable. Try closing other apps using the camera.";
-  if (name.includes("Overconstrained")) return "Camera constraints not supported. Try a different camera.";
-  if (name.includes("NotSupported")) return "Camera not supported in this browser. Try Chrome or Safari.";
-  return `Camera error: ${e?.message || "Unknown error"}`;
-};
-
 export default function MobileBarcodeCamera({ 
   onBarcode, 
   scanIntervalMs = 250 
 }: MobileBarcodeCameraProps) {
+  const { t } = useConsumerCopy();
+  const explainError = useCallback((e: any): string => {
+    const name = e?.name || "";
+    if (name.includes("NotAllowed")) return t("Camera permission denied. Please allow camera access.");
+    if (name.includes("NotFound")) return t("No camera found. Make sure your device has a camera.");
+    if (name.includes("NotReadable")) return t("Camera is busy or unavailable. Try closing other apps using the camera.");
+    if (name.includes("Overconstrained")) return t("Camera constraints not supported. Try a different camera.");
+    if (name.includes("NotSupported")) return t("Camera not supported in this browser. Try Chrome or Safari.");
+    return t("Camera error: {{message}}", { message: e?.message || t("Unknown error") });
+  }, [t]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -63,7 +64,7 @@ export default function MobileBarcodeCamera({
     location.hostname !== "localhost" &&
     !location.hostname.startsWith("127.") &&
     !location.hostname.endsWith(".local")
-      ? "Camera requires HTTPS in production. Use localhost for testing."
+      ? t("Camera requires HTTPS in production. Use localhost for testing.")
       : null;
 
   // Enumerate cameras
@@ -107,10 +108,9 @@ export default function MobileBarcodeCamera({
   const startCanvasBasedDetection = useCallback(async () => {
     setUsingZXing(false);
     setError(
-      "Live barcode scanning requires Chrome on Android or a browser that supports the BarcodeDetector API. " +
-      "Please type the barcode number manually."
+      t("Live barcode scanning requires Chrome on Android or a browser that supports the BarcodeDetector API. Please type the barcode number manually.")
     );
-  }, []);
+  }, [t]);
 
   // Stop all decoders
   const stopDecoders = useCallback(async () => {
@@ -258,7 +258,7 @@ export default function MobileBarcodeCamera({
         }
       }
     },
-    [buildConstraints, enumerateCameras, onBarcode, scanIntervalMs, secureWarning, startCanvasBasedDetection]
+    [buildConstraints, enumerateCameras, onBarcode, scanIntervalMs, secureWarning, startCanvasBasedDetection, explainError]
   );
 
   // Stop camera
@@ -345,12 +345,12 @@ export default function MobileBarcodeCamera({
           <div className="absolute top-2 left-2 flex gap-2">
             {usingZXing && (
               <div className="bg-blue-600 text-white px-2 py-1 rounded text-xs">
-                Canvas Scanner
+                {t("Canvas Scanner")}
               </div>
             )}
             {!usingZXing && supportsBarcodeDetector() && (
               <div className="bg-green-600 text-white px-2 py-1 rounded text-xs">
-                Native Scanner
+                {t("Native Scanner")}
               </div>
             )}
           </div>
@@ -359,7 +359,7 @@ export default function MobileBarcodeCamera({
         {autoplayBlocked && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <Button onClick={() => videoRef.current?.play()}>
-              Tap to start video
+              {t("Tap to start video")}
             </Button>
           </div>
         )}
@@ -373,13 +373,13 @@ export default function MobileBarcodeCamera({
             className="bg-green-600 hover:bg-green-700 text-white"
           >
             <Camera className="h-4 w-4 mr-2" />
-            Start Scanner
+            {t("Start Scanner")}
           </Button>
         )}
 
         {state === "starting" && (
           <Button disabled>
-            Starting camera...
+            {t("Starting camera...")}
           </Button>
         )}
 
@@ -390,11 +390,12 @@ export default function MobileBarcodeCamera({
               variant="destructive"
             >
               <CameraOff className="h-4 w-4 mr-2" />
-              Stop
+              {t("Stop")}
             </Button>
 
             {devices.length > 1 && (
               <select
+                aria-label={t("Choose camera")}
                 value={deviceId}
                 onChange={(e) => {
                   setDeviceId(e.target.value);
@@ -404,7 +405,7 @@ export default function MobileBarcodeCamera({
               >
                 {devices.map(device => (
                   <option key={device.deviceId} value={device.deviceId}>
-                    {device.label || `Camera ${device.deviceId.slice(0, 8)}`}
+                    {device.label || t("Camera {{id}}", { id: device.deviceId.slice(0, 8) })}
                   </option>
                 ))}
               </select>
@@ -412,6 +413,7 @@ export default function MobileBarcodeCamera({
 
             <Button 
               onClick={toggleTorch}
+              aria-label={torchEnabled ? t("Turn flash off") : t("Turn flash on")}
               variant="outline"
               size="sm"
             >
@@ -421,6 +423,7 @@ export default function MobileBarcodeCamera({
             <Button 
               onClick={() => startCamera(deviceId)}
               variant="outline"
+              aria-label={t("Restart scanner")}
               size="sm"
             >
               <RotateCcw className="h-4 w-4" />
@@ -439,8 +442,8 @@ export default function MobileBarcodeCamera({
       {/* Status info */}
       {state === "running" && (
         <div className="text-sm text-white/70">
-          🎯 Position a barcode in the camera view to scan
-          {usingZXing && " (using ZXing fallback)"}
+          {t("🎯 Position a barcode in the camera view to scan")}
+          {usingZXing && t(" (using ZXing fallback)")}
         </div>
       )}
     </div>

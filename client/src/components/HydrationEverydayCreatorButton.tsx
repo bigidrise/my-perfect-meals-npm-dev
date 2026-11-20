@@ -2,6 +2,8 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { createHydrationHandoff } from "@/lib/hydrationApi";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { useConsumerNotice } from "@/i18n/ConsumerNotice";
 
 /** Shared direct entry: choosing a barrier is never required to open the Creator. */
 export default function HydrationEverydayCreatorButton({
@@ -13,10 +15,12 @@ export default function HydrationEverydayCreatorButton({
   className?: string;
   testId?: string;
 }) {
+  const { t } = useConsumerCopy();
+  const notice = useConsumerNotice();
   const { toast } = useToast();
   const inFlight = useRef(false);
   const [opening, setOpening] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<React.ReactNode>("");
 
   const open = async () => {
     if (inFlight.current) return;
@@ -31,9 +35,12 @@ export default function HydrationEverydayCreatorButton({
       if (!handoff.token) throw new Error("The Hydration handoff was unavailable.");
       navigate(`/lifestyle/beverage-creator?${new URLSearchParams({ hydrationHandoff: handoff.token })}`);
     } catch (failure) {
-      const detail = failure instanceof Error ? failure.message.replace(/^\d+:\s*/, "") : "Please try again.";
-      setError(`Could not open the Creator. ${detail}`);
-      toast({ title: "Could not open the Creator", description: detail, variant: "destructive" });
+      const source = failure instanceof Error ? failure.message.replace(/^\d+:\s*/, "") : null;
+      const detail = source === "The Hydration handoff was unavailable."
+        ? notice("The Hydration handoff was unavailable.")
+        : source ?? notice("Please try again.");
+      setError(<>{notice("Could not open the Creator")}. {detail}</>);
+      toast({ title: notice("Could not open the Creator"), description: detail, variant: "destructive" });
     } finally {
       inFlight.current = false;
       setOpening(false);
@@ -43,7 +50,7 @@ export default function HydrationEverydayCreatorButton({
   return (
     <div>
       <Button onClick={() => void open()} disabled={opening} aria-busy={opening} className={className} data-testid={testId}>
-        {opening ? "Opening Creator…" : "Create a Hydration Beverage"}
+        {opening ? t("Opening Creator…") : t("Create a Hydration Beverage")}
       </Button>
       {error && <p role="alert" className="mt-2 text-sm text-rose-200">{error}</p>}
     </div>
