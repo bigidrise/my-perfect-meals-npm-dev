@@ -129,6 +129,18 @@
   line-height: 1.25;
 }
 
+.shopping-product-picker .shopping-recommendation-action {
+  min-width: 44px;
+  min-height: 44px;
+  height: auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.shopping-product-picker .shopping-recommendation-action ~ * {
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 639px) {
   .shopping-list-page .shopping-item-row {
     display: grid !important;

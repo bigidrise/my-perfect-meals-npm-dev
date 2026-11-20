@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { PickerModal } from "@/components/ui/universal-modal";
 import type { ShoppingIngredientRequest, ShoppingProductSelection } from "@shared/shoppingProductSelection";
 import { parseShoppingProductSelection, shoppingIngredientSignature } from "@shared/shoppingProductSelection";
+import type { ShoppingRecommendationVerification } from "@shared/shoppingRecommendationVerification";
+import type { BetterAlternative } from "@/lib/photoIngredientCapture";
+import { BetterAlternativesSection } from "@/components/biometrics/IngredientIntelligenceSheet";
 import type { CatalogProductMatch } from "./GroceryStoreCoachSheet";
 import ProductCatalogChoices from "./ProductCatalogChoices";
 
@@ -21,9 +24,14 @@ export default function ShoppingProductPicker({
   open, onOpenChange, ingredient, quantityLabel, sessionKey, currentSelection, onCommit,
 }: Props) {
   const [matches, setMatches] = useState<CatalogProductMatch[]>([]);
+  const [allCatalogMatches, setAllCatalogMatches] = useState<CatalogProductMatch[]>([]);
   const [hasSelectable, setHasSelectable] = useState(false);
   const [shoppingTip, setShoppingTip] = useState("");
   const [recommendationNotice, setRecommendationNotice] = useState("");
+  const [recommendations, setRecommendations] = useState<BetterAlternative[] | null>(null);
+  const [recommendationChecks, setRecommendationChecks] = useState<ShoppingRecommendationVerification[]>([]);
+  const [recommendationContext, setRecommendationContext] = useState<{ query: string; educationalFooter: string; verdictLevel: string } | null>(null);
+  const [catalogUnavailable, setCatalogUnavailable] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -47,9 +55,14 @@ export default function ShoppingProductPicker({
       effectIdentity.current = identity;
       generation.current += 1;
       setMatches([]);
+      setAllCatalogMatches([]);
       setHasSelectable(false);
       setShoppingTip("");
       setRecommendationNotice("");
+      setRecommendations(null);
+      setRecommendationChecks([]);
+      setRecommendationContext(null);
+      setCatalogUnavailable(false);
       setLoading(false);
       setError("");
       onOpenChange(false);
@@ -59,9 +72,14 @@ export default function ShoppingProductPicker({
   useEffect(() => {
     generation.current += 1;
     setMatches([]);
+    setAllCatalogMatches([]);
     setHasSelectable(false);
     setShoppingTip("");
     setRecommendationNotice("");
+    setRecommendations(null);
+    setRecommendationChecks([]);
+    setRecommendationContext(null);
+    setCatalogUnavailable(false);
     setError("");
     setSaving(false);
     if (!open) {
@@ -88,14 +106,46 @@ export default function ShoppingProductPicker({
       if (generation.current !== requestGeneration) return;
       if (data?.error) throw new Error("Catalog lookup unavailable");
       if (!Array.isArray(data?.catalogMatches)) throw new Error("Catalog lookup unavailable");
+      const hasRecommendations = Object.prototype.hasOwnProperty.call(data, "recommendations");
+      if (hasRecommendations && (!Array.isArray(data.recommendations) ||
+        data.recommendations.length > 3 || data.recommendations.some((item: BetterAlternative) =>
+          !item || typeof item.category !== "string" || !item.category.trim() ||
+          !Array.isArray(item.whyBetter) || item.whyBetter.some(text => typeof text !== "string") ||
+          typeof item.targetCriteria !== "string"))) {
+        throw new Error("Invalid recommendation presentation");
+      }
+      const nextRecommendations = hasRecommendations
+        ? (Array.isArray(data.recommendations) ? data.recommendations as BetterAlternative[] : [])
+        : null;
+      setRecommendations(nextRecommendations);
+      setRecommendationChecks(Array.isArray(data.recommendationChecks) ? data.recommendationChecks.filter(
+        (check: ShoppingRecommendationVerification) => check &&
+          typeof check.recommendationCategory === "string" &&
+          (check.status === "eligible" || check.status === "review_only") &&
+          typeof check.reason === "string" &&
+          (check.productKey === undefined || typeof check.productKey === "string"),
+      ) : []);
+      setRecommendationContext(data.recommendationContext && typeof data.recommendationContext === "object" ? {
+        query: typeof data.recommendationContext.query === "string" ? data.recommendationContext.query : ingredient.originalName,
+        educationalFooter: typeof data.recommendationContext.educationalFooter === "string" ? data.recommendationContext.educationalFooter : "",
+        verdictLevel: typeof data.recommendationContext.verdictLevel === "string" ? data.recommendationContext.verdictLevel : "caution",
+      } : { query: ingredient.originalName, educationalFooter: "", verdictLevel: "caution" });
       setRecommendationNotice(typeof data.recommendationNotice === "string" ? data.recommendationNotice : "");
       const tip = typeof data.shoppingTip === "string" ? data.shoppingTip.trim() : "";
       setShoppingTip(tip.length > 180 ? `${tip.slice(0, 177)}…` : tip);
       if (data.catalogSearchAvailable === false) {
-        setError("The product catalog is temporarily unavailable. Your ingredient and saved choice are unchanged. You can keep it generic.");
+        if (hasRecommendations) {
+          setMatches([]);
+          setHasSelectable(false);
+          setCatalogUnavailable(true);
+          setRecommendationNotice("The product catalog is temporarily unavailable. These personalized suggestions are for review only; no product can be selected.");
+        } else {
+          setError("The product catalog is temporarily unavailable. Your ingredient and saved choice are unchanged. You can keep it generic.");
+        }
         return;
       }
       const all = data.catalogMatches as CatalogProductMatch[];
+      setAllCatalogMatches(all);
       const isSupported = (match: CatalogProductMatch) => {
         if (match?.evidenceStatus !== "eligible" || match.shoppingSelection?.eligible !== true) return false;
         try {
@@ -113,6 +163,7 @@ export default function ShoppingProductPicker({
         const display = match.shoppingDisplay;
         return display !== "hidden" && display !== "label_review" && isSupported(match);
       }));
+      setCatalogUnavailable(false);
     }).catch((error: unknown) => {
       if (generation.current !== requestGeneration) return;
       const status = (error as { status?: number } | null)?.status;
@@ -152,6 +203,55 @@ export default function ShoppingProductPicker({
     }
   }
 
+  function renderRecommendationAction(alternative: BetterAlternative) {
+    const category = typeof alternative.category === "string" ? alternative.category.trim() : "";
+    const check = recommendationChecks.find(item => item.recommendationCategory.trim() === category);
+    const match = check?.productKey ? allCatalogMatches.find(item => item.productKey === check.productKey) : undefined;
+    let verifiedSelection: ShoppingProductSelection | null = null;
+    if (!catalogUnavailable && check?.status === "eligible" && check.productKey && match &&
+      "recommendationLead" in match && match.recommendationLead === category &&
+      match.productKey === check.productKey &&
+      match.evidenceStatus === "eligible" &&
+      match.shoppingDisplay === "selectable" &&
+      match.shoppingSelection?.eligible === true) {
+      try {
+        const parsed = parseShoppingProductSelection(match.shoppingSelection.selection);
+        if (parsed.product.productKey === match.productKey &&
+          shoppingIngredientSignature(parsed.ingredient) === shoppingIngredientSignature(ingredient)) {
+          verifiedSelection = parsed;
+        }
+      } catch { /* incomplete catalog evidence remains review-only */ }
+    }
+    const facts = match ? [
+      ...(match.nutrition ?? []).map(item => ({ text: item.statement, source: item.source })),
+      ...(match.allergenInformation ?? []).map(item => ({ text: item.statement, source: item.source })),
+    ].filter(item => item.text && item.source).slice(0, 3) : [];
+    return (
+      <div className="mt-2 space-y-2">
+        {match && <div className="rounded-lg border border-white/10 bg-black/15 p-2.5 text-xs text-white/75">
+          <p className="font-semibold text-white">{match.name}{match.brand ? ` · ${match.brand}` : ""}</p>
+          {match.serving && <p className="mt-1">{match.serving} <span className="text-white/45">Source: {match.source}</span></p>}
+          {facts.map((fact, index) => <p key={`${fact.source}-${index}`} className="mt-1 leading-relaxed">
+            {fact.text} <span className="text-white/45">Source: {fact.source}</span>
+          </p>)}
+          {match.ingredients && <p className="mt-1 text-white/60">Catalog ingredient list: {match.ingredients} <span className="text-white/45">Source: {match.source}</span></p>}
+        </div>}
+        {verifiedSelection ? <Button
+          type="button"
+          disabled={saving}
+          onClick={() => void commit(verifiedSelection)}
+          className="shopping-recommendation-action min-h-11 w-full whitespace-normal bg-orange-600 text-white hover:bg-orange-500"
+        >Choose this exact product</Button> : <p className="rounded-lg border border-amber-200/15 bg-amber-100/[0.05] px-3 py-2 text-xs leading-relaxed text-amber-50/80">
+          Review only — {catalogUnavailable
+            ? "The product catalog is temporarily unavailable. No exact product can be selected."
+            : check?.status === "review_only" && check.reason
+              ? check.reason
+              : "A matching exact-product selection could not be verified for this ingredient."}
+        </p>}
+      </div>
+    );
+  }
+
   return (
     <PickerModal
       open={open}
@@ -173,7 +273,21 @@ export default function ShoppingProductPicker({
         </div>
         {loading && <div role="status" aria-label="Loading catalog choices" className="space-y-3">{[0, 1].map(i => <div key={i} className="h-28 animate-pulse rounded-xl border border-white/10 bg-white/[0.06]" />)}<p className="text-xs text-white/55">Finding personalized options and checking existing catalog evidence…</p></div>}
         {error && <p role="alert" className="rounded-lg border border-red-200/20 bg-red-300/10 p-3 text-sm text-red-100">{error}</p>}
-        {!loading && !error && <>
+        {!loading && !error && recommendations !== null && <>
+          {catalogUnavailable && <p role="status" className="rounded-lg border border-amber-200/15 bg-amber-100/[0.05] p-3 text-sm text-amber-50/80">{recommendationNotice}</p>}
+          <BetterAlternativesSection
+            alternatives={recommendations}
+            branded
+            verdictLevel={recommendationContext?.verdictLevel}
+            query={recommendationContext?.query ?? ingredient.originalName}
+            educationalFooter={recommendationContext?.educationalFooter ?? ""}
+            source="grocery-coach"
+            showEvidenceNote={false}
+            renderAction={renderRecommendationAction}
+          />
+          {recommendations.length === 0 && <p className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-relaxed text-white/75">{recommendationNotice || "No personalized product recommendations are available. You can keep this ingredient generic."}</p>}
+        </>}
+        {!loading && !error && recommendations === null && <>
           {matches.length > 0 && <ProductCatalogChoices
             products={matches}
             compactShopping
@@ -190,7 +304,7 @@ export default function ShoppingProductPicker({
               : "No suitable specific product could be identified. You can keep this ingredient generic.")}</p>
           </>}
         </>}
-        {!loading && !hasSelectable && <p className="rounded-lg border border-orange-200/10 bg-orange-100/[0.04] px-3 py-2 text-xs leading-relaxed text-orange-50/75">{shoppingTip || "Product labels can vary; check the current package before choosing."}</p>}
+        {!loading && (recommendations !== null || !hasSelectable) && <p className="rounded-lg border border-orange-200/10 bg-orange-100/[0.04] px-3 py-2 text-xs leading-relaxed text-orange-50/75">{shoppingTip || "Product labels can vary; check the current package before choosing."}</p>}
         {saving && <p role="status" className="text-xs text-white/60">Saving your choice…</p>}
       </div>
     </PickerModal>

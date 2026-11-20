@@ -13,6 +13,7 @@ import type { ProductCandidate, ProductEligibilityDecision, ProductDecisionReaso
 import type { ProductSubjectSnapshot } from "../../../../server/services/productDiscovery/subjectAuthority";
 
 jest.mock("@/lib/api", () => ({ post: jest.fn() }));
+jest.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: { id: "offline-shopping-user" } }) }));
 jest.mock("@/components/ui/universal-modal", () => ({
   PickerModal: ({ open, children, footer }: any) => open
     ? <section role="dialog">{children}{footer}</section> : null,

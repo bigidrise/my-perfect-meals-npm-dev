@@ -16,11 +16,24 @@ performed. Barcode controls and unrelated product areas were not changed.
   become verified product choices.
 - Existing source adapters, subject resolution, conflict checks, product
   eligibility evaluation, and `shoppingSelectionBridge` remain authoritative.
-- Eligible choices have priority. Hidden records cannot consume display slots.
-  Up to three selectable/review references are displayed; review-only cards
-  never expose Choose. No rules are relaxed to reach three.
-- Personalized explanations reuse the Find a Product explanation renderer and
-  are explicitly separate from sourced product facts.
+- Shopping now renders the actual exported `BetterAlternativesSection` used by
+  Grocery Coach's `IngredientIntelligenceSheet`, not a similarly styled copy.
+  The original recommendation objects, ordering, explanations and educational
+  context survive the response. Known-conflict recommendations are excluded
+  before presentation, including when their catalog records were rejected.
+- A narrow `renderAction` slot replaces both default Add and Save actions in
+  Shopping. Grocery Coach retains its default actions unchanged. Shopping does
+  not mount `RecommendedProductActions` or invoke its saved-grocery operations.
+- Each visible recommendation has a separate verification result linked to an
+  exact catalog `productKey`. The client independently checks its matching
+  recommendation lead, evidence status, display status, structured selection,
+  product key and original ingredient signature before exposing Choose.
+- Missing exact records or incomplete checks produce Review only, with no
+  selection capability. A catalog outage preserves the personalized cards as
+  review-only instead of hiding the successful recommendation result.
+  Known conflicts stay excluded. No rules are relaxed to reach three choices.
+- Catalog-backed ingredients, nutrition and allergen details remain explicitly
+  separate from the AI's personalized recommendation explanations.
 - Existing `chooseProduct` persistence patches the selected reference on the
   existing source rows. Ingredient, quantity, units, ownership and recipe
   contributions remain unchanged; no item is created.
@@ -30,8 +43,8 @@ performed. Barcode controls and unrelated product areas were not changed.
 
 ## Direct row-to-service verification
 
-The requested direct connection already exists in the Development runtime; the
-follow-up adds explicit regression coverage rather than a second implementation.
+The existing direct connection is retained. This shared-component integration
+changes the presentation and response adapter, not the recommendation engine.
 
 1. `ShoppingListMasterView.openProductPicker` captures the selected row's original
    ingredient, source-row IDs, quantity label, existing choice and account/profile
@@ -48,16 +61,19 @@ follow-up adds explicit regression coverage rather than a second implementation.
    `analyzeProductByName` service. Its saved-profile loading and recommendation
    prompts are reused unchanged.
 5. Existing evidence adapters and `shoppingSelectionBridge` verify exact
-   products. `ProductCatalogChoices` reuses
-   `ProductRecommendationExplanation`; only supported structured selections
-   expose Choose.
+   products independently. The response includes the original `recommendations`,
+   separate `recommendationChecks`, and `recommendationContext`.
+   `ShoppingProductPicker` renders `BetterAlternativesSection` with its Shopping
+   action adapter. `ProductCatalogChoices` remains only a backward-compatible
+   renderer for older responses that lack the recommendations field entirely.
 6. Choose uses `commitProductChoice` and the existing store `chooseProduct`
    update, never Grocery Coach Add/Save. No new endpoint was introduced.
 
-New regressions explicitly cover both olive oil and an existing branded row
-being forwarded without reentry, and the service's actual default delegation
-with the authenticated subject. Only tests and this report changed in the
-follow-up; mobile corrections and application behavior were left intact.
+Regressions cover both olive oil and an existing branded row being forwarded
+without reentry, the service's default delegation with the authenticated subject,
+complete recommendation-object preservation, default Coach Add/Save presentation,
+and fail-closed Shopping actions for mismatched or missing evidence. The existing
+list-row responsive corrections and persistence handlers are unchanged.
 
 Synthetic recommendation outcomes:
 
@@ -66,10 +82,11 @@ Synthetic recommendation outcomes:
 | Resolved profile and complete matching evidence for Synthetic Alpha/Beta/Gamma Olive Oil | 3 | 3 |
 | Same sourced products, required profile-specific checks unresolved | 3 review-only | 0 |
 | Known explicit ingredient conflict | 0 | 0 |
-| Required exact-record ingredient facts missing | 0 | 0 |
+| Required exact-record ingredient facts missing | 3 review-only recommendations; no catalog-backed choices | 0 |
+| Catalog unavailable after recommendation generation | 3 review-only recommendations | 0 |
 
 Review-only recommendations retain personalized explanations but no Choose.
-Unverified AI names alone are not offered as catalog-backed choices. These
+Unverified AI recommendations are clearly review-only, not catalog-backed choices. These
 fixtures are not live customer recommendations.
 
 ## Performance
@@ -97,30 +114,57 @@ catalog coverage have not been measured or claimed.
 
 ## Verification
 
-- 319 focused tests passed across nine suites, including the new direct-path
-  checks. Eight suites passed in the combined run; the service suite passed its
-  focused rerun after preserving the real profile helper in the test mock.
+- 372 focused tests passed across eleven suites for the shared-card integration.
+  This includes complete objects, the shared card's default Coach actions,
+  eligible/review-only Shopping states, mismatched identity/ingredient rejection,
+  known-conflict exclusion and catalog outages.
 - Strict safety type gate passed.
-- Full release type check found the same existing 109 diagnostics and unchanged
-  diagnostic fingerprint; no diagnostics were reported in the changed files.
-  The reviewed baseline was not modified.
-- One completed isolated browser journey passed 14 checks: generic olive oil,
-  personalized explanations, Choose, selection after reload, Change, Clear and
-  reload, historical Product Scan identity, review-only results and cancellation.
-- Browser persistence was in-memory: four mocked advisor lookups, four
-  metadata-only PATCHes, and zero shopping-item POSTs. All API traffic was
-  intercepted and external requests were blocked.
-- The browser fixture reported two pre-existing Dashboard errors from empty
-  mocked GET fallbacks before entering Shopping; no Shopping-path error blocked
-  the journey. An existing release-notice overlay partly covers screenshots.
-- Development was restarted with automatic maintenance suppressed. The existing
-  startup verifier passed its initial 14 policy/guard checks, then stopped on an
-  outdated assertion expecting the database keepalive to be unguarded. The actual
-  keepalive is SELECT-only and already guarded; that unrelated verifier was not
-  changed.
+- Full release typechecking returned 109 diagnostics with fingerprint
+  `e49b8f2b61d299d3c277e6b1f426af4624c1f957d46556e94673400f8ed96fe3`,
+  exactly matching the older `integration-types.log` captured before this
+  integration. It still FAILS the reviewed baseline fingerprint
+  `9baf1a0a477bef598b2c7b9afaba2624c41cae19a7705ee30f43ceeeab873ef3`.
+  The baseline was not refreshed. This is not a clean release type gate.
+- The new isolated mobile browser report records 72 passing checks and seven
+  failed assertions. Several failures are fixture assertion mistakes, and an
+  explanation visibility check was unresolved. Do not describe it as a clean
+  acceptance pass. Synthetic Choose, reload, Change and Clear produced three
+  metadata-only PATCHes, zero shopping-item POSTs and no duplicate olive row.
+  All API traffic was intercepted; external traffic and unknown writes were
+  blocked. No real-profile eligibility was established.
+- The tester inadvertently ran imported older responsive tests before narrowing
+  its filter, overwriting `smart-shopping-responsive/before/` generated captures
+  and the generated isolation-probe output with current-source captures.
+  Those files must no longer be treated as the original BEFORE baseline.
+  Application source, original protected-source hashes and baseline source
+  copies were not changed by this mistake.
+- Development was restarted with automatic database maintenance suppressed.
+  The real preview boots and serves the updated picker module. The unauthenticated
+  screenshot correctly reaches sign-in, not a verified live Shopping session.
 
 Offline artifacts are in
-`generated-artifacts/smart-shopping-catalog-investigation/`.
+`generated-artifacts/smart-shopping-shared-cards/`; historical integration
+artifacts remain in `generated-artifacts/smart-shopping-catalog-investigation/`.
+
+## Real-profile Review only investigation
+
+The founder reported marinara cards blocked by an unresolved quinoa avoidance.
+Code tracing establishes that the Development catalog policy has no reviewed
+hard-product rules installed. Explicit avoided foods become hard requirements,
+and the default product-specific assessor cannot supply a verified pass.
+`shoppingSelectionBridge` correctly rejects the unresolved decision. This is
+a missing verification capability, not proof that quinoa is present, and not
+evidence that the Choose renderer suppressed an eligible Rao's product.
+Successful empty-hard-rule synthetic fixtures do not establish real-profile
+eligibility.
+
+Two additional adapter limitations were confirmed: review-only recommendation
+checks omit a catalog product reference, preventing the shared card's action
+adapter from showing available sourced details; and the discovery lead matcher
+checks brand/product token containment rather than strict variant equality.
+The actual Rao's source record/variant was not independently fetched. Further
+correction must preserve the unresolved safety hold and must not turn AI claims
+or an incomplete ingredient list into product-specific verification.
 
 To repeat the focused regression suite without credentials or network access:
 
@@ -139,7 +183,9 @@ env -i PATH="$PATH" HOME="$HOME" NODE_ENV=test \
   client/src/lib/__tests__/shoppingProductChoice.test.ts \
   client/src/lib/__tests__/shoppingMetadataStore.test.ts \
   client/src/lib/__tests__/groceryCoachMealCatalog.test.tsx \
-  client/src/lib/__tests__/mealShoppingFlow.test.tsx
+   client/src/lib/__tests__/mealShoppingFlow.test.tsx \
+   client/src/lib/__tests__/smartShoppingRejectionExplanation.test.tsx \
+   client/src/lib/__tests__/savedGroceriesSelection.test.tsx
 ```
 
 ## Founder testing

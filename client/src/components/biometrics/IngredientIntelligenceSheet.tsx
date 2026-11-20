@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import type { ReactNode } from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, ChevronDown, ChevronUp, ScanLine, ShoppingBag, Bookmark, ShoppingCart, Check } from 'lucide-react';
@@ -244,6 +245,7 @@ export function BetterAlternativesSection({
   source,
   subjectKind,
   showEvidenceNote = true,
+  renderAction,
 }: {
   alternatives: BetterAlternative[];
   branded?: boolean;
@@ -254,6 +256,8 @@ export function BetterAlternativesSection({
   source?: "scanner" | "grocery-coach";
   subjectKind?: string;
   showEvidenceNote?: boolean;
+  /** Optional presentation adapter. When supplied, replaces both shared actions. */
+  renderAction?: (alternative: BetterAlternative, index: number) => ReactNode;
 }) {
   const { t } = useTranslation();
   const [addedIndex, setAddedIndex] = useState<number | null>(null);
@@ -285,7 +289,7 @@ export function BetterAlternativesSection({
           <div key={recommendationProductKey(recommendationIdentity(alt))} className="rounded-xl border border-orange-500/25 bg-orange-500/8 p-3.5">
             <div className="flex items-start justify-between gap-2 mb-2">
               <p className="text-sm font-semibold text-white flex-1">{groceryProductLabel(recommendationIdentity(alt))}</p>
-              {onAddToList && (
+              {!renderAction && onAddToList && (
                 <button
                   onClick={() => handleAdd(groceryProductLabel(recommendationIdentity(alt)), i)}
                   className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-95 ${
@@ -302,7 +306,9 @@ export function BetterAlternativesSection({
               )}
             </div>
             <ProductRecommendationExplanation whyBetter={alt.whyBetter} targetCriteria={alt.targetCriteria} marker="📍 " />
-            <RecommendedProductActions alternative={alt} query={query} educationalFooter={educationalFooter} source={source} subjectKind={subjectKind} />
+            {renderAction
+              ? renderAction(alt, i)
+              : <RecommendedProductActions alternative={alt} query={query} educationalFooter={educationalFooter} source={source} subjectKind={subjectKind} />}
           </div>
         ))}
       </div>

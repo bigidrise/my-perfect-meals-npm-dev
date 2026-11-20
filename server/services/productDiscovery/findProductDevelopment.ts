@@ -292,6 +292,8 @@ export async function findProductDevelopment(
   searched: number;
   rejected: number;
   excludedReasons: string[];
+  /** Known conflicts must not return through the raw recommendation presentation. */
+  excludedRecommendationLeads?: string[];
   sourceFailures: string[];
   catalogSearchAvailable: boolean;
   unresolved: string[];
@@ -361,6 +363,7 @@ export async function findProductDevelopment(
     ];
   const transports = options.recommendationLeads
     ? adapters.map(adapter => shoppingEvidenceAdapter(adapter, options.onStageTiming)) : [];
+  const excludedRecommendationLeads = new Set<string>();
   const evaluated = await discoverProductCandidates({
     subject: {
       actorUserId: userId, subjectUserId: userId, subjectKind: "account",
@@ -383,15 +386,21 @@ export async function findProductDevelopment(
     onSubjectResolved: milliseconds => options.onStageTiming?.("profile", milliseconds),
     allowUnresolvedLeads: true,
     knownConflict: shoppingIngredient
-      ? (candidate, subject) => knownIngredientConflict(candidate, {
-        ...subject,
-        // Reuse established dietary-conflict checks for explicit recipe requests.
-        // Unknown qualifiers install no new rule and cannot establish a pass.
-        dietaryIdentity: [
-          ...subject.dietaryIdentity,
-          ...shoppingIngredient.requirements.filter(r => r.origin !== "profile_guidance").map(r => r.value),
-        ],
-      })
+      ? (candidate, subject) => {
+        const conflict = knownIngredientConflict(candidate, {
+          ...subject,
+          // Reuse established dietary-conflict checks for explicit recipe requests.
+          // Unknown qualifiers install no new rule and cannot establish a pass.
+          dietaryIdentity: [
+            ...subject.dietaryIdentity,
+            ...shoppingIngredient.requirements.filter(r => r.origin !== "profile_guidance").map(r => r.value),
+          ],
+        });
+        if (conflict) options.recommendationLeads?.forEach(lead => {
+          if (shoppingRecommendationMatches(lead, candidate)) excludedRecommendationLeads.add(lead);
+        });
+        return conflict;
+      }
       : knownIngredientConflict,
     minimumEvidence: (candidate) => {
       const missing = [
@@ -416,6 +425,11 @@ export async function findProductDevelopment(
       "Your product search preferences changed during the search. Please try again.",
     );
   }
+  evaluated.evaluatedCandidates.filter(item => item.decision.status === "rejected").forEach(({ candidate }) => {
+    options.recommendationLeads?.forEach(lead => {
+      if (shoppingRecommendationMatches(lead, candidate)) excludedRecommendationLeads.add(lead);
+    });
+  });
   // Smart Grocery must not surface rejected records as review-only choices.
   // The existing Grocery Coach ordering and behavior remain unchanged.
   let presentationCandidates = shoppingIngredient
@@ -490,6 +504,7 @@ export async function findProductDevelopment(
   }
   return {
     catalogMatches,
+    ...(options.recommendationLeads ? { excludedRecommendationLeads: [...excludedRecommendationLeads] } : {}),
     ...(shoppingIngredient ? { shoppingTip: shoppingCatalogTip(shoppingIngredient, evaluated.subject) } : {}),
     searched: evaluated.inspectedCount,
     rejected: evaluated.rejectedCount,

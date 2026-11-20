@@ -2,6 +2,7 @@ import type { IngredientScanResult } from "../ingredientScanService";
 import { canonicalShoppingIngredient, type ShoppingIngredientRequest } from "../../../shared/shoppingProductSelection";
 import { findProductDevelopment } from "./findProductDevelopment";
 import type { ShoppingLookupStage } from "./shoppingEvidenceAdapter";
+import type { ShoppingRecommendationVerification } from "../../../shared/shoppingRecommendationVerification";
 
 /**
  * Compose existing Find a Product suggestions with existing Shopping evidence
@@ -42,7 +43,7 @@ export async function findShoppingProductRecommendationsDevelopment(
     onStageTiming: (stage, milliseconds) => { workMs[stage] += milliseconds; },
   }) : {
     catalogMatches: [], searched: 0, rejected: 0, excludedReasons: [], sourceFailures: [],
-    catalogSearchAvailable: true, unresolved: [], profileUsed: [],
+    catalogSearchAvailable: true, unresolved: [], profileUsed: [], excludedRecommendationLeads: [],
   };
   const catalogMatches = result.catalogMatches.map(match => {
     const recommendation = recommendations.find(alt => alt.category.trim() === match.recommendationLead);
@@ -56,6 +57,27 @@ export async function findShoppingProductRecommendationsDevelopment(
     };
   }).sort((a, b) => Number(b.shoppingSelection?.eligible === true) - Number(a.shoppingSelection?.eligible === true))
     .slice(0, 3);
+  const excluded = new Set(result.excludedRecommendationLeads ?? []);
+  const visibleRecommendations = recommendations.filter(alt => !excluded.has(alt.category.trim()));
+  const recommendationChecks: ShoppingRecommendationVerification[] = visibleRecommendations.map(alt => {
+    const category = alt.category.trim();
+    const exactMatches = catalogMatches.filter(match => match.recommendationLead === category);
+    const eligible = exactMatches.find(match => match.shoppingSelection?.eligible);
+    if (eligible) return {
+      recommendationCategory: category, status: "eligible",
+      productKey: eligible.productKey,
+      reason: "This exact catalog product passed the existing Shopping selection checks. Check the current package label before buying.",
+    };
+    return {
+      recommendationCategory: category, status: "review_only",
+      reason: category.length > 80
+        ? "The recommendation exceeds the exact-product lookup limit. Its identity and suitability have not been verified."
+        : !result.catalogSearchAvailable
+          ? "The product catalog is temporarily unavailable. This recommendation has not been verified and cannot be selected."
+          : exactMatches[0]?.shoppingSelection?.reason ||
+            "An exact catalog product with all required product information could not be verified. This recommendation cannot be selected.",
+    };
+  });
   const timing = {
     recommendationMs: Math.round(recommendationMs),
     catalogMs: Math.round(performance.now() - catalogStarted),
@@ -64,6 +86,12 @@ export async function findShoppingProductRecommendationsDevelopment(
   };
   return {
     ...result, catalogMatches, recommendationCount: recommendations.length,
+    recommendations: visibleRecommendations,
+    recommendationChecks,
+    recommendationContext: {
+      query: ingredient.originalName, educationalFooter: analysis.educationalFooter ?? "",
+      verdictLevel: analysis.verdictLevel ?? "caution",
+    },
     recommendationNotice: recommendations.length && !catalogMatches.some(match => match.shoppingSelection?.eligible)
       ? result.excludedReasons.length && !catalogMatches.length
         ? "Catalog products were excluded for a known conflict with your food requirements. No eligible replacement was verified; your ingredient and saved choice are unchanged."

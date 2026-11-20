@@ -78,6 +78,11 @@ test("reuses one by-name recommendation, source evidence and the existing select
   expect(f.sources.resolveFoodContext).toHaveBeenCalledTimes(2);
   expect(result.catalogMatches).toHaveLength(3);
   expect(result.catalogMatches.every(match => match.shoppingSelection?.eligible)).toBe(true);
+  expect(result.recommendations).toEqual(analysis().betterAlternatives);
+  expect(result.recommendationChecks).toHaveLength(3);
+  expect(result.recommendationChecks.every(check => check.status === "eligible" &&
+    result.catalogMatches.some(match => match.productKey === check.productKey &&
+      match.recommendationLead === check.recommendationCategory))).toBe(true);
   expect(f.maxActive()).toBe(2);
   for (const match of result.catalogMatches) {
     expect(match.recommendationExplanation?.whyBetter[0]).toContain("personalized explanation");
@@ -112,6 +117,9 @@ test("recommendations and Add-style names never bypass unresolved profile policy
   expect(result.catalogMatches.every(match => !match.shoppingSelection?.eligible)).toBe(true);
   expect(result.catalogMatches[0].shoppingCaution).toContain("Reviewed checks aren't available");
   expect(result.recommendationNotice).toContain("could not be fully verified");
+  expect(result.recommendations).toEqual(analysis().betterAlternatives);
+  expect(result.recommendationChecks.every(check => check.status === "review_only" &&
+    check.productKey === undefined)).toBe(true);
 });
 
 test("known conflicts remain excluded instead of being exposed as review-only suggestions", async () => {
@@ -121,8 +129,38 @@ test("known conflicts remain excluded instead of being exposed as review-only su
   expect(result.rejected).toBe(3);
   expect(result.excludedReasons[0]).toContain("explicitly avoided");
   expect(result.recommendationNotice).toContain("known conflict");
+  expect(result.recommendations).toEqual([]);
+  expect(result.recommendationChecks).toEqual([]);
 });
 
+test("preserves complete recommendation objects without treating their details as product evidence", async () => {
+  const f = fixture();
+  const recommendation = { ...suggestion("Synthetic Alpha"), brand: "Synthetic Alpha",
+    productName: "Olive Oil", futurePresentationField: { note: "Original content" } };
+  f.recommend.mockResolvedValueOnce({
+    ...analysis([recommendation]), educationalFooter: "Original educational footer",
+    verdictLevel: "buy", productName: "olive oil",
+  } as IngredientScanResult);
+  const result = await f.run();
+  expect(result.recommendations).toEqual([recommendation]);
+  expect(result.recommendationContext).toEqual({
+    query: "olive oil", educationalFooter: "Original educational footer", verdictLevel: "buy",
+  });
+  expect(result.catalogMatches[0].shoppingSelection?.selection?.product.sourcePayloadJson)
+    .not.toContain("Original content");
+});
+
+test("a known conflicting brand cannot return through the raw recommendation fallback", async () => {
+  const f = fixture({ avoided: ["synthetic-avoidance"] });
+  f.records[0].facts.find(fact => fact.kind === "ingredients")!.originalStatement =
+    "Olive oil, synthetic-avoidance";
+  const result = await f.run();
+  expect(result.recommendations.map(alt => alt.category)).toEqual([
+    "Synthetic Beta Olive Oil", "Synthetic Gamma Olive Oil",
+  ]);
+  expect(result.recommendationChecks).toHaveLength(2);
+  expect(result.recommendationChecks.every(check => check.status === "review_only")).toBe(true);
+});
 test("an unsupported original qualifier remains unselectable without changing the ingredient", async () => {
   const original = { originalName: "low-sodium olive oil", requirements: [] };
   const f = fixture();
@@ -153,6 +191,9 @@ test("missing product facts cannot acquire evidence from the AI explanation", as
   const result = await fixture({ missing: true }).run();
   expect(result.catalogMatches).toEqual([]);
   expect(result.recommendationNotice).toContain("exact products or required checks");
+  expect(result.recommendations).toHaveLength(3);
+  expect(result.recommendationChecks.every(check => check.status === "review_only" &&
+    /required product information/.test(check.reason))).toBe(true);
 });
 
 test.each(["missing_facts", "unverified_identity"])(
@@ -222,6 +263,22 @@ test("an unavailable source cannot turn recommendations into eligible choices", 
   expect(result.catalogSearchAvailable).toBe(false);
   expect(result.catalogMatches).toEqual([]);
   expect(result.recommendationCount).toBe(3);
+  expect(result.recommendations).toHaveLength(3);
+  expect(result.recommendationChecks.every(check => check.status === "review_only" &&
+    /catalog is temporarily unavailable/.test(check.reason))).toBe(true);
+});
+
+test("an oversized recommended name stays review-only without truncation or an extra catalog search", async () => {
+  const f = fixture();
+  const recommendation = { ...suggestion("Synthetic Alpha"), category: "Olive oil " + "long brand ".repeat(9) };
+  f.recommend.mockResolvedValueOnce(analysis([recommendation]));
+  const result = await f.run();
+  expect(result.recommendations).toEqual([recommendation]);
+  expect(result.recommendationChecks[0]).toMatchObject({
+    recommendationCategory: recommendation.category.trim(), status: "review_only",
+  });
+  expect(result.recommendationChecks[0].reason).toContain("lookup limit");
+  expect(f.adapter.search).not.toHaveBeenCalled();
 });
 
 test("Production refuses the integration before recommendation generation", async () => {
