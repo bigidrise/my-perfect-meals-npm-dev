@@ -23,6 +23,7 @@ export default function ShoppingProductPicker({
   const [matches, setMatches] = useState<CatalogProductMatch[]>([]);
   const [hasSelectable, setHasSelectable] = useState(false);
   const [shoppingTip, setShoppingTip] = useState("");
+  const [recommendationNotice, setRecommendationNotice] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -48,6 +49,7 @@ export default function ShoppingProductPicker({
       setMatches([]);
       setHasSelectable(false);
       setShoppingTip("");
+      setRecommendationNotice("");
       setLoading(false);
       setError("");
       onOpenChange(false);
@@ -59,6 +61,7 @@ export default function ShoppingProductPicker({
     setMatches([]);
     setHasSelectable(false);
     setShoppingTip("");
+    setRecommendationNotice("");
     setError("");
     setSaving(false);
     if (!open) {
@@ -85,6 +88,7 @@ export default function ShoppingProductPicker({
       if (generation.current !== requestGeneration) return;
       if (data?.error) throw new Error("Catalog lookup unavailable");
       if (!Array.isArray(data?.catalogMatches)) throw new Error("Catalog lookup unavailable");
+      setRecommendationNotice(typeof data.recommendationNotice === "string" ? data.recommendationNotice : "");
       const tip = typeof data.shoppingTip === "string" ? data.shoppingTip.trim() : "";
       setShoppingTip(tip.length > 180 ? `${tip.slice(0, 177)}…` : tip);
       if (data.catalogSearchAvailable === false) {
@@ -153,11 +157,11 @@ export default function ShoppingProductPicker({
       open={open}
       onOpenChange={closeWithoutSaving}
       title="Here are your product options."
-      description={`${ingredient.originalName} · Recipe amount: ${quantityLabel}. Your recipe quantity stays the same.`}
-      className="border border-orange-200/15 bg-[#211c18] text-white"
-      footer={<div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+      description={`${ingredient.originalName} · Original amount: ${quantityLabel}. Your ingredient and recipe quantities stay the same.`}
+      className="shopping-product-picker border border-orange-200/15 bg-[#211c18] text-white"
+      footer={<div className="shopping-picker-footer flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-between">
         <Button type="button" variant="ghost" disabled={saving} onClick={() => closeWithoutSaving(false)} className="text-white/75 hover:bg-white/10">Cancel</Button>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="shopping-picker-footer-actions flex flex-col gap-2 sm:flex-row">
           <Button type="button" variant="outline" disabled={saving} onClick={() => currentSelection ? void commit(null) : closeWithoutSaving(false)} className="border-white/20 bg-transparent text-white hover:bg-white/10">Keep generic</Button>
           {currentSelection && <Button type="button" variant="outline" disabled={saving} onClick={() => void commit(null)} className="border-orange-200/25 bg-transparent text-orange-100 hover:bg-orange-300/10">Clear choice</Button>}
         </div>
@@ -167,7 +171,7 @@ export default function ShoppingProductPicker({
         <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
           <p className="text-sm text-white/75">These are shopping references, not medical approval. Check the package label before you buy.</p>
         </div>
-        {loading && <div role="status" aria-label="Loading catalog choices" className="space-y-3">{[0, 1].map(i => <div key={i} className="h-28 animate-pulse rounded-xl border border-white/10 bg-white/[0.06]" />)}<p className="text-xs text-white/55">Checking existing catalog evidence…</p></div>}
+        {loading && <div role="status" aria-label="Loading catalog choices" className="space-y-3">{[0, 1].map(i => <div key={i} className="h-28 animate-pulse rounded-xl border border-white/10 bg-white/[0.06]" />)}<p className="text-xs text-white/55">Finding personalized options and checking existing catalog evidence…</p></div>}
         {error && <p role="alert" className="rounded-lg border border-red-200/20 bg-red-300/10 p-3 text-sm text-red-100">{error}</p>}
         {!loading && !error && <>
           {matches.length > 0 && <ProductCatalogChoices
@@ -181,7 +185,9 @@ export default function ShoppingProductPicker({
             }}
           />}
           {!hasSelectable && <>
-            <p className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-relaxed text-white/75">No suitable specific product could be identified. You can keep this ingredient generic.</p>
+            <p className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-relaxed text-white/75">{recommendationNotice || (matches.length
+              ? "Personalized product options are available for review, but verification is incomplete. Choose is unavailable until the existing requirements are met."
+              : "No suitable specific product could be identified. You can keep this ingredient generic.")}</p>
           </>}
         </>}
         {!loading && !hasSelectable && <p className="rounded-lg border border-orange-200/10 bg-orange-100/[0.04] px-3 py-2 text-xs leading-relaxed text-orange-50/75">{shoppingTip || "Product labels can vary; check the current package before choosing."}</p>}

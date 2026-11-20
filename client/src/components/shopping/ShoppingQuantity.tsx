@@ -11,7 +11,7 @@ export function ShoppingQuantity({ item }: { item: ConsolidatedItem }) {
   const amounts = item.requiredAmounts ?? [{ quantity: item.quantity, unit: item.unit }];
   const needed = amounts.map(a => formatQuantity(a.quantity, a.unit, system)).join(" + ");
   const buy = getRetailQuantity(item);
-  return <div className="text-white/70 text-xs shrink-0 max-w-[11rem] text-right">
+  return <div className="shopping-quantity text-white/70 text-xs shrink-0 max-w-[11rem] text-right">
     <div>{t("quantityNeeded", { quantity: needed || t("quantityReview") })}</div>
     {buy && <div title={t("quantityEstimateHint")}>
       {t("quantityBuy", { quantity: buy })} <span className="text-white/50">{t("quantityEstimate")}</span>

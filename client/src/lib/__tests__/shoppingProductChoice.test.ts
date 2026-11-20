@@ -77,6 +77,36 @@ test("choose, change, clear and refresh preserve each consolidated source quanti
     expect(row.ingredientMetadata.selectedProduct).toBeNull();
   });
 });
+test("an existing Product Scan branded row stays unchanged until an explicit alternative, then survives reload without duplication", async () => {
+  const f = fixture();
+  const name = "Existing Synthetic Mill Olive Oil";
+  for (const row of f.rows()) {
+    const metadata = makeIngredientMetadata({ name, quantity: Number(row.quantity), unit: row.unit, recipeId: "original-recipe" });
+    await f.api(`/api/shopping-list-v2/${row.id}`, { method: "PATCH", body: JSON.stringify({
+      name, ingredientMetadata: { ...metadata, selectedProduct: {
+        ...product("original-product-scan").product,
+        assessment: { status: "review_required", unresolvedRequirements: ["current_profile_and_label_review"], reasons: [] },
+      } },
+    }) });
+  }
+  f.api.mockClear();
+  await f.store.getState().hydrate();
+  expect(f.api.mock.calls.some(([, init]) => init?.method === "PATCH")).toBe(false);
+  expect(f.rows().every((row: any) => row.ingredientMetadata.selectedProduct.productKey === "original-product-scan")).toBe(true);
+  const original = f.rows();
+  const alternative = { ...product("explicit-alternative"), ingredient: { originalName: name, requirements: [] } };
+  await f.store.getState().chooseProduct(["server-1"], alternative);
+  await f.store.getState().hydrate();
+  expect(f.rows()).toHaveLength(original.length);
+  expect(f.rows()[0].ingredientMetadata.selectedProduct.productKey).toBe("explicit-alternative");
+  expect(f.rows()[1].ingredientMetadata.selectedProduct.productKey).toBe("original-product-scan");
+  f.rows().forEach((row: any, index: number) => {
+    expect(row.name).toBe(original[index].name);
+    expect(row.quantity).toBe(original[index].quantity);
+    expect(row.unit).toBe(original[index].unit);
+    expect(row.ingredientMetadata.contributions).toEqual(original[index].ingredientMetadata.contributions);
+  });
+});
 test("different choices remain separate after consolidation and refresh", async () => {
   const f = fixture(); await f.store.getState().hydrate();
   await f.store.getState().chooseProduct(["server-1"], product("a"));

@@ -1,5 +1,6 @@
 import { catalogProductLabel } from "@/lib/groceryCoachPackagedIngredients";
 import type { CatalogProductMatch } from "./GroceryStoreCoachSheet";
+import { ProductRecommendationExplanation } from "./ProductRecommendationExplanation";
 
 interface Props {
   products: CatalogProductMatch[];
@@ -35,10 +36,10 @@ export default function ProductCatalogChoices({ products, selectedLabel, onSelec
             ? rawCaution.length > 180 ? `${rawCaution.slice(0, 177)}…` : rawCaution
             : "Package details can change; check the current label before buying.";
           return (
-            <article key={product.productKey} data-testid={`catalog-choice-${product.productKey}`} className="rounded-xl border border-white/15 bg-black/20 p-4 text-sm text-white/80">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="font-semibold text-white">{label}</h3>
+            <article key={product.productKey} data-testid={`catalog-choice-${product.productKey}`} className="shopping-catalog-choice rounded-xl border border-white/15 bg-black/20 p-4 text-sm text-white/80">
+              <div className="shopping-catalog-choice-header flex items-start justify-between gap-3">
+                <div className="shopping-catalog-choice-title">
+                  <h3 className="shopping-catalog-choice-name font-semibold text-white">{label}</h3>
                   <p className={`mt-1 text-xs ${reviewOnly ? "text-amber-100/85" : "text-emerald-200/80"}`}>
                     {reviewOnly ? "Check the current label" : "Evidence-supported shopping option"}
                   </p>
@@ -47,12 +48,16 @@ export default function ProductCatalogChoices({ products, selectedLabel, onSelec
                   {reviewOnly ? "Review only" : "Selectable"}
                 </span>
               </div>
+              {product.recommendationExplanation && <div className="mt-2">
+                <p className="mb-1 text-[10px] text-white/45">Why Find a Product suggested it · knowledge-based guidance</p>
+                <ProductRecommendationExplanation {...product.recommendationExplanation} />
+              </div>}
               <p className="mt-2 text-xs leading-relaxed text-white/65">{caution}</p>
               {product.ingredients && <p className="mt-2 text-xs"><span className="text-white/50">Ingredients: </span>{product.ingredients}</p>}
               {!!product.nutrition?.length && <ul className="mt-2 space-y-1 text-xs">{product.nutrition.map((fact, index) => <li key={`${fact.source}-${index}`}>{fact.statement}</li>)}</ul>}
               {!!product.allergenInformation?.length && <ul className="mt-2 space-y-1 text-xs">{product.allergenInformation.map((fact, index) => <li key={`${fact.source}-${index}`}>{fact.statement}</li>)}</ul>}
               {product.serving && <p className="mt-2 text-xs text-white/55">Catalog serving: {product.serving} (not the recipe quantity)</p>}
-              {!reviewOnly && onSelect && <button type="button" disabled={disabled} className="mt-3 rounded-lg border border-orange-200/30 bg-orange-300/10 px-3 py-2 text-xs font-semibold text-orange-100 hover:bg-orange-300/20 disabled:opacity-50" onClick={() => onSelect(product)}>
+              {!reviewOnly && onSelect && <button type="button" disabled={disabled} className="shopping-picker-choice-button mt-3 rounded-lg border border-orange-200/30 bg-orange-300/10 px-3 py-2 text-xs font-semibold text-orange-100 hover:bg-orange-300/20 disabled:opacity-50" onClick={() => onSelect(product)}>
                 {selectedLabel === label ? "Selected for shopping" : "Choose this option"}
               </button>}
             </article>

@@ -3,7 +3,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { createDevelopmentShoppingListStore } from "@/stores/developmentShoppingListStore";
-import { groceryCoachSelectedProductMetadata } from "@/lib/groceryCoachShoppingTransfer";
+import { groceryCoachSelectedProductMetadata, groceryCoachStandaloneProductMetadata } from "@/lib/groceryCoachShoppingTransfer";
 import { recipeIngredientTransfer } from "@/lib/shoppingIngredientTransfer";
 import { buildConsolidatedItems } from "@/lib/shoppingConsolidation";
 import SmartShoppingProductChoice from "@/components/shopping/SmartShoppingProductChoice";
@@ -25,6 +25,15 @@ const product = {
   allergenInformation: [{ statement: "May contain milk.", source: "Synthetic catalog" }],
 };
 const ingredient = { item: "low-sodium spaghetti sauce", quantity: "1/2", unit: "cup" };
+test("standalone Product Scan import preserves branded identity without inventing a recipe or clearance", () => {
+  const metadata = groceryCoachStandaloneProductMetadata("Synthetic Brand Tomato Sauce", product);
+  expect(metadata.ingredient.originalName).toBe("Synthetic Brand Tomato Sauce");
+  expect(metadata.selectedProduct?.productKey).toBe(product.productKey);
+  expect(metadata.selectedProduct?.upc).toBe(product.barcode);
+  expect(metadata.selectedProduct?.assessment.status).toBe("review_required");
+  expect(metadata.contributions[0].recipeId).toBeUndefined();
+  expect(metadata.contributions[0].recipeName).toBeUndefined();
+});
 function selected(name = ingredient.item) {
   return {
     name, quantity: .5, unit: "cup",

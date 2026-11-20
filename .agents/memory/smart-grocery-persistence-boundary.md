@@ -31,8 +31,9 @@ selection.
 
 **Why:** The founder confirmed the intended behavior using Development screenshots
 and explicitly distinguished recommendation Add/Save from Shopping List
-replacement. This product direction is not permission for live provider calls,
-account writes, implementation before the requested approach report, or Production changes.
+replacement. Development integration and offline verification are approved.
+Live paid-provider calls, real-account writes, Production deployment, and GitHub
+push or merge require separate authorization.
 
 **Why:** The user explicitly approved this simpler Development-only direction and
 prohibited a new engine, clinical-rule system, additional migrations, automatic

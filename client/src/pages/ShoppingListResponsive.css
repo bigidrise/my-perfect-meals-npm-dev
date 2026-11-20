@@ -1,0 +1,259 @@
+/*
+ * Responsive corrections for Smart Grocery only. Keep the shared mobile
+ * rules untouched; this scope opts the list rows and picker out of the
+ * global flex wrapping / automatic hyphenation behavior.
+ */
+.shopping-list-page {
+  padding-bottom: calc(var(--bottom-nav-height, 64px) + var(--safe-bottom, 0px) + 1rem);
+}
+
+.shopping-list-page .shopping-item-name,
+.shopping-list-page .shopping-product-choice,
+.shopping-list-page .shopping-quantity,
+.shopping-product-picker .shopping-catalog-choice {
+  hyphens: none;
+  word-break: normal;
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+
+.shopping-list-page .shopping-list-control-target,
+.shopping-list-page .shopping-product-options-button,
+.shopping-list-page .shopping-product-choice-action {
+  box-sizing: border-box;
+  min-width: 44px !important;
+  min-height: 44px !important;
+}
+
+.shopping-list-page .shopping-category-header,
+.shopping-list-page .shopping-category-actions,
+.shopping-product-picker .shopping-picker-footer,
+.shopping-product-picker .shopping-picker-footer-actions {
+  min-width: 0;
+}
+
+.shopping-list-page .shopping-item-actions {
+  display: contents;
+  min-width: 0;
+}
+
+.shopping-list-page .shopping-item-row {
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow: visible;
+}
+
+.shopping-list-page .shopping-item-edit-fields,
+.shopping-list-page .shopping-item-edit-amounts {
+  display: contents;
+}
+
+.shopping-list-page .shopping-quantity {
+  white-space: normal;
+}
+
+.shopping-list-page .shopping-quantity *,
+.shopping-list-page .shopping-product-choice :is(span, p, button) {
+  hyphens: none;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+.shopping-list-page .shopping-category-header,
+.shopping-list-page .shopping-category-actions,
+.shopping-list-page .shopping-product-choice-details {
+  overflow: visible;
+}
+
+.shopping-list-page .shopping-product-options-button,
+.shopping-list-page .shopping-product-choice-action {
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.shopping-product-picker {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  hyphens: none;
+}
+
+.shopping-product-picker p,
+.shopping-product-picker h2,
+.shopping-product-picker h3,
+.shopping-product-picker span,
+.shopping-product-picker li {
+  hyphens: none;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.shopping-product-picker .shopping-picker-footer {
+  flex-wrap: nowrap;
+  overflow: visible;
+}
+
+.shopping-product-picker .shopping-picker-footer-actions {
+  flex-wrap: nowrap;
+  overflow: visible;
+}
+
+.shopping-product-picker .shopping-catalog-choice-header {
+  min-width: 0;
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.shopping-product-picker .shopping-catalog-choice :is(div, span, p, h3, li) {
+  hyphens: none;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.shopping-product-picker .shopping-catalog-choice-title {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.shopping-product-picker .shopping-catalog-choice-name,
+.shopping-product-picker .shopping-catalog-choice p,
+.shopping-product-picker .shopping-catalog-choice li {
+  hyphens: none;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.shopping-product-picker .shopping-picker-choice-button {
+  min-width: 44px;
+  min-height: 44px;
+  white-space: normal;
+  line-height: 1.25;
+}
+
+@media (max-width: 639px) {
+  .shopping-list-page .shopping-item-row {
+    display: grid !important;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "check content content"
+      "check quantity actions";
+    align-items: center;
+    gap: 4px 8px;
+    width: 100%;
+    overflow: visible;
+  }
+
+  .shopping-list-page .shopping-item-check {
+    grid-area: check;
+    align-self: start;
+  }
+
+  .shopping-list-page .shopping-item-content {
+    grid-area: content;
+    min-width: 0;
+  }
+
+  .shopping-list-page .shopping-item-name {
+    overflow-wrap: anywhere;
+  }
+
+  .shopping-list-page .shopping-quantity {
+    grid-area: quantity;
+    max-width: none;
+    text-align: left;
+    align-self: start;
+  }
+
+  .shopping-list-page .shopping-item-actions {
+    grid-area: actions;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    align-self: end;
+  }
+
+  .shopping-list-page .shopping-item-edit-fields {
+    grid-area: content;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .shopping-list-page .shopping-item-edit-amounts {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .shopping-list-page .shopping-item-name-input,
+  .shopping-list-page .shopping-item-edit-quantity,
+  .shopping-list-page .shopping-item-edit-unit {
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+  }
+
+  .shopping-list-page .shopping-item-edit-save {
+    grid-area: actions;
+    justify-self: end;
+    align-self: end;
+  }
+
+  .shopping-list-page .shopping-category-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    overflow: visible;
+  }
+
+  .shopping-list-page .shopping-category-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    overflow: visible;
+  }
+
+  .shopping-list-page .shopping-product-choice-details {
+    align-items: flex-start;
+    overflow: visible;
+  }
+
+  .shopping-product-picker .shopping-picker-footer {
+    display: flex !important;
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 8px;
+    overflow: visible;
+  }
+
+  .shopping-product-picker .shopping-picker-footer-actions {
+    display: flex !important;
+    flex-direction: column;
+    gap: 8px;
+    overflow: visible;
+  }
+
+  .shopping-product-picker .shopping-picker-footer button,
+  .shopping-product-picker .shopping-picker-choice-button {
+    width: 100%;
+    max-width: none;
+    min-width: 44px;
+    min-height: 44px;
+    white-space: normal;
+  }
+
+  .shopping-product-picker .shopping-catalog-choice-header {
+    align-items: flex-start;
+    gap: 8px;
+    overflow: visible;
+  }
+
+  .shopping-product-picker .shopping-catalog-choice-title {
+    flex-basis: 100%;
+  }
+}

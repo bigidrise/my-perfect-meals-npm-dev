@@ -12,6 +12,7 @@ import { DEVELOPMENT_CATALOG_IDENTITY_POLICY } from "./ruleEvidenceRegistry";
 import { canonicalShoppingIngredient, type ShoppingIngredientRequest, type ShoppingCatalogDecision } from "../../../shared/shoppingProductSelection";
 import { shoppingSelectionBridge } from "./shoppingSelectionBridge";
 import { shoppingCatalogPresentation, shoppingCatalogTip } from "./shoppingCatalogGuidance";
+import { shoppingEvidenceAdapter, type ShoppingStageTimer } from "./shoppingEvidenceAdapter";
 
 export interface DevelopmentProductMatch {
   shoppingSelection?: ShoppingCatalogDecision;
@@ -36,6 +37,8 @@ export interface DevelopmentProductMatch {
   nutrition: readonly { statement: string; source: string }[];
   allergenInformation: readonly { statement: string; source: string }[];
   profileInsight?: string;
+  recommendationExplanation?: { whyBetter: string[]; targetCriteria: string };
+  recommendationLead?: string;
 }
 
 export class ProductSubjectContextUnavailableError extends Error {
@@ -46,6 +49,18 @@ export class ProductSubjectContextUnavailableError extends Error {
 }
 
 type EvaluatedProduct = Awaited<ReturnType<typeof discoverProductCandidates>>["evaluatedCandidates"][number];
+
+/** Relevance only, never an identity/evidence approval or a semantic substitution. */
+export function shoppingRecommendationMatches(lead: string, candidate: ProductCandidate): boolean {
+  const words = (value: string) => value.toLowerCase().normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "").match(/[a-z0-9]+/g) ?? [];
+  const terms = words(lead);
+  const brand = new Set(words(candidate.identity.brand));
+  const identity = new Set(words(`${candidate.identity.brand} ${candidate.identity.name} ${candidate.identity.variant}`));
+  return terms.filter(term => term.length > 2).length >= 2 &&
+    terms.some(term => term.length > 2 && !brand.has(term)) &&
+    terms.every(term => identity.has(term));
+}
 
 function recommendationStatus(
   item: EvaluatedProduct,
@@ -268,6 +283,9 @@ export async function findProductDevelopment(
     fallbackAdapter?: ProductEvidenceAdapter;
     interpret?: typeof interpretCatalogProduct;
     shoppingIngredient?: ShoppingIngredientRequest;
+    /** Server-owned Find a Product leads; never accepted as package evidence. */
+    recommendationLeads?: readonly string[];
+    onStageTiming?: ShoppingStageTimer;
   } = {},
 ): Promise<{
   catalogMatches: DevelopmentProductMatch[];
@@ -309,15 +327,40 @@ export async function findProductDevelopment(
   // Resolve once to determine only functional search categories. The bounded
   // discovery re-resolves before assessing evidence; no stale profile is used.
   const { resolveProductSubjectAuthority } = await import("./subjectAuthority");
+  const profileStarted = performance.now();
   const initial = await resolveProductSubjectAuthority({
     actorUserId: userId, subjectUserId: userId, subjectKind: "account",
     dateISO,
     ...(shoppingIngredient ? { includeShoppingGuidance: true } : {}),
   }, sources);
+  options.onStageTiming?.("profile", performance.now() - profileStarted);
   if (initial.status !== "resolved") {
     throw new ProductSubjectContextUnavailableError();
   }
-  const intent = buildIntent(food, initial);
+  const makeIntent = (subject: ProductSubjectSnapshot) => {
+    const original = buildIntent(food, subject);
+    return options.recommendationLeads ? {
+      ...original,
+      searchCategories: options.recommendationLeads.map(category => ({
+        category, preservesPurpose: true, adaptationReasonRequirementIds: [],
+      })),
+    } : original;
+  };
+  if (options.recommendationLeads && (!shoppingIngredient ||
+      !options.recommendationLeads.length || options.recommendationLeads.length > 3 ||
+      options.recommendationLeads.some(term => !term.trim() || term.length > 80))) {
+    throw new Error("Shopping recommendation leads must be bounded and preserve the original ingredient.");
+  }
+  const intent = makeIntent(initial);
+  const adapters = options.adapter
+    ? [options.adapter, ...(options.fallbackAdapter ? [options.fallbackAdapter] : [])]
+    : [
+      createOpenFoodFactsSearchAdapter(fetch, options.recommendationLeads ? 1 : intent.searchCategories.length === 1 ? 4 : 1,
+        options.recommendationLeads ? 3 : 8),
+      createUsdaBrandedAdapter(),
+    ];
+  const transports = options.recommendationLeads
+    ? adapters.map(adapter => shoppingEvidenceAdapter(adapter, options.onStageTiming)) : [];
   const evaluated = await discoverProductCandidates({
     subject: {
       actorUserId: userId, subjectUserId: userId, subjectKind: "account",
@@ -327,19 +370,17 @@ export async function findProductDevelopment(
     sources,
     intent,
     registry: DEVELOPMENT_CATALOG_IDENTITY_POLICY,
-    adapters: options.adapter
-      ? [options.adapter, ...(options.fallbackAdapter ? [options.fallbackAdapter] : [])]
-      : [
-        // A small sample per category prevents one provider's first same-brand
-        // page from consuming the entire search budget before other categories.
-        createOpenFoodFactsSearchAdapter(fetch, intent.searchCategories.length === 1 ? 4 : 1, 8),
-        createUsdaBrandedAdapter(),
-      ],
+    adapters: transports.length ? transports.map(transport => transport.adapter) : adapters,
     evaluatedAt: new Date().toISOString(),
     useCurrentEvaluationTime: true,
     // Explore beyond the first same-brand variants; keep source requests bounded.
-    maxCandidates: 40, maxPages: 6, targetCount: 9,
-    maxEvaluatedCandidates: 24,
+    maxCandidates: options.recommendationLeads ? 18 : 40, maxPages: 6,
+    targetCount: options.recommendationLeads ? 3 : 9,
+    maxEvaluatedCandidates: options.recommendationLeads ? 18 : 24,
+    acceptCandidate: options.recommendationLeads
+      ? candidate => options.recommendationLeads!.some(lead => shoppingRecommendationMatches(lead, candidate))
+      : undefined,
+    onSubjectResolved: milliseconds => options.onStageTiming?.("profile", milliseconds),
     allowUnresolvedLeads: true,
     knownConflict: shoppingIngredient
       ? (candidate, subject) => knownIngredientConflict(candidate, {
@@ -361,7 +402,7 @@ export async function findProductDevelopment(
         ? `The exact catalog record is missing ${missing.join(" and ")} needed to describe this product. Check the current package label.`
         : null;
     },
-  });
+  }).finally(() => Promise.all(transports.map(transport => transport.drain())));
   if (evaluated.status === "authority_unresolved") {
     throw new ProductSubjectContextUnavailableError();
   }
@@ -369,17 +410,31 @@ export async function findProductDevelopment(
   // resolution timestamp. Two healthy reads of the same profile necessarily
   // differ. Only compare the search intent, which is the part built from the
   // initial snapshot; all safety decisions use the later resolved subject.
-  if (!evaluated.subject || JSON.stringify(buildIntent(food, evaluated.subject)) !== JSON.stringify(intent)) {
+  if (!evaluated.subject || JSON.stringify(makeIntent(evaluated.subject)) !== JSON.stringify(intent) ||
+      JSON.stringify(buildIntent(food, evaluated.subject)) !== JSON.stringify(buildIntent(food, initial))) {
     throw new ProductSubjectContextUnavailableError(
       "Your product search preferences changed during the search. Please try again.",
     );
   }
   // Smart Grocery must not surface rejected records as review-only choices.
   // The existing Grocery Coach ordering and behavior remain unchanged.
-  const presentationCandidates = shoppingIngredient
+  let presentationCandidates = shoppingIngredient
     ? evaluated.evaluatedCandidates.filter(item => item.decision.status !== "rejected")
     : evaluated.evaluatedCandidates;
-  const presentable = selectDistinctProducts(presentationCandidates, evaluated.subject, evaluated.unresolved);
+  // A hidden record must never consume one of the three visible result slots.
+  if (shoppingIngredient) presentationCandidates = presentationCandidates.filter(({ candidate, decision }) => {
+    const selection = shoppingSelectionBridge(candidate, decision, evaluated.subject!, evaluated.unresolved, shoppingIngredient);
+    return shoppingCatalogPresentation(candidate, decision, selection, shoppingIngredient).shoppingDisplay !== "hidden";
+  });
+  const isSelectable = (item: EvaluatedProduct) => shoppingSelectionBridge(
+    item.candidate, item.decision, evaluated.subject!, evaluated.unresolved, shoppingIngredient!,
+  ).eligible;
+  const presentable = options.recommendationLeads && shoppingIngredient
+    ? [
+      ...selectDistinctProducts(presentationCandidates.filter(isSelectable), evaluated.subject, evaluated.unresolved),
+      ...selectDistinctProducts(presentationCandidates.filter(item => !isSelectable(item)), evaluated.subject, evaluated.unresolved),
+    ].slice(0, 3)
+    : selectDistinctProducts(presentationCandidates, evaluated.subject, evaluated.unresolved);
   const unresolvedHard = evaluated.unresolved.filter((issue) => issue.classification !== "support_context");
   const catalogMatches = presentable.map((item): DevelopmentProductMatch => {
     const { candidate, decision } = item;
@@ -389,6 +444,9 @@ export async function findProductDevelopment(
       : undefined;
     return {
       productKey: candidate.identity.key,
+      ...(options.recommendationLeads ? {
+        recommendationLead: options.recommendationLeads.find(lead => shoppingRecommendationMatches(lead, candidate)),
+      } : {}),
       name: candidate.identity.name,
       brand: candidate.identity.brand,
       barcode: candidate.identity.barcode ?? null,

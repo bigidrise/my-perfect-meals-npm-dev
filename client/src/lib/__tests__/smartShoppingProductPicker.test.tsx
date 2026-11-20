@@ -86,6 +86,20 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
+test("shows the reused personalized explanation while Choose still requires structured eligibility", async () => {
+  const notice = "Personalized recommendations were found, but their exact products or required checks could not be fully verified.";
+  (post as jest.Mock).mockResolvedValue({
+    catalogSearchAvailable: true, recommendationCount: 2, recommendationNotice: notice,
+    catalogMatches: [{ ...review, shoppingCaution: "Reviewed checks aren't available for your dietary requirements.",
+      recommendationExplanation: { whyBetter: ["Personalized explanation from Find a Product."], targetCriteria: "Check the current serving basis." } }],
+  });
+  renderPicker({ open: true });
+  expect(await screen.findByText("Personalized explanation from Find a Product.")).toBeInTheDocument();
+  expect(screen.getByText(notice)).toBeInTheDocument();
+  expect(screen.getByText(/Reviewed checks aren't available/)).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Choose this option/ })).not.toBeInTheDocument();
+});
+
 test("does not request on list render or while the picker is closed", () => {
   renderPicker();
   expect(post).not.toHaveBeenCalled();
@@ -441,7 +455,7 @@ test("a successful empty result shows one supplied shopping tip without changing
   expect(await screen.findByText("No suitable specific product could be identified. You can keep this ingredient generic.")).toBeInTheDocument();
   expect(screen.getAllByText("Compare sodium and saturated fat using the same serving size.")).toHaveLength(1);
   expect(screen.queryByText(/Long generic medical disclaimer/)).not.toBeInTheDocument();
-  expect(screen.getByText(/plain milk · Recipe amount: 2 cups/)).toBeInTheDocument();
+  expect(screen.getByText(/plain milk · Original amount: 2 cups/)).toBeInTheDocument();
   expect(onCommit).not.toHaveBeenCalled();
   expect(post).toHaveBeenCalledTimes(1);
 });
@@ -496,6 +510,6 @@ test("review-only display cannot acquire a button even when the underlying paylo
   const { onCommit } = renderPicker({ open: true });
   await screen.findByText("Check the current label");
   expect(screen.queryByRole("button", { name: "Choose this option" })).not.toBeInTheDocument();
-  expect(screen.getByText(/No suitable specific product could be identified/)).toBeInTheDocument();
+  expect(screen.getByText(/verification is incomplete/)).toBeInTheDocument();
   expect(onCommit).not.toHaveBeenCalled();
 });

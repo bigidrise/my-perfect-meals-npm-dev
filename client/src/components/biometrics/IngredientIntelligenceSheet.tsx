@@ -7,6 +7,7 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import RecommendedProductActions from '@/components/shopping/RecommendedProductActions';
+import { ProductRecommendationExplanation } from '@/components/shopping/ProductRecommendationExplanation';
 import { groceryProductLabel, recommendationIdentity, recommendationProductKey } from '@/lib/savedGroceryRecommendation';
 import { scanSavePayload, restoreSavedAnalysis, type SavedAnalysisKind } from '@/lib/savedGroceryAnalysis';
 import { isCompleteIngredientAnalysis } from '@shared/ingredientAnalysisSnapshot';
@@ -300,21 +301,7 @@ export function BetterAlternativesSection({
                 </button>
               )}
             </div>
-            {alt.whyBetter.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {alt.whyBetter.map((why, j) => (
-                  <span key={j} className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-300 bg-emerald-500/15 border border-emerald-500/25 rounded-full px-2 py-0.5">
-                    <span className="text-[9px] font-bold">✓</span>
-                    <IngredientAnalysisText text={why} />
-                  </span>
-                ))}
-              </div>
-            )}
-            {alt.targetCriteria && (
-              <p className="text-[11px] text-white/50 leading-snug border-t border-white/8 pt-2">
-                📍 <IngredientAnalysisText text={alt.targetCriteria} />
-              </p>
-            )}
+            <ProductRecommendationExplanation whyBetter={alt.whyBetter} targetCriteria={alt.targetCriteria} marker="📍 " />
             <RecommendedProductActions alternative={alt} query={query} educationalFooter={educationalFooter} source={source} subjectKind={subjectKind} />
           </div>
         ))}

@@ -42,7 +42,7 @@ import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
 import { packagedProductEligibility, recipeShoppingQuantity } from "@/lib/groceryCoachPackagedIngredients";
 import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
-import { groceryCoachSelectedProductMetadata } from "@/lib/groceryCoachShoppingTransfer";
+import { groceryCoachSelectedProductMetadata, groceryCoachStandaloneProductMetadata } from "@/lib/groceryCoachShoppingTransfer";
 import MealIngredientBrands from "./MealIngredientBrands";
 import type { ShoppingCatalogDecision } from "@shared/shoppingProductSelection";
 import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
@@ -141,6 +141,7 @@ interface ProductAdviceResult {
     nutrition?: { statement: string; source: string }[];
     allergenInformation?: { statement: string; source: string }[];
     profileInsight?: string;
+    recommendationExplanation?: { whyBetter: string[]; targetCriteria: string };
     shoppingSelection?: ShoppingCatalogDecision;
     shoppingDisplay?: "selectable" | "label_review" | "hidden";
     shoppingCaution?: string;
@@ -655,10 +656,14 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       quantity: 1,
       unit: "",
       sourceMeals: [t("findProduct.tabFindProduct")],
+      ...(shoppingMetadataEnabled && productSearch?.analysis ? {
+        ingredientMetadata: groceryCoachStandaloneProductMetadata(brand,
+          { name: brand, byNameAnalysis: productSearch.analysis }),
+      } : {}),
     }]);
     setProductAddedKeys((prev) => new Set(Array.from(prev).concat(key)));
     toast({ title: t("findProduct.added") });
-  }, [productAddedKeys, addItems, toast, t]);
+  }, [productAddedKeys, addItems, toast, t, productSearch]);
 
   const handleCatalogAddToList = useCallback((product: CatalogProductMatch) => {
     const key = `catalog:${product.productKey}`;
@@ -671,6 +676,9 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     addItem({
       name, quantity: 1, unit: "", category: "Other",
       sourceMeals: [t("findProduct.tabFindProduct")],
+      ...(shoppingMetadataEnabled ? {
+        ingredientMetadata: groceryCoachStandaloneProductMetadata(name, product),
+      } : {}),
     });
     setProductAddedKeys((prev) => new Set([...prev, key]));
     toast({ title: t("findProduct.added"), description: name });

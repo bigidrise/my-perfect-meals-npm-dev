@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import "./ShoppingListResponsive.css";
 import { motion } from "framer-motion";
 import {
   Check,
@@ -645,7 +646,7 @@ export default function ShoppingListMasterView() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
+      className="shopping-list-page min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
     >
       {/* Universal Safe-Area Header */}
       <MobileHeaderGuard>
@@ -985,17 +986,17 @@ export default function ShoppingListMasterView() {
                 key={cat}
                 className="rounded-2xl bg-white/5 border border-white/20 p-4 backdrop-blur"
               >
-                <div className="flex items-center justify-between mb-3">
+                <div className="shopping-category-header flex items-center justify-between mb-3">
                   <div>
                     <h3 className="text-white font-semibold">{categoryLabels[cat] || cat}</h3>
                     <span className="text-white/50 text-xs">
                       {arr.length} {t("items")}
                     </span>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="shopping-category-actions flex gap-2">
                     <Button
                       size="sm"
-                      className="h-9 px-3 text-sm bg-white/10 border border-white/25 text-white active:scale-[.98]"
+                      className="shopping-list-control-target h-9 px-3 text-sm bg-white/10 border border-white/25 text-white active:scale-[.98]"
                       onClick={() => {
                         const updated = items.map((i) =>
                           cat === "All" || i.category === cat
@@ -1010,7 +1011,7 @@ export default function ShoppingListMasterView() {
                     </Button>
                     <Button
                       size="sm"
-                      className="h-9 px-3 text-sm bg-white/10 border border-white/25 text-white active:scale-[.98]"
+                      className="shopping-list-control-target h-9 px-3 text-sm bg-white/10 border border-white/25 text-white active:scale-[.98]"
                       onClick={() => {
                         const updated = items.map((i) =>
                           cat === "All" || i.category === cat
@@ -1035,7 +1036,7 @@ export default function ShoppingListMasterView() {
                       }
                       data-wt="msl-item-card"
                       key={item.id}
-                      className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${
+                      className={`shopping-item-row flex items-center gap-3 p-2 rounded-lg transition-colors ${
                         item.isChecked ? "bg-white/5 opacity-50" : "bg-white/10"
                       }`}
                     >
@@ -1043,8 +1044,9 @@ export default function ShoppingListMasterView() {
                         data-wt="msl-item-checkoff"
                         onClick={() => handleToggleConsolidated((item as ConsolidatedItem).allIds, item.isChecked)}
                         aria-pressed={item.isChecked || false}
+                        aria-label={item.isChecked ? `Mark ${item.name} as not purchased` : `Mark ${item.name} as purchased`}
                         size="sm"
-                        className={`h-8 w-8 p-0 flex-shrink-0 transition-all ${
+                        className={`shopping-item-check shopping-list-control-target h-8 w-8 p-0 flex-shrink-0 transition-all ${
                           item.isChecked
                             ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-400/50"
                             : "bg-black/60 border border-white/20 text-white hover:bg-black/70"
@@ -1056,65 +1058,73 @@ export default function ShoppingListMasterView() {
 
                       {editingId === item.id ? (
                         <>
-                          <Input
-                            defaultValue={item.name}
-                            onBlur={(e) => {
-                              updateItem(item.id, { name: e.target.value });
-                              setEditingId(null);
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                updateItem(item.id, {
-                                  name: (e.target as HTMLInputElement).value,
-                                });
+                          <div className="shopping-item-edit-fields">
+                            <Input
+                              defaultValue={item.name}
+                              onBlur={(e) => {
+                                updateItem(item.id, { name: e.target.value });
                                 setEditingId(null);
-                              }
-                            }}
-                            className="flex-1 bg-black/30 border-white/30 text-white h-8"
-                            autoFocus
-                          />
-                          <Input
-                            defaultValue={item.quantity ?? ""}
-                            onBlur={onInlineEdit(item.id, "quantity")}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                const val = parseMeasurementNumber(
-                                  (e.target as HTMLInputElement).value,
-                                );
-                                if (val !== null && val >= 0) updateItem(item.id, { quantity: val });
-                              }
-                            }}
-                            className="w-16 bg-black/30 border-white/30 text-white h-8"
-                            placeholder={t("Qty")}
-                            data-testid={`input-qty-${item.id}`}
-                          />
-                          <Input
-                            defaultValue={item.unit ?? ""}
-                            onBlur={onInlineEdit(item.id, "unit")}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                updateItem(item.id, {
-                                  unit: (e.target as HTMLInputElement).value,
-                                });
-                              }
-                            }}
-                            className="w-20 bg-black/30 border-white/30 text-white h-8"
-                            placeholder={t("Unit")}
-                            data-testid={`input-unit-${item.id}`}
-                          />
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  updateItem(item.id, {
+                                    name: (e.target as HTMLInputElement).value,
+                                  });
+                                  setEditingId(null);
+                                }
+                              }}
+                              className="shopping-item-name-input flex-1 bg-black/30 border-white/30 text-white h-8"
+                              autoFocus
+                              aria-label={`Ingredient name for ${item.name}`}
+                            />
+                            <div className="shopping-item-edit-amounts">
+                              <Input
+                                defaultValue={item.quantity ?? ""}
+                                onBlur={onInlineEdit(item.id, "quantity")}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    const val = parseMeasurementNumber(
+                                      (e.target as HTMLInputElement).value,
+                                    );
+                                    if (val !== null && val >= 0) updateItem(item.id, { quantity: val });
+                                  }
+                                }}
+                                className="shopping-item-edit-quantity w-16 bg-black/30 border-white/30 text-white h-8"
+                                placeholder={t("Qty")}
+                                aria-label={`Quantity for ${item.name}`}
+                                data-testid={`input-qty-${item.id}`}
+                              />
+                              <Input
+                                defaultValue={item.unit ?? ""}
+                                onBlur={onInlineEdit(item.id, "unit")}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    updateItem(item.id, {
+                                      unit: (e.target as HTMLInputElement).value,
+                                    });
+                                  }
+                                }}
+                                className="shopping-item-edit-unit w-20 bg-black/30 border-white/30 text-white h-8"
+                                placeholder={t("Unit")}
+                                aria-label={`Unit for ${item.name}`}
+                                data-testid={`input-unit-${item.id}`}
+                              />
+                            </div>
+                          </div>
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => setEditingId(null)}
-                            className="text-white hover:bg-white/10"
+                            aria-label={`Finish editing ${item.name}`}
+                            className="shopping-item-edit-save shopping-list-control-target text-white hover:bg-white/10"
                           >
                             <Check className="h-4 w-4" />
                           </Button>
                         </>
                       ) : (
                         <>
-                          <div className="min-w-0 flex-1">
-                            <div className={`text-white ${item.isChecked ? "line-through" : ""}`}>
+                          <div className="shopping-item-content min-w-0 flex-1">
+                            <div className={`shopping-item-name text-white ${item.isChecked ? "line-through" : ""}`}>
                               {item.name}
                             </div>
                             <SmartShoppingProductChoice
@@ -1127,25 +1137,30 @@ export default function ShoppingListMasterView() {
                             />
                           </div>
                           <ShoppingQuantity item={item as ConsolidatedItem} />
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setEditingId(item.id)}
-                            className="text-white hover:bg-white/10"
-                            data-testid={`button-edit-${item.id}`}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <TrashButton
-                            data-wt="msl-item-trash"
-                            size="sm"
-                            onClick={() => removeConsolidatedItem((item as ConsolidatedItem).allIds)}
-                            confirm
-                            confirmMessage="Delete this shopping list item?"
-                            ariaLabel={t("Delete item")}
-                            title={t("Delete item")}
-                            data-testid={`button-delete-${item.id}`}
-                          />
+                          <div className="shopping-item-actions">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setEditingId(item.id)}
+                              aria-label={`Edit ${item.name}`}
+                              title={t("Edit item")}
+                              className="shopping-list-control-target text-white hover:bg-white/10"
+                              data-testid={`button-edit-${item.id}`}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <TrashButton
+                              data-wt="msl-item-trash"
+                              size="sm"
+                              onClick={() => removeConsolidatedItem((item as ConsolidatedItem).allIds)}
+                              confirm
+                              confirmMessage="Delete this shopping list item?"
+                              ariaLabel={t("Delete item")}
+                              title={t("Delete item")}
+                              className="shopping-list-control-target"
+                              data-testid={`button-delete-${item.id}`}
+                            />
+                          </div>
                         </>
                       )}
                     </div>
@@ -1184,19 +1199,20 @@ export default function ShoppingListMasterView() {
                           {arr.map((item) => (
                             <div
                               key={item.id}
-                              className="flex items-center gap-3 p-2 rounded-lg bg-white/5 opacity-60"
+                              className="shopping-item-row shopping-purchased-row flex items-center gap-3 p-2 rounded-lg bg-white/5 opacity-60"
                             >
                               <Button
                                 onClick={() => handleToggleConsolidated((item as ConsolidatedItem).allIds, item.isChecked)}
                                 aria-pressed={item.isChecked || false}
+                                aria-label={`Mark ${item.name} as not purchased`}
                                 size="sm"
-                                className="h-8 w-8 p-0 flex-shrink-0 bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-400/50"
+                                className="shopping-item-check shopping-list-control-target h-8 w-8 p-0 flex-shrink-0 bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-400/50"
                                 data-testid={`checkbox-purchased-${item.id}`}
                               >
                                 <Check className="h-4 w-4" />
                               </Button>
-                              <div className="min-w-0 flex-1">
-                                <div className="text-white line-through">{item.name}</div>
+                              <div className="shopping-item-content min-w-0 flex-1">
+                                <div className="shopping-item-name text-white line-through">{item.name}</div>
                                 <SmartShoppingProductChoice
                                   item={item}
                                   enabled={productPickerEnabled}
@@ -1207,15 +1223,18 @@ export default function ShoppingListMasterView() {
                                 />
                               </div>
                               <ShoppingQuantity item={item as ConsolidatedItem} />
-                              <TrashButton
-                                size="sm"
-                                onClick={() => removeConsolidatedItem((item as ConsolidatedItem).allIds)}
-                                confirm
-                                confirmMessage="Delete this purchased item?"
-                                ariaLabel={t("Delete item")}
-                                title={t("Delete item")}
-                                data-testid={`button-delete-purchased-${item.id}`}
-                              />
+                              <div className="shopping-item-actions">
+                                <TrashButton
+                                  size="sm"
+                                  onClick={() => removeConsolidatedItem((item as ConsolidatedItem).allIds)}
+                                  confirm
+                                  confirmMessage="Delete this purchased item?"
+                                  ariaLabel={t("Delete item")}
+                                  title={t("Delete item")}
+                                  className="shopping-list-control-target"
+                                  data-testid={`button-delete-purchased-${item.id}`}
+                                />
+                              </div>
                             </div>
                           ))}
                         </div>

@@ -699,7 +699,16 @@ router.post("/product-advisor", async (req, res) => {
             return res.status(400).json({ error: "Invalid original shopping ingredient requirements." });
           }
         }
-        const matches = await findProductDevelopment(userId, ingredients[0], { shoppingIngredient });
+        const matches = shoppingIngredient
+          ? await (await import("../services/productDiscovery/findShoppingProductRecommendationsDevelopment"))
+            .findShoppingProductRecommendationsDevelopment(userId, shoppingIngredient)
+          : await findProductDevelopment(userId, ingredients[0]);
+        if (shoppingIngredient && "lookupTiming" in matches) {
+          console.info("[SmartShopping/Development]", JSON.stringify({
+            timing: matches.lookupTiming, searched: matches.searched,
+            returned: matches.catalogMatches.length,
+          }));
+        }
         if (!shoppingIngredient && !matches.catalogMatches.length && !matches.catalogSearchAvailable) {
           return res.status(503).json({
             error: "The product catalog is unavailable right now. Please try again.",
