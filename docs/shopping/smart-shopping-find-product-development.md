@@ -28,6 +28,50 @@ performed. Barcode controls and unrelated product areas were not changed.
   identity using the existing transfer helper. This does not approve the product
   or backfill legacy rows. Existing branded references change only explicitly.
 
+## Direct row-to-service verification
+
+The requested direct connection already exists in the Development runtime; the
+follow-up adds explicit regression coverage rather than a second implementation.
+
+1. `ShoppingListMasterView.openProductPicker` captures the selected row's original
+   ingredient, source-row IDs, quantity label, existing choice and account/profile
+   session identity.
+2. `ShoppingProductPicker` makes one explicit
+   `POST /api/grocery-coach/product-advisor` with `mode: "find_product"`,
+   `ingredients: [originalName]`, and the original structured
+   `shoppingIngredient`. It has no search textbox or Add/Save action.
+3. The authenticated, Pro-gated router selects
+   `findShoppingProductRecommendationsDevelopment`, whose default path invokes
+   the existing `analyzeProductByName(originalName, authenticatedUserId)`.
+4. Grocery Coach's existing Find a Product instead enters through
+   `POST /api/biometrics/ingredient-scan-by-name`; that endpoint calls the same
+   `analyzeProductByName` service. Its saved-profile loading and recommendation
+   prompts are reused unchanged.
+5. Existing evidence adapters and `shoppingSelectionBridge` verify exact
+   products. `ProductCatalogChoices` reuses
+   `ProductRecommendationExplanation`; only supported structured selections
+   expose Choose.
+6. Choose uses `commitProductChoice` and the existing store `chooseProduct`
+   update, never Grocery Coach Add/Save. No new endpoint was introduced.
+
+New regressions explicitly cover both olive oil and an existing branded row
+being forwarded without reentry, and the service's actual default delegation
+with the authenticated subject. Only tests and this report changed in the
+follow-up; mobile corrections and application behavior were left intact.
+
+Synthetic recommendation outcomes:
+
+| Fixture | Visible options | Selectable |
+| --- | ---: | ---: |
+| Resolved profile and complete matching evidence for Synthetic Alpha/Beta/Gamma Olive Oil | 3 | 3 |
+| Same sourced products, required profile-specific checks unresolved | 3 review-only | 0 |
+| Known explicit ingredient conflict | 0 | 0 |
+| Required exact-record ingredient facts missing | 0 | 0 |
+
+Review-only recommendations retain personalized explanations but no Choose.
+Unverified AI names alone are not offered as catalog-backed choices. These
+fixtures are not live customer recommendations.
+
 ## Performance
 
 One recommendation generation runs per real picker opening. Existing
@@ -46,14 +90,16 @@ Controlled offline result with simulated 20 ms exact-record reads:
 | Path | Exact reads | Elapsed |
 | --- | ---: | ---: |
 | Former broad catalog scan | 9 | 187 ms |
-| Integrated targeted lookup | 3 | 44 ms |
+| Integrated targeted lookup | 3 | 43 ms |
 
 The recommendation was mocked in this experiment. Live AI/catalog latency and
 catalog coverage have not been measured or claimed.
 
 ## Verification
 
-- 316 focused tests passed across nine suites.
+- 319 focused tests passed across nine suites, including the new direct-path
+  checks. Eight suites passed in the combined run; the service suite passed its
+  focused rerun after preserving the real profile helper in the test mock.
 - Strict safety type gate passed.
 - Full release type check found the same existing 109 diagnostics and unchanged
   diagnostic fingerprint; no diagnostics were reported in the changed files.

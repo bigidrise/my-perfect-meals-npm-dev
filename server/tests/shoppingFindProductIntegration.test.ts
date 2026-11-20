@@ -4,6 +4,12 @@ import type { ProductSubjectSources } from "../services/productDiscovery/subject
 import type { ProductEvidenceAdapter, SourceProductRecord } from "../services/productDiscovery/productEvidenceAdapters";
 import type { IngredientScanResult } from "../services/ingredientScanService";
 import { findProductDevelopment } from "../services/productDiscovery/findProductDevelopment";
+import { analyzeProductByName } from "../services/ingredientScanService";
+
+jest.mock("../services/ingredientScanService", () => ({
+  ...jest.requireActual("../services/ingredientScanService"),
+  analyzeProductByName: jest.fn(),
+}));
 
 const owner = "synthetic-shopping-member";
 const ingredient = { originalName: "olive oil", requirements: [] };
@@ -83,6 +89,21 @@ test("reuses one by-name recommendation, source evidence and the existing select
   }
   expect(f.records).toEqual(before);
   expect(result.lookupTiming.totalMs).toBeGreaterThanOrEqual(result.lookupTiming.recommendationMs);
+});
+
+test("the default Shopping path calls the existing Find a Product service with the authenticated subject and row name", async () => {
+  const f = fixture();
+  (analyzeProductByName as jest.Mock).mockResolvedValueOnce(analysis());
+  const result = await lookup(owner, ingredient, {
+    discoveryOptions: { sources: f.sources, adapter: f.adapter },
+  });
+  expect(analyzeProductByName).toHaveBeenCalledTimes(1);
+  expect(analyzeProductByName).toHaveBeenCalledWith(ingredient.originalName, owner);
+  expect(f.recommend).not.toHaveBeenCalled();
+  expect(result.catalogMatches).toHaveLength(3);
+  expect(result.catalogMatches.every(match => match.shoppingSelection?.eligible)).toBe(true);
+  expect(result.catalogMatches.every(match =>
+    match.shoppingSelection?.selection?.product.assessment.subjectReference === owner)).toBe(true);
 });
 
 test("recommendations and Add-style names never bypass unresolved profile policy", async () => {

@@ -86,6 +86,24 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
+test.each(["olive oil", "Muir Glen Organic Tomato Basil Sauce"])(
+  "opening the picker forwards its %s row directly without a search field or Add/Save action",
+  async originalName => {
+    (post as jest.Mock).mockResolvedValue({ catalogSearchAvailable: true, catalogMatches: [] });
+    const rowIngredient = { originalName, requirements: [] };
+    const { onCommit } = renderPicker({ open: true, ingredient: rowIngredient });
+    await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+    expect(post).toHaveBeenCalledWith("/api/grocery-coach/product-advisor", {
+      mode: "find_product",
+      ingredients: [originalName],
+      shoppingIngredient: rowIngredient,
+    });
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^(add|save)( |$)/i })).not.toBeInTheDocument();
+    expect(onCommit).not.toHaveBeenCalled();
+  },
+);
+
 test("shows the reused personalized explanation while Choose still requires structured eligibility", async () => {
   const notice = "Personalized recommendations were found, but their exact products or required checks could not be fully verified.";
   (post as jest.Mock).mockResolvedValue({

@@ -1601,3 +1601,17 @@ mtime_ms = 1795133034852
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/bf5c24a6-9f11-499c-867d-78cfdaf0c551/36c0af66-2333-4bc3-a8d0-c3496731f684"
 storage_version_token = "1795133355153247"
 content_type = "image/png"
+
+[[outputs]]
+id = "d-S-WOuY0gTHxZCXG1Jpu"
+uri = "file://generated-artifacts/smart-shopping-responsive/smart-grocery-responsive-report.html"
+type = "html"
+title = "Smart Grocery mobile layout: before and after"
+description = "Synthetic-browser screenshots at 320, 375, 390, 430, 768 and 1440px; 69 responsive checks passed. Includes picker and bottom-navigation clearance, with verification limits disclosed."
+logical_id = "90b9c7a9-1081-4a04-a093-5ed0f1d86d78"
+content_hash = "sha256:3c226303fc086506a1090bebe61fea03aea3a51027c273686ebd6cde7b3ebb70"
+size = 3559982
+mtime_ms = 1795139447682
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/90b9c7a9-1081-4a04-a093-5ed0f1d86d78/7aa3090b-b236-4102-b7ce-d4b38913c7ce"
+storage_version_token = "1795139472183593"
+content_type = "text/html"
