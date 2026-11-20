@@ -19,7 +19,7 @@ import {
   useShoppingListStore,
   ShoppingListItem,
 } from "@/stores/shoppingListStore";
-import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
+import { shoppingProductOptionsEnabled } from "@/lib/shoppingProductOptionsGate";
 import { buildConsolidatedItems, ConsolidatedItem } from "@/lib/shoppingConsolidation";
 import { Button } from "@/components/ui/button";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
@@ -199,7 +199,7 @@ export default function ShoppingListMasterView() {
     currentSelection: ShoppingProductSelection | null;
     sessionKey: string;
   } | null>(null);
-  const productPickerEnabled = shoppingMetadataEnabled && groceryCoachCatalogEnabled;
+  const productPickerEnabled = shoppingProductOptionsEnabled;
   const productPickerSessionKey = `${user?.id || "guest"}:${JSON.stringify(user ?? null)}`;
   const previousProductSession = useRef(productPickerSessionKey);
   useEffect(() => {
