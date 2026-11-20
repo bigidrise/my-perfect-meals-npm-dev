@@ -20,6 +20,20 @@ Choose Product action only where packaged-product selection matters, and start
 lookups only when the member taps it. Show a saved choice beneath the original
 ingredient without replacing its name or recipe quantity; allow change/clear.
 
+The founder confirmed Find a Product's generic-to-branded personalized
+recommendation experience as the intended source for Shopping List options.
+Reuse that experience rather than treating a parallel catalog-only presentation
+as equivalent. Independently enforce the existing selection requirements:
+an AI recommendation or Add/Save action does not establish verified eligibility.
+Show up to three eligible branded choices without weakening rules to fill the
+count. Preserve existing Product Scan identity and require explicit alternative
+selection.
+
+**Why:** The founder confirmed the intended behavior using Development screenshots
+and explicitly distinguished recommendation Add/Save from Shopping List
+replacement. This product direction is not permission for live provider calls,
+account writes, implementation before the requested approach report, or Production changes.
+
 **Why:** The user explicitly approved this simpler Development-only direction and
 prohibited a new engine, clinical-rule system, additional migrations, automatic
 lookups or extra AI calls. Interface approval is not permission for live writes.
