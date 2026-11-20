@@ -25,9 +25,13 @@ performed. Barcode controls and unrelated product areas were not changed.
   Shopping. Grocery Coach retains its default actions unchanged. Shopping does
   not mount `RecommendedProductActions` or invoke its saved-grocery operations.
 - Each visible recommendation has a separate verification result linked to an
-  exact catalog `productKey`. The client independently checks its matching
+  exact catalog `productKey`. A separate `catalogProductKey` allows reviewing
+  sourced identity and label facts without granting selection permission.
+  The client independently checks its matching
   recommendation lead, evidence status, display status, structured selection,
-  product key and original ingredient signature before exposing Choose.
+  product key, verified recommendation variant and original ingredient signature
+  before exposing **Choose for My List**. Exact binding preserves all named
+  brand/product/variant/package terms, apart from punctuation, case and spacing.
 - Missing exact records or incomplete checks produce Review only, with no
   selection capability. A catalog outage preserves the personalized cards as
   review-only instead of hiding the successful recommendation result.
@@ -114,7 +118,8 @@ catalog coverage have not been measured or claimed.
 
 ## Verification
 
-- 372 focused tests passed across eleven suites for the shared-card integration.
+- 385 focused tests passed across eleven suites for the shared-card integration
+  and evidence-first corrections.
   This includes complete objects, the shared card's default Coach actions,
   eligible/review-only Shopping states, mismatched identity/ingredient rejection,
   known-conflict exclusion and catalog outages.
@@ -125,13 +130,22 @@ catalog coverage have not been measured or claimed.
   integration. It still FAILS the reviewed baseline fingerprint
   `9baf1a0a477bef598b2c7b9afaba2624c41cae19a7705ee30f43ceeeab873ef3`.
   The baseline was not refreshed. This is not a clean release type gate.
-- The new isolated mobile browser report records 72 passing checks and seven
+- The initial shared-card mobile browser report recorded 72 passing checks and seven
   failed assertions. Several failures are fixture assertion mistakes, and an
   explanation visibility check was unresolved. Do not describe it as a clean
   acceptance pass. Synthetic Choose, reload, Change and Clear produced three
   metadata-only PATCHes, zero shopping-item POSTs and no duplicate olive row.
   All API traffic was intercepted; external traffic and unknown writes were
   blocked. No real-profile eligibility was established.
+- The targeted evidence-correction follow-up recorded 53 passing checks and two
+  overlap-heuristic failures caused by counting content inside closed native
+  details panels. The corrected test was not rerun. Visual inspection of the
+  320px and 375px captures confirms readable, non-overlapping collapsed cards.
+  Do not report this as a fully green browser suite. Functional checks passed for
+  **Choose for My List**, reload, Change, Clear, original quantities/contributions,
+  no duplicate rows, inspectable quinoa-unresolved evidence, and a nonselectable
+  mismatched variant. Only the designated synthetic row received three metadata
+  PATCHes; there were zero shopping POSTs or real backend writes.
 - The tester inadvertently ran imported older responsive tests before narrowing
   its filter, overwriting `smart-shopping-responsive/before/` generated captures
   and the generated isolation-probe output with current-source captures.
@@ -158,13 +172,23 @@ evidence that the Choose renderer suppressed an eligible Rao's product.
 Successful empty-hard-rule synthetic fixtures do not establish real-profile
 eligibility.
 
-Two additional adapter limitations were confirmed: review-only recommendation
-checks omit a catalog product reference, preventing the shared card's action
-adapter from showing available sourced details; and the discovery lead matcher
-checks brand/product token containment rather than strict variant equality.
-The actual Rao's source record/variant was not independently fetched. Further
-correction must preserve the unresolved safety hold and must not turn AI claims
-or an incomplete ingredient list into product-specific verification.
+The two confirmed adapter gaps are corrected: review-only checks now retain a
+separate non-selectable catalog reference and expose native expandable source
+identity/label details; selection now requires exact recommendation identity and
+variant binding in addition to all existing product/profile checks. Broad token
+containment remains retrieval relevance only. A different size or variant is
+review-only, never silently selected as the named recommendation.
+
+There is no installed trusted product-avoidance assessor or reviewed current-label
+ingestion path to wire into the current policy. That missing capability was NOT
+replaced with a guessed policy. The actual Rao's source record/variant was not
+independently fetched. The quinoa hold remains unresolved: a catalog ingredient
+list not mentioning quinoa does not supply the missing reviewed verification.
+Offline tests cover absent mention, positive ingredient conflict, exact eligible
+variants, ambiguous variants and inspectable review-only source records.
+Near variants are downgraded before the eligible-result budget is counted, so
+they cannot exhaust the three-result target and conceal exact variants later in
+the same bounded search.
 
 To repeat the focused regression suite without credentials or network access:
 

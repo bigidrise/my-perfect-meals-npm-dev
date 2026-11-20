@@ -13,6 +13,7 @@ import { canonicalShoppingIngredient, type ShoppingIngredientRequest, type Shopp
 import { shoppingSelectionBridge } from "./shoppingSelectionBridge";
 import { shoppingCatalogPresentation, shoppingCatalogTip } from "./shoppingCatalogGuidance";
 import { shoppingEvidenceAdapter, type ShoppingStageTimer } from "./shoppingEvidenceAdapter";
+import { shoppingRecommendationIdentityMatches } from "./shoppingRecommendationIdentity";
 
 export interface DevelopmentProductMatch {
   shoppingSelection?: ShoppingCatalogDecision;
@@ -39,6 +40,9 @@ export interface DevelopmentProductMatch {
   profileInsight?: string;
   recommendationExplanation?: { whyBetter: string[]; targetCriteria: string };
   recommendationLead?: string;
+  recommendationIdentityVerified?: boolean;
+  variant?: string;
+  packageSize?: string;
 }
 
 export class ProductSubjectContextUnavailableError extends Error {
@@ -409,7 +413,10 @@ export async function findProductDevelopment(
       ].filter(Boolean);
       return missing.length
         ? `The exact catalog record is missing ${missing.join(" and ")} needed to describe this product. Check the current package label.`
-        : null;
+        : options.recommendationLeads && !options.recommendationLeads.some(lead =>
+          shoppingRecommendationIdentityMatches(lead, candidate))
+          ? "The exact recommended product and variant could not be confirmed."
+          : null;
     },
   }).finally(() => Promise.all(transports.map(transport => transport.drain())));
   if (evaluated.status === "authority_unresolved") {
@@ -440,7 +447,9 @@ export async function findProductDevelopment(
     const selection = shoppingSelectionBridge(candidate, decision, evaluated.subject!, evaluated.unresolved, shoppingIngredient);
     return shoppingCatalogPresentation(candidate, decision, selection, shoppingIngredient).shoppingDisplay !== "hidden";
   });
-  const isSelectable = (item: EvaluatedProduct) => shoppingSelectionBridge(
+  const isSelectable = (item: EvaluatedProduct) =>
+    (!options.recommendationLeads || options.recommendationLeads.some(lead =>
+      shoppingRecommendationIdentityMatches(lead, item.candidate))) && shoppingSelectionBridge(
     item.candidate, item.decision, evaluated.subject!, evaluated.unresolved, shoppingIngredient!,
   ).eligible;
   const presentable = options.recommendationLeads && shoppingIngredient
@@ -453,13 +462,26 @@ export async function findProductDevelopment(
   const catalogMatches = presentable.map((item): DevelopmentProductMatch => {
     const { candidate, decision } = item;
     const recommendation = recommendationStatus(item, evaluated.subject!, evaluated.unresolved);
-    const shoppingSelection = shoppingIngredient
+    let shoppingSelection = shoppingIngredient
       ? shoppingSelectionBridge(candidate, decision, evaluated.subject!, evaluated.unresolved, shoppingIngredient)
       : undefined;
+    const recommendationLead = options.recommendationLeads?.find(lead =>
+      shoppingRecommendationIdentityMatches(lead, candidate)) ??
+      options.recommendationLeads?.find(lead => shoppingRecommendationMatches(lead, candidate));
+    const recommendationIdentityVerified = !!recommendationLead &&
+      shoppingRecommendationIdentityMatches(recommendationLead, candidate);
+    if (options.recommendationLeads && shoppingSelection && !recommendationIdentityVerified) {
+      shoppingSelection = {
+        eligible: false,
+        reason: "The exact recommended product and variant could not be confirmed. " +
+          (shoppingSelection.eligible ? "This catalog candidate is for review only." : shoppingSelection.reason),
+      };
+    }
     return {
       productKey: candidate.identity.key,
       ...(options.recommendationLeads ? {
-        recommendationLead: options.recommendationLeads.find(lead => shoppingRecommendationMatches(lead, candidate)),
+        recommendationLead, recommendationIdentityVerified,
+        variant: candidate.identity.variant, packageSize: candidate.identity.packageSize,
       } : {}),
       name: candidate.identity.name,
       brand: candidate.identity.brand,

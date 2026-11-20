@@ -5,4 +5,6 @@ export interface ShoppingRecommendationVerification {
   reason: string;
   /** References an independently verified catalogMatches entry, never an AI identity. */
   productKey?: string;
+  /** Reviewable source record only; this field never grants selection eligibility. */
+  catalogProductKey?: string;
 }

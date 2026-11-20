@@ -65,11 +65,12 @@ export async function findShoppingProductRecommendationsDevelopment(
     const eligible = exactMatches.find(match => match.shoppingSelection?.eligible);
     if (eligible) return {
       recommendationCategory: category, status: "eligible",
-      productKey: eligible.productKey,
+      productKey: eligible.productKey, catalogProductKey: eligible.productKey,
       reason: "This exact catalog product passed the existing Shopping selection checks. Check the current package label before buying.",
     };
     return {
       recommendationCategory: category, status: "review_only",
+      ...(exactMatches[0] ? { catalogProductKey: exactMatches[0].productKey } : {}),
       reason: category.length > 80
         ? "The recommendation exceeds the exact-product lookup limit. Its identity and suitability have not been verified."
         : !result.catalogSearchAvailable

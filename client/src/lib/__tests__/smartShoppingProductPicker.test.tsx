@@ -100,6 +100,7 @@ function sharedResponse(originalName = "olive oil") {
     return {
       ...supported, productKey, name: "Olive Oil", brand: alternative.brand,
       ingredients: "Olive oil", shoppingDisplay: "selectable",
+      recommendationIdentityVerified: true,
       recommendationLead: alternative.category,
       shoppingSelection: { eligible: true, selection: {
         ...selection, ingredient: rowIngredient,
@@ -123,7 +124,7 @@ test.each(["olive oil", "Synthetic Brand Olive Oil"])(
     const response = sharedResponse(originalName);
     (post as jest.Mock).mockResolvedValue(response);
     const { onCommit } = renderPicker({ open: true, ingredient: { originalName, requirements: [] } });
-    const choices = await screen.findAllByRole("button", { name: "Choose this exact product" });
+    const choices = await screen.findAllByRole("button", { name: "Choose for My List" });
     expect(choices).toHaveLength(3);
     response.recommendations.forEach(alt => {
       expect(screen.getByText(alt.category)).toBeInTheDocument();
@@ -168,7 +169,7 @@ test("review-only cards preserve original explanations and the exact unresolved 
   expect(onCommit).not.toHaveBeenCalled();
 });
 
-test.each(["missing key", "cross-linked brand", "wrong ingredient", "hidden", "unverified evidence", "missing selection"])(
+test.each(["missing key", "cross-linked brand", "wrong ingredient", "hidden", "unverified evidence", "missing selection", "unverified variant"])(
   "shared cards fail closed for %s despite a claimed eligible recommendation",
   async defect => {
     const response = sharedResponse();
@@ -181,6 +182,7 @@ test.each(["missing key", "cross-linked brand", "wrong ingredient", "hidden", "u
     if (defect === "hidden") record.shoppingDisplay = "hidden";
     if (defect === "unverified evidence") record.evidenceStatus = "needs_verification";
     if (defect === "missing selection") record.shoppingSelection.selection = null as any;
+    if (defect === "unverified variant") record.recommendationIdentityVerified = false;
     (post as jest.Mock).mockResolvedValue(response);
     const { onCommit } = renderPicker({ open: true, ingredient: { originalName: "olive oil", requirements: [] } });
     expect(await screen.findByText(/Review only — A matching exact-product selection could not be verified/)).toBeInTheDocument();
@@ -189,6 +191,25 @@ test.each(["missing key", "cross-linked brand", "wrong ingredient", "hidden", "u
     expect(onCommit).not.toHaveBeenCalled();
   },
 );
+
+test("review-only cards expose matching source identity and label evidence without a selection capability", async () => {
+  const response = sharedResponse();
+  response.recommendationChecks = response.recommendationChecks.map(check => ({
+    ...check, status: "review_only", productKey: undefined as any,
+    catalogProductKey: check.productKey,
+    reason: "Reviewed checks aren't available for the foods you avoid (quinoa). This does not mean the product contains a restricted ingredient.",
+  }));
+  (post as jest.Mock).mockResolvedValue(response);
+  const { onCommit } = renderPicker({ open: true, ingredient: { originalName: "olive oil", requirements: [] } });
+  const summaries = await screen.findAllByText("Review product identity and label evidence");
+  expect(summaries).toHaveLength(3);
+  fireEvent.click(summaries[0]);
+  expect(screen.getAllByText(/Catalog ingredient list: Olive oil/)).toHaveLength(3);
+  expect(screen.getAllByText(/Record: record-1/)).toHaveLength(3);
+  expect(screen.getAllByText(/Review only — Reviewed checks aren't available.*quinoa/)).toHaveLength(3);
+  expect(screen.queryByRole("button", { name: /Choose/ })).not.toBeInTheDocument();
+  expect(onCommit).not.toHaveBeenCalled();
+});
 
 test("catalog outage keeps the actual shared recommendation cards visible without Choose", async () => {
   const response = sharedResponse();

@@ -123,7 +123,8 @@ export default function ShoppingProductPicker({
           typeof check.recommendationCategory === "string" &&
           (check.status === "eligible" || check.status === "review_only") &&
           typeof check.reason === "string" &&
-          (check.productKey === undefined || typeof check.productKey === "string"),
+          (check.productKey === undefined || typeof check.productKey === "string") &&
+          (check.catalogProductKey === undefined || typeof check.catalogProductKey === "string"),
       ) : []);
       setRecommendationContext(data.recommendationContext && typeof data.recommendationContext === "object" ? {
         query: typeof data.recommendationContext.query === "string" ? data.recommendationContext.query : ingredient.originalName,
@@ -206,11 +207,15 @@ export default function ShoppingProductPicker({
   function renderRecommendationAction(alternative: BetterAlternative) {
     const category = typeof alternative.category === "string" ? alternative.category.trim() : "";
     const check = recommendationChecks.find(item => item.recommendationCategory.trim() === category);
-    const match = check?.productKey ? allCatalogMatches.find(item => item.productKey === check.productKey) : undefined;
+    const referenceKey = check?.productKey ?? check?.catalogProductKey;
+    const match = referenceKey ? allCatalogMatches.find(item => item.productKey === referenceKey &&
+      "recommendationLead" in item && item.recommendationLead === category &&
+      item.shoppingDisplay !== "hidden") : undefined;
     let verifiedSelection: ShoppingProductSelection | null = null;
     if (!catalogUnavailable && check?.status === "eligible" && check.productKey && match &&
       "recommendationLead" in match && match.recommendationLead === category &&
       match.productKey === check.productKey &&
+      match.recommendationIdentityVerified === true &&
       match.evidenceStatus === "eligible" &&
       match.shoppingDisplay === "selectable" &&
       match.shoppingSelection?.eligible === true) {
@@ -228,20 +233,25 @@ export default function ShoppingProductPicker({
     ].filter(item => item.text && item.source).slice(0, 3) : [];
     return (
       <div className="mt-2 space-y-2">
-        {match && <div className="rounded-lg border border-white/10 bg-black/15 p-2.5 text-xs text-white/75">
+        {match && <details className="rounded-lg border border-white/10 bg-black/15 p-2.5 text-xs text-white/75">
+          <summary className="min-h-11 cursor-pointer py-3 font-semibold text-orange-100">Review product identity and label evidence</summary>
+          {match.recommendationIdentityVerified !== true && <p className="mb-2 text-amber-100">Catalog candidate only — not confirmed as the exact recommended variant.</p>}
           <p className="font-semibold text-white">{match.name}{match.brand ? ` · ${match.brand}` : ""}</p>
+          {match.variant && <p className="mt-1">Variant: {match.variant}</p>}
+          {match.packageSize && <p className="mt-1">Package: {match.packageSize}</p>}
+          <p className="mt-1 text-white/60">Source: {match.source} · Record: {match.sourceRecordId}</p>
           {match.serving && <p className="mt-1">{match.serving} <span className="text-white/45">Source: {match.source}</span></p>}
           {facts.map((fact, index) => <p key={`${fact.source}-${index}`} className="mt-1 leading-relaxed">
             {fact.text} <span className="text-white/45">Source: {fact.source}</span>
           </p>)}
           {match.ingredients && <p className="mt-1 text-white/60">Catalog ingredient list: {match.ingredients} <span className="text-white/45">Source: {match.source}</span></p>}
-        </div>}
+        </details>}
         {verifiedSelection ? <Button
           type="button"
           disabled={saving}
           onClick={() => void commit(verifiedSelection)}
           className="shopping-recommendation-action min-h-11 w-full whitespace-normal bg-orange-600 text-white hover:bg-orange-500"
-        >Choose this exact product</Button> : <p className="rounded-lg border border-amber-200/15 bg-amber-100/[0.05] px-3 py-2 text-xs leading-relaxed text-amber-50/80">
+        >Choose for My List</Button> : <p className="rounded-lg border border-amber-200/15 bg-amber-100/[0.05] px-3 py-2 text-xs leading-relaxed text-amber-50/80">
           Review only — {catalogUnavailable
             ? "The product catalog is temporarily unavailable. No exact product can be selected."
             : check?.status === "review_only" && check.reason

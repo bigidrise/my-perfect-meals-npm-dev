@@ -142,6 +142,9 @@ interface ProductAdviceResult {
     allergenInformation?: { statement: string; source: string }[];
     profileInsight?: string;
     recommendationExplanation?: { whyBetter: string[]; targetCriteria: string };
+    recommendationIdentityVerified?: boolean;
+    variant?: string;
+    packageSize?: string;
     shoppingSelection?: ShoppingCatalogDecision;
     shoppingDisplay?: "selectable" | "label_review" | "hidden";
     shoppingCaution?: string;

@@ -1615,3 +1615,17 @@ mtime_ms = 1795139447682
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/90b9c7a9-1081-4a04-a093-5ed0f1d86d78/7aa3090b-b236-4102-b7ce-d4b38913c7ce"
 storage_version_token = "1795139472183593"
 content_type = "text/html"
+
+[[outputs]]
+id = "ob57q93S7rESA9qXhJ3O8"
+uri = "file://generated-artifacts/smart-shopping-shared-cards/evidence-375-readable.png"
+type = "image"
+title = "Synthetic mobile selection preview"
+description = "Actual shared recommendation component at 375px with Choose for My List and expandable source evidence. Offline synthetic products only—not live Rao’s results or verified medical suitability."
+logical_id = "6063837e-b6ca-4cc2-abef-a0a43c08c85e"
+content_hash = "sha256:70bfeda7d342187c5118a04dc447c83624e68ede3d06b9b455db614fe1dbaee6"
+size = 76503
+mtime_ms = 1795143042245
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/6063837e-b6ca-4cc2-abef-a0a43c08c85e/9329c04a-468d-455b-9da2-072e1d413540"
+storage_version_token = "1795143422257063"
+content_type = "image/png"

@@ -93,11 +93,17 @@ and unsupported requested qualifiers separately in member-friendly language,
 without internal identifiers. Useful review-needed catalog products may be shown
 as view-only references with a clear current-label notice; only existing eligible
 structured choices may be selected. Never display established conflicting products.
+Review-only cards should offer available exact-source identity and label evidence
+without gaining selection permission. Bind selectable recommendations to the
+named brand, product and variant; word overlap alone is not that binding. An
+unresolved avoidance check proves neither presence nor absence of the ingredient.
 
 **Why:** The user explicitly asked to remember this distinction after finding that
 Smart Grocery's stricter selection boundary can exclude products Grocery Coach
 displays, then separately approved view-only references and simple fallback tips
 without changing selection eligibility or Grocery Coach behavior.
+The founder subsequently approved evidence-first identity/review corrections,
+not fabricated verification or bypassing unresolved avoidance checks.
 
 **How to apply:** Keep Smart Grocery concise and useful, not a medical product
 certification system. If nothing is selectable, provide one short shopping tip

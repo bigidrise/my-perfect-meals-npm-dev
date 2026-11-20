@@ -5,6 +5,8 @@ import type { ProductEvidenceAdapter, SourceProductRecord } from "../services/pr
 import type { IngredientScanResult } from "../services/ingredientScanService";
 import { findProductDevelopment } from "../services/productDiscovery/findProductDevelopment";
 import { analyzeProductByName } from "../services/ingredientScanService";
+import { normalizeProductEvidence } from "../services/productDiscovery/productEvidenceAdapters";
+import { shoppingRecommendationIdentityMatches } from "../services/productDiscovery/shoppingRecommendationIdentity";
 
 jest.mock("../services/ingredientScanService", () => ({
   ...jest.requireActual("../services/ingredientScanService"),
@@ -16,7 +18,7 @@ const ingredient = { originalName: "olive oil", requirements: [] };
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const suggestion = (brand: string) => ({
-  category: `${brand} Olive Oil`, whyBetter: [`${brand} personalized explanation, not source evidence`],
+  category: `${brand} Olive Oil 500ml`, whyBetter: [`${brand} personalized explanation, not source evidence`],
   targetCriteria: "Check the current label and serving basis.",
 });
 function analysis(alternatives = [suggestion("Synthetic Alpha"), suggestion("Synthetic Beta"), suggestion("Synthetic Gamma")]) {
@@ -72,7 +74,7 @@ test("reuses one by-name recommendation, source evidence and the existing select
   expect(f.recommend).toHaveBeenCalledWith("olive oil", owner);
   expect(f.adapter.search).toHaveBeenCalledWith(expect.objectContaining({
     requestedFood: "olive oil", searchCategories: expect.arrayContaining([
-      expect.objectContaining({ category: "Synthetic Alpha Olive Oil" }),
+      expect.objectContaining({ category: "Synthetic Alpha Olive Oil 500ml" }),
     ]),
   }), null, 3);
   expect(f.sources.resolveFoodContext).toHaveBeenCalledTimes(2);
@@ -156,7 +158,7 @@ test("a known conflicting brand cannot return through the raw recommendation fal
     "Olive oil, synthetic-avoidance";
   const result = await f.run();
   expect(result.recommendations.map(alt => alt.category)).toEqual([
-    "Synthetic Beta Olive Oil", "Synthetic Gamma Olive Oil",
+    "Synthetic Beta Olive Oil 500ml", "Synthetic Gamma Olive Oil 500ml",
   ]);
   expect(result.recommendationChecks).toHaveLength(2);
   expect(result.recommendationChecks.every(check => check.status === "review_only")).toBe(true);
@@ -171,6 +173,73 @@ test("an unsupported original qualifier remains unselectable without changing th
   expect(original.requirements).toEqual([]);
 });
 
+test("a quinoa avoidance remains unresolved even when the catalog ingredient text does not mention quinoa", async () => {
+  const f = fixture({ avoided: ["quinoa"], ingredients: "Tomatoes, olive oil, garlic, basil" });
+  const result = await f.run();
+  expect(result.recommendationChecks).toHaveLength(3);
+  result.recommendationChecks.forEach(check => {
+    expect(check.status).toBe("review_only");
+    expect(check.reason).toContain("quinoa");
+    expect(check.reason).toContain("does not mean the product contains");
+    expect(check.productKey).toBeUndefined();
+    expect(result.catalogMatches.some(match => match.productKey === check.catalogProductKey)).toBe(true);
+  });
+});
+
+test("a positive quinoa ingredient conflict is excluded rather than offered for review", async () => {
+  const f = fixture({ avoided: ["quinoa"], ingredients: "Tomatoes, quinoa, garlic" });
+  const result = await f.run();
+  expect(result.recommendations).toEqual([]);
+  expect(result.catalogMatches).toEqual([]);
+});
+
+test("an otherwise eligible but different variant is review-only and retains its inspectable source identity", async () => {
+  const f = fixture();
+  f.records[0].variant = "Light Olive Oil 500ml";
+  const result = await f.run();
+  const alpha = result.recommendationChecks.find(check => check.recommendationCategory.includes("Alpha"))!;
+  expect(alpha).toMatchObject({ status: "review_only" });
+  expect(alpha.reason).toContain("exact recommended product and variant");
+  expect(alpha.productKey).toBeUndefined();
+  const record = result.catalogMatches.find(match => match.productKey === alpha.catalogProductKey)!;
+  expect(record.variant).toBe("Light Olive Oil 500ml");
+  expect(record.recommendationIdentityVerified).toBe(false);
+  expect(record.shoppingSelection?.eligible).toBe(false);
+  expect(result.recommendationChecks.filter(check => check.status === "eligible")).toHaveLength(2);
+});
+
+test("near variants cannot exhaust the eligible-result target before exact variants are inspected", async () => {
+  const f = fixture();
+  const exact = clone(f.records);
+  const near = exact.map((record, index) => ({
+    ...clone(record), sourceRecordId: `near-${index}`, variant: "Light Olive Oil 500ml",
+  }));
+  f.records.splice(0, f.records.length, ...near, ...exact);
+  (f.adapter.search as jest.Mock).mockImplementation(async (_intent, cursor, limit) => {
+    const offset = Number(cursor || 0), end = Math.min(offset + limit, f.records.length);
+    return { references: f.records.slice(offset, end).map(record => ({
+      source: record.source, sourceRecordId: record.sourceRecordId,
+    })), nextCursor: end < f.records.length ? String(end) : null };
+  });
+  const result = await f.run();
+  expect(result.recommendationChecks.filter(check => check.status === "eligible")).toHaveLength(3);
+  expect(result.catalogMatches.every(match => match.recommendationIdentityVerified &&
+    !match.sourceRecordId.startsWith("near-"))).toBe(true);
+  expect(result.searched).toBe(6);
+});
+
+test.each([
+  ["Synthetic Alpha Olive Oil 500 ml", true],
+  ["SYNTHETIC ALPHA OLIVE OIL 500ML", true],
+  ["Synthetic Alpha Light Olive Oil 500ml", false],
+  ["Synthetic Alpha Olive Oil", false],
+  ["Synthetic Alpha Olive Oil 750ml", false],
+  ["Synthetic Beta Olive Oil 500ml", false],
+  ["Olive Oil 500ml", false],
+])("exact identity binding for %s is %s", (name, expected) => {
+  const f = fixture();
+  expect(shoppingRecommendationIdentityMatches(name, normalizeProductEvidence(f.records[0]))).toBe(expected);
+});
 test("catalog records unrelated to every suggested exact product are never chosen", async () => {
   const f = fixture();
   f.records.forEach(record => { record.brand = "Unrelated Mill"; });
@@ -201,10 +270,12 @@ test.each(["missing_facts", "unverified_identity"])(
   async gap => {
     const f = fixture();
     const eligible = [0, 1, 2].map(index => ({
-      ...clone(f.records[0]), sourceRecordId: `eligible-${index}`, variant: `Olive Oil package ${index}`,
+      ...clone(f.records[index]), sourceRecordId: `eligible-${index}`,
     }));
     const incomplete = [1, 2].map(index => {
       const record = clone(f.records[index]);
+      record.sourceRecordId = `incomplete-${index}`;
+      record.variant = "Light Olive Oil 500ml";
       if (gap === "missing_facts") record.facts = record.facts.filter(fact => fact.kind !== "ingredients");
       else record.identityObservedAt = undefined;
       return record;
