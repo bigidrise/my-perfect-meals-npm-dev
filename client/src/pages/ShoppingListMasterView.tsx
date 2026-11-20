@@ -20,6 +20,7 @@ import {
   ShoppingListItem,
 } from "@/stores/shoppingListStore";
 import { shoppingProductOptionsEnabled } from "@/lib/shoppingProductOptionsGate";
+import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
 import { buildConsolidatedItems, ConsolidatedItem } from "@/lib/shoppingConsolidation";
 import { Button } from "@/components/ui/button";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
