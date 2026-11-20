@@ -355,7 +355,7 @@ export default function ShoppingListMasterView() {
   const openProductPicker = useCallback((row: ConsolidatedItem) => {
     if (!productPickerEnabled) return;
     if (!hasProductPickerAccess) {
-      requestUpgrade({ requiredTier: "pro", featureName: "Choose Product" });
+      requestUpgrade({ requiredTier: "pro", featureName: "See Product Options" });
       return;
     }
     const ingredient = shoppingIngredientFor(row);
@@ -1122,7 +1122,7 @@ export default function ShoppingListMasterView() {
                               enabled={productPickerEnabled}
                               hasAccess={hasProductPickerAccess}
                               onChoose={() => openProductPicker(item as ConsolidatedItem)}
-                              onUpgrade={() => requestUpgrade({ requiredTier: "pro", featureName: "Choose Product" })}
+                              onUpgrade={() => requestUpgrade({ requiredTier: "pro", featureName: "See Product Options" })}
                               onClear={() => clearProductChoice(item as ConsolidatedItem)}
                             />
                           </div>
@@ -1202,7 +1202,7 @@ export default function ShoppingListMasterView() {
                                   enabled={productPickerEnabled}
                                   hasAccess={hasProductPickerAccess}
                                   onChoose={() => openProductPicker(item as ConsolidatedItem)}
-                                  onUpgrade={() => requestUpgrade({ requiredTier: "pro", featureName: "Choose Product" })}
+                                  onUpgrade={() => requestUpgrade({ requiredTier: "pro", featureName: "See Product Options" })}
                                   onClear={() => clearProductChoice(item as ConsolidatedItem)}
                                 />
                               </div>

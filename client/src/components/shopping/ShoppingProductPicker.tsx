@@ -72,10 +72,15 @@ export default function ShoppingProductPicker({
     }
     const requestGeneration = generation.current;
     setLoading(true);
-    post("/api/grocery-coach/product-advisor", {
-      mode: "find_product",
-      ingredients: [ingredient.originalName],
-      shoppingIngredient: ingredient,
+    // Let StrictMode's setup/cleanup replay finish before dispatch. Abandoned
+    // effects never send; each real opening still resolves fresh catalog data.
+    Promise.resolve().then(() => {
+      if (generation.current !== requestGeneration) return;
+      return post("/api/grocery-coach/product-advisor", {
+        mode: "find_product",
+        ingredients: [ingredient.originalName],
+        shoppingIngredient: ingredient,
+      });
     }).then(data => {
       if (generation.current !== requestGeneration) return;
       if (data?.error) throw new Error("Catalog lookup unavailable");
@@ -147,7 +152,7 @@ export default function ShoppingProductPicker({
     <PickerModal
       open={open}
       onOpenChange={closeWithoutSaving}
-      title="Find a grocery option"
+      title="Here are your product options."
       description={`${ingredient.originalName} · Recipe amount: ${quantityLabel}. Your recipe quantity stays the same.`}
       className="border border-orange-200/15 bg-[#211c18] text-white"
       footer={<div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-between">

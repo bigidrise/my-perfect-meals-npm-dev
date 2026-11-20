@@ -10,6 +10,9 @@ import SmartShoppingProductChoice from "@/components/shopping/SmartShoppingProdu
 import type { ShoppingIngredientRequest, ShoppingProductSelection } from "@shared/shoppingProductSelection";
 
 jest.mock("@/lib/api", () => ({ post: jest.fn() }));
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (key: string) => key === "common.cancel" ? "Cancel" : key }),
+}));
 jest.mock("@/components/ui/universal-modal", () => ({
   PickerModal: ({ open, title, description, children, footer }: any) => open
     ? <section role="dialog" aria-label={title}><p>{description}</p>{children}{footer}</section>
@@ -86,6 +89,187 @@ beforeEach(() => {
 test("does not request on list render or while the picker is closed", () => {
   renderPicker();
   expect(post).not.toHaveBeenCalled();
+});
+
+test("StrictMode dispatches one request per real opening and still refreshes on reopen", async () => {
+  (post as jest.Mock).mockResolvedValue({ catalogMatches: [], catalogSearchAvailable: true });
+  const props = {
+    onOpenChange: jest.fn(), ingredient, quantityLabel: "2 cups",
+    sessionKey: "member-a:profile-a", currentSelection: null,
+    onCommit: jest.fn().mockResolvedValue(undefined),
+  };
+  const { rerender } = render(<React.StrictMode><ShoppingProductPicker {...props} open /></React.StrictMode>);
+  await screen.findByText(/No suitable specific product could be identified/);
+  expect(post).toHaveBeenCalledTimes(1);
+  rerender(<React.StrictMode><ShoppingProductPicker {...props} open={false} /></React.StrictMode>);
+  rerender(<React.StrictMode><ShoppingProductPicker {...props} open /></React.StrictMode>);
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
+  await screen.findByText(/No suitable specific product could be identified/);
+  expect(post).toHaveBeenCalledTimes(2);
+});
+
+test("closing before dispatch cancels the abandoned lookup without blocking a fresh open", async () => {
+  (post as jest.Mock).mockResolvedValue({ catalogMatches: [], catalogSearchAvailable: true });
+  const props = {
+    onOpenChange: jest.fn(), ingredient, quantityLabel: "2 cups",
+    sessionKey: "member-a:profile-a", currentSelection: null,
+    onCommit: jest.fn().mockResolvedValue(undefined),
+  };
+  const { rerender } = render(<ShoppingProductPicker {...props} open />);
+  rerender(<ShoppingProductPicker {...props} open={false} />);
+  await act(async () => {});
+  expect(post).not.toHaveBeenCalled();
+  rerender(<ShoppingProductPicker {...props} open />);
+  await screen.findByText(/No suitable specific product could be identified/);
+  expect(post).toHaveBeenCalledTimes(1);
+});
+
+test("an explicit retry after failure sends a fresh request for the same ingredient", async () => {
+  (post as jest.Mock).mockRejectedValueOnce({ status: 503 })
+    .mockResolvedValueOnce({ catalogMatches: [supported], catalogSearchAvailable: true });
+  const props = {
+    onOpenChange: jest.fn(), ingredient, quantityLabel: "2 cups",
+    sessionKey: "member-a:profile-a", currentSelection: null,
+    onCommit: jest.fn().mockResolvedValue(undefined),
+  };
+  const { rerender } = render(<ShoppingProductPicker {...props} open />);
+  await screen.findByRole("alert");
+  expect(post).toHaveBeenCalledTimes(1);
+  rerender(<ShoppingProductPicker {...props} open={false} />);
+  rerender(<ShoppingProductPicker {...props} open />);
+  await screen.findByTestId("catalog-choice-milk-a");
+  expect(post).toHaveBeenCalledTimes(2);
+});
+
+test("an abandoned ingredient lookup never sends and a changed product can be opened freshly", async () => {
+  (post as jest.Mock).mockResolvedValue({ catalogMatches: [], catalogSearchAvailable: true });
+  const nextIngredient = { originalName: "oatmeal", requirements: [] };
+  const props = {
+    onOpenChange: jest.fn(), quantityLabel: "2 cups",
+    sessionKey: "member-a:profile-a", currentSelection: null,
+    onCommit: jest.fn().mockResolvedValue(undefined),
+  };
+  const { rerender } = render(<ShoppingProductPicker {...props} ingredient={ingredient} open />);
+  rerender(<ShoppingProductPicker {...props} ingredient={nextIngredient} open />);
+  await act(async () => {});
+  expect(props.onOpenChange).toHaveBeenCalledWith(false);
+  expect(post).not.toHaveBeenCalled();
+  rerender(<ShoppingProductPicker {...props} ingredient={nextIngredient} open={false} />);
+  rerender(<ShoppingProductPicker {...props} ingredient={nextIngredient} open />);
+  await screen.findByText(/No suitable specific product could be identified/);
+  expect(post).toHaveBeenCalledTimes(1);
+  expect(post).toHaveBeenLastCalledWith("/api/grocery-coach/product-advisor", {
+    mode: "find_product", ingredients: ["oatmeal"], shoppingIngredient: nextIngredient,
+  });
+});
+
+test("a new mount for the same ingredient does not reuse an earlier request", async () => {
+  let resolveOld!: (value: any) => void;
+  (post as jest.Mock).mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve; }))
+    .mockResolvedValueOnce({ catalogMatches: [], catalogSearchAvailable: true });
+  const first = renderPicker({ open: true });
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  first.unmount();
+  renderPicker({ open: true });
+  await screen.findByText(/No suitable specific product could be identified/);
+  await act(async () => { resolveOld({ catalogMatches: [supported], catalogSearchAvailable: true }); });
+  expect(post).toHaveBeenCalledTimes(2);
+  expect(screen.queryByTestId("catalog-choice-milk-a")).not.toBeInTheDocument();
+});
+
+test.each([
+  "oatmeal", "olive oil", "seasoning blend", "spice blend", "ketchup",
+  "canned beans", "yogurt", "cereal", "bread", "tomato sauce",
+])("the %s row offers a neutral, explicit product-options action without searching", name => {
+  const onChoose = jest.fn();
+  render(<SmartShoppingProductChoice
+    item={{ name } as any}
+    enabled
+    hasAccess
+    onChoose={onChoose}
+    onUpgrade={jest.fn()}
+    onClear={jest.fn().mockResolvedValue(undefined)}
+  />);
+  expect(post).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "See Product Options" }));
+  expect(onChoose).toHaveBeenCalledTimes(1);
+  expect(post).not.toHaveBeenCalled();
+});
+
+test.each(["fresh tomatoes", "spinach", "fresh basil", "raw chicken", "homemade oatmeal"])(
+  "%s does not offer a product lookup", name => {
+    render(<SmartShoppingProductChoice
+      item={{ name } as any}
+      enabled
+      hasAccess
+      onChoose={jest.fn()}
+      onUpgrade={jest.fn()}
+      onClear={jest.fn().mockResolvedValue(undefined)}
+    />);
+    expect(screen.queryByRole("button", { name: "See Product Options" })).not.toBeInTheDocument();
+    expect(post).not.toHaveBeenCalled();
+  },
+);
+
+test("the new action still upgrades a customer without access and never searches", () => {
+  const onChoose = jest.fn(), onUpgrade = jest.fn();
+  render(<SmartShoppingProductChoice
+    item={{ name: "oatmeal" } as any}
+    enabled
+    hasAccess={false}
+    onChoose={onChoose}
+    onUpgrade={onUpgrade}
+    onClear={jest.fn().mockResolvedValue(undefined)}
+  />);
+  fireEvent.click(screen.getByRole("button", { name: "See Product Options" }));
+  expect(onUpgrade).toHaveBeenCalledTimes(1);
+  expect(onChoose).not.toHaveBeenCalled();
+  expect(post).not.toHaveBeenCalled();
+});
+
+test("the product-options action remains unavailable when Development metadata is disabled", () => {
+  render(<SmartShoppingProductChoice
+    item={{ name: "oatmeal" } as any}
+    enabled={false}
+    hasAccess
+    onChoose={jest.fn()}
+    onUpgrade={jest.fn()}
+    onClear={jest.fn().mockResolvedValue(undefined)}
+  />);
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  expect(post).not.toHaveBeenCalled();
+});
+
+test("disabled Smart Shopping does not expand historical Grocery Coach presentation", () => {
+  render(<SmartShoppingProductChoice
+    item={{ name: "oatmeal", ingredientMetadata: { ingredient: { originalName: "oatmeal" },
+      selectedProduct: { ...selection.product, source: { source: "Product Scan by-name guidance" } } } } as any}
+    enabled={false}
+    hasAccess
+    onChoose={jest.fn()}
+    onUpgrade={jest.fn()}
+    onClear={jest.fn().mockResolvedValue(undefined)}
+  />);
+  expect(screen.queryByText("Northfield Whole Milk")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  expect(post).not.toHaveBeenCalled();
+});
+
+test.each([0, 1, 2, 3])("renders %i sourced options without filling missing slots", async count => {
+  const catalogMatches = Array.from({ length: count }, (_, index) => {
+    const productKey = `milk-${index}`;
+    return { ...supported, productKey, shoppingSelection: { eligible: true, selection: {
+      ...selection, product: { ...selection.product, productKey },
+    } } };
+  });
+  (post as jest.Mock).mockResolvedValue({ catalogMatches, catalogSearchAvailable: true });
+  const { onCommit } = renderPicker({ open: true });
+  expect(screen.getByRole("dialog", { name: "Here are your product options." })).toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
+  expect(screen.queryAllByRole("article")).toHaveLength(count);
+  expect(screen.queryAllByRole("button", { name: "Choose this option" })).toHaveLength(count);
+  expect(post).toHaveBeenCalledTimes(1);
+  expect(onCommit).not.toHaveBeenCalled();
 });
 
 test("a denied Pro action has no picker mount and makes no request", () => {
@@ -230,7 +414,7 @@ test("a profile change invalidates an open response without launching another lo
   let resolveRequest!: (value: any) => void;
   (post as jest.Mock).mockImplementation(() => new Promise(resolve => { resolveRequest = resolve; }));
   const { rerender } = renderPicker({ open: true });
-  expect(post).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
   rerender(
     <ShoppingProductPicker
       open

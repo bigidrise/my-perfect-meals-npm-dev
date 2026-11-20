@@ -18,7 +18,7 @@ export default function SmartShoppingProductChoice({ item, enabled, hasAccess, o
   const coachChoice = item.ingredientMetadata?.selectedProduct?.source.source === "Product Scan by-name guidance";
   if (!enabled && !coachChoice) return null;
   const originalName = item.ingredientMetadata?.ingredient.originalName || item.name;
-  if (!packagedProductEligibility(originalName).eligible) return null;
+  if (!packagedProductEligibility(originalName, enabled ? { surface: "smart_shopping" } : {}).eligible) return null;
   const product = item.ingredientMetadata?.selectedProduct;
   const label = product
     ? catalogProductLabel({ brand: product.brand || "", name: product.name })
@@ -49,7 +49,7 @@ export default function SmartShoppingProductChoice({ item, enabled, hasAccess, o
         </div>
       ) : (
         <button type="button" onClick={beginChoose} className="rounded-md border border-orange-200/25 bg-orange-200/[0.06] px-2 py-1 text-[11px] font-medium text-orange-100/90 hover:bg-orange-200/10">
-          Choose Product
+          See Product Options
         </button>
       )}
       {error && <p role="alert" className="mt-1 text-xs text-red-200">{error}</p>}
