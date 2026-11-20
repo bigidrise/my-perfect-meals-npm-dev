@@ -97,6 +97,9 @@ Review-only cards should offer available exact-source identity and label evidenc
 without gaining selection permission. Bind selectable recommendations to the
 named brand, product and variant; word overlap alone is not that binding. An
 unresolved avoidance check proves neither presence nor absence of the ingredient.
+Do not describe the customer selection workflow as fixed merely because a
+synthetic eligible fixture renders Choose. An unimplemented verification path
+remains unfinished functionality for affected real profiles, not a refresh issue.
 
 **Why:** The user explicitly asked to remember this distinction after finding that
 Smart Grocery's stricter selection boundary can exclude products Grocery Coach
@@ -104,6 +107,9 @@ displays, then separately approved view-only references and simple fallback tips
 without changing selection eligibility or Grocery Coach behavior.
 The founder subsequently approved evidence-first identity/review corrections,
 not fabricated verification or bypassing unresolved avoidance checks.
+The founder then reported that the screenshot showed Choose while the actual
+Development app still allowed no selections; fixture evidence is not acceptance
+of the actual customer workflow.
 
 **How to apply:** Keep Smart Grocery concise and useful, not a medical product
 certification system. If nothing is selectable, provide one short shopping tip
