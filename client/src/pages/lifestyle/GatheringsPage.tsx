@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
+import { useCreatorOptionLabels } from "@/i18n/useCreatorOptionLabels";
 import { motion } from "framer-motion";
 import { formatAmount } from "@/utils/formatAmount";
 import { useMealImages } from "@/hooks/useMealImages";
@@ -232,6 +235,8 @@ function clearExperienceCache() {
 // Component
 // ─────────────────────────────────────────────
 export default function UltimateExperiencesPage() {
+  const { t } = useTranslation();
+  const optionLabels = useCreatorOptionLabels();
   useCopilotPageExplanation();
   const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
@@ -443,8 +448,8 @@ export default function UltimateExperiencesPage() {
 
     if (!situation) {
       toast({
-        title: "Choose a situation",
-        description: "Pick Holiday, Camping, Tailgating, or Great Outdoors to get started.",
+        title: t("Choose a situation"),
+        description: t("Pick Holiday, Camping, Tailgating, or Great Outdoors to get started."),
         variant: "destructive",
       });
       return;
@@ -452,8 +457,8 @@ export default function UltimateExperiencesPage() {
 
     if (situation === "holiday" && !selectedEvent) {
       toast({
-        title: "Choose a holiday",
-        description: "Select the holiday you're celebrating.",
+        title: t("Choose a holiday"),
+        description: t("Select the holiday you're celebrating."),
         variant: "destructive",
       });
       return;
@@ -461,8 +466,8 @@ export default function UltimateExperiencesPage() {
 
     if (situation === "outdoor" && !proteinSource.trim()) {
       toast({
-        title: "What did you find or harvest?",
-        description: "Enter what you found, caught, or grew to get your Nature-to-Table Guide.",
+        title: t("What did you find or harvest?"),
+        description: t("Enter what you found, caught, or grew to get your Nature-to-Table Guide."),
         variant: "destructive",
       });
       return;
@@ -567,14 +572,14 @@ export default function UltimateExperiencesPage() {
       toast({
         title:
           situation === "outdoor" && outdoorExperienceType === "simple"
-            ? "Your preparation guide is ready!"
-            : "Your experience is ready!",
+            ? t("Your preparation guide is ready!")
+            : t("Your experience is ready!"),
         description:
           situation === "outdoor" && outdoorExperienceType === "simple"
-            ? `Nature-to-Table Guide ready for ${proteinSource}.`
+            ? t("Nature-to-Table Guide ready for {{food}}.", { food: proteinSource })
             : situation === "outdoor" && outdoorExperienceType === "complete"
-              ? "Your Great Outdoors complete meal is ready."
-              : `${courses.length}-course ${selectedEvent || situation} meal crafted for ${servings} people.`,
+              ? t("Your Great Outdoors complete meal is ready.")
+              : t("{{count}}-course {{occasion}} meal crafted for {{people}} people.", { count: courses.length, occasion: optionLabels[HOLIDAY_EVENTS.find(h => h.id === selectedEvent)?.label ?? SITUATIONS.find(s => s.id === situation)?.label ?? ""] ?? selectedEvent ?? situation, people: servings }),
       });
     } catch (error: any) {
       stopProgressTicker();
@@ -588,8 +593,8 @@ export default function UltimateExperiencesPage() {
         });
       } else {
         toast({
-          title: "Something went wrong",
-          description: "Unable to generate the experience. Please try again.",
+          title: t("Something went wrong"),
+          description: t("Unable to generate the experience. Please try again."),
           variant: "destructive",
         });
       }
@@ -651,14 +656,14 @@ export default function UltimateExperiencesPage() {
               className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="text-sm font-medium">Back</span>
+              <span className="text-sm font-medium">{t("Back")}</span>
             </button>
           )}
 
           {/* Hub Intro — matches Pairings Hub pattern */}
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-white mb-2">Gather & Feast</h2>
-            <p className="text-sm text-white/70">AI-planned multi-course meals for holidays, camping, tailgates, and every occasion.</p>
+            <h2 className="text-2xl font-bold text-white mb-2">{t("Gather & Feast")}</h2>
+            <p className="text-sm text-white/70">{t("AI-planned multi-course meals for holidays, camping, tailgates, and every occasion.")}</p>
           </div>
           <div className="flex justify-end">
             <HowThisWorksLink featureKey="gatherings" labelKey="tutorialControl.howItWorks" />
@@ -670,10 +675,10 @@ export default function UltimateExperiencesPage() {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-xl text-white">
                     <Star className="h-5 w-5 text-amber-400" />
-                    Plan Your Gathering
+                    {t("Plan Your Gathering")}
                   </CardTitle>
                   <p className="text-sm text-white/60 mt-1">
-                    Full multi-course meals for holidays, camping, tailgates, Great Outdoors &amp; more
+                    {t("Full multi-course meals for holidays, camping, tailgates, Great Outdoors & more")}
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-5">
@@ -681,14 +686,14 @@ export default function UltimateExperiencesPage() {
                   {/* ── LAYER 1: Situation ── */}
                   <div>
                     <label className="block text-sm font-medium mb-3 text-white">
-                      What's the occasion?
+                      {t("What's the occasion?")}
                     </label>
                     <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
                       {SITUATIONS.map((s) => (
                         <IconPillOption
                           key={s.id}
                           icon={s.emoji}
-                          label={s.label}
+                          label={optionLabels[s.label] ?? s.label}
                           active={situation === s.id}
                           onClick={() => {
                             setSituation(s.id);
@@ -709,14 +714,14 @@ export default function UltimateExperiencesPage() {
                   {situation === "holiday" && (
                     <div>
                       <label className="block text-sm font-medium mb-3 text-white">
-                        Which holiday?
+                        {t("Which holiday?")}
                       </label>
                       <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
                         {HOLIDAY_EVENTS.map((h) => (
                           <IconPillOption
                             key={h.id}
                             icon={h.emoji}
-                            label={h.label}
+                            label={optionLabels[h.label] ?? h.label}
                             active={selectedEvent === h.id}
                             onClick={() =>
                               setSelectedEvent(selectedEvent === h.id ? null : h.id)
@@ -733,8 +738,8 @@ export default function UltimateExperiencesPage() {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <label className="block text-sm font-medium text-white">
-                          Family Recipes
-                          <span className="ml-1.5 text-white/40 font-normal text-xs">(optional)</span>
+                          {t("Family Recipes")}
+                          <span className="ml-1.5 text-white/40 font-normal text-xs">{t("(optional)")}</span>
                         </label>
                         <div className="flex flex-col items-center gap-0.5">
                           <PillButton
@@ -750,7 +755,7 @@ export default function UltimateExperiencesPage() {
                               }
                               const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
                               if (!SR) {
-                                toast({ title: "Voice not supported", description: "Try typing instead.", duration: 3000 });
+                                toast({ title: t("Voice not supported"), description: t("Try typing instead."), duration: 3000 });
                                 return;
                               }
                               const rec = new SR();
@@ -785,14 +790,14 @@ export default function UltimateExperiencesPage() {
                             {isListening ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
                           </PillButton>
                           <span className={`text-[9px] font-semibold uppercase tracking-wide ${isListening ? "text-rose-400" : "text-white/50"}`}>
-                            {isListening ? "Stop" : "Voice"}
+                            {isListening ? t("Stop") : t("Voice")}
                           </span>
                         </div>
                       </div>
                       <textarea
                         value={familyRecipes}
                         onChange={(e) => setFamilyRecipes(e.target.value)}
-                        placeholder={`Paste or describe a recipe:\n"Grandma's mac and cheese — sharp cheddar, evaporated milk, baked crust"\n"Aunt Carol's collard greens with smoked turkey neck"`}
+                        placeholder={t("Paste or describe a recipe:\n\"Grandma's mac and cheese — sharp cheddar, evaporated milk, baked crust\"\n\"Aunt Carol's collard greens with smoked turkey neck\"")}
                         className="w-full px-3 py-2.5 bg-white/5 backdrop-blur-sm text-white placeholder:text-white/30 border border-orange-400/20 rounded-lg h-28 resize-none text-sm leading-relaxed focus:outline-none focus:border-orange-400/50"
                         maxLength={1000}
                         disabled={isGenerating}
@@ -800,7 +805,7 @@ export default function UltimateExperiencesPage() {
                       <p className="text-xs text-white/30 mt-1 text-right">{familyRecipes.length}/1000</p>
                       {familyRecipes.trim() && (
                         <p className="text-xs text-orange-400/80 mt-0.5">
-                          Your family recipes will be preserved and adapted to your dietary needs
+                          {t("Your family recipes will be preserved and adapted to your dietary needs")}
                         </p>
                       )}
                     </div>
@@ -819,11 +824,11 @@ export default function UltimateExperiencesPage() {
                     ];
 
                     const TABS: Array<{ id: "all" | DishCategory; label: string }> = [
-                      { id: "all",       label: "✨ All" },
-                      { id: "appetizer", label: "🥗 Starters" },
-                      { id: "main",      label: "🍽 Mains" },
-                      { id: "side",      label: "🌿 Sides" },
-                      { id: "dessert",   label: "🍰 Desserts" },
+                      { id: "all",       label: t("✨ All") },
+                      { id: "appetizer", label: t("🥗 Starters") },
+                      { id: "main",      label: t("🍽 Mains") },
+                      { id: "side",      label: t("🌿 Sides") },
+                      { id: "dessert",   label: t("🍰 Desserts") },
                     ];
 
                     const visibleSections = dishTabFilter === "all"
@@ -839,11 +844,11 @@ export default function UltimateExperiencesPage() {
                           disabled={isGenerating}
                         >
                           <div className="flex flex-col items-start">
-                            <span className="text-sm font-medium text-white">Traditional Dishes</span>
+                            <span className="text-sm font-medium text-white">{t("Traditional Dishes")}</span>
                             <span className="text-xs text-white/50 mt-0.5">
                               {selectedDishes.length > 0
-                                ? `${selectedDishes.length} selected · tap to customize`
-                                : "Tap to choose dishes (optional)"}
+                                ? t("{{count}} selected · tap to customize", { count: selectedDishes.length })
+                                : t("Tap to choose dishes (optional)")}
                             </span>
                           </div>
                           {dishAccordionOpen
@@ -887,7 +892,7 @@ export default function UltimateExperiencesPage() {
                                 <div key={section.label}>
                                   {dishTabFilter === "all" && (
                                     <p className="text-xs text-white/40 font-semibold uppercase tracking-wider mb-1.5">
-                                      {section.label}
+                                      {optionLabels[section.label] ?? section.label}
                                     </p>
                                   )}
                                   <div className="flex flex-wrap gap-1.5">
@@ -931,7 +936,7 @@ export default function UltimateExperiencesPage() {
                                         onClick={() => setCustomDishOpen((prev) => ({ ...prev, [section.label]: true }))}
                                         className="px-3 py-1 rounded-full text-xs font-medium border border-dashed border-white/30 text-white/50 bg-transparent hover:border-orange-400/50 hover:text-orange-300 transition-all"
                                       >
-                                        + Add yours
+                                        {t("+ Add yours")}
                                       </button>
                                     )}
                                   </div>
@@ -947,7 +952,7 @@ export default function UltimateExperiencesPage() {
                                           if (e.key === "Enter") confirmCustom();
                                           if (e.key === "Escape") setCustomDishOpen((prev) => ({ ...prev, [section.label]: false }));
                                         }}
-                                        placeholder={`Your ${section.label.toLowerCase().replace(/s$/, "")}…`}
+                                        placeholder={{ appetizer: t("Your starter…"), main: t("Your main…"), side: t("Your side…"), dessert: t("Your dessert…") }[section.category]}
                                         className="flex-1 px-3 py-1.5 bg-white/5 backdrop-blur-sm text-white placeholder:text-white/30 border border-orange-400/40 rounded-full text-xs focus:outline-none focus:border-orange-400"
                                         maxLength={100}
                                       />
@@ -974,14 +979,14 @@ export default function UltimateExperiencesPage() {
                       {/* What Would You Like To Create? */}
                       <div>
                         <label className="block text-sm font-medium mb-3 text-white">
-                          What would you like to create?
+                          {t("What would you like to create?")}
                         </label>
                         <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
                           {OUTDOOR_EXPERIENCE_TYPES.map((t) => (
                             <IconPillOption
                               key={t.id}
                               icon={t.emoji}
-                              label={t.label}
+                              label={optionLabels[t.label] ?? t.label}
                               active={outdoorExperienceType === t.id}
                               onClick={() => setOutdoorExperienceType(t.id)}
                               disabled={isGenerating}
@@ -993,14 +998,14 @@ export default function UltimateExperiencesPage() {
                       {/* Ingredient input */}
                       <div>
                         <label className="block text-sm font-medium mb-1 text-white">
-                          What did you find, catch, harvest, or grow?{" "}
+                          {t("What did you find, catch, harvest, or grow?")}{" "}
                           <span className="text-orange-400 font-bold">*</span>
                         </label>
                         <input
                           type="text"
                           value={proteinSource}
                           onChange={(e) => setProteinSource(e.target.value)}
-                          placeholder="e.g., Trout, Wild Mushrooms, Blackberries, Venison, Zucchini..."
+                          placeholder={t("e.g., Trout, Wild Mushrooms, Blackberries, Venison, Zucchini...")}
                           className="w-full px-3 py-2 bg-white/5 backdrop-blur-sm text-white placeholder:text-white/40 border border-orange-400/20 rounded-lg text-sm"
                           maxLength={200}
                           disabled={isGenerating}
@@ -1010,7 +1015,7 @@ export default function UltimateExperiencesPage() {
                             <IconPillOption
                               key={p.label}
                               icon={p.emoji}
-                              label={p.label}
+                              label={optionLabels[p.label] ?? p.label}
                               active={proteinSource === p.label}
                               onClick={() => setProteinSource(proteinSource === p.label ? "" : p.label)}
                               disabled={isGenerating}
@@ -1022,15 +1027,15 @@ export default function UltimateExperiencesPage() {
                       {/* Cooking method */}
                       <div>
                         <label className="block text-sm font-medium mb-2 text-white">
-                          Cooking method{" "}
-                          <span className="text-white/50 font-normal text-xs">(optional)</span>
+                          {t("Cooking method")}{" "}
+                          <span className="text-white/50 font-normal text-xs">{t("(optional)")}</span>
                         </label>
                         <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
                           {OUTDOOR_METHODS.map((m) => (
                             <IconPillOption
                               key={m.label}
                               icon={m.emoji}
-                              label={m.label}
+                              label={optionLabels[m.label] ?? m.label}
                               active={cookingMethod === m.label}
                               onClick={() => setCookingMethod(cookingMethod === m.label ? "" : m.label)}
                               disabled={isGenerating}
@@ -1045,19 +1050,18 @@ export default function UltimateExperiencesPage() {
                   {situation && situation !== "holiday" && (
                     <div>
                       <label className="block text-sm font-medium mb-1 text-white">
-                        {situation === "outdoor" ? "Additional notes" : "Any specifics?"}{" "}
-                        <span className="text-white/50 font-normal text-xs">(optional)</span>
+                        {situation === "outdoor" ? t("Additional notes") : t("Any specifics?")}{" "}
+                        <span className="text-white/50 font-normal text-xs">{t("(optional)")}</span>
                       </label>
                       <textarea
                         value={chefNotes}
                         onChange={(e) => setChefNotes(e.target.value)}
                         placeholder={
                           situation === "camping"
-                            ? "e.g., we have a campfire and a portable grill, no cooler, 3-day trip..."
+                            ? t("e.g., we have a campfire and a portable grill, no cooler, 3-day trip...")
                             : situation === "outdoor"
-                              ? "e.g., opening weekend turkey hunt, cooking for 8, want leftovers, need anti-inflammatory sides..."
-                              : "e.g., tailgate before a football game, need finger foods for 20 people..."
-                        }
+                              ? t("e.g., opening weekend turkey hunt, cooking for 8, want leftovers, need anti-inflammatory sides...")
+                              : t("e.g., tailgate before a football game, need finger foods for 20 people...")}
                         className="w-full px-3 py-2 bg-white/5 backdrop-blur-sm text-white placeholder:text-white/40 border border-orange-400/20 rounded-lg h-16 resize-none text-sm"
                         maxLength={300}
                       />
@@ -1068,7 +1072,7 @@ export default function UltimateExperiencesPage() {
                   {situation && !(situation === "outdoor" && outdoorExperienceType !== "gathering") && (
                     <div>
                       <label className="block text-sm font-medium mb-3 text-white">
-                        How many courses?
+                        {t("How many courses?")}
                       </label>
                       <div className="flex w-full gap-3">
                         {COURSE_COUNTS.map((n) => (
@@ -1082,16 +1086,16 @@ export default function UltimateExperiencesPage() {
                             >
                               {n}
                             </PillButton>
-                            <span className="text-xs text-white/70">courses</span>
+                            <span className="text-xs text-white/70">{t("courses")}</span>
                           </div>
                         ))}
                       </div>
                       <p className="text-xs text-white/40 mt-1">
                         {totalCourses === 3
-                          ? "Appetizer · Main · Dessert"
+                          ? t("Appetizer · Main · Dessert")
                           : totalCourses === 4
-                            ? "Appetizer · Main · Side · Dessert"
-                            : "Appetizer · Main · 2 Sides · Dessert"}
+                            ? t("Appetizer · Main · Side · Dessert")
+                            : t("Appetizer · Main · 2 Sides · Dessert")}
                       </p>
                     </div>
                   )}
@@ -1100,7 +1104,7 @@ export default function UltimateExperiencesPage() {
                   {situation && (
                     <div>
                       <label className="block text-sm font-medium mb-3 text-white">
-                        Serving size
+                        {t("Serving size")}
                       </label>
                       <div className="flex items-center justify-center gap-6">
                         <PillButton
@@ -1115,7 +1119,7 @@ export default function UltimateExperiencesPage() {
                             {servings}
                           </span>
                           <span className="text-white/50 text-xs mt-0.5">
-                            {servings === 1 ? "person" : "people"}
+                            {servings === 1 ? t("person") : t("people")}
                           </span>
                         </div>
                         <PillButton
@@ -1133,7 +1137,7 @@ export default function UltimateExperiencesPage() {
                   {situation && situation === "holiday" && selectedEvent && (
                     <div>
                       <label className="block text-sm font-medium mb-1 text-white">
-                        Add anything you'd like the chef to include or adjust
+                        {t("Add anything you'd like the chef to include or adjust")}
                       </label>
                       <textarea
                         value={chefNotes}
@@ -1218,9 +1222,9 @@ export default function UltimateExperiencesPage() {
                             disabled={isGenerating}
                             className="w-full py-3 text-base font-semibold"
                           >
-                            {flavorPersonal ? "Personal" : "Neutral"}
+                            {flavorPersonal ? t("Personal") : t("Neutral")}
                           </PillButton>
-                          <span className="text-xs text-white/70">Flavor</span>
+                          <span className="text-xs text-white/70">{t("Flavor")}</span>
                         </div>
                         <div className="flex flex-col items-center gap-1.5 flex-1">
                           <PillButton
@@ -1229,9 +1233,9 @@ export default function UltimateExperiencesPage() {
                             disabled={isGenerating}
                             className="w-full py-3 text-base font-semibold"
                           >
-                            {keepItSimple ? "Simple" : "Full"}
+                            {keepItSimple ? t("Simple") : t("Full")}
                           </PillButton>
-                          <span className="text-xs text-white/70">Ingredients</span>
+                          <span className="text-xs text-white/70">{t("Ingredients")}</span>
                         </div>
                       </div>
                     </>
@@ -1241,7 +1245,7 @@ export default function UltimateExperiencesPage() {
                     <div className="flex flex-col items-center gap-3 mt-2">
                       {situation === "outdoor" && outdoorExperienceType === "simple" ? (
                         <ThinkingDots
-                          label={`Generating your preparation guide for ${proteinSource || "your ingredient"}…`}
+                          label={t("Generating your preparation guide for {{food}}…", { food: proteinSource || t("your ingredient") })}
                         />
                       ) : (
                         <MealGenerationProgress
@@ -1266,8 +1270,8 @@ export default function UltimateExperiencesPage() {
                     >
                       <Star className="h-4 w-4" />
                       {generatedCourses.length > 0
-                        ? "Generate New Experience"
-                        : "Create My Experience"}
+                        ? t("Generate New Experience")
+                        : t("Create My Experience")}
                     </GlassButton>
                   )}
                 </CardContent>
@@ -1280,7 +1284,7 @@ export default function UltimateExperiencesPage() {
             <div className="mt-8 flex items-center gap-3">
               <Sparkles className="h-5 w-5 text-amber-400" />
               <h3 className="text-lg font-bold text-white">
-                Your Preparation Guide — {proteinSource}
+                {t("Your Preparation Guide —")} {proteinSource}
               </h3>
             </div>
           )}
@@ -1302,7 +1306,7 @@ export default function UltimateExperiencesPage() {
                     <span className="text-white font-bold text-sm">{harvestGuide.title}</span>
                   </div>
                   <span className="text-orange-400 text-xs font-medium">
-                    {harvestGuideCollapsed ? "Show Guide" : "Hide"}
+                    {harvestGuideCollapsed ? t("Show Guide") : t("Hide")}
                   </span>
                 </button>
                 {!harvestGuideCollapsed && (
@@ -1328,18 +1332,18 @@ export default function UltimateExperiencesPage() {
                 <Sparkles className="h-5 w-5 text-amber-400" />
                 <h3 className="text-lg font-bold text-white">
                   {situation === "outdoor" && outdoorExperienceType === "simple"
-                    ? `Your ${proteinSource} Recipe`
+                    ? t("Your {{food}} Recipe", { food: proteinSource })
                     : situation === "outdoor" && outdoorExperienceType === "complete"
-                    ? "Your Great Outdoors Complete Meal"
-                    : `Your ${generatedCourses.length}-Course ${
+                    ? t("Your Great Outdoors Complete Meal")
+                    : t("Your {{count}}-Course {{occasion}} Experience", { count: generatedCourses.length, occasion:
                         selectedEvent
-                          ? HOLIDAY_EVENTS.find((h) => h.id === selectedEvent)?.label
+                          ? optionLabels[HOLIDAY_EVENTS.find((h) => h.id === selectedEvent)?.label ?? ""] ?? HOLIDAY_EVENTS.find((h) => h.id === selectedEvent)?.label
                           : situation === "camping"
-                            ? "Camping"
+                            ? t("Camping")
                             : situation === "outdoor"
-                              ? "Great Outdoors"
-                              : "Tailgating"
-                      } Experience`}
+                              ? t("Great Outdoors")
+                              : t("Tailgating")
+                      })}
                 </h3>
               </div>
 
@@ -1363,12 +1367,12 @@ export default function UltimateExperiencesPage() {
                         </span>
                       )}
                       {course.isFamilySpecialty && (
-                        <span className="ml-1 text-amber-400">★ Family</span>
+                        <span className="ml-1 text-amber-400">{t("★ Family")}</span>
                       )}
                     </span>
                     {course._fallback && (
                       <span className="text-xs text-red-400 border border-red-400/30 bg-red-400/10 px-2 py-0.5 rounded-full">
-                        Needs retry
+                        {t("Needs retry")}
                       </span>
                     )}
                   </div>
@@ -1398,7 +1402,7 @@ export default function UltimateExperiencesPage() {
                           }}
                           className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
                         >
-                          Start Over
+                          {t("Start Over")}
                         </button>
                       </div>
 
@@ -1430,13 +1434,13 @@ export default function UltimateExperiencesPage() {
                       ) : (
                         <div className="mb-6 p-4 rounded-xl bg-black/40 border border-orange-400/30 text-center">
                           <p className="text-white/70 text-sm mb-3">
-                            This result was saved in an older session before images were stored. Generate a fresh course to get your image.
+                            {t("This result was saved in an older session before images were stored. Generate a fresh course to get your image.")}
                           </p>
                           <button
                             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
                             className="px-4 py-2 rounded-full bg-orange-600 text-white text-sm font-medium"
                           >
-                            Scroll up to regenerate
+                            {t("Scroll up to regenerate")}
                           </button>
                         </div>
                       )}
@@ -1444,8 +1448,8 @@ export default function UltimateExperiencesPage() {
                       <div className="mb-4 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">
                         <div className="flex items-center gap-2 text-sm text-white">
                           <Users className="h-4 w-4" />
-                          <span className="font-medium">Serving Size:</span>{" "}
-                          {course.servingSize || `${servings} servings`}
+                          <span className="font-medium">{t("Serving Size:")}</span>{" "}
+                          {course.servingSize || t("{{count}} servings", { count: servings })}
                         </div>
                       </div>
 
@@ -1459,61 +1463,61 @@ export default function UltimateExperiencesPage() {
                         <div className="mb-3 p-2 bg-black/40 backdrop-blur-md rounded-lg border border-white/20">
                           <div className="text-xs text-white text-center">
                             <strong>
-                              Recipe makes {course.servings ?? servings} servings. Nutrition below is for one serving.
+                              {t("Recipe makes {{count}} servings. Nutrition below is for one serving.", { count: course.servings ?? servings })}
                             </strong>
                             <br />
-                            Per serving:{" "}
+                            {t("Per serving:")}{" "}
                             {Math.round(
                               (course.nutrition?.calories ||
                                 course.calories ||
                                 0) / servings,
                             )}{" "}
-                            cal |{" "}
+                            {t("cal |")}{" "}
                             {Math.round(
                               (course.nutrition?.protein ||
                                 course.protein ||
                                 0) / servings,
                             )}
-                            g protein |{" "}
+                            {t("g protein |")}{" "}
                             {Math.round(
                               (course.nutrition?.carbs || course.carbs || 0) /
                                 servings,
                             )}
-                            g carbs |{" "}
+                            {t("g carbs |")}{" "}
                             {Math.round(
                               (course.nutrition?.fat || course.fat || 0) /
                                 servings,
                             )}
-                            g fat
+                            {t("g fat")}
                           </div>
                         </div>
                       )}
 
-                      <p className="text-xs text-white/60 text-center mb-2">Nutrition per serving</p>
+                      <p className="text-xs text-white/60 text-center mb-2">{t("Nutrition per serving")}</p>
                       <div className="grid grid-cols-4 gap-4 mb-4 text-center">
                         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
                           <div className="text-lg font-bold text-white">
                             {Math.round(getMealNutrition(course, servings).calories)}
                           </div>
-                          <div className="text-xs text-white">Calories</div>
+                          <div className="text-xs text-white">{t("Calories")}</div>
                         </div>
                         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
                           <div className="text-lg font-bold text-white">
                             {Math.round(getMealNutrition(course, servings).protein_g)}g
                           </div>
-                          <div className="text-xs text-white">Protein</div>
+                          <div className="text-xs text-white">{t("Protein")}</div>
                         </div>
                         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
                           <div className="text-lg font-bold text-white">
                             {Math.round(getMealNutrition(course, servings).carbs_g)}g
                           </div>
-                          <div className="text-xs text-white">Carbs</div>
+                          <div className="text-xs text-white">{t("Carbs")}</div>
                         </div>
                         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
                           <div className="text-lg font-bold text-white">
                             {Math.round(getMealNutrition(course, servings).fat_g)}g
                           </div>
-                          <div className="text-xs text-white">Fat</div>
+                          <div className="text-xs text-white">{t("Fat")}</div>
                         </div>
                       </div>
 
@@ -1573,8 +1577,8 @@ export default function UltimateExperiencesPage() {
                               <TrashButton
                                 size="sm"
                                 appearance="meal-card"
-                                ariaLabel="Remove this course"
-                                title="Remove this course"
+                                ariaLabel={t("Remove this course")}
+                                title={t("Remove this course")}
                                 confirm={true}
                                 confirmMessage="Remove this course?"
                                 onClick={() => {
@@ -1591,7 +1595,7 @@ export default function UltimateExperiencesPage() {
                       {course.ingredients && course.ingredients.length > 0 && (
                         <div className="mb-4">
                           <h4 className="font-semibold mb-2 text-white">
-                            Ingredients:
+                            {t("Ingredients:")}
                           </h4>
                           <ul className="text-sm text-white/80 space-y-1">
                             {course.ingredients.map(
@@ -1603,17 +1607,17 @@ export default function UltimateExperiencesPage() {
                                 const unit = ingredient.unit;
                                 if (ingredient.displayText) {
                                   return (
-                                    <li key={i}>{ingredient.displayText}</li>
+                                    <li key={i}><IngredientDisplay ingredient={ingredient} legacyText={ingredient.displayText} /></li>
                                   );
                                 }
                                 if (amount && unit) {
                                   return (
                                     <li key={i}>
-                                      {formatAmount(amount)} {unit} {name}
+                                      <IngredientDisplay ingredient={ingredient} legacyText={<>{formatAmount(amount)} {unit} {name}</>} />
                                     </li>
                                   );
                                 }
-                                return <li key={i}>{name}</li>;
+                                return <li key={i}><IngredientDisplay ingredient={ingredient} legacyText={name} /></li>;
                               },
                             )}
                           </ul>
@@ -1632,7 +1636,7 @@ export default function UltimateExperiencesPage() {
                         return (
                           <div className="mb-4">
                             <h4 className="font-semibold mb-2 text-white">
-                              Instructions:
+                              {t("Instructions:")}
                             </h4>
                             <div className="space-y-2">
                               {visibleSteps.map((step, stepIdx) => (
@@ -1678,8 +1682,8 @@ export default function UltimateExperiencesPage() {
                                 }}
                               >
                                 {expanded
-                                  ? "Show less"
-                                  : `Show all ${steps.length} steps`}
+                                  ? t("Show less")
+                                  : t("Show all {{count}} steps", { count: steps.length })}
                               </button>
                             )}
                           </div>
@@ -1690,7 +1694,7 @@ export default function UltimateExperiencesPage() {
                         <div className="mb-4">
                           <h4 className="font-semibold mb-2 flex items-center gap-2 text-white">
                             <Brain className="h-4 w-4" />
-                            Why This Works For You:
+                            {t("Why This Works For You:")}
                           </h4>
                           <p className="text-sm text-white/80">
                             {course.reasoning}
@@ -1719,7 +1723,7 @@ export default function UltimateExperiencesPage() {
                           }}
                           className="w-full bg-gradient-to-r from-zinc-900 via-zinc-800 to-black hover:from-zinc-800 hover:via-zinc-700 hover:to-zinc-900 text-white flex items-center justify-center border border-white/30"
                         >
-                          Add to Macros
+                          {t("Add to Macros")}
                         </GlassButton></MealCardAction>
 
                         <div className="grid grid-cols-2 gap-2">
@@ -1785,7 +1789,7 @@ export default function UltimateExperiencesPage() {
                             }}
                             className="flex-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                           >
-                            Guided Cooking
+                            {t("Guided Cooking")}
                           </GlassButton></MealCardAction>
                           <MealCardAction kind="share"><ShareRecipeButton
                             recipe={{

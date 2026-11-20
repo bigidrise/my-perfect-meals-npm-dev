@@ -1,3 +1,8 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { trainingScheduleSpanish } from "@/i18n/trainingScheduleCopy";
+import { approvedTrainingExplanationSpanish } from "@/i18n/approvedTrainingExplanations";
+import { approvedTrainingExplanationsEnabled } from "@/lib/trainingExplanationDevelopmentGate";
 import { PREGNANCY_CUSTOMER_AVAILABLE } from "@shared/pregnancyAvailability";
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -441,7 +446,14 @@ interface PerformanceHubSharedProps {
 }
 
 export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, continueLabel, tutorialKey }: PerformanceHubSharedProps = {}) {
-  usePageTitle(pageTitle ?? "Performance Hub");
+  const { t, i18n } = useConsumerCopy();
+  const displayLocale = i18n.resolvedLanguage?.startsWith("es") ? "es-US" : "en-US";
+  const trainingLabel = (value: string) =>
+    Object.prototype.hasOwnProperty.call(trainingScheduleSpanish, value) ? t(value) : value;
+  const explanationLabel = (value: string) =>
+    approvedTrainingExplanationsEnabled &&
+    Object.prototype.hasOwnProperty.call(approvedTrainingExplanationSpanish, value) ? t(value) : value;
+  usePageTitle(t(pageTitle ?? "Performance Hub"));
   const resolvedTutorialKey = tutorialKey ?? (continueTo ? "trainingGeneral" : "performanceHub");
   const [, setLocation] = useLocation();
   // Shared-mode helpers — derived once, used throughout
@@ -770,9 +782,9 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
               onClick={() => setLocation(backPath)}
               className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
             >
-              <ArrowLeft className="w-4 h-4 text-white" />
+              <ArrowLeft className="w-4 h-4 text-white" /><span className="sr-only"><BackNavigationLabel /></span>
             </button>
-            <p className="text-white font-bold text-base leading-none">Performance Hub</p>
+            <p className="text-white font-bold text-base leading-none">{t(pageTitle ?? "Performance Hub")}</p>
           </div>
         )}
         <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center gap-6">
@@ -780,13 +792,13 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
             <span className="text-4xl">⚡</span>
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-white">Performance Nutrition Hub</h2>
+            <h2 className="text-2xl font-bold text-white">{t("Performance Nutrition Hub")}</h2>
             <p className="text-white/60 text-sm max-w-xs leading-relaxed">
               Sport-specific fueling protocols, starch cycling, competition prep, and performance check-ins.
             </p>
           </div>
           <div className="bg-orange-950/40 border border-orange-500/30 rounded-2xl px-5 py-4 max-w-xs w-full space-y-3">
-            <p className="text-orange-300 font-semibold text-sm">Clinical Plan Required</p>
+            <p className="text-orange-300 font-semibold text-sm">{t("Clinical Plan Required")}</p>
             <ul className="text-white/70 text-xs text-left space-y-1.5">
               <li>✓ Athletic &amp; competition prep protocols</li>
               <li>✓ Starch cycling with protocol tracking</li>
@@ -799,7 +811,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
             onClick={() => setLocation("/pricing")}
             className="bg-orange-600 text-white font-semibold rounded-xl px-8 py-3 text-sm w-full max-w-xs"
           >
-            View Clinical Plan
+            {t("View Clinical Plan")}
           </button>
         </div>
       </div>
@@ -823,12 +835,12 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
             onClick={() => setLocation(backPath)}
             className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
           >
-            <ArrowLeft className="w-4 h-4 text-white" />
+            <ArrowLeft className="w-4 h-4 text-white" /><span className="sr-only"><BackNavigationLabel /></span>
           </button>
           <div className="flex-1">
-            <p className="text-white font-bold text-base leading-none">{pageTitle ?? "Performance Hub"}</p>
+            <p className="text-white font-bold text-base leading-none">{t(pageTitle ?? "Performance Hub")}</p>
             <p className="text-orange-300 text-xs mt-0.5">
-              {continueTo ? "Training schedule & daily macro adjustments" : activeTrack === "competition" ? "Competition prep protocol" : "Sport-specific nutrition protocol"}
+              {t(continueTo ? "Training schedule & daily macro adjustments" : activeTrack === "competition" ? "Competition prep protocol" : "Sport-specific nutrition protocol")}
             </p>
           </div>
           <button
@@ -836,7 +848,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600/20 border border-orange-500/30 text-orange-300 text-xs font-semibold"
           >
             <Settings className="w-3.5 h-3.5" />
-            {isActive ? "Update" : "Setup"}
+            {t(isActive ? "Update" : "Setup")}
           </button>
         </div>
       )}
@@ -851,7 +863,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
       {macroCalcRequired && (
         <div className="px-4 pt-6 max-w-lg mx-auto">
           <div className="rounded-2xl bg-orange-600/15 border border-orange-500/30 px-5 py-5">
-            <p className="text-white font-bold text-base mb-1">Macro Calculator Required</p>
+            <p className="text-white font-bold text-base mb-1">{t("Macro Calculator Required")}</p>
             <p className="text-white/75 text-sm leading-relaxed mb-4">
               Your performance targets and coaching are personalized from your Macro Calculator results.
               Complete it first to unlock your daily targets, weekly schedule, and AI coaching.
@@ -860,7 +872,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
               onClick={() => setLocation("/macro-counter")}
               className="w-full bg-orange-600 text-white font-semibold text-sm py-3 rounded-xl active:scale-[0.98] transition-transform"
             >
-              Run My Macro Calculator
+              {t("Run My Macro Calculator")}
             </button>
           </div>
         </div>
@@ -887,7 +899,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                   <Dumbbell className="w-5 h-5 text-orange-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-white font-bold text-sm">Athletic Performance</p>
+                  <p className="text-white font-bold text-sm">{t("Athletic Performance")}</p>
                   <p className="text-white/70 text-xs mt-0.5">MMA, boxing, CrossFit, endurance, tactical, strength sports</p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-white/60 mt-1 flex-shrink-0" />
@@ -902,7 +914,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                   <Trophy className="w-5 h-5 text-orange-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-white font-bold text-sm">Competition Prep</p>
+                  <p className="text-white font-bold text-sm">{t("Competition Prep")}</p>
                   <p className="text-white/70 text-xs mt-0.5">Bodybuilding, physique, powerlifting, fight camp — calendar-driven</p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-white/60 mt-1 flex-shrink-0" />
@@ -927,7 +939,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
               <span className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12" />
             </span>
             <Settings className="relative w-4 h-4 drop-shadow" />
-            <span className="relative drop-shadow">Update Setup</span>
+            <span className="relative drop-shadow">{t("Update Setup")}</span>
           </button>
           <style>{`
             @keyframes gradientShift {
@@ -949,8 +961,8 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
             className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
           >
             <div className="text-left">
-              <p className="font-bold text-sm">{continueLabel ?? (continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder")}</p>
-              <p className="text-white/80 text-xs mt-0.5">Build meals calibrated for your prep phase</p>
+              <p className="font-bold text-sm">{trainingLabel(continueLabel ?? (continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder"))}</p>
+              <p className="text-white/80 text-xs mt-0.5">{t("Build meals calibrated for your prep phase")}</p>
             </div>
             <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
           </button>
@@ -959,7 +971,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
           <div className="rounded-2xl bg-black/50 border border-orange-500/30 p-4">
             <div className="flex items-center gap-2 mb-3">
               <span className="w-2 h-2 rounded-full bg-orange-400" />
-              <p className="text-xs text-orange-300 font-semibold">Competition Prep Active</p>
+              <p className="text-xs text-orange-300 font-semibold">{t("Competition Prep Active")}</p>
             </div>
 
             <div className="flex items-start justify-between gap-3 mb-4">
@@ -997,7 +1009,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
               <div className="bg-white/5 rounded-xl px-3 py-2">
                 <p className="text-white/70 text-xs">Event Date</p>
                 <p className="text-white font-semibold text-sm mt-0.5">
-                  {new Date(compCtx.eventDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  {new Date(compCtx.eventDate).toLocaleDateString(displayLocale, { month: "short", day: "numeric", year: "numeric" })}
                 </p>
               </div>
               {compCtx.currentWeight && (
@@ -1132,7 +1144,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
 
               {/* Daily Macro Targets */}
               <div className="space-y-1.5">
-                <p className="text-white text-[11px] font-semibold uppercase tracking-wider">Today's Targets</p>
+                <p className="text-white text-[11px] font-semibold uppercase tracking-wider">{t("Today's Targets")}</p>
                 <div className="grid grid-cols-5 gap-1.5">
                   {[
                     { label: "Calories", value: resolvedTargets.calories > 0 ? Math.round(resolvedTargets.calories).toLocaleString() : "—", unit: "kcal" },
@@ -1144,7 +1156,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                     <div key={m.label} className="bg-white/10 rounded-xl px-1.5 py-2.5 text-center">
                       <p className="text-white font-bold text-sm leading-none">{m.value}</p>
                       <p className="text-white/70 text-[10px] mt-0.5">{m.unit}</p>
-                      <p className="text-white/70 text-[9px] mt-0.5 uppercase tracking-wide">{m.label}</p>
+                    <p className="text-white/70 text-[9px] mt-0.5 uppercase tracking-wide">{t(m.label)}</p>
                     </div>
                   ))}
                 </div>
@@ -1155,8 +1167,8 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                 className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
               >
                 <div className="text-left">
-                  <p className="font-bold text-sm">{continueLabel ?? (continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder")}</p>
-                  <p className="text-white/80 text-xs mt-0.5">Build meals calibrated for your prep phase</p>
+                  <p className="font-bold text-sm">{trainingLabel(continueLabel ?? (continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder"))}</p>
+                  <p className="text-white/80 text-xs mt-0.5">{t("Build meals calibrated for your prep phase")}</p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
               </button>
@@ -1175,8 +1187,8 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
             className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
           >
             <div className="text-left">
-              <p className="font-bold text-sm">{continueLabel ?? (continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder")}</p>
-              <p className="text-white/80 text-xs mt-0.5">Build meals calibrated for your training phase</p>
+              <p className="font-bold text-sm">{trainingLabel(continueLabel ?? (continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder"))}</p>
+              <p className="text-white/80 text-xs mt-0.5">{t("Build meals calibrated for your training phase")}</p>
             </div>
             <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
           </button>
@@ -1191,14 +1203,14 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-orange-400" />
-                    <p className="text-xs text-orange-300 font-semibold uppercase tracking-wider">Weekly Coaching Schedule</p>
+                    <p className="text-xs text-orange-300 font-semibold uppercase tracking-wider">{t("Weekly Coaching Schedule")}</p>
                   </div>
                   <button
                     onClick={() => setLocation(setupPath)}
                     className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-white/70 text-xs font-medium"
                   >
                     <Settings className="w-3 h-3" />
-                    Edit Schedule
+                    {t("Edit Schedule")}
                   </button>
                 </div>
 
@@ -1234,13 +1246,13 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className={`text-xs font-bold w-7 ${isSelected ? "text-orange-300" : isPast ? "text-white/50" : isToday ? "text-orange-300" : "text-white/70"}`}>
-                              {short}
+                              {new Date(dateStr + "T12:00:00").toLocaleDateString(displayLocale, { weekday: "short" })}
                             </span>
                             <span className={`text-xs font-semibold ${isSelected ? "text-white" : isPast ? "text-white/50" : isToday ? "text-white" : "text-white/70"}`}>
-                              {sessionLabel}
+                              {trainingLabel(sessionLabel)}
                             </span>
                             {isToday && !isSelected && (
-                              <span className="text-[9px] text-orange-400 font-semibold uppercase tracking-wider">Today</span>
+                              <span className="text-[9px] text-orange-400 font-semibold uppercase tracking-wider">{t("Today")}</span>
                             )}
                           </div>
                         </div>
@@ -1263,15 +1275,15 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                 <div className="flex items-center gap-2">
                   {isViewingToday && <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />}
                   <p className="text-xs text-orange-300 font-semibold uppercase tracking-wider">
-                    {isViewingToday ? "Today's Training" : new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" })}
+                    {isViewingToday ? t("Today's Training") : new Date(selectedDate + "T12:00:00").toLocaleDateString(displayLocale, { weekday: "long" })}
                   </p>
                 </div>
                 <span className="text-xs text-white/60 font-medium">
-                  {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  {new Date(selectedDate + "T12:00:00").toLocaleDateString(displayLocale, { month: "short", day: "numeric" })}
                 </span>
               </div>
 
-              <p className="text-white font-bold text-2xl leading-none mb-1">{todaySession.sessionLabel}</p>
+              <p className="text-white font-bold text-2xl leading-none mb-1">{trainingLabel(todaySession.sessionLabel)}</p>
 
               {/* Why explanation */}
               {(() => {
@@ -1282,7 +1294,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                     {bullets.map((line, i) => (
                       <p key={i} className="text-white/70 text-xs leading-relaxed flex gap-1.5">
                         <span className="text-orange-400 mt-0.5 flex-shrink-0">·</span>
-                        {line}
+                        {explanationLabel(line)}
                       </p>
                     ))}
                   </div>
@@ -1290,10 +1302,10 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
               })()}
 
               {/* Coaching Plan Targets */}
-              <p className="text-white text-[11px] font-semibold uppercase tracking-wider mb-2">Coaching Plan Targets</p>
+              <p className="text-white text-[11px] font-semibold uppercase tracking-wider mb-2">{t("Coaching Plan Targets")}</p>
               <div className="grid grid-cols-5 gap-1.5 mb-4">
                 {[
-                  { label: "Calories", value: todaySession.calories.toLocaleString(), unit: "kcal" },
+                  { label: "Calories", value: todaySession.calories.toLocaleString(displayLocale), unit: "kcal" },
                   { label: "Protein",  value: `${todaySession.proteinG}`,             unit: "g" },
                   { label: "Starchy",  value: `${todaySession.starchyCarbsG}`,        unit: "g" },
                   { label: "Fibrous",  value: `${todaySession.fibrousCarbsG}`,        unit: "g" },
@@ -1302,7 +1314,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                   <div key={m.label} className="bg-white/10 rounded-xl px-1.5 py-2.5 text-center">
                     <p className="text-white font-bold text-sm leading-none">{m.value}</p>
                     <p className="text-white/70 text-[10px] mt-0.5">{m.unit}</p>
-                    <p className="text-white/70 text-[9px] mt-0.5 uppercase tracking-wide">{m.label}</p>
+                    <p className="text-white/70 text-[9px] mt-0.5 uppercase tracking-wide">{t(m.label)}</p>
                   </div>
                 ))}
               </div>
@@ -1320,11 +1332,11 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                 return (
                   <div className="border-t border-white/10 pt-3">
                     <p className="text-white text-[11px] font-semibold uppercase tracking-wider mb-2">
-                      Remaining Today
+                      {t("Remaining Today")}
                     </p>
                     <div className="grid grid-cols-5 gap-1.5">
                       {[
-                        { label: "Calories", value: rem.calories.toLocaleString(), unit: "kcal" },
+                        { label: "Calories", value: rem.calories.toLocaleString(displayLocale), unit: "kcal" },
                         { label: "Protein",  value: `${rem.proteinG}`,             unit: "g" },
                         { label: "Starchy",  value: `${rem.starchyCarbsG}`,        unit: "g" },
                         { label: "Fibrous",  value: `${rem.fibrousCarbsG}`,        unit: "g" },
@@ -1333,12 +1345,12 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                         <div key={m.label} className="bg-orange-600/20 rounded-xl px-1.5 py-2 text-center">
                           <p className={`font-bold text-sm leading-none ${anyLogged ? "text-orange-300" : "text-white/60"}`}>{m.value}</p>
                           <p className="text-white/70 text-[10px] mt-0.5">{m.unit}</p>
-                          <p className="text-white/70 text-[9px] mt-0.5 uppercase tracking-wide">{m.label}</p>
+                          <p className="text-white/70 text-[9px] mt-0.5 uppercase tracking-wide">{t(m.label)}</p>
                         </div>
                       ))}
                     </div>
                     {!anyLogged && (
-                      <p className="text-white/60 text-[10px] mt-2 text-center">Log meals to see remaining</p>
+                      <p className="text-white/60 text-[10px] mt-2 text-center">{t("Log meals to see remaining")}</p>
                     )}
                   </div>
                 );
@@ -1403,7 +1415,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
 
                 {/* App-wide impact */}
                 <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
-                  <p className="text-orange-300 text-[11px] font-semibold uppercase tracking-wider mb-1">Affects the whole app</p>
+                  <p className="text-orange-300 text-[11px] font-semibold uppercase tracking-wider mb-1">{t("Affects the whole app")}</p>
                   <p className="text-white/70 text-xs leading-relaxed">
                     This strategy applies everywhere — Create a Dish, Snack Creator, Beverages, Desserts, Restaurant Guide, Fridge Rescue, Getaway Coach, Gatherings, Meal Planner, and more. Every recommendation starts with today's training day.
                   </p>
@@ -1423,20 +1435,20 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
           <div className="rounded-2xl bg-black/50 border border-orange-500/30 p-4">
             <div className="flex items-center gap-2 mb-3">
               <span className="w-2 h-2 rounded-full bg-orange-400" />
-              <p className="text-xs text-orange-300 font-semibold">Athletic Protocol Active</p>
+              <p className="text-xs text-orange-300 font-semibold">{t("Athletic Protocol Active")}</p>
             </div>
             <p className="text-white font-bold text-2xl leading-none mb-0.5">
               {pCtx.trainingType === "other"
                 ? (pCtx.customSportName ?? "Custom Sport")
-                : (TYPE_LABELS[pCtx.trainingType] ?? pCtx.trainingType)}
+                : (TYPE_LABELS[pCtx.trainingType] ? trainingLabel(TYPE_LABELS[pCtx.trainingType]) : pCtx.trainingType)}
             </p>
             <p className="text-orange-300 text-sm font-medium mb-3">
-              {GOAL_LABELS[pCtx.primaryGoal] ?? pCtx.primaryGoal}
+              {GOAL_LABELS[pCtx.primaryGoal] ? trainingLabel(GOAL_LABELS[pCtx.primaryGoal]) : pCtx.primaryGoal}
             </p>
             <div className="flex flex-wrap gap-1.5">
               {[
                 PHASE_LABELS[pCtx.trainingPhase] ?? pCtx.trainingPhase,
-                `${pCtx.trainingFrequency} sessions/wk`,
+                t("{{count}} sessions/wk", { count: pCtx.trainingFrequency }),
                 CARDIO_LABELS[pCtx.cardioFocus] ?? pCtx.cardioFocus,
                 pCtx.twoADays ? "2-a-Days" : null,
                 pCtx.sessionDuration ? (SESSION_DURATION_LABELS[pCtx.sessionDuration] ?? pCtx.sessionDuration) : null,
@@ -1446,7 +1458,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                   : pCtx.adaptationTarget ? [ADAPTATION_TARGET_LABELS[pCtx.adaptationTarget] ?? pCtx.adaptationTarget] : []),
               ].filter(Boolean).map((label, i) => (
                 <span key={i} className="px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-white/80 text-xs font-medium">
-                  {label}
+                  {trainingLabel(String(label))}
                 </span>
               ))}
             </div>
@@ -1489,7 +1501,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                         viewMode === mode ? "bg-orange-600 text-white" : "text-white/40"
                       }`}
                     >
-                      {mode === "user" ? "My View" : "Pro View"}
+                      {t(mode === "user" ? "My View" : "Pro View")}
                     </button>
                   ))}
                 </div>
@@ -1526,7 +1538,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
               <div className="rounded-2xl bg-black/50 border border-orange-500/20 p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Zap className="w-3.5 h-3.5 text-orange-400" />
-                  <p className="text-white font-bold text-sm">Active Performance Factors</p>
+                  <p className="text-white font-bold text-sm">{t("Active Performance Factors")}</p>
                 </div>
                 {isProView ? (() => {
                   const trace = buildDemandSignalTrace(pCtx);
@@ -1555,20 +1567,20 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                 })() : (
                   <div className="grid grid-cols-2 gap-2">
                     <div className={`rounded-xl border px-3 py-2.5 ${FUEL_DEMAND_COLORS[demandProfile.fuelDemand]}`}>
-                      <p className="text-xs opacity-80 mb-0.5">Fuel Demand</p>
-                      <p className="font-bold text-xs">{FUEL_DEMAND_LABELS[demandProfile.fuelDemand]}</p>
+                      <p className="text-xs opacity-80 mb-0.5">{t("Fuel Demand")}</p>
+                      <p className="font-bold text-xs">{trainingLabel(FUEL_DEMAND_LABELS[demandProfile.fuelDemand])}</p>
                     </div>
                     <div className={`rounded-xl border px-3 py-2.5 ${RECOVERY_DEMAND_COLORS[demandProfile.recoveryDemand]}`}>
-                      <p className="text-xs opacity-80 mb-0.5">Recovery Demand</p>
-                      <p className="font-bold text-xs">{RECOVERY_DEMAND_LABELS[demandProfile.recoveryDemand]}</p>
+                      <p className="text-xs opacity-80 mb-0.5">{t("Recovery Demand")}</p>
+                      <p className="font-bold text-xs">{trainingLabel(RECOVERY_DEMAND_LABELS[demandProfile.recoveryDemand])}</p>
                     </div>
                     <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
-                      <p className="text-white/70 text-xs mb-0.5">Adaptation Focus</p>
-                      <p className="text-white font-bold text-xs">{ADAPTATION_DEMAND_LABELS[demandProfile.adaptationDemand]}</p>
+                      <p className="text-white/70 text-xs mb-0.5">{t("Adaptation Focus")}</p>
+                      <p className="text-white font-bold text-xs">{trainingLabel(ADAPTATION_DEMAND_LABELS[demandProfile.adaptationDemand])}</p>
                     </div>
                     <div className={`rounded-xl border px-3 py-2.5 ${TRAINING_LOAD_COLORS[demandProfile.trainingLoad]}`}>
-                      <p className="text-xs opacity-80 mb-0.5">Training Load</p>
-                      <p className="font-bold text-xs">{TRAINING_LOAD_LABELS[demandProfile.trainingLoad]}</p>
+                      <p className="text-xs opacity-80 mb-0.5">{t("Training Load")}</p>
+                      <p className="font-bold text-xs">{trainingLabel(TRAINING_LOAD_LABELS[demandProfile.trainingLoad])}</p>
                     </div>
                   </div>
                 )}
@@ -1577,7 +1589,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
               {/* ── Section 3: Nutrition Priorities ── */}
               {demandProfile.nutritionPriorities.length > 0 && (
                 <div className="rounded-2xl bg-black/50 border border-white/10 p-4">
-                  <p className="text-white font-bold text-sm mb-3">Nutrition Priorities</p>
+                <p className="text-white font-bold text-sm mb-3">{t("Nutrition Priorities")}</p>
                   <div className="space-y-2">
                     {demandProfile.nutritionPriorities.map((priority, i) => (
                       <div key={i} className={isProView ? "pb-2.5 border-b border-white/5 last:border-0" : "flex items-center gap-3"}>
@@ -1587,7 +1599,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                               <span className="w-5 h-5 rounded-full bg-orange-600/30 border border-orange-500/40 flex items-center justify-center flex-shrink-0">
                                 <span className="text-orange-300 font-bold" style={{ fontSize: "10px" }}>{i + 1}</span>
                               </span>
-                              <p className="text-white font-semibold text-sm">{priority}</p>
+                              <p className="text-white font-semibold text-sm">{trainingLabel(priority)}</p>
                             </div>
                             {PRIORITY_RATIONALES[priority] && (
                               <p className="text-white/70 text-xs leading-relaxed pl-7">{PRIORITY_RATIONALES[priority]}</p>
@@ -1598,7 +1610,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                             <span className="w-6 h-6 rounded-full bg-orange-600/30 border border-orange-500/40 flex items-center justify-center flex-shrink-0">
                               <span className="text-orange-300 font-bold text-xs">{i + 1}</span>
                             </span>
-                            <p className="text-white/80 text-sm">{priority}</p>
+                            <p className="text-white/80 text-sm">{trainingLabel(priority)}</p>
                           </>
                         )}
                       </div>
@@ -1633,10 +1645,10 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                 if (influenceLines.length === 0) return null;
                 return (
                   <div className="rounded-2xl bg-black/50 border border-white/10 p-4">
-                    <p className="text-white font-bold text-sm mb-3">How This Influences Your Meals</p>
+                    <p className="text-white font-bold text-sm mb-3">{t("How This Influences Your Meals")}</p>
                     <div className="space-y-2">
                       {influenceLines.map((line, i) => (
-                        <p key={i} className="text-white/70 text-sm leading-relaxed">{line}</p>
+                        <p key={i} className="text-white/70 text-sm leading-relaxed">{explanationLabel(line)}</p>
                       ))}
                     </div>
                   </div>
@@ -1674,8 +1686,8 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
                 className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-orange-600/20 border border-orange-500/30 text-white"
               >
                 <div className="text-left">
-                  <p className="font-bold text-sm">{continueLabel ?? (continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder")}</p>
-                  <p className="text-white/80 text-xs mt-0.5">Build sport-calibrated meals now</p>
+                  <p className="font-bold text-sm">{trainingLabel(continueLabel ?? (continueTo ? "Continue to Builder" : "Launch Performance Nutrition Builder"))}</p>
+                  <p className="text-white/80 text-xs mt-0.5">{t("Build sport-calibrated meals now")}</p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-orange-400 flex-shrink-0" />
               </button>

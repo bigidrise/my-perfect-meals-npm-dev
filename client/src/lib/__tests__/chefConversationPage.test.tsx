@@ -1,5 +1,6 @@
 /** @jest-environment jsdom */
 import React, { act } from "react";
+import "@/i18n";
 import { createRoot, type Root } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import { notifyManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";

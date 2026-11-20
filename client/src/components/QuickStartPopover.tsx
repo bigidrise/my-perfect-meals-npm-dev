@@ -11,7 +11,10 @@ interface QuickStartPopoverProps {
   compact?: boolean;
 }
 
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+
 export function QuickStartPopover({ compact = false }: QuickStartPopoverProps) {
+  const { t } = useConsumerCopy();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
@@ -45,15 +48,15 @@ export function QuickStartPopover({ compact = false }: QuickStartPopoverProps) {
                     : "border-amber-400/30 bg-amber-400/10 text-amber-300 hover:bg-amber-400/15 hover:text-amber-200"
                 }`
           }
-          aria-label="Open Quick Start"
-          title={compact ? "Quick Start" : undefined}
+          aria-label={t("Open Quick Start")}
+          title={compact ? t("Quick Start") : undefined}
           data-testid="button-quick-start"
         >
           <Sparkles className="h-3.5 w-3.5" />
-          {!compact && <span>Quick Start</span>}
+          {!compact && <span>{t("Quick Start")}</span>}
           {!compact && !hasCompletedPhaseOne && (
             <span className="rounded-full bg-amber-300/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-amber-200">
-              Recommended
+              {t("Recommended")}
             </span>
           )}
         </button>
@@ -65,9 +68,9 @@ export function QuickStartPopover({ compact = false }: QuickStartPopoverProps) {
       >
         <div className="space-y-3">
           <div>
-            <h2 className="text-base font-bold text-white">Get More From My Perfect Meals</h2>
+            <h2 className="text-base font-bold text-white">{t("Get More From My Perfect Meals")}</h2>
             <p className="mt-1.5 text-sm leading-relaxed text-white/70">
-              My Perfect Meals is more than a meal app. It's a complete AI nutrition and coaching platform.
+              {t("My Perfect Meals is more than a meal app. It's a complete AI nutrition and coaching platform.")}
             </p>
           </div>
 
@@ -93,7 +96,7 @@ export function QuickStartPopover({ compact = false }: QuickStartPopoverProps) {
                 : "Start with My Perfect Meals Academy."}
             </p>
             <p className="mt-1 text-sm leading-relaxed text-white/80">
-              The Academy walks you through the platform and teaches you how to use its features and tools. Take a few minutes to get started so you understand what's available, where to find it, and how to get the most from My Perfect Meals.
+              {t("The Academy walks you through the platform and teaches you how to use its features and tools. Take a few minutes to get started so you understand what's available, where to find it, and how to get the most from My Perfect Meals.")}
             </p>
           </div>
 
@@ -105,16 +108,16 @@ export function QuickStartPopover({ compact = false }: QuickStartPopoverProps) {
             }}
             className="w-full rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-500"
           >
-            Start My Perfect Meals Academy
+            {t("Start My Perfect Meals Academy")}
           </button>
 
           <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-            <p className="text-xs font-bold uppercase tracking-wide text-white/60">Explore the platform</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-white/60">{t("Explore the platform")}</p>
             <p className="mt-1 text-sm font-semibold text-white">
-              Want to see everything My Perfect Meals offers?
+              {t("Want to see everything My Perfect Meals offers?")}
             </p>
             <p className="mt-1 text-sm leading-relaxed text-white/70">
-              Visit the App Library to browse the platform's tools and features and read about what each one can do.
+              {t("Visit the App Library to browse the platform's tools and features and read about what each one can do.")}
             </p>
           </div>
 
@@ -126,12 +129,12 @@ export function QuickStartPopover({ compact = false }: QuickStartPopoverProps) {
             }}
             className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
           >
-            Explore App Library
+            {t("Explore App Library")}
           </button>
 
           {!hasCompletedPhaseOne && (
             <p className="text-center text-xs leading-relaxed text-white/50">
-              Complete Platform Mastery Phase 1 and Quick Start will shift to a quieter refresher.
+              {t("Complete Platform Mastery Phase 1 and Quick Start will shift to a quieter refresher.")}
             </p>
           )}
         </div>

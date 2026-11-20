@@ -22,6 +22,8 @@ interface NarrationBarProps {
   onSectionChange?: (index: number) => void;
   className?: string;
   speedOverride?: string;
+  /** Optional page-owned copy; other narration surfaces keep existing wording. */
+  controlLabels?: Partial<Record<string, string>>;
 }
 
 export function NarrationBar({
@@ -29,7 +31,9 @@ export function NarrationBar({
   onSectionChange,
   className = "",
   speedOverride,
+  controlLabels,
 }: NarrationBarProps) {
+  const label = (text: string) => controlLabels?.[text] ?? text;
   const [hasStarted, setHasStarted] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
 
@@ -75,7 +79,7 @@ export function NarrationBar({
       <div className={`flex items-center gap-2 ${className}`}>
         <PillButton onClick={handleListen} className="flex items-center gap-1.5">
           <Play className="h-3.5 w-3.5" />
-          Listen
+          {label("Listen")}
         </PillButton>
       </div>
     );
@@ -91,33 +95,33 @@ export function NarrationBar({
         {isPlaying ? (
           <PillButton onClick={pause} active className="flex items-center gap-1.5">
             <Pause className="h-3.5 w-3.5" />
-            Pause
+            {label("Pause")}
           </PillButton>
         ) : isPaused ? (
           <PillButton onClick={resume} className="flex items-center gap-1.5">
             <Play className="h-3.5 w-3.5" />
-            Resume
+            {label("Resume")}
           </PillButton>
         ) : (
           <PillButton onClick={play} className="flex items-center gap-1.5">
             <Play className="h-3.5 w-3.5" />
-            Play
+            {label("Play")}
           </PillButton>
         )}
 
         <PillButton onClick={skipBack10} className="flex items-center gap-1.5">
           <Undo2 className="h-3.5 w-3.5" />
-          10s Back
+          {label("10s Back")}
         </PillButton>
 
         <PillButton onClick={nextSection} className="flex items-center gap-1.5">
           <ChevronRight className="h-3.5 w-3.5" />
-          Next
+          {label("Next")}
         </PillButton>
 
         <PillButton onClick={handleStartOver} className="flex items-center gap-1.5">
           <RotateCcw className="h-3.5 w-3.5" />
-          Start Over
+          {label("Start Over")}
         </PillButton>
 
         <PillButton
@@ -126,14 +130,14 @@ export function NarrationBar({
           className="flex items-center gap-1.5"
         >
           <FileText className="h-3.5 w-3.5" />
-          {showTranscript ? "Hide" : "Transcript"}
+          {showTranscript ? label("Hide") : label("Transcript")}
         </PillButton>
 
         <PillButton
           onClick={handleStop}
           className="flex items-center gap-1.5 opacity-60"
         >
-          Stop
+          {label("Stop")}
         </PillButton>
       </div>
 

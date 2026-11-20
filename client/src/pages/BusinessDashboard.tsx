@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
@@ -1054,7 +1055,7 @@ export default function BusinessDashboard() {
             className="w-full py-2 rounded-xl bg-white/10 text-white/60 text-sm"
             onClick={() => setLocation("/business-organizations")}
           >
-            Return to Organization Hub
+            <BackNavigationLabel label="Return to Organization Hub" />
           </button>
         </div>
       </div>
@@ -1091,7 +1092,7 @@ export default function BusinessDashboard() {
             className="w-full py-2 rounded-xl bg-white/10 text-white/60 text-sm"
             onClick={() => setLocation("/dashboard")}
           >
-            Return to Dashboard
+            <BackNavigationLabel label="Return to Dashboard" />
           </button>
         </div>
       </div>

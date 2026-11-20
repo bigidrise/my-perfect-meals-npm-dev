@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { CheckCircle2, Play, Lock } from "lucide-react";
@@ -352,7 +353,7 @@ export default function PlatformCertVideo() {
                 onClick={() => setLocation(`/certifications/${certType}`)}
                 className="w-full p-4 rounded-2xl bg-orange-600 text-white font-bold text-sm active:scale-[0.98] transition-transform"
               >
-                Return to Overview
+                <BackNavigationLabel label="Return to Overview" />
               </button>
             )}
           </motion.div>

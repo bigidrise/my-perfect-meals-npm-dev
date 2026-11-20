@@ -55,6 +55,8 @@ describe("shared culinary concept engine", () => {
       generate: async ({ user, system, requestedCount }: { user: string; system: string; requestedCount: number }) => {
         prompts.push(user);
         expect(system).toContain("recognizably Mediterranean");
+        expect(system).toContain('supplied cuisine label "Mediterranean"');
+        expect(system).toContain("Do not relabel a different cuisine");
         expect(user).toContain("Anti-Inflammatory guidance");
         expect(user).toContain("No peanuts; vegetarian; clinical authority unchanged");
         expect(requestedCount).toBe(prompts.length === 1 ? 3 : 1);

@@ -242,14 +242,41 @@ export function parseGeneratedMenuCandidates(
     ...(dessertRepair ? { candidateIds } : {}) };
 }
 
+// Display-language adjectives refer to the same culinary identity. Normalize
+// only known EN/ES equivalents; unknown words still participate in comparison.
+// This is label equivalence, never ingredient, allergy or clinical evidence.
+const CUISINE_LABEL_EQUIVALENTS: Record<string, string> = {
+  tailandes: "thai", tailandesa: "thai",
+  mexicano: "mexican", mexicana: "mexican",
+  italiano: "italian", italiana: "italian",
+  japones: "japanese", japonesa: "japanese",
+  chino: "chinese", china: "chinese",
+  indio: "indian", india: "indian", hindu: "indian",
+  mediterraneo: "mediterranean", mediterranea: "mediterranean",
+  griego: "greek", griega: "greek",
+  frances: "french", francesa: "french",
+  americano: "american", americana: "american", estadounidense: "american",
+  caribeno: "caribbean", caribena: "caribbean",
+  africano: "african", africana: "african",
+  coreano: "korean", coreana: "korean",
+  vietnamita: "vietnamese",
+  asiatico: "asian", asiatica: "asian",
+};
+
 function cuisineTokens(value: string): string[] {
   const generic = new Set(["cuisine", "cooking", "food", "style", "inspired", "inspiration"]);
   return value
     .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/\binspirad[oa] en\b/g, " ")
+    .replace(/\bcocina de(?:l)?\b/g, " ")
     .replace(/[_-]/g, " ")
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .split(/\s+/)
-    .filter((token) => token && !generic.has(token));
+    .filter((token) => token && !generic.has(token) &&
+      !["cocina", "comida", "estilo", "inspirado", "inspirada", "inspiracion"].includes(token))
+    .map((token) => CUISINE_LABEL_EQUIVALENTS[token] ?? token);
 }
 
 export function cuisineLabelsCompatible(actual: string, required: string): boolean {

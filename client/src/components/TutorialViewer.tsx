@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,7 +55,7 @@ export default function TutorialViewer({ tutorial, onBack }: TutorialViewerProps
       <div className="flex items-center justify-between">
         <Button variant="outline" onClick={onBack} className="flex items-center gap-2">
           <ArrowLeft className="w-4 h-4" />
-          Back to Tutorials
+          <BackNavigationLabel label="Back to Tutorials" />
         </Button>
         <div className="text-sm text-gray-600 dark:text-gray-400">
           Step {currentStep + 1} of {tutorial.instructions.length}
@@ -147,7 +148,7 @@ export default function TutorialViewer({ tutorial, onBack }: TutorialViewerProps
                   className="flex items-center gap-2"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  Previous
+                  <BackNavigationLabel label="Previous" />
                 </Button>
                 
                 <div className="flex gap-2">

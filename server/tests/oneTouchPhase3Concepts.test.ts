@@ -1,3 +1,12 @@
+// These concept tests inject their generator and need no persisted context.
+// Fail if a transitive import tries to access the shared application database.
+jest.mock("../db", () => {
+  const unavailable = new Proxy({}, {
+    get() { throw new Error("Unexpected database access in isolated concept test"); },
+  });
+  return { db: unavailable, pool: unavailable };
+});
+
 import type { OneTouchDirection } from "@shared/oneTouch";
 import {
   generateOneTouchDirections, validateCravingConcept, validateDishConcept,
@@ -68,6 +77,34 @@ describe("Creator Menu culinary concepts, separate from clinical meal slots", ()
     expect(validateDishConcept({
       ...direction, primaryIngredients: ["collard greens", "onions", "turmeric"],
     } as OneTouchDirection)).not.toContain("culinary_shape:abstract_primary_ingredient");
+  });
+  it("replaces a vague Spanish soup concept before display while preserving concrete sibling ideas", async () => {
+    const attempts: number[] = [];
+    const prompts: string[] = [];
+    const vagueSoup = {
+      ...concept("Sopa de Fideos con Pollo", "soup"),
+      primaryIngredients: ["pollo", "fideos de arroz", "jengibre", "cebollino", "caldo de pollo", "verduras mixtas"],
+    };
+    expect(validateDishConcept(vagueSoup as OneTouchDirection))
+      .toContain("culinary_shape:abstract_primary_ingredient");
+    const result = await generateOneTouchDirections({
+      menuShape: "dish", occasion: "lunch", targetCount: 3,
+      history: [], validate: () => [],
+      generate: async ({ requestedCount, system, user }) => {
+        attempts.push(requestedCount);
+        prompts.push(`${system}\n${user}`);
+        return { concepts: attempts.length === 1
+          ? [vagueSoup, concept("Vegetable Lasagna", "lasagna"), concept("Mushroom Lentil Chili", "chili")]
+          : [concept("Tomato Lentil Stew", "stew")] };
+      },
+    });
+    expect(attempts).toEqual([3, 1]);
+    expect(result.directions.map(direction => direction.title)).toEqual([
+      "Vegetable Lasagna", "Mushroom Lentil Chili", "Tomato Lentil Stew",
+    ]);
+    expect(result.directions.every(direction => validateDishConcept(direction).length === 0)).toBe(true);
+    expect(prompts[0]).toContain("CONCRETE PRIMARY INGREDIENTS");
+    expect(prompts[0]).toContain("verduras mixtas");
   });
   it("generates exactly three coherent DISH concepts and rejects a generic composed plate", async () => {
     const attempts: number[] = [];

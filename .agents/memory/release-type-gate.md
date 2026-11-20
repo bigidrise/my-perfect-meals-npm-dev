@@ -26,6 +26,16 @@ The current approved candidate is frozen for controlled release preparation, not
 
 **Safety slice:** Add any new safety-sensitive surface to `tsconfig.safety-check.json` before relying on the release check for that surface.
 
+Approval of one exact fingerprint does not cover a later fingerprint, even when
+subsequent authorized UI imports only move existing diagnostic locations.
+
+**Why:** The founder explicitly bounded approval to an exact hash change; source
+positions remain part of the unchanged release-check contract.
+
+**How to apply:** Finish the authorized batch, compare complete diagnostic
+messages and source positions, and obtain any additional exact refresh approval.
+Do not normalize the checker or treat the earlier approval as open-ended.
+
 ## Interrupted checks
 
 A tool timeout does not guarantee validator cleanup. Confirm the compiler and
@@ -48,6 +58,17 @@ Literal-union ordering inside a compiler error message can change even when the 
 **Why:** A reviewed-source snapshot reconstructed the reviewed diagnostic fingerprint, while the current output differed in the ordering of two literal union members in an unchanged legacy fixture, separately from a genuine additional type error.
 
 **How to apply:** Compare complete diagnostic output and source history when attributing a fingerprint delta. Distinguish the real additional error from message-format drift, but keep the raw gate and baseline intact. Do not edit unrelated legacy behavior merely to force a particular diagnostic display order.
+
+When pairing identical diagnostic messages across snapshots, preserve
+multiplicities and match independently diff-mapped source positions, not the
+lexical ordering of compiler output.
+
+**Why:** Duplicate legacy errors at line 112 sort before line 40; pairing their
+normalized messages by output order falsely appeared to move unrelated errors.
+
+**How to apply:** Prove unchanged source lines and old-to-current positions for
+every duplicate before treating a fingerprint change as location-only. This
+comparison must never normalize or weaken the actual release gate.
 
 ## AI smoke-test gate (section 7 of release-check.sh)
 
@@ -94,6 +115,21 @@ Retain complete compiler stdout/stderr when diagnosing a fingerprint mismatch, n
 **Why:** The gate prints only the first 80 output lines; legacy client errors can hide a newly introduced server error and force another expensive root compile just to identify it.
 
 **How to apply:** Run the actual validator unchanged while capturing its compiler subprocess output to a temporary file (a Node spawnSync wrapper with syncBuiltinESMExports can do this). Keep its stable build-version handling and exact baseline comparison intact. Never suppress the new diagnostic or replace the reviewed fingerprint.
+
+## Reviewed source is not necessarily the baseline-changing commit
+
+Do not assume that a commit carrying an approved fingerprint contains exactly
+the source that produced the reviewed compiler output.
+
+**Why:** A baseline-changing commit also contained a later duplicate dictionary
+property that was absent from the approved output. Replaying that commit
+therefore added a diagnostic, despite identical compiler and dependency inputs.
+
+**How to apply:** Preserve the original replay. Verify source files against Git,
+record any authentic earlier-blob reconstruction explicitly, and require the
+unchanged historical gate to reproduce the approved fingerprint. Compare its
+complete output with the original reviewed capture when available; never drop
+a diagnostic from raw compiler output to manufacture that agreement.
 
 ## Locked-day target snapshot rule
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Home, Briefcase, Crown, Loader2, Building2 } from "lucide-react";
 import { useLocation } from "wouter";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import type {
   WorkspaceAvailability,
   WorkspaceOrganizationAvailability,
@@ -157,16 +157,16 @@ export function WorkspaceChooser({
                   <Building2 className="h-5 w-5 text-orange-300" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-white font-semibold text-base">Business / Organization</h3>
+                  <h3 className="text-white font-semibold text-base">{t("Business / Organization")}</h3>
                   <p className="text-orange-200 text-sm mt-0.5">
                     {organizationCount > 1
-                      ? `${organizationCount} available organizations`
+                      ? t("{{count}} available organizations", { count: organizationCount })
                       : availability.organization.organizations[0]?.name}
                   </p>
                   <p className="text-white/50 text-xs mt-1">
                     {availability.organization.destination === "/business-organizations"
-                      ? "Choose an organization"
-                      : "Open Business Suite"}
+                      ? t("Choose an organization")
+                      : t("Open Business Suite")}
                   </p>
                 </div>
               </div>
@@ -188,13 +188,13 @@ export function WorkspaceChooser({
                   )}
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-white font-semibold text-base">{availability.studio.kind === "clinic" ? "Clinic" : "Studio"}</h3>
+                  <h3 className="text-white font-semibold text-base">{availability.studio.kind === "clinic" ? t("Clinic") : "Studio"}</h3>
                   <p className="text-white/50 text-sm mt-0.5">
                     {availability.studio.restriction
-                      ? `${availability.studio.name || "Existing Clinic"} — access review required`
+                      ? `${availability.studio.name || t("Existing Clinic")} — ${t("access review required")}`
                       : availability.studio.readiness === "ready"
-                      ? "Manage clients in your Studio"
-                      : "Continue Studio setup"}
+                      ? t("Manage clients in your Studio")
+                      : t("Continue Studio setup")}
                   </p>
                 </div>
               </div>
@@ -204,12 +204,12 @@ export function WorkspaceChooser({
           {availability?.restriction && <p role="status" className="text-sm text-amber-200">{availability.restriction.message}</p>}
           {(loading || error) && (
             <p role={error ? "alert" : "status"} className={`text-center text-sm ${error ? "text-amber-200" : "text-white/50"}`}>
-              {loading ? "Loading workspaces…" : error}
+              {loading ? t("Loading workspaces…") : error ? t(error) : null}
             </p>
           )}
           {!loading && !availability && error && (
             <button className="w-full rounded-xl border border-amber-500/30 p-3 text-amber-200"
-              onClick={() => window.location.reload()}>Retry workspace discovery</button>
+              onClick={() => window.location.reload()}>{t("Retry workspace discovery")}</button>
           )}
         </motion.div>
       </motion.div>

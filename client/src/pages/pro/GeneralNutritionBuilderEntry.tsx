@@ -122,7 +122,7 @@ export default function GeneralNutritionBuilderEntry() {
             <Dumbbell className="w-5 h-5 text-orange-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
+            <div className="flex flex-wrap items-center gap-2 mb-0.5">
               <p className="text-white font-semibold text-base leading-tight">
                 {t("gnbEntry.scheduleTitle")}
               </p>

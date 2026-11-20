@@ -15,6 +15,7 @@ import GetawayVenueMeals from "@/components/away-from-home/GetawayVenueMeals";
 import GetawayAvailabilityNotice from "@/components/away-from-home/GetawayAvailabilityNotice";
 import type { GetawayAvailability } from "@shared/getawayAvailability";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 interface CatalogZone {
   id: string;
@@ -121,6 +122,17 @@ function getStorageKey(userId?: number | string) {
 }
 
 export default function MyPerfectGetaway() {
+  const { t } = useConsumerCopy();
+  // Closed UI labels only; venue/zone names and canonical IDs remain untouched.
+  const areaLabels: Record<string, string> = {
+    area: t("area"), terminal: t("terminal"), concourse: t("concourse"),
+    airside: t("airside"), satellite: t("satellite"), lot: t("lot"),
+    "dining area": t("dining area"), section: t("section"), deck: t("deck"),
+  };
+  const quickLabels: Record<string, string> = {
+    "A resort": t("A resort"), "LAX Airport": t("LAX Airport"),
+    "DFW Airport": t("DFW Airport"), "Royal Caribbean Cruise": t("Royal Caribbean Cruise"),
+  };
   // Approved venue context, uncertainty notices and cautions ship in Production.
   const reliable = true;
   const venueSearchRequestRef = useRef(0);
@@ -128,11 +140,11 @@ export default function MyPerfectGetaway() {
   const { user } = useAuth();
   const { requestUpgrade } = useUpgradeModal();
   const isDesktop = useIsDesktop();
-  usePageTitle("My Perfect Getaway");
+  usePageTitle(t("lifestyle.getawayTitle"));
 
   useEffect(() => {
     if (user !== undefined && !isProOrAbove(user)) {
-      requestUpgrade({ requiredTier: "pro", featureName: "My Perfect Getaway" });
+      requestUpgrade({ requiredTier: "pro", featureName: t("lifestyle.getawayTitle") });
       setLocation("/lifestyle");
     }
   }, [user]);
@@ -197,7 +209,9 @@ export default function MyPerfectGetaway() {
   }, [user?.id]);
 
   useEffect(() => {
-    document.title = "My Perfect Getaway | My Perfect Meals";
+    document.title = `${t("lifestyle.getawayTitle")} | My Perfect Meals`;
+  }, [t]);
+  useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
@@ -266,7 +280,7 @@ export default function MyPerfectGetaway() {
       if (!res.ok) {
         const body2 = await res.json().catch(() => ({}));
         setErrorAvailability(body2.availability ?? null);
-        throw new Error(body2.error || "Something went wrong");
+        throw new Error(body2.error || t("Something went wrong"));
       }
 
       const payload: GetawayResult = await res.json();
@@ -289,9 +303,11 @@ export default function MyPerfectGetaway() {
     } catch (err: any) {
       clearInterval(progressInterval);
       setLoading(false);
-      setError(err.message || "Could not reach the Getaway Coach. Try again.");
+      setError(err instanceof TypeError
+        ? t("Could not reach the Getaway Coach. Try again.")
+        : err.message || t("Could not reach the Getaway Coach. Try again."));
     }
-  }, [loading, user?.id]);
+  }, [loading, user?.id, t]);
 
   const handleQuickVenue = (label: string) => {
     setErrorAvailability(null);
@@ -320,7 +336,7 @@ export default function MyPerfectGetaway() {
     setSelectedZone(zone);
     const venueName = pendingVenueLabel;
     const zonePart = zone ? `, ${zone.name}` : "";
-    const msg = `I'm at ${venueName}${zonePart}. What should I eat?`;
+    const msg = t("I'm at {{venue}}{{zone}}. What should I eat?", { venue: venueName, zone: zonePart });
     setMessage(msg);
     submitMessage(msg, pendingVenue.id, zone?.id);
   };
@@ -328,7 +344,7 @@ export default function MyPerfectGetaway() {
   const handleDiscoveredZoneSelect = (zone: CatalogZone | null) => {
     if (!discoveryResult) return;
     const zonePart = zone ? `, ${zone.name}` : "";
-    const msg = `I'm at ${discoveryResult.name}${zonePart}. What should I eat?`;
+    const msg = t("I'm at {{venue}}{{zone}}. What should I eat?", { venue: discoveryResult.name, zone: zonePart });
     setMessage(msg);
 
     if (discoveryResult.source === "catalog" && discoveryResult.venueId) {
@@ -372,7 +388,7 @@ export default function MyPerfectGetaway() {
       setDiscoveryResult(data);
 
       if (data.found && data.zones.length === 0) {
-        const msg = `I'm at ${data.name}. What should I eat?`;
+        const msg = t("I'm at {{venue}}{{zone}}. What should I eat?", { venue: data.name, zone: "" });
         setMessage(msg);
         if (data.source === "catalog" && data.venueId) {
           submitMessage(msg, data.venueId);
@@ -456,9 +472,9 @@ export default function MyPerfectGetaway() {
     : "area";
 
   const venueSourceBadge = discoveryResult?.source === "google"
-    ? "Identified via Google Maps"
+    ? t("Identified via Google Maps")
     : discoveryResult?.source === "catalog"
-    ? "In our curated catalog"
+    ? t("In our curated catalog")
     : null;
 
   return (
@@ -481,7 +497,7 @@ export default function MyPerfectGetaway() {
         >
           <div className="px-4 py-3 flex items-center gap-3">
             <Plane className="h-5 w-5 text-orange-400" />
-            <h1 className="text-base font-bold text-white">My Perfect Getaway</h1>
+            <h1 className="text-base font-bold text-white">{t("lifestyle.getawayTitle")}</h1>
           </div>
         </div>
       </MobileHeaderGuard>
@@ -496,14 +512,14 @@ export default function MyPerfectGetaway() {
             className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="text-sm font-medium">Back</span>
+            <span className="text-sm font-medium">{t("Back")}</span>
           </button>
         )}
 
         {/* Hub Intro — matches Pairings Hub pattern */}
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-white mb-2">Eat Well, Anywhere</h2>
-          <p className="text-sm text-white/70">Your personal nutrition coach at theme parks, airports, cruises, and resorts.</p>
+          <h2 className="text-2xl font-bold text-white mb-2">{t("Eat Well, Anywhere")}</h2>
+          <p className="text-sm text-white/70">{t("Your personal nutrition coach at theme parks, airports, cruises, and resorts.")}</p>
         </div>
         <div className="flex justify-end">
           <HowThisWorksLink featureKey="getaway" labelKey="tutorialControl.howItWorks" />
@@ -514,10 +530,10 @@ export default function MyPerfectGetaway() {
             {/* Primary location entry — single search field */}
             <div className="mb-4">
               <label className="block text-xs font-semibold text-orange-300 mb-1 ml-1">
-                WHERE ARE YOU EATING?
+                {t("WHERE ARE YOU EATING?")}
               </label>
               <p className="text-xs text-white/50 mb-3 ml-1">
-                Search any airport, stadium, theme park, resort, cruise ship, or destination.
+                {t("Search any airport, stadium, theme park, resort, cruise ship, or destination.")}
               </p>
               <div className="relative">
                 <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-orange-400/70 pointer-events-none" />
@@ -534,12 +550,14 @@ export default function MyPerfectGetaway() {
                     }
                   }}
                   onKeyDown={handleSearchKeyDown}
-                  placeholder="Search location or venue…"
+                  placeholder={t("Search location or venue…")}
+                  aria-label={t("Search location or venue…")}
                   className="w-full bg-black/40 border border-orange-500/30 rounded-xl pl-10 pr-14 py-3.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-orange-400/60 focus:ring-1 focus:ring-orange-400/30"
                   disabled={venueSearchLoading || loading}
                 />
                 <button
                   onClick={() => handleVenueSearch()}
+                  aria-label={t("Search venue")}
                   disabled={!venueSearchText.trim() || venueSearchLoading || loading}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-orange-600 text-white disabled:opacity-40 transition-opacity"
                 >
@@ -571,7 +589,7 @@ export default function MyPerfectGetaway() {
                 </div>
                 <div className="px-4 py-4">
                   <p className="text-xs text-orange-200 font-semibold mb-2.5">
-                    Which {discoveryZoneLabel} are you in?
+                    {t("Which {{area}} are you in?", { area: areaLabels[discoveryZoneLabel] })}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {discoveryResult.zones.map(zone => (
@@ -588,7 +606,7 @@ export default function MyPerfectGetaway() {
                     onClick={() => handleDiscoveredZoneSelect(null)}
                     className="mt-3 w-full py-2.5 rounded-xl bg-white/6 border border-white/10 text-white/55 text-xs"
                   >
-                    Not sure — skip and show all options
+                    {t("Not sure — skip and show all options")}
                   </button>
                 </div>
               </div>
@@ -599,19 +617,19 @@ export default function MyPerfectGetaway() {
               <div className="mb-4 rounded-xl bg-black/40 border border-orange-500/20 px-4 py-4">
                 <p className="text-white/60 text-xs mb-3">
                   {reliable
-                    ? (discoveryResult.uncertainty || "We couldn't confidently identify this venue. Refine its name and city, or ask for general guidance with an unverified location.")
-                    : "We couldn't find that venue. Your coach can still help — just tap below."}
+                    ? (discoveryResult.uncertainty || t("We couldn't confidently identify this venue. Refine its name and city, or ask for general guidance with an unverified location."))
+                    : t("We couldn't find that venue. Your coach can still help — just tap below.")}
                 </p>
                 <button
                   onClick={() => {
-                    const msg = `I'm at ${venueSearchText.trim()}. What should I eat?`;
+                    const msg = t("I'm at {{venue}}{{zone}}. What should I eat?", { venue: venueSearchText.trim(), zone: "" });
                     setMessage(msg);
                     setDiscoveryResult(null);
                     submitMessage(msg);
                   }}
                   className="w-full py-2.5 rounded-xl bg-orange-600 text-white text-xs font-semibold active:scale-95 transition-transform"
                 >
-                  Ask the coach anyway
+                  {t("Ask the coach anyway")}
                 </button>
               </div>
             )}
@@ -620,7 +638,7 @@ export default function MyPerfectGetaway() {
             {!discoveryResult && (
               <>
                 <div className="mb-6">
-                  <p className="text-xs text-white/50 mb-2 ml-1">QUICK START — TAP TO GO</p>
+                  <p className="text-xs text-white/50 mb-2 ml-1">{t("QUICK START — TAP TO GO")}</p>
                   <div className="flex flex-wrap gap-2">
                     {QUICK_VENUES.map(v => {
                       const venueId = VENUE_ALIAS_MAP[v.label];
@@ -633,7 +651,7 @@ export default function MyPerfectGetaway() {
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/8 border border-white/15 rounded-full text-xs text-white/80 transition-all active:scale-95 active:bg-orange-600/20 active:border-orange-500/30 active:text-orange-300 disabled:opacity-40"
                         >
                           <span>{v.emoji}</span>
-                          <span>{v.label}</span>
+                          <span>{quickLabels[v.label] ?? v.label}</span>
                           {hasZones && <ChevronDown className="h-3 w-3 text-white/40 flex-shrink-0" />}
                         </button>
                       );
@@ -642,12 +660,12 @@ export default function MyPerfectGetaway() {
                 </div>
 
                 <div className="rounded-xl bg-black/30 border border-white/8 p-4">
-                  <p className="text-xs font-semibold text-white/50 mb-3">HOW IT WORKS</p>
+                  <p className="text-xs font-semibold text-white/50 mb-3">{t("How It Works")}</p>
                   <div className="space-y-2.5">
                     {[
-                      { icon: MapPin, text: "Search your venue — airport, stadium, theme park, resort, or cruise" },
+                      { icon: MapPin, text: t("Search your venue — airport, stadium, theme park, resort, or cruise") },
                       { icon: Star, text: "Get picks matched to your health profile, goals, and any medical protocols" },
-                      { icon: Plane, text: "Select your terminal or zone for even more precise recommendations" },
+                      { icon: Plane, text: t("Select your terminal or zone for even more precise recommendations") },
                     ].map(({ icon: Icon, text }) => (
                       <div key={text} className="flex items-start gap-2.5">
                         <div className="p-1 rounded-lg bg-orange-500/15 flex-shrink-0 mt-0.5">
@@ -680,10 +698,11 @@ export default function MyPerfectGetaway() {
                     {pendingVenueLabel}
                   </p>
                   <p className="text-white text-sm font-bold">
-                    Which {zoneTypeLabel} are you in?
+                    {t("Which {{area}} are you in?", { area: areaLabels[zoneTypeLabel] })}
                   </p>
                 </div>
                 <button
+                  aria-label={t("Close area picker")}
                   onClick={() => {
                     setShowZonePicker(false);
                     setPendingVenue(null);
@@ -711,7 +730,7 @@ export default function MyPerfectGetaway() {
                   onClick={() => handleZoneSelect(null)}
                   className="mt-3 w-full py-2.5 rounded-xl bg-white/6 border border-white/10 text-white/55 text-xs"
                 >
-                  Not sure — skip and show all options
+                  {t("Not sure — skip and show all options")}
                 </button>
               </div>
             </motion.div>
@@ -744,8 +763,8 @@ export default function MyPerfectGetaway() {
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full animate-bounce" />
                 </div>
               </div>
-              <p className="text-white font-medium text-sm mb-1">Your Getaway Coach is on it…</p>
-              <p className="text-white/50 text-xs mb-4">Checking what's available and what fits your profile</p>
+              <p className="text-white font-medium text-sm mb-1">{t("Your Getaway Coach is on it…")}</p>
+              <p className="text-white/50 text-xs mb-4">{t("Checking what's available and what fits your profile")}</p>
               <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
                 <motion.div
                   className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full"
@@ -762,7 +781,7 @@ export default function MyPerfectGetaway() {
           <div className="mt-4 rounded-xl bg-red-900/20 border border-red-500/30 p-4">
             <p className="text-red-300 text-sm">{error}</p>
             <button onClick={handleReset} className="mt-2 text-orange-400 text-xs underline">
-              Try again
+              {t("Try again")}
             </button>
           </div>
         )}
@@ -783,8 +802,7 @@ export default function MyPerfectGetaway() {
               className="space-y-4"
             >
               {venueMealsActive && <p className="rounded-xl border border-white/15 p-3 text-xs text-white/70">
-                Earlier destination context — not meal recommendations for the selected dining venue.
-                The personalized meal cards above are your current meal choices.
+                {t("Earlier destination context — not meal recommendations for the selected dining venue. The personalized meal cards above are your current meal choices.")}
               </p>}
               {/* Venue + zone badge row */}
               <div className="flex flex-wrap items-center gap-2">
@@ -818,7 +836,7 @@ export default function MyPerfectGetaway() {
                 <div className="rounded-2xl bg-black/40 border border-orange-500/20 overflow-hidden">
                   <div className="px-4 py-3 border-b border-orange-500/15 flex items-center gap-2">
                     <Star className="h-4 w-4 text-orange-400" />
-                    <h3 className="text-sm font-bold text-white">{reliable ? "Ideas To Ask About — Menu Unverified" : "Best Choices For You"}</h3>
+                    <h3 className="text-sm font-bold text-white">{reliable ? t("Ideas To Ask About — Menu Unverified") : t("Best Choices For You")}</h3>
                   </div>
                   <div className="divide-y divide-white/8">
                     {result.bestChoices.map((choice, i) => (
@@ -829,11 +847,11 @@ export default function MyPerfectGetaway() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-white font-semibold text-sm leading-tight">{choice.name}</p>
-                            {reliable && <p className="text-orange-100/80 text-xs mt-1">Illustrative option — confirm whether offered</p>}
+                            {reliable && <p className="text-orange-100/80 text-xs mt-1">{t("Illustrative option — confirm whether offered")}</p>}
                             {choice.where && (
                               <p className="text-orange-300/80 text-xs mt-0.5 flex items-center gap-1">
                                 <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
-                                {reliable ? `Possible location to ask about (unverified): ${choice.where}` : choice.where}
+                                {reliable ? t("Possible location to ask about (unverified): {{location}}", { location: choice.where }) : choice.where}
                               </p>
                             )}
                             {choice.why && (
@@ -850,7 +868,7 @@ export default function MyPerfectGetaway() {
               {/* Why These Fit */}
               {!venueMealsActive && result.whyTheyFit?.length > 0 && (
                 <div className="rounded-2xl bg-black/30 border border-white/10 px-4 py-4">
-                  <h3 className="text-xs font-bold text-white/60 uppercase tracking-wide mb-3">Why These Fit You</h3>
+                  <h3 className="text-xs font-bold text-white/60 uppercase tracking-wide mb-3">{t("Why These Fit You")}</h3>
                   <div className="space-y-2">
                     {result.whyTheyFit.map((reason, i) => (
                       <div key={i} className="flex items-start gap-2">
@@ -865,7 +883,7 @@ export default function MyPerfectGetaway() {
               {/* What to Avoid */}
               {!venueMealsActive && result.avoid?.length > 0 && (
                 <div className="rounded-2xl bg-red-950/20 border border-red-500/20 px-4 py-4">
-                  <h3 className="text-xs font-bold text-red-300/70 uppercase tracking-wide mb-3">What To Avoid</h3>
+                  <h3 className="text-xs font-bold text-red-300/70 uppercase tracking-wide mb-3">{t("What To Avoid")}</h3>
                   <div className="space-y-2">
                     {result.avoid.map((item, i) => (
                       <div key={i} className="flex items-start gap-2">
@@ -887,7 +905,7 @@ export default function MyPerfectGetaway() {
                 <div className="rounded-2xl bg-amber-950/20 border border-amber-500/20 px-4 py-4">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-lg leading-none">👨‍👩‍👧‍👦</span>
-                    <h3 className="text-xs font-bold text-amber-300/80 uppercase tracking-wide">Family Note</h3>
+                    <h3 className="text-xs font-bold text-amber-300/80 uppercase tracking-wide">{t("Family Note")}</h3>
                   </div>
                   <div className="space-y-2">
                     {result.familyNote.map((tip, i) => (
@@ -908,7 +926,7 @@ export default function MyPerfectGetaway() {
                       <Ship className="h-4 w-4 text-orange-400" />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-orange-300 mb-1">Coach Note</p>
+                      <p className="text-xs font-semibold text-orange-300 mb-1">{t("Coach Note")}</p>
                       <p className="text-white/80 text-sm leading-relaxed">{result.coachNote}</p>
                     </div>
                   </div>
@@ -924,10 +942,12 @@ export default function MyPerfectGetaway() {
                       value={followUpMessage}
                       onChange={e => setFollowUpMessage(e.target.value)}
                       onKeyDown={handleFollowUpKeyDown}
-                      placeholder="Ask a follow-up — location context is retained…"
+                      placeholder={t("Ask a follow-up — location context is retained…")}
+                      aria-label={t("Ask a follow-up — location context is retained…")}
                       className="w-full bg-black/40 border border-orange-500/20 rounded-xl pl-4 pr-12 py-3 text-white text-sm placeholder-white/30 focus:outline-none focus:border-orange-400/60 focus:ring-1 focus:ring-orange-400/20"
                     />
                     <button
+                      aria-label={t("Send message")}
                       onClick={handleFollowUp}
                       disabled={!followUpMessage.trim()}
                       className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-orange-600 text-white disabled:opacity-40 transition-opacity"
@@ -936,7 +956,7 @@ export default function MyPerfectGetaway() {
                     </button>
                   </div>
                   <p className="text-[11px] text-white/30 mt-1.5 ml-1">
-                    Your venue is still set — or tap New Venue to start over.
+                    {t("Your venue is still set — or tap New Venue to start over.")}
                   </p>
                 </div>
               )}
@@ -947,13 +967,13 @@ export default function MyPerfectGetaway() {
                   onClick={handleReset}
                   className="w-full py-3 rounded-xl bg-orange-600 text-white text-sm font-semibold active:scale-95 transition-transform"
                 >
-                  New Venue
+                  {t("New Venue")}
                 </button>
                 <button
                   onClick={() => setLocation("/lifestyle")}
                   className="w-full py-2.5 rounded-xl bg-white/8 border border-white/10 text-white/70 text-sm"
                 >
-                  Back to Lifestyle
+                  {t("Back to Lifestyle")}
                 </button>
               </div>
             </motion.div>

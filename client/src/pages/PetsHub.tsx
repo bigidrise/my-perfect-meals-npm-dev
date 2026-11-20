@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { PawPrint, ArrowLeft, ChevronRight, Clock } from "lucide-react";
@@ -57,7 +58,7 @@ export default function PetsHub() {
             className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 mb-4 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="text-sm font-medium">Back</span>
+            <span className="text-sm font-medium"><BackNavigationLabel /></span>
           </button>
         )}
 

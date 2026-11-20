@@ -11,7 +11,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import { Shield, ShieldCheck, ShieldOff, Copy, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { setAuthToken } from "@/lib/auth";
@@ -209,7 +209,7 @@ export function MfaSetupSection({
         {err && (
           <div className="flex items-start gap-2 bg-red-900/30 border border-red-500/30 rounded-xl px-3 py-2.5">
             <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
-            <span className="text-sm text-red-300">{err}</span>
+            <span className="text-sm text-red-300">{t(err)}</span>
           </div>
         )}
 
@@ -268,7 +268,7 @@ export function MfaSetupSection({
         {err && (
           <div className="flex items-start gap-2 bg-red-900/30 border border-red-500/30 rounded-xl px-3 py-2.5">
             <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
-            <span className="text-sm text-red-300">{err}</span>
+            <span className="text-sm text-red-300">{t(err)}</span>
           </div>
         )}
 
@@ -312,9 +312,9 @@ export function MfaSetupSection({
           <div className="flex items-center gap-3">
             <Shield className="w-5 h-5 text-orange-400 shrink-0" />
             <div>
-              <h2 id="mfa-qr-heading" className="font-semibold text-white">Scan QR code</h2>
+              <h2 id="mfa-qr-heading" className="font-semibold text-white">{t("Scan QR code")}</h2>
               <p className="text-xs text-white/50">
-                If My Perfect Meals is open on a computer or another device, scan this QR code with your authenticator app.
+                {t("If My Perfect Meals is open on a computer or another device, scan this QR code with your authenticator app.")}
               </p>
             </div>
           </div>
@@ -336,14 +336,14 @@ export function MfaSetupSection({
             aria-labelledby="mfa-manual-heading"
           >
             <div>
-              <h2 id="mfa-manual-heading" className="font-semibold text-white">Using this phone?</h2>
+              <h2 id="mfa-manual-heading" className="font-semibold text-white">{t("Using this phone?")}</h2>
               <p className="mt-1 text-sm text-white/70">
-                You do not need to create another My Perfect Meals account. Add My Perfect Meals to your authenticator app using the setup key below.
+                {t("You do not need to create another My Perfect Meals account. Add My Perfect Meals to your authenticator app using the setup key below.")}
               </p>
             </div>
 
             <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl px-3 py-2">
-              <span className="flex-1 select-all font-mono text-sm text-white/80 break-all" aria-label="Authenticator setup key">
+              <span className="flex-1 select-all font-mono text-sm text-white/80 break-all" aria-label={t("Authenticator setup key")}>
                 {secret}
               </span>
               <button
@@ -352,31 +352,31 @@ export function MfaSetupSection({
                 className="shrink-0 inline-flex min-h-11 items-center gap-2 rounded-lg bg-orange-600 px-3 py-2 text-sm font-semibold text-white"
               >
                 {copiedSecret ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                {copiedSecret ? "Setup key copied" : "Copy setup key"}
+                {copiedSecret ? t("Setup key copied") : t("Copy setup key")}
               </button>
             </div>
 
             {err && (
               <div className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-900/30 px-3 py-2.5">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
-                <span className="text-sm text-red-300">{err}</span>
+                <span className="text-sm text-red-300">{t(err)}</span>
               </div>
             )}
 
             <ol className="list-decimal space-y-1 pl-5 text-sm text-white/70">
-              <li>Tap <strong className="text-white">Copy setup key</strong>.</li>
-              <li>Open your authenticator app.</li>
-              <li>Choose <strong className="text-white">Add account</strong> or <strong className="text-white">Enter a setup key</strong>.</li>
-              <li>Use <strong className="text-white">My Perfect Meals</strong> as the account or service name if asked.</li>
-              <li>Paste the setup key and choose <strong className="text-white">Time based</strong> if asked.</li>
-              <li>Return here and enter the 6-digit authentication code.</li>
+              <li>{t("Tap")} <strong className="text-white">{t("Copy setup key")}</strong>.</li>
+              <li>{t("Open your authenticator app.")}</li>
+              <li>{t("Choose")} <strong className="text-white">{t("Add account")}</strong> {t("or")} <strong className="text-white">{t("Enter a setup key")}</strong>.</li>
+              <li>{t("Use")} <strong className="text-white">My Perfect Meals</strong> {t("as the account or service name if asked.")}</li>
+              <li>{t("Paste the setup key and choose")} <strong className="text-white">{t("Time based")}</strong> {t("if asked.")}</li>
+              <li>{t("Return here and enter the 6-digit authentication code.")}</li>
             </ol>
 
             <p className="text-sm text-white/70">
-              “Add account” in your authenticator app does not create a new My Perfect Meals account. It only adds two-factor authentication to your existing My Perfect Meals login.
+              {t("“Add account” in your authenticator app does not create a new My Perfect Meals account. It only adds two-factor authentication to your existing My Perfect Meals login.")}
             </p>
             <p className="text-xs text-white/50">
-              If your authenticator already has an entry with this name, do not delete it automatically. Give this authenticator entry a descriptive label, such as “My Perfect Meals” or “My Perfect Meals – personal.” This changes only the label inside your authenticator app, not your My Perfect Meals account.
+              {t("If your authenticator already has an entry with this name, do not delete it automatically. Give this authenticator entry a descriptive label, such as “My Perfect Meals” or “My Perfect Meals – personal.” This changes only the label inside your authenticator app, not your My Perfect Meals account.")}
             </p>
           </section>
         )}
@@ -417,7 +417,7 @@ export function MfaSetupSection({
         {err && (
           <div className="flex items-start gap-2 bg-red-900/30 border border-red-500/30 rounded-xl px-3 py-2.5">
             <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
-            <span className="text-sm text-red-300">{err}</span>
+            <span className="text-sm text-red-300">{t(err)}</span>
           </div>
         )}
 
@@ -467,7 +467,7 @@ export function MfaSetupSection({
       {err && (
         <div className="flex items-start gap-2 bg-red-900/30 border border-red-500/30 rounded-xl px-3 py-2.5">
           <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
-          <span className="text-sm text-red-300">{err}</span>
+          <span className="text-sm text-red-300">{t(err)}</span>
         </div>
       )}
 

@@ -7,6 +7,8 @@ const config: Config = {
   moduleFileExtensions: ["ts", "tsx", "js", "json"],
   moduleNameMapper: {
     "\\.css$": "<rootDir>/tests/fixtures/styleMock.cjs",
+    "^@/lib/ingredientDisplayGate$": "<rootDir>/client/src/lib/__mocks__/ingredientDisplayGate.ts",
+    "^@/lib/ingredientAnalysisTranslationGate$": "<rootDir>/client/src/lib/__mocks__/ingredientAnalysisTranslationGate.ts",
     "^@/lib/shoppingMetadataGate$": "<rootDir>/client/src/lib/__mocks__/shoppingMetadataGate.ts",
     "^@/lib/groceryCoachCatalogGate$": "<rootDir>/client/src/lib/__mocks__/groceryCoachCatalogGate.ts",
     // Sentry uses `import.meta.env` which Jest cannot parse; redirect all

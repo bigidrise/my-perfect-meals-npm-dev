@@ -14,6 +14,7 @@ const mockNavigate = jest.fn();
 const mockToast = jest.fn();
 let mockLocation = "/fixture";
 jest.mock("@/lib/apiRequest", () => ({ apiRequest: jest.fn() }));
+jest.mock("@/hooks/useMeasurementSystem", () => ({ useMeasurementSystem: () => "imperial" }));
 jest.mock("@/stores/shoppingListStore", () => ({
   useShoppingListStore: { getState: () => ({ hydrate: mockHydrate }) },
 }));

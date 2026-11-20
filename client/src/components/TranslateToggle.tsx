@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Globe, Loader2 } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { readLanguagePreference, resolveLanguagePreference } from "@/i18n/languagePreference";
 
 interface IngredientObject {
   name: string;
@@ -48,8 +49,7 @@ function getCacheKey(content: TranslatableContent, targetLang: string): string {
 }
 
 function getDeviceLanguage(): string {
-  const lang = navigator.language || (navigator as any).userLanguage || "en";
-  return lang.split("-")[0];
+  return resolveLanguagePreference(readLanguagePreference());
 }
 
 export default function TranslateToggle({ content, onTranslate, className }: TranslateToggleProps) {

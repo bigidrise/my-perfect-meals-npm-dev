@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
@@ -31,7 +32,7 @@ export default function GLP1MealsTracking() {
               className="text-white hover:bg-white/10"
               data-testid="button-back-to-lifestyle"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" /><span className="sr-only"><BackNavigationLabel /></span>
             </Button>
             <div className="flex items-center gap-2">
               <Pill className="h-6 w-6 text-violet-400" />

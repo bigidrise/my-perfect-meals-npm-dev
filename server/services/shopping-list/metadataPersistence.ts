@@ -1,3 +1,4 @@
+import { parseShoppingProductReference, shoppingIngredientSignature } from "../../../shared/shoppingProductSelection";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { shoppingListItems, shoppingListSources } from "@shared/schema";
@@ -84,6 +85,19 @@ export function developmentItemPatch(body: unknown, existing: any) {
     let metadata = parseIngredientMetadata(patch.ingredientMetadata);
     if (!metadata) throw new z.ZodError([{ code: "custom", path: ["ingredientMetadata"], message: "Ingredient metadata cannot be erased" }]);
     const previous = parseIngredientMetadata(existing.ingredientMetadata);
+    if (metadata.selectedProduct?.selectionKind === "unverified_shopping_reference") {
+      const ingredient = { originalName: metadata.ingredient.originalName, requirements: metadata.ingredient.requirements };
+      try { parseShoppingProductReference({ ingredient, product: metadata.selectedProduct }); }
+      catch {
+        throw new z.ZodError([{ code: "custom", path: ["ingredientMetadata"], message: "Invalid unverified shopping reference" }]);
+      }
+      if (metadata.selectedProduct.assessment.subjectReference !== existing.userId ||
+        (previous && shoppingIngredientSignature(ingredient) !== shoppingIngredientSignature({
+          originalName: previous.ingredient.originalName, requirements: previous.ingredient.requirements,
+        }))) {
+        throw new z.ZodError([{ code: "custom", path: ["ingredientMetadata"], message: "Shopping reference no longer matches this account and ingredient" }]);
+      }
+    }
     if (previous) {
       if (patch.name === undefined && metadata.ingredient.originalName !== previous.ingredient.originalName) {
         throw new z.ZodError([{ code: "custom", path: ["ingredientMetadata"], message: "Retail selection cannot rename the original ingredient" }]);

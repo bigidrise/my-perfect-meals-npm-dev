@@ -1,3 +1,5 @@
+import { isCustomerLanguage } from "@/i18n/languagePreference";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 /**
  * AwayFromHomeMealCard
  *
@@ -171,6 +173,7 @@ export default function AwayFromHomeMealCard({
   className,
   mealImage,
 }: AwayFromHomeMealCardProps) {
+  const { t } = useConsumerCopy();
   const [, setLocation] = useLocation();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -242,8 +245,8 @@ export default function AwayFromHomeMealCard({
   function handleSuccess(action: "logged" | "planned") {
     setSuccessMessage(
       action === "logged"
-        ? "Logged to today's macros."
-        : "Added to your meal plan."
+        ? t("Logged to today's macros.")
+        : t("Added to your meal plan.")
     );
     setTimeout(() => setSuccessMessage(null), 3000);
   }
@@ -368,14 +371,14 @@ export default function AwayFromHomeMealCard({
         <div className="mx-4 mt-3 rounded-xl bg-black/30 border border-white/8 px-4 py-3">
           <div className="grid grid-cols-3 min-[480px]:grid-cols-5 gap-x-2 gap-y-3 text-center">
             <MacroCell label="Cal"     value={meal.calories}                       unit=""  status={nutritionStatus} />
-            <MacroCell label="Protein" value={meal.proteinGrams}                   unit="g" status={nutritionStatus} />
-            <MacroCell label="Starchy" value={meal.starchyCarbGrams ?? undefined}  unit="g" status={nutritionStatus} />
-            <MacroCell label="Fibrous" value={meal.fibrousCarbGrams ?? undefined}  unit="g" status={nutritionStatus} />
-            <MacroCell label="Fat"     value={meal.fatGrams}                       unit="g" status={nutritionStatus} />
+            <MacroCell label={t("Protein")} value={meal.proteinGrams}                   unit="g" status={nutritionStatus} />
+            <MacroCell label={t("Starchy")} value={meal.starchyCarbGrams ?? undefined}  unit="g" status={nutritionStatus} />
+            <MacroCell label={t("Fibrous")} value={meal.fibrousCarbGrams ?? undefined}  unit="g" status={nutritionStatus} />
+            <MacroCell label={t("Fat")}     value={meal.fatGrams}                       unit="g" status={nutritionStatus} />
           </div>
           {meal.caloriesRange && (
             <p className="text-center text-[10px] text-orange-400/70 mt-1.5">
-              Range: {meal.caloriesRange.low}–{meal.caloriesRange.high} cal
+              {t("Range: {{low}}–{{high}} cal", { low: meal.caloriesRange.low, high: meal.caloriesRange.high })}
             </p>
           )}
         </div>
@@ -404,11 +407,11 @@ export default function AwayFromHomeMealCard({
             <div className="bg-orange-950/30 border border-orange-900/30 rounded-xl px-3 py-3">
               <div className="flex items-center gap-1.5 mb-2">
                 <ShoppingBag className="w-3.5 h-3.5 text-orange-400" />
-                <SectionLabel>How to order</SectionLabel>
+                <SectionLabel>{t("How to order")}</SectionLabel>
               </div>
               {displayAskFor && (
                 <p className="text-xs text-white font-medium mb-1">
-                  Ask for: {displayAskFor}
+                  {t("Ask for: {{request}}", { request: displayAskFor })}
                 </p>
               )}
               {displayModify && displayModify.length > 0 && (
@@ -433,7 +436,7 @@ export default function AwayFromHomeMealCard({
         {displayWaiterScript && (
           <div className="px-4 mt-3">
             <div className="bg-white/5 border border-white/8 rounded-xl px-3 py-2.5">
-              <SectionLabel>Say to your server</SectionLabel>
+              <SectionLabel>{t("Say to your server")}</SectionLabel>
               <p className="text-xs text-white/90 leading-relaxed italic">
                 "{displayWaiterScript}"
               </p>
@@ -468,7 +471,7 @@ export default function AwayFromHomeMealCard({
         {/* ── Buffet plate breakdown ────────────────────────────────── */}
         {buffetItems && buffetItems.length > 0 && (
           <div className="px-4 mt-4">
-            <SectionLabel>Your plate</SectionLabel>
+            <SectionLabel>{t("Your plate")}</SectionLabel>
             <PlateItems items={buffetItems} translatedFoods={translated?.buffetFoods} />
           </div>
         )}
@@ -483,13 +486,13 @@ export default function AwayFromHomeMealCard({
           {translating ? (
             <div className="flex items-center gap-2 py-2">
               <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" />
-              <span className="text-xs text-blue-400">Translating…</span>
+              <span className="text-xs text-blue-400">{t("Translating…")}</span>
             </div>
           ) : translateOpen ? (
             <div className="space-y-2">
-              <p className="text-[10px] text-white/80 uppercase tracking-wider">Translate to</p>
+              <p className="text-[10px] text-white/80 uppercase tracking-wider">{t("Translate to")}</p>
               <div className="flex flex-wrap gap-2">
-                {TRANSLATE_LANGS.map(({ code, label }) => (
+                {TRANSLATE_LANGS.filter(lang => isCustomerLanguage(lang.code)).map(({ code, label }) => (
                   <button
                     key={code}
                     onClick={() => handleTranslate(code, label)}
@@ -509,14 +512,14 @@ export default function AwayFromHomeMealCard({
                     className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 text-white/80 flex items-center gap-1"
                   >
                     <RotateCcw className="w-3 h-3" />
-                    Reset
+                    {t("Reset")}
                   </button>
                 )}
                 <button
                   onClick={() => setTranslateOpen(false)}
                   className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 text-white/80"
                 >
-                  Cancel
+                  {t("Cancel")}
                 </button>
               </div>
             </div>
@@ -526,7 +529,7 @@ export default function AwayFromHomeMealCard({
               className="flex items-center gap-1.5 text-[11px] text-white bg-white/15 border border-white/25 px-3 py-1.5 rounded-full"
             >
               <Languages className="w-3 h-3" />
-              {translated ? `Translated: ${translated.langLabel}` : "Translate"}
+              {translated ? t("Translated: {{language}}", { language: translated.langLabel }) : t("Translate")}
             </button>
           )}
         </div>
@@ -543,7 +546,7 @@ export default function AwayFromHomeMealCard({
                 onClick={logOnly ? handleDirectLog : () => setConfirmOpen(true)}
                 className="w-full py-3 rounded-xl bg-orange-600 text-white font-semibold text-sm"
               >
-                {logOnly ? "Log to Macros" : "Log or Add to Plan"}
+                {logOnly ? t("Log to Macros") : t("Log or Add to Plan")}
               </button>
             )}
           </div>

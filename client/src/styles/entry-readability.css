@@ -1,0 +1,116 @@
+/*
+ * Development-only readability refinements for the account-entry and
+ * onboarding screens. This stylesheet is intentionally inert unless a page
+ * opts in through entryReadabilityGate.
+ */
+.mpm-entry-readable {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.mpm-entry-readable :where([class~="text-xs"], [class~="text-sm"], [class~="text-[10px]"], [class~="text-[11px]"], [class~="text-[12px]"], [class~="text-[13px]"], [class~="text-[14px]"]):not(button):not(button *) {
+  min-width: 0;
+  font-size: 1rem !important;
+  line-height: 1.5;
+}
+
+.mpm-entry-readable :where(p, li, label):not(button):not(button *) {
+  font-weight: 400 !important;
+}
+
+.mpm-entry-readable [class*="text-white/"]:not(button):not(button *) {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.mpm-entry-readable [class*="text-neutral-"]:not(button):not(button *) {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.mpm-entry-readable :where(p, li, label, [class~="text-xs"], [class~="text-sm"]):not(button):not(button *) {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.mpm-entry-readable .mpm-welcome-modal {
+  max-height: calc(100dvh - 2rem - env(safe-area-inset-top, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.mpm-entry-readable button p {
+  min-width: 0;
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 1rem !important;
+  font-weight: 400 !important;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Override the existing mobile 16px input rule locally, including on focus.
+ * The A/A+/A++ preference must scale entry fields as well as descriptions. */
+.mpm-entry-readable :is(input, select, textarea):not([type="checkbox"], [type="radio"]) {
+  font-size: 1rem !important;
+}
+
+/* Keep existing larger name fields larger; never reduce them to the baseline. */
+.mpm-entry-readable :is(input, select, textarea)[class~="text-lg"] {
+  font-size: 1.125rem !important;
+}
+
+.mpm-entry-readable :is(input, textarea)::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+  opacity: 1;
+}
+
+.mpm-entry-readable .mpm-forgot-password {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0.25rem 0;
+  font-size: 1rem !important;
+  line-height: 1.4;
+  color: #d6d9ff;
+}
+
+.mpm-entry-readable .mpm-show-password {
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  line-height: 1.4;
+}
+
+.mpm-entry-readable .mpm-show-password input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 1.25rem;
+}
+
+/* The orange-600 midpoint was only 3.56:1 against white. Keep the same
+ * orange/black badge treatment with an AA-safe orange-700 midpoint. */
+.mpm-entry-readable .mpm-emotion-badge {
+  background-image: linear-gradient(to right, #000, #c2410c, #000);
+}
+
+.mpm-entry-readable .mpm-extended-header {
+  min-width: 0;
+}
+
+.mpm-entry-readable .mpm-onboarding-progress {
+  gap: 0.75rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.mpm-entry-readable .mpm-onboarding-progress > * {
+  min-width: 0;
+}
+
+@media (max-width: 360px) {
+  .mpm-entry-readable .mpm-welcome-modal {
+    padding: 1.25rem !important;
+  }
+}

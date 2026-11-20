@@ -381,7 +381,7 @@
       },
       {
         "line": 190,
-        "text": "GI Symptom Management — Reflux &amp; Diarrhea",
+        "text": "GI Symptom Management — Reflux & Diarrhea",
         "category": "general_clinical",
         "proposedKey": "medicalsourcesinfo.gi_symptom_management_reflux"
       },
@@ -663,7 +663,7 @@
       },
       {
         "line": 836,
-        "text": "GI Symptom Management — Reflux &amp; Diarrhea",
+        "text": "GI Symptom Management — Reflux & Diarrhea",
         "category": "general_clinical",
         "proposedKey": "medicalsourcesinfo.gi_symptom_management_reflux"
       },
@@ -3430,7 +3430,7 @@
     {
       "file": "client/src/components/MedicalSourcesInfo.tsx",
       "line": 190,
-      "text": "GI Symptom Management — Reflux &amp; Diarrhea",
+      "text": "GI Symptom Management — Reflux & Diarrhea",
       "category": "general_clinical",
       "proposedKey": "medicalsourcesinfo.gi_symptom_management_reflux"
     },
@@ -3759,7 +3759,7 @@
     {
       "file": "client/src/components/MedicalSourcesInfo.tsx",
       "line": 836,
-      "text": "GI Symptom Management — Reflux &amp; Diarrhea",
+      "text": "GI Symptom Management — Reflux & Diarrhea",
       "category": "general_clinical",
       "proposedKey": "medicalsourcesinfo.gi_symptom_management_reflux"
     },

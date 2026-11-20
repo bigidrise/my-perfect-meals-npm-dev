@@ -1,3 +1,4 @@
+import { isCustomerLanguage } from "@/i18n/languagePreference";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
@@ -1263,7 +1264,7 @@ export default function MealFinder() {
                                       )}
                                     </div>
                                     <div className="flex flex-wrap gap-1.5 mb-2">
-                                      {TRANSLATE_LANGUAGES.map((lang) => (
+                                      {TRANSLATE_LANGUAGES.filter(lang => isCustomerLanguage(lang.code)).map((lang) => (
                                         <button
                                           key={lang.code}
                                           disabled={translatingId === cardKey}

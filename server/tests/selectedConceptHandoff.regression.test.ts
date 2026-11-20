@@ -204,10 +204,29 @@ describe("selected Creator Menu concept handoff", () => {
     expect(generate).toHaveBeenCalledTimes(2);
   });
 
-  it("rejects old abstract ingredient cards before spending time generating recipes", async () => {
+  it("completes the Spanish soup when its advertised vegetables are named explicitly", async () => {
+    const ingredients = ["pollo", "fideos de arroz", "jengibre", "cebollino", "caldo de pollo", "zanahoria", "col"];
+    const direction = concept("Sopa de Fideos con Pollo", ingredients);
+    direction.culinaryIdentity.dishForm = "soup";
+    direction.preparationMethod = "simmered";
+    generate.mockResolvedValue([{
+      name: direction.title, description: "Sopa de pollo con verduras.",
+      ingredients: ingredients.map(name => ({ name, quantity: "1", unit: "oz" })),
+      instructions: ["Cocer el pollo y las verduras en el caldo.", "Añadir los fideos y cocinar hasta que estén tiernos."],
+      calories: 400, protein: 30, carbs: 20, fat: 15, imageUrl: "",
+    }]);
+    const result = await completeSelectedConcept(input(direction));
+    expect(result.ok).toBe(true);
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["Gomen", ["collard greens", "spices"]],
+    ["Sopa de Fideos con Pollo", ["pollo", "fideos de arroz", "verduras mixtas"]],
+  ])("rejects old abstract ingredient cards for %s before spending time generating recipes", async (title, ingredients) => {
     const { validateDishConcept } = require("../services/oneTouch/directions");
     validateDishConcept.mockReturnValueOnce(["culinary_shape:abstract_primary_ingredient"]);
-    const result = await completeSelectedConcept(input(concept("Gomen", ["collard greens", "spices"])));
+    const result = await completeSelectedConcept(input(concept(title as string, ingredients as string[])));
     expect(result).toEqual({ ok: false, code: "concept_rejected", reasonCode: "abstract_primary_ingredient" });
     expect(generate).not.toHaveBeenCalled();
   });

@@ -69,6 +69,38 @@ beforeEach(() => {
 });
 
 describe("explicit packaged-product discovery eligibility", () => {
+  it.each([
+    "oatmeal", "rolled oats", "steel-cut oats", "olive oil", "cooking oil",
+    "extra virgin olive oil", "avocado oil", "seasoning blend", "taco seasoning",
+    "spice blend", "ground cumin", "dried basil", "black pepper", "condiments",
+    "ketchup", "mustard", "mayonnaise", "vinegar", "peanut butter",
+    "canned black beans", "canned diced tomatoes", "tinned tuna",
+    "jarred chickpeas", "canned coconut milk", "plain yogurt", "breakfast cereal",
+    "whole wheat bread", "tomato sauce",
+  ])("offers Smart Shopping discovery for %s", name => {
+    expect(packagedProductEligibility(name, { surface: "smart_shopping" }))
+      .toEqual({ eligible: true, reason: "packaged_product" });
+  });
+  it.each([
+    "tomato", "tomatoes", "cucumber", "apple", "avocado", "spinach", "fresh basil",
+    "fresh herbs", "fresh produce", "fresh salsa", "fresh bread", "fresh tomatoes",
+    "chicken breast", "ground turkey", "raw beef", "raw fish", "raw chicken with sauce",
+    "homemade oatmeal", "home made bread", "home-made seasoning blend",
+    "tomato sauce from scratch", "spaghetti squash", "unknown ingredient", "motor oil",
+  ])("keeps non-packaged or ambiguous Smart Shopping ingredient %s generic", name => {
+    expect(packagedProductEligibility(name, { surface: "smart_shopping" }))
+      .toEqual({ eligible: false, reason: "ordinary_or_unknown" });
+  });
+  it.each([
+    "oatmeal", "rolled oats", "olive oil", "seasoning blend", "spice blend",
+    "ketchup", "mustard", "canned black beans", "tinned tuna", "jarred chickpeas",
+  ])("does not expand other workflows for %s", name => {
+    expect(packagedProductEligibility(name)).toEqual({ eligible: false, reason: "ordinary_or_unknown" });
+  });
+  it("preserves the legacy recognition path even where Smart Shopping is more conservative", () => {
+    expect(packagedProductEligibility("fresh bread").eligible).toBe(true);
+    expect(packagedProductEligibility("fresh bread", { surface: "smart_shopping" }).eligible).toBe(false);
+  });
   it.each([["1.5", 1.5], ["1/2", .5], ["1 1/2", 1.5], ["½", .5], ["1½", 1.5], ["to taste", null], ["1-2", null], ["1/0", null]])("preserves exact recipe quantity %s without inventing packages", (raw, expected) => {
     expect(recipeShoppingQuantity(String(raw))).toBe(expected);
   });
@@ -135,7 +167,7 @@ describe("Development ingredient-level Product Scan reuse", () => {
     const header = screen.getByText("ingredientSheet.header.intelligence").parentElement!.parentElement!;
     fireEvent.click(within(header).getByRole("button"));
     expect(screen.getByText("Turkey Spaghetti")).toBeInTheDocument();
-    expect(screen.getByText("1/2 cups")).toBeInTheDocument();
+    expect(screen.getByText("½ cups")).toBeInTheDocument();
     expect(screen.queryByText("Example Tomato Sauce")).not.toBeInTheDocument();
   });
 

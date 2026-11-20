@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import {
@@ -358,7 +359,7 @@ export default function BugReportsDashboard() {
             onClick={() => navigate("/admin")}
             className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={18} /><span className="sr-only"><BackNavigationLabel /></span>
           </button>
           <div className="flex items-center gap-2">
             <Bug size={18} className="text-slate-600" />

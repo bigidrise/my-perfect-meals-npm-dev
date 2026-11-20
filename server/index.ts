@@ -24,6 +24,7 @@ import { registerRoutes } from "./routes";
 import { createGuidedJourneyRouter, guidedJourneyDevelopmentEnabled } from "./routes/guidedJourney";
 import { setupVite, serveStatic, log } from "./vite";
 import { requestId } from "./middleware/requestId";
+import { requestLanguageContext } from "./utils/languageInstruction";
 import { logger } from "./middleware/logger";
 import { createApiRateLimit } from "./middleware/rateLimit";
 import { errorHandler } from "./middleware/errorHandler";
@@ -136,6 +137,7 @@ import clinicPilotRouter from "./routes/clinicPilotRoutes";
 import businessOfferRouter from "./routes/businessOfferRoutes";
 
 const app = express();
+app.use("/api", requestLanguageContext);
 
 // ─── CORS — single authoritative block, registered first ─────────────────────
 // Must run before every other middleware so OPTIONS preflights are answered
@@ -191,7 +193,7 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, x-user-id, x-device-id, x-auth-token, x-csrf-token, x-requested-with, x-business-offer-token'
+    'Content-Type, Authorization, x-user-id, x-device-id, x-auth-token, x-csrf-token, x-requested-with, x-business-offer-token, x-mpm-ui-language'
   );
 
   // Answer OPTIONS preflights immediately — nothing else should run for these.

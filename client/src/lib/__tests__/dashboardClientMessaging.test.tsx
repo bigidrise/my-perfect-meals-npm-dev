@@ -1,9 +1,10 @@
 /** @jest-environment jsdom */
 import React from "react";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
 const mockNavigate = jest.fn();
+let mockLanguage = "en";
 let mockUser = { id: "synthetic-client", professionalRole: "business", isProCare: true, subscriptionStatus: "active", plan: "clinical", nickname: undefined as string | undefined, firstName: undefined as string | undefined };
 const mockFetch = jest.fn();
 jest.mock("wouter", () => ({ useLocation: () => ["/dashboard", mockNavigate] }));
@@ -12,6 +13,7 @@ jest.mock("@/contexts/OrgContext", () => ({ useOrgFlag: () => false }));
 jest.mock("@tanstack/react-query", () => ({ useQuery: () => ({ data: undefined }) }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({
   t: (key: string, options?: { name?: string }) =>
+    key === "Messages" && mockLanguage === "es" ? require("@/i18n/consumerJourney").consumerSpanish.Messages :
     key === "greeting" ? `Welcome back, ${options?.name}!` : key,
 }) }));
 jest.mock("@/features/coachCornerFlag", () => ({ COACHES_CORNER_ENABLED: false }));
@@ -53,6 +55,7 @@ let replies: unknown[] = [];
 function ok(body: unknown) { return { ok: true, status: 200, json: async () => body }; }
 
 beforeEach(() => {
+  mockLanguage = "en";
   mockUser = { ...mockUser, id: "synthetic-client", nickname: undefined, firstName: undefined };
   window.scrollTo = jest.fn();
   localStorage.clear();
@@ -82,6 +85,14 @@ async function openConversation() {
 }
 
 describe("real Dashboard client panel with isolated synthetic dependencies", () => {
+  it.each([["en", "Messages"], ["es", "Mensajes"]])("localizes only the %s inbox heading without marking messages read", async (language, heading) => {
+    mockLanguage = language;
+    render(<DashboardNew />);
+    const entry = screen.getByTestId("client-messages-entry");
+    await waitFor(() => expect(within(entry).getByRole("heading", { name: heading })).toBeVisible());
+    await act(async () => {});
+    expect(mockFetch.mock.calls.every(([, init]) => !init?.method || init.method === "GET")).toBe(true);
+  });
   it("shows the welcome header immediately, before its image loads, without transparent ancestors", async () => {
     const { container } = render(<DashboardNew />);
     const heading = screen.getByRole("heading", { name: "Welcome back, there!" });

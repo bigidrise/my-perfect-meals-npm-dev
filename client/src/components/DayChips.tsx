@@ -1,4 +1,5 @@
-import { getDayName, formatDateShort } from "@/utils/week";
+import { formatDateDisplay } from "@/utils/midnight";
+import { useTranslation } from "react-i18next";
 
 interface DayChipsProps {
   weekDates: string[];
@@ -7,12 +8,14 @@ interface DayChipsProps {
 }
 
 export function DayChips({ weekDates, activeDayISO, onDayChange }: DayChipsProps) {
+  const { i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage === "es" ? "es" : "en";
   return (
     <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none justify-center">
       {weekDates.map((dateISO) => {
         const isActive = dateISO === activeDayISO;
-        const dayName = getDayName(dateISO);
-        const dateShort = formatDateShort(dateISO);
+        const dayName = formatDateDisplay(dateISO, { weekday: "short" }, undefined, locale);
+        const dateShort = formatDateDisplay(dateISO, { month: "short", day: "numeric" }, undefined, locale);
 
         return (
           <div key={dateISO} className="inline-flex flex-col items-center gap-1 flex-shrink-0">

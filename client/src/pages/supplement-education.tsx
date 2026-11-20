@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -139,7 +140,7 @@ export default function SupplementEducationPage() {
             onClick={() => setLocation("/supplement-hub")}
             className="flex items-center gap-2 bg-black/30 backdrop-blur-lg border border-white/20 text-white hover:bg-black/40 transition-all duration-200 rounded-xl shadow-lg"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4" /><span className="sr-only"><BackNavigationLabel /></span>
             
           </Button>
         </div>
@@ -372,7 +373,7 @@ export default function SupplementEducationPage() {
             className="flex items-center gap-2 mx-auto bg-black/30 backdrop-blur-lg border border-white/20 text-white hover:bg-black/40"
           >
             <ArrowUp className="h-4 w-4" />
-            Back to Top
+            <BackNavigationLabel label="Back to Top" />
           </Button>
         </div>
       </div>

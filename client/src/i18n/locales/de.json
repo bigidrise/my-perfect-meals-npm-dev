@@ -1,4 +1,41 @@
 {
+  "measurementPreferences": {
+    "title": "Maßeinstellungen",
+    "country": "Land",
+    "system": "Maßsystem",
+    "auto": "Automatisch",
+    "imperial": "US-amerikanische Einheiten",
+    "metric": "Metrisch",
+    "country_US": "Vereinigte Staaten",
+    "country_CA": "Kanada",
+    "country_AU": "Australien",
+    "country_UK": "Vereinigtes Königreich",
+    "country_NZ": "Neuseeland",
+    "resolved": "Automatisch: {{system}} · {{country}}",
+    "hint": "Automatisch richtet sich nach Ihrem gespeicherten Land, nicht nach Sprache oder Gerät. Ohne gespeichertes Land werden die Vereinigten Staaten verwendet. Manuelle Einstellungen bleiben bei einem Länderwechsel unverändert.",
+    "saveFailed": "Die Maßeinstellungen konnten nicht gespeichert werden. Ihre Auswahl bleibt hier erhalten; versuchen Sie es erneut.",
+    "refreshFailed": "Ihre Auswahl wurde gespeichert, konnte aber nicht aktualisiert werden. Bleiben Sie hier und versuchen Sie es zur Bestätigung erneut.",
+    "equivalent": "Entspricht: {{quantity}}",
+    "invalidQuantity": "Geben Sie eine eindeutige Zahl oder einen Bruch ein. Die gespeicherte Menge wurde nicht geändert.",
+    "periodQuantity": "{{quantity}} in diesem Zeitraum",
+    "weekQuantity": "{{quantity}} diese Woche",
+    "currentAverage": "Aktueller Durchschnitt",
+    "weeklyChange": "Wochenänderung",
+    "totalChange": "Gesamtänderung",
+    "weightLabel": "Gewicht ({{unit}})",
+    "waistLabel": "Taillenumfang ({{unit}})",
+    "quantityPlaceholder": "z. B. {{quantity}}",
+    "fluidOunces": "fl oz"
+  },
+  "localeFoundation": {
+    "wakingUp": "Deine Mahlzeiten werden vorbereitet…",
+    "startupHint": "Das erste Laden dauert ein paar Sekunden länger. Einen Moment!",
+    "sessionUnavailable": "Deine Sitzung konnte nicht überprüft werden. Prüfe deine Verbindung und versuche es erneut.",
+    "sessionRetry": "Sitzung erneut überprüfen",
+    "required": "Erforderlich",
+    "invalidEmail": "Ungültige E-Mail-Adresse",
+    "preferencesNote": "Auto verwendet die Sprache dieses Geräts. Eine ausdrücklich gewählte Sprache wird in deinem Konto gespeichert. Einige Funktionen werden noch übersetzt."
+  },
   "shoppingTransfer": {
     "addedTitle": "Zur Einkaufsliste hinzugefügt",
     "savedTitle": "In der Einkaufsliste gespeichert",
@@ -123,6 +160,9 @@
     "adjustPreferences": "Meine Einstellungen anpassen"
   },
   "language": {
+    "enDesc": "Englisch für die Benutzeroberfläche verwenden, unabhängig von der Sprache dieses Geräts.",
+    "esDesc": "Spanisch für die Benutzeroberfläche verwenden, unabhängig von der Sprache dieses Geräts. Einige Funktionen werden möglicherweise weiterhin auf Englisch angezeigt.",
+    "measurementLink": "Land und Maße unter Profil bearbeiten",
     "pageTitle": "Sprache",
     "intro": "My Perfect Meals generiert Mahlzeitennamen, Rezepte, Restaurantempfehlungen, Einkaufstipps und Coaching-Antworten nativ in Ihrer Sprache.",
     "auto": "Automatisch (Gerät)",

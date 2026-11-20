@@ -27,6 +27,7 @@ export interface OccasionFood {
   culinaryIdentity?: unknown;
   instructions?: string | string[];
   snackType?: "food" | "dessert";
+  foodIdentity?: unknown;
 }
 
 type Assessor = (request: { system: string; user: string; temperature: number; model: string }) => Promise<unknown>;
@@ -71,6 +72,7 @@ export async function validateMenuOccasionBatch(
     "MEAL COMPLETENESS IS CULINARY, NOT NUTRITIONAL: A coherent main dish is enough. Oven-baked salmon with asparagus and lemon IS an appropriate lunch or dinner on its own; never demand rice, bread, another side, a missing food group, more calories, or multiple courses. A chicken wrap, lentil soup, or a traditional single-pot meal can also stand alone. Unknown portions are not evidence of incompleteness. Reject a lone garnish or condiment, not a legitimate main dish.",
     "For snacks preserve Food Snack versus Dessert Snack. Do not reject a valid dessert for being dessert or a valid food snack for resembling a meal.",
     "If selectedIdea is supplied, assess the completed recipe against that idea AND the original requested occasion, not its destination Meal 1–6 slot. Identity is preserved when the same recognizable dish, core preparation and cuisine remain, allowing compatible ingredient adaptations; shared ingredients or a copied title alone do not establish identity.",
+    "Names, descriptions, ingredients and instructions may use different languages. Equivalent translations preserve identity; do not require English words or literal name overlap. Compare the actual food, form and preparation. Selected Food Snack versus Dessert Snack and its specific dessert structure must remain recognizable. A coconut mousse is not a chicken salad or chicken skewers even when both contain mango and pineapple. Insufficient recipe evidence must be uncertain, never assumed preserved.",
     "IDENTITY CALIBRATION: Spinach egg bake without feta can preserve a spinach-feta egg bake as a dairy-free ingredient adaptation. Banana oat pancakes do NOT preserve an egg bake: both being valid breakfasts is irrelevant; the dish form and core preparation changed. Evaluate the relationship to selectedIdea separately from occasion fit.",
     "Use uncertain only for genuinely insufficient or contradictory food evidence. Never claim a fit that the actual preparation does not support.",
   ].join("\n");

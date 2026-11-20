@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import "./ShoppingListResponsive.css";
 import { motion } from "framer-motion";
 import {
   Check,
@@ -40,7 +41,8 @@ import { readOtherItems, addOtherItem } from "@/stores/otherItemsStore";
 import { GROCERY_RETAILERS, type GroceryRetailerId } from "@/lib/groceryRetailers";
 import GroceryExportModal from "@/components/shopping/GroceryExportModal";
 import { formatQuantity } from "@/lib/formatQuantity";
-import { convertServingDisplay } from "@shared/units";
+import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
+import { parseMeasurementNumber } from "@shared/units";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
@@ -58,7 +60,7 @@ import MobileBarcodeCamera from "@/components/MobileBarcodeCamera";
 import { saveProductScan, clearExpiredShoppingScans } from "@/lib/shoppingScanStorage";
 import RecentScans from "@/components/shopping/RecentScans";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation, useFoodCategoryLabels } from "@/i18n/useConsumerCopy";
 import { ArrowLeft } from "lucide-react";
 import { recordShoppingToBiometricsTransition, hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
 import { useGuestNavigationGuard } from "@/hooks/useGuestNavigationGuard";
@@ -68,7 +70,8 @@ import { isProOrAbove } from "@/lib/subscriptionCheck";
 import ShoppingProductPicker from "@/components/shopping/ShoppingProductPicker";
 import SmartShoppingProductChoice from "@/components/shopping/SmartShoppingProductChoice";
 import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
-import { shoppingIngredientFor, applyShoppingProductChoice } from "@/lib/shoppingProductChoice";
+import { shoppingIngredientFor, applyShoppingProductChoice, applyShoppingProductReference } from "@/lib/shoppingProductChoice";
+import { parseShoppingProductReference } from "@shared/shoppingProductSelection";
 import type { ShoppingIngredientRequest, ShoppingProductSelection } from "@shared/shoppingProductSelection";
 
 const CATEGORY_ORDER = [
@@ -99,9 +102,10 @@ export default function ShoppingListMasterView() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { t } = useTranslation("shopping");
+  const categoryLabels = useFoodCategoryLabels();
   const { user } = useAuth();
   const { requestUpgrade } = useUpgradeModal();
-  const measurementSystem = ((user as any)?.measurementSystem ?? "imperial") as "imperial" | "metric";
+  const measurementSystem = useMeasurementSystem();
   const entitlements: string[] = (user as any)?.entitlements || [];
   const hasGroceryCoachAccess =
     entitlements.includes("grocery_coach") || entitlements.includes("FULL_ACCESS");
@@ -281,14 +285,14 @@ export default function ShoppingListMasterView() {
         setBarcodeModalOpen(false);
         setBarcodeScanMode("manual");
         toast({
-          title: `Barcode ${barcode} not found`,
-          description: "This product isn't in our database. Try scanning the label for a photo-based lookup.",
+          title: t("Barcode {{barcode}} not found", { barcode }),
+          description: t("This product isn't in our database. Try scanning the label for a photo-based lookup."),
           action: (
             <ToastAction
               altText="Scan label"
               onClick={() => setScanModalOpen(true)}
             >
-              Scan label
+              {t("Scan label")}
             </ToastAction>
           ),
         });
@@ -305,8 +309,8 @@ export default function ShoppingListMasterView() {
       setBarcodeModalOpen(false);
       setBarcodeScanMode("manual");
       toast({
-        title: "Couldn't look up product",
-        description: "Added to your list. Check your connection and try again.",
+        title: t("Couldn't look up product"),
+        description: t("Added to your list. Check your connection and try again."),
       });
     } finally {
       setBarcodeLoading(false);
@@ -353,7 +357,7 @@ export default function ShoppingListMasterView() {
   const openProductPicker = useCallback((row: ConsolidatedItem) => {
     if (!productPickerEnabled) return;
     if (!hasProductPickerAccess) {
-      requestUpgrade({ requiredTier: "pro", featureName: "Choose Product" });
+      requestUpgrade({ requiredTier: "pro", featureName: "See Product Options" });
       return;
     }
     const ingredient = shoppingIngredientFor(row);
@@ -362,14 +366,14 @@ export default function ShoppingListMasterView() {
       ids: row.allIds,
       sessionKey: productPickerSessionKey,
       ingredient,
-      quantityLabel: formatQuantity(row.quantity, row.unit),
+      quantityLabel: formatQuantity(row.quantity, row.unit, measurementSystem),
       currentSelection: row.ingredientMetadata?.selectedProduct
         ? { ingredient, product: row.ingredientMetadata.selectedProduct }
         : null,
     });
-  }, [productPickerEnabled, hasProductPickerAccess, requestUpgrade, productPickerSessionKey]);
+  }, [productPickerEnabled, hasProductPickerAccess, requestUpgrade, productPickerSessionKey, measurementSystem]);
 
-  const commitProductChoice = useCallback(async (selection: ShoppingProductSelection | null) => {
+  const commitProductChoice = useCallback(async (selection: ShoppingProductSelection | null, reference = false) => {
     const target = productPickerTarget;
     if (!target) throw new Error("Shopping row is no longer available");
     if (target.sessionKey !== productPickerSessionKey) throw new Error("The account or profile changed. Look up products again.");
@@ -384,7 +388,9 @@ export default function ShoppingListMasterView() {
       setProductPickerTarget(null);
       throw new Error("Shopping row changed before the choice could be saved");
     }
-    await applyShoppingProductChoice(target.ids, selection);
+    if (reference && selection) {
+      await applyShoppingProductReference(target.ids, parseShoppingProductReference(selection));
+    } else await applyShoppingProductChoice(target.ids, selection);
   }, [productPickerTarget, items, productPickerSessionKey, hasProductPickerAccess]);
 
   const clearProductChoice = useCallback(async (row: ConsolidatedItem) => {
@@ -431,20 +437,24 @@ export default function ShoppingListMasterView() {
     (id: string, field: "quantity" | "unit" | "name" | "notes") => {
       return (e: React.ChangeEvent<HTMLInputElement>) => {
         const v =
-          field === "quantity" ? Number(e.target.value) : e.target.value;
+          field === "quantity" ? parseMeasurementNumber(e.target.value) : e.target.value;
+        if (field === "quantity" && (v === null || Number(v) < 0)) {
+          toast({ title: t("Qty"), description: t("measurementPreferences:invalidQuantity"), variant: "destructive" });
+          return;
+        }
         updateItem(
           id,
           field === "quantity"
-            ? { quantity: Number.isFinite(v as number) ? (v as number) : 1 }
+            ? { quantity: v as number }
             : { [field]: v },
         );
       };
     },
-    [updateItem],
+    [updateItem, toast, t],
   );
 
   const onClearChecked = useCallback(() => {
-    if (!confirm("Clear all checked items?")) return;
+    if (!confirm(t("Clear all checked items?"))) return;
     clearChecked();
 
     // Dispatch "done" event after clearing checked items (500ms debounce)
@@ -457,7 +467,7 @@ export default function ShoppingListMasterView() {
   }, [clearChecked]);
 
   const onClearAll = useCallback(() => {
-    if (!confirm("Clear entire shopping list?")) return;
+    if (!confirm(t("Clear entire shopping list?"))) return;
     clearAll();
 
     // Dispatch "done" event after clearing all items (500ms debounce)
@@ -474,7 +484,7 @@ export default function ShoppingListMasterView() {
       .filter((i) => !i.isChecked)
       .map(
         (i) =>
-          `• ${i.name}${i.quantity ? ` — ${formatQuantity(i.quantity, i.unit)}` : ""}`,
+          `• ${i.name}${i.quantity ? ` — ${formatQuantity(i.quantity, i.unit, measurementSystem)}` : ""}`,
       );
 
     const otherItems = readOtherItems()
@@ -498,8 +508,8 @@ export default function ShoppingListMasterView() {
     try {
       await navigator.clipboard.writeText(text);
       toast({
-        title: "Copied to clipboard",
-        description: `${totalCount} items copied`,
+        title: t("Copied to clipboard"),
+        description: t("{{count}} items copied", { count: totalCount }),
       });
     } catch {
       const el = document.createElement("textarea");
@@ -511,8 +521,8 @@ export default function ShoppingListMasterView() {
       document.execCommand("copy");
       document.body.removeChild(el);
       toast({
-        title: "Copied to clipboard",
-        description: `${totalCount} items copied`,
+        title: t("Copied to clipboard"),
+        description: t("{{count}} items copied", { count: totalCount }),
       });
     }
   }, [items, toast]);
@@ -538,8 +548,8 @@ export default function ShoppingListMasterView() {
 
     if (activeItems.length === 0) {
       toast({
-        title: "No items to send",
-        description: "Add items to your list or uncheck items you haven't bought yet.",
+        title: t("No items to send"),
+        description: t("Add items to your list or uncheck items you haven't bought yet."),
       });
       return;
     }
@@ -560,8 +570,8 @@ export default function ShoppingListMasterView() {
       const names = parseItemsFromText(raw);
       if (!names.length) {
         toast({
-          title: "No items found",
-          description: "Type or say at least one item name.",
+          title: t("No items found"),
+          description: t("Type or say at least one item name."),
         });
         return;
       }
@@ -573,8 +583,8 @@ export default function ShoppingListMasterView() {
         });
       });
       toast({
-        title: "Items added",
-        description: `${names.length} items added to your shopping list.`,
+        title: t("Items added"),
+        description: t("{{count}} items added to your shopping list.", { count: names.length }),
       });
 
       // Dispatch "interacted" event
@@ -602,8 +612,10 @@ export default function ShoppingListMasterView() {
         addItem({ name, quantity, unit: unit || "", category: "Other" });
       });
       toast({
-        title: "Items added",
-        description: `${items.length} item${items.length !== 1 ? "s" : ""} added to your list.`,
+        title: t("Items added"),
+        description: items.length === 1
+          ? t("{{count}} item added to your list.", { count: items.length })
+          : t("{{count}} items added to your list.", { count: items.length }),
       });
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent("walkthrough:event", { detail: { testId: "shopping-list-interacted", event: "interacted" } }));
@@ -637,7 +649,7 @@ export default function ShoppingListMasterView() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
+      className="shopping-list-page min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
     >
       {/* Universal Safe-Area Header */}
       <MobileHeaderGuard>
@@ -661,7 +673,7 @@ export default function ShoppingListMasterView() {
               className="text-lime-400 hover:bg-lime-500/10 -ml-2"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
-              Continue to Biometrics
+              {t("Continue to Biometrics")}
             </Button>
           )}
 
@@ -669,7 +681,7 @@ export default function ShoppingListMasterView() {
           <h1 className="text-lg font-bold text-white flex items-center gap-2">
             {t("pageTitle")}
             {isHydrating && (
-              <span className="text-xs font-normal text-white/50 animate-pulse">syncing…</span>
+              <span className="text-xs font-normal text-white/50 animate-pulse">{t("syncing…")}</span>
             )}
           </h1>
         </div>
@@ -689,7 +701,7 @@ export default function ShoppingListMasterView() {
           className="rounded-2xl bg-white/5 border border-white/20 p-4 backdrop-blur"
         >
           <div className="text-white/70 text-sm">
-            {counts.total} items • {counts.checked} checked
+            {counts.total} {t("items •")} {counts.checked} {t("checked")}
           </div>
 
           {/* Add Item Actions */}
@@ -705,7 +717,18 @@ export default function ShoppingListMasterView() {
               data-testid="button-voice-add"
             >
               <Mic className="h-4 w-4 mr-2" />
-              Voice Add
+              {t("Voice Add")}
+            </Button>
+            <Button
+              onClick={() => {
+                setBarcodeScanMode("manual");
+                setBarcodeModalOpen(true);
+              }}
+              className="bg-black/60 border border-white/20 text-white hover:bg-black/70 text-sm"
+              size="sm"
+              data-testid="button-barcode-scan"
+            >
+              {t("Scan Barcode")}
             </Button>
             <Button
               data-wt="msl-bulk-add-button"
@@ -715,7 +738,7 @@ export default function ShoppingListMasterView() {
               data-testid="button-bulk-add"
             >
               <ListPlus className="h-4 w-4 mr-2" />
-              Bulk Add
+              {t("Bulk Add")}
             </Button>
           </div>
 
@@ -731,9 +754,9 @@ export default function ShoppingListMasterView() {
             >
               <span className="text-xl">🧑‍🍳</span>
               <span className="flex-1 min-w-0">
-                <span className="block text-white font-semibold text-sm leading-tight">Grocery Store Coach</span>
+                <span className="block text-white font-semibold text-sm leading-tight">{t("Grocery Store Coach")}</span>
                 <span className="hidden lg:block text-orange-300/60 text-xs mt-0.5">
-                  {hasGroceryCoachAccess ? "Recommends a meal + saves a full recipe card to Favorites." : "Upgrade to Pro to unlock"}
+                  {hasGroceryCoachAccess ? t("Recommends a meal + saves a full recipe card to Favorites.") : t("Upgrade to Pro to unlock")}
                 </span>
               </span>
               <span className="bg-orange-500/20 border border-orange-400/20 rounded-lg px-2 py-0.5 text-[10px] text-orange-300 font-semibold uppercase tracking-wide flex-shrink-0">
@@ -742,11 +765,11 @@ export default function ShoppingListMasterView() {
               <span className="basis-full block w-full whitespace-normal px-1 text-center lg:hidden text-orange-300/60 text-xs leading-snug">
                 {hasGroceryCoachAccess ? (
                   <>
-                    <span className="block">Recommends a meal + saves</span>
-                    <span className="block">a full recipe card to Favorites.</span>
+                    <span className="block">{t("Recommends a meal + saves")}</span>
+                    <span className="block">{t("a full recipe card to Favorites.")}</span>
                   </>
                 ) : (
-                  "Upgrade to Pro to unlock"
+                  t("Upgrade to Pro to unlock")
                 )}
               </span>
             </Button>
@@ -761,11 +784,11 @@ export default function ShoppingListMasterView() {
             >
               <span className="text-xl">🔖</span>
               <span className="flex-1 min-w-0">
-                <span className="block text-white font-semibold text-sm leading-tight">Saved Groceries</span>
-                <span className="hidden lg:block text-orange-300/50 text-xs mt-0.5">Products you've saved — Coach remembers these</span>
+                <span className="block text-white font-semibold text-sm leading-tight">{t("Saved Groceries")}</span>
+                <span className="hidden lg:block text-orange-300/50 text-xs mt-0.5">{t("Products you've saved — Coach remembers these")}</span>
               </span>
               <span className="basis-full block w-full whitespace-normal px-1 text-center lg:hidden text-orange-300/50 text-xs leading-snug">
-                Products you've saved — Coach remembers these
+                {t("Products you've saved — Coach remembers these")}
               </span>
             </Button>
           </div>
@@ -780,16 +803,16 @@ export default function ShoppingListMasterView() {
               >
                 <span className="text-xl">🧾</span>
                 <span className="flex-1 min-w-0">
-                  <span className="block text-white font-semibold text-sm leading-tight">Product Scan</span>
+                  <span className="block text-white font-semibold text-sm leading-tight">{t("Product Scan")}</span>
                   <span className="hidden lg:block text-cyan-300/60 text-xs leading-snug mt-0.5 whitespace-nowrap">
-                    Take a picture of the label — see if it’s right for you.
+                    {t("Take a picture of the label — see if it’s right for you.")}
                   </span>
                 </span>
                 <span className="bg-cyan-500/20 border border-cyan-400/20 rounded-lg px-2 py-0.5 text-[10px] text-cyan-300 font-semibold uppercase tracking-wide flex-shrink-0">
-                  New
+                  {t("New")}
                 </span>
                 <span className="basis-full block w-full whitespace-normal px-1 text-center lg:hidden text-cyan-300/60 text-xs leading-snug">
-                  Take a picture of the label — see if it’s right for you.
+                  {t("Take a picture of the label — see if it’s right for you.")}
                 </span>
               </Button>
             </div>
@@ -803,11 +826,11 @@ export default function ShoppingListMasterView() {
                   <>
                     <div className="text-2xl shrink-0">📦</div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-wide leading-none mb-0.5">Last Scan</p>
+                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-wide leading-none mb-0.5">{t("Last Scan")}</p>
                       <p className="text-sm text-white font-semibold truncate leading-snug">
-                        {shoppingSheetResult.productName || 'Scanned Product'}
+                        {shoppingSheetResult.productName || t("Scanned Product")}
                       </p>
-                      <p className="text-xs text-amber-400 font-medium truncate leading-snug">Flip to the back to scan ingredients</p>
+                      <p className="text-xs text-amber-400 font-medium truncate leading-snug">{t("Flip to the back to scan ingredients")}</p>
                     </div>
                   </>
                 ) : shoppingSheetResult.fallbackUsed ? (
@@ -815,11 +838,11 @@ export default function ShoppingListMasterView() {
                   <>
                     <div className="text-2xl shrink-0">🔍</div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-wide leading-none mb-0.5">Last Scan</p>
+                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-wide leading-none mb-0.5">{t("Last Scan")}</p>
                       <p className="text-sm text-white font-semibold truncate leading-snug">
-                        {shoppingSheetResult.productName || 'Scanned Product'}
+                        {shoppingSheetResult.productName || t("Scanned Product")}
                       </p>
-                      <p className="text-xs text-white/40 font-medium truncate leading-snug">Analysis incomplete</p>
+                      <p className="text-xs text-white/40 font-medium truncate leading-snug">{t("Analysis incomplete")}</p>
                     </div>
                   </>
                 ) : (
@@ -834,9 +857,9 @@ export default function ShoppingListMasterView() {
                       {shoppingSheetResult.alignmentGrade}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-wide leading-none mb-0.5">Last Analysis</p>
+                      <p className="text-[10px] text-white/40 font-bold uppercase tracking-wide leading-none mb-0.5">{t("Last Analysis")}</p>
                       <p className="text-sm text-white font-semibold truncate leading-snug">
-                        {shoppingSheetResult.productName || 'Scanned Product'}
+                        {shoppingSheetResult.productName || t("Scanned Product")}
                       </p>
                       <p className={`text-xs font-medium truncate leading-snug ${
                         shoppingSheetResult.verdictLevel === 'buy' ? 'text-emerald-400'
@@ -856,13 +879,13 @@ export default function ShoppingListMasterView() {
                   onClick={() => setShoppingSheetOpen(true)}
                   className="flex-1 text-xs text-white/70 bg-white/5 border border-white/10 rounded-xl py-2 font-semibold active:bg-white/10"
                 >
-                  View Last Scan
+                  {t("View Last Scan")}
                 </button>
                 <button
                   onClick={() => { clearScan(); setScanModalOpen(true); }}
                   className="flex-1 text-xs text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 rounded-xl py-2 font-semibold active:bg-cyan-500/20"
                 >
-                  New Scan
+                  {t("New Scan")}
                 </button>
               </div>
             </div>
@@ -890,7 +913,7 @@ export default function ShoppingListMasterView() {
               }`}
               data-testid="option-exclude-pantry"
             >
-              Exclude pantry staples
+              {t("Exclude pantry staples")}
             </Button>
           </div>
         </div>
@@ -906,10 +929,10 @@ export default function ShoppingListMasterView() {
               <div className="flex items-center gap-2">
                 <div className="flex-1">
                   <div className="text-white font-semibold text-sm leading-tight">
-                    Order Groceries Online
+                    {t("Order Groceries Online")}
                   </div>
                   <div className="text-white/50 text-xs mt-0.5">
-                    {uncheckedItems.length} item{uncheckedItems.length !== 1 ? "s" : ""} · opens in your browser
+                    {uncheckedItems.length} {uncheckedItems.length === 1 ? t("item") : t("items")} {t("· opens in your browser")}
                   </div>
                 </div>
                 <ExternalLink className="h-4 w-4 text-white/30 flex-shrink-0" />
@@ -927,7 +950,7 @@ export default function ShoppingListMasterView() {
                 ))}
               </div>
               <p className="text-white/25 text-[10px] leading-tight">
-                Each item opens a separate search on the retailer's site. My Perfect Meals does not process payments or handle delivery.
+                {t("Each item opens a separate search on the retailer's site. My Perfect Meals does not process payments or handle delivery.")}
               </p>
             </div>
 
@@ -946,7 +969,7 @@ export default function ShoppingListMasterView() {
                 size="sm"
                 data-testid="button-clear-purchased"
               >
-                Clear Purchased
+                {t("Clear Purchased")}
               </Button>
             )}
             {counts.total > 0 && (
@@ -956,7 +979,7 @@ export default function ShoppingListMasterView() {
                 size="sm"
                 data-testid="shopping-clear-button"
               >
-                Clear All
+                {t("Clear All")}
               </Button>
             )}
           </div>
@@ -977,17 +1000,17 @@ export default function ShoppingListMasterView() {
                 key={cat}
                 className="rounded-2xl bg-white/5 border border-white/20 p-4 backdrop-blur"
               >
-                <div className="flex items-center justify-between mb-3">
+                <div className="shopping-category-header flex items-center justify-between mb-3">
                   <div>
-                    <h3 className="text-white font-semibold">{cat}</h3>
+                    <h3 className="text-white font-semibold">{categoryLabels[cat] || cat}</h3>
                     <span className="text-white/50 text-xs">
-                      {arr.length} items
+                      {arr.length} {t("items")}
                     </span>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="shopping-category-actions flex gap-2">
                     <Button
                       size="sm"
-                      className="h-9 px-3 text-sm bg-white/10 border border-white/25 text-white active:scale-[.98]"
+                      className="shopping-list-control-target h-9 px-3 text-sm bg-white/10 border border-white/25 text-white active:scale-[.98]"
                       onClick={() => {
                         const updated = items.map((i) =>
                           cat === "All" || i.category === cat
@@ -998,11 +1021,11 @@ export default function ShoppingListMasterView() {
                       }}
                       data-testid={`button-check-all-${cat}`}
                     >
-                      Check all
+                      {t("Check all")}
                     </Button>
                     <Button
                       size="sm"
-                      className="h-9 px-3 text-sm bg-white/10 border border-white/25 text-white active:scale-[.98]"
+                      className="shopping-list-control-target h-9 px-3 text-sm bg-white/10 border border-white/25 text-white active:scale-[.98]"
                       onClick={() => {
                         const updated = items.map((i) =>
                           cat === "All" || i.category === cat
@@ -1013,7 +1036,7 @@ export default function ShoppingListMasterView() {
                       }}
                       data-testid={`button-uncheck-all-${cat}`}
                     >
-                      Uncheck
+                      {t("Uncheck")}
                     </Button>
                   </div>
                 </div>
@@ -1027,7 +1050,7 @@ export default function ShoppingListMasterView() {
                       }
                       data-wt="msl-item-card"
                       key={item.id}
-                      className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${
+                      className={`shopping-item-row flex items-center gap-3 p-2 rounded-lg transition-colors ${
                         item.isChecked ? "bg-white/5 opacity-50" : "bg-white/10"
                       }`}
                     >
@@ -1035,8 +1058,9 @@ export default function ShoppingListMasterView() {
                         data-wt="msl-item-checkoff"
                         onClick={() => handleToggleConsolidated((item as ConsolidatedItem).allIds, item.isChecked)}
                         aria-pressed={item.isChecked || false}
+                        aria-label={item.isChecked ? `Mark ${item.name} as not purchased` : `Mark ${item.name} as purchased`}
                         size="sm"
-                        className={`h-8 w-8 p-0 flex-shrink-0 transition-all ${
+                        className={`shopping-item-check shopping-list-control-target h-8 w-8 p-0 flex-shrink-0 transition-all ${
                           item.isChecked
                             ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-400/50"
                             : "bg-black/60 border border-white/20 text-white hover:bg-black/70"
@@ -1048,67 +1072,73 @@ export default function ShoppingListMasterView() {
 
                       {editingId === item.id ? (
                         <>
-                          <Input
-                            defaultValue={item.name}
-                            onBlur={(e) => {
-                              updateItem(item.id, { name: e.target.value });
-                              setEditingId(null);
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                updateItem(item.id, {
-                                  name: (e.target as HTMLInputElement).value,
-                                });
+                          <div className="shopping-item-edit-fields">
+                            <Input
+                              defaultValue={item.name}
+                              onBlur={(e) => {
+                                updateItem(item.id, { name: e.target.value });
                                 setEditingId(null);
-                              }
-                            }}
-                            className="flex-1 bg-black/30 border-white/30 text-white h-8"
-                            autoFocus
-                          />
-                          <Input
-                            defaultValue={item.quantity ?? ""}
-                            onBlur={onInlineEdit(item.id, "quantity")}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                const val = Number(
-                                  (e.target as HTMLInputElement).value,
-                                );
-                                updateItem(item.id, {
-                                  quantity: Number.isFinite(val) ? val : 1,
-                                });
-                              }
-                            }}
-                            className="w-16 bg-black/30 border-white/30 text-white h-8"
-                            placeholder="Qty"
-                            data-testid={`input-qty-${item.id}`}
-                          />
-                          <Input
-                            defaultValue={item.unit ?? ""}
-                            onBlur={onInlineEdit(item.id, "unit")}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                updateItem(item.id, {
-                                  unit: (e.target as HTMLInputElement).value,
-                                });
-                              }
-                            }}
-                            className="w-20 bg-black/30 border-white/30 text-white h-8"
-                            placeholder="Unit"
-                            data-testid={`input-unit-${item.id}`}
-                          />
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  updateItem(item.id, {
+                                    name: (e.target as HTMLInputElement).value,
+                                  });
+                                  setEditingId(null);
+                                }
+                              }}
+                              className="shopping-item-name-input flex-1 bg-black/30 border-white/30 text-white h-8"
+                              autoFocus
+                              aria-label={`Ingredient name for ${item.name}`}
+                            />
+                            <div className="shopping-item-edit-amounts">
+                              <Input
+                                defaultValue={item.quantity ?? ""}
+                                onBlur={onInlineEdit(item.id, "quantity")}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    const val = parseMeasurementNumber(
+                                      (e.target as HTMLInputElement).value,
+                                    );
+                                    if (val !== null && val >= 0) updateItem(item.id, { quantity: val });
+                                  }
+                                }}
+                                className="shopping-item-edit-quantity w-16 bg-black/30 border-white/30 text-white h-8"
+                                placeholder={t("Qty")}
+                                aria-label={`Quantity for ${item.name}`}
+                                data-testid={`input-qty-${item.id}`}
+                              />
+                              <Input
+                                defaultValue={item.unit ?? ""}
+                                onBlur={onInlineEdit(item.id, "unit")}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    updateItem(item.id, {
+                                      unit: (e.target as HTMLInputElement).value,
+                                    });
+                                  }
+                                }}
+                                className="shopping-item-edit-unit w-20 bg-black/30 border-white/30 text-white h-8"
+                                placeholder={t("Unit")}
+                                aria-label={`Unit for ${item.name}`}
+                                data-testid={`input-unit-${item.id}`}
+                              />
+                            </div>
+                          </div>
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => setEditingId(null)}
-                            className="text-white hover:bg-white/10"
+                            aria-label={`Finish editing ${item.name}`}
+                            className="shopping-item-edit-save shopping-list-control-target text-white hover:bg-white/10"
                           >
                             <Check className="h-4 w-4" />
                           </Button>
                         </>
                       ) : (
                         <>
-                          <div className="min-w-0 flex-1">
-                            <div className={`text-white ${item.isChecked ? "line-through" : ""}`}>
+                          <div className="shopping-item-content min-w-0 flex-1">
+                            <div className={`shopping-item-name text-white ${item.isChecked ? "line-through" : ""}`}>
                               {item.name}
                             </div>
                             <SmartShoppingProductChoice
@@ -1116,30 +1146,35 @@ export default function ShoppingListMasterView() {
                               enabled={productPickerEnabled}
                               hasAccess={hasProductPickerAccess}
                               onChoose={() => openProductPicker(item as ConsolidatedItem)}
-                              onUpgrade={() => requestUpgrade({ requiredTier: "pro", featureName: "Choose Product" })}
+                              onUpgrade={() => requestUpgrade({ requiredTier: "pro", featureName: "See Product Options" })}
                               onClear={() => clearProductChoice(item as ConsolidatedItem)}
                             />
                           </div>
                           <ShoppingQuantity item={item as ConsolidatedItem} />
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setEditingId(item.id)}
-                            className="text-white hover:bg-white/10"
-                            data-testid={`button-edit-${item.id}`}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <TrashButton
-                            data-wt="msl-item-trash"
-                            size="sm"
-                            onClick={() => removeConsolidatedItem((item as ConsolidatedItem).allIds)}
-                            confirm
-                            confirmMessage="Delete this shopping list item?"
-                            ariaLabel="Delete item"
-                            title="Delete item"
-                            data-testid={`button-delete-${item.id}`}
-                          />
+                          <div className="shopping-item-actions">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setEditingId(item.id)}
+                              aria-label={`Edit ${item.name}`}
+                              title={t("Edit item")}
+                              className="shopping-list-control-target text-white hover:bg-white/10"
+                              data-testid={`button-edit-${item.id}`}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <TrashButton
+                              data-wt="msl-item-trash"
+                              size="sm"
+                              onClick={() => removeConsolidatedItem((item as ConsolidatedItem).allIds)}
+                              confirm
+                              confirmMessage="Delete this shopping list item?"
+                              ariaLabel={t("Delete item")}
+                              title={t("Delete item")}
+                              className="shopping-list-control-target"
+                              data-testid={`button-delete-${item.id}`}
+                            />
+                          </div>
                         </>
                       )}
                     </div>
@@ -1158,7 +1193,7 @@ export default function ShoppingListMasterView() {
                   <div className="flex items-center gap-3">
                     <Check className="h-5 w-5 text-emerald-400" />
                     <span className="font-semibold">
-                      Purchased Today ({checkedItems.length})
+                      {t("Purchased Today (")}{checkedItems.length})
                     </span>
                   </div>
                   {purchasedOpen ? (
@@ -1172,44 +1207,48 @@ export default function ShoppingListMasterView() {
                     {sortedEntries(groupedChecked).map(([cat, arr]) => (
                       <div key={cat}>
                         <h4 className="text-white/70 text-sm font-semibold mb-2">
-                          {cat}
+                          {categoryLabels[cat] || cat}
                         </h4>
                         <div className="space-y-2">
                           {arr.map((item) => (
                             <div
                               key={item.id}
-                              className="flex items-center gap-3 p-2 rounded-lg bg-white/5 opacity-60"
+                              className="shopping-item-row shopping-purchased-row flex items-center gap-3 p-2 rounded-lg bg-white/5 opacity-60"
                             >
                               <Button
                                 onClick={() => handleToggleConsolidated((item as ConsolidatedItem).allIds, item.isChecked)}
                                 aria-pressed={item.isChecked || false}
+                                aria-label={`Mark ${item.name} as not purchased`}
                                 size="sm"
-                                className="h-8 w-8 p-0 flex-shrink-0 bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-400/50"
+                                className="shopping-item-check shopping-list-control-target h-8 w-8 p-0 flex-shrink-0 bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-400/50"
                                 data-testid={`checkbox-purchased-${item.id}`}
                               >
                                 <Check className="h-4 w-4" />
                               </Button>
-                              <div className="min-w-0 flex-1">
-                                <div className="text-white line-through">{item.name}</div>
+                              <div className="shopping-item-content min-w-0 flex-1">
+                                <div className="shopping-item-name text-white line-through">{item.name}</div>
                                 <SmartShoppingProductChoice
                                   item={item}
                                   enabled={productPickerEnabled}
                                   hasAccess={hasProductPickerAccess}
                                   onChoose={() => openProductPicker(item as ConsolidatedItem)}
-                                  onUpgrade={() => requestUpgrade({ requiredTier: "pro", featureName: "Choose Product" })}
+                                  onUpgrade={() => requestUpgrade({ requiredTier: "pro", featureName: "See Product Options" })}
                                   onClear={() => clearProductChoice(item as ConsolidatedItem)}
                                 />
                               </div>
                               <ShoppingQuantity item={item as ConsolidatedItem} />
-                              <TrashButton
-                                size="sm"
-                                onClick={() => removeConsolidatedItem((item as ConsolidatedItem).allIds)}
-                                confirm
-                                confirmMessage="Delete this purchased item?"
-                                ariaLabel="Delete item"
-                                title="Delete item"
-                                data-testid={`button-delete-purchased-${item.id}`}
-                              />
+                              <div className="shopping-item-actions">
+                                <TrashButton
+                                  size="sm"
+                                  onClick={() => removeConsolidatedItem((item as ConsolidatedItem).allIds)}
+                                  confirm
+                                  confirmMessage="Delete this purchased item?"
+                                  ariaLabel={t("Delete item")}
+                                  title={t("Delete item")}
+                                  className="shopping-list-control-target"
+                                  data-testid={`button-delete-purchased-${item.id}`}
+                                />
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -1259,7 +1298,7 @@ export default function ShoppingListMasterView() {
             onCancel={() => setEvidenceTarget(null)}
             onUpdated={() => {
               setEvidenceTarget(null); setShoppingSheetOpen(false); setSavedGroceriesOpen(true);
-              toast({ title: "Label evidence updated", description: "Previous evidence retained. Current profile checks still apply." });
+              toast({ title: t("Label evidence updated"), description: t("Previous evidence retained. Current profile checks still apply.") });
             }}
           /> : undefined}
           result={shoppingSheetResult}
@@ -1271,7 +1310,7 @@ export default function ShoppingListMasterView() {
               unit: "",
               category: "Other",
             });
-            toast({ title: "Added to shopping list", description: name });
+            toast({ title: t("Added to shopping list"), description: name });
           }}
           onResultRefined={(refined) => persistScan(refined)}
           onSaveForReview={() => {
@@ -1292,7 +1331,7 @@ export default function ShoppingListMasterView() {
             }
             setShoppingSheetOpen(false);
             setScanRefreshKey((k) => k + 1);
-            toast({ title: "Temporary scan history", description: "Stored for this account on this device until the daily cleanup. Use Save to Groceries for the permanent library." });
+            toast({ title: t("Temporary scan history"), description: t("Stored for this account on this device until the daily cleanup. Use Save to Groceries for the permanent library.") });
           }}
         />
 
@@ -1315,9 +1354,9 @@ export default function ShoppingListMasterView() {
         {barcodeModalOpen && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
             <div className="bg-black/90 border border-white/20 rounded-2xl p-6 w-full max-w-sm space-y-4">
-              <h3 className="text-white text-xl font-semibold">Scan Barcode</h3>
+              <h3 className="text-white text-xl font-semibold">{t("Scan Barcode")}</h3>
               <p className="text-white/50 text-sm -mt-2">
-                We'll look up the product and show you a full ingredient analysis.
+                {t("We'll look up the product and show you a full ingredient analysis.")}
               </p>
 
               {/* Mode toggle */}
@@ -1331,7 +1370,7 @@ export default function ShoppingListMasterView() {
                   }`}
                 >
                   <ScanLine className="inline h-3.5 w-3.5 mr-1.5 -mt-0.5" />
-                  Camera
+                  {t("Camera")}
                 </button>
                 <button
                   onClick={() => setBarcodeScanMode("manual")}
@@ -1341,7 +1380,7 @@ export default function ShoppingListMasterView() {
                       : "bg-white/5 text-white/50"
                   }`}
                 >
-                  Type Manually
+                  {t("Type Manually")}
                 </button>
               </div>
 
@@ -1361,7 +1400,7 @@ export default function ShoppingListMasterView() {
                   {barcodeLoading && (
                     <div className="flex items-center justify-center gap-2 py-2 text-sm text-white/60">
                       <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Looking up barcode…
+                      {t("Looking up barcode…")}
                     </div>
                   )}
                 </div>
@@ -1378,7 +1417,7 @@ export default function ShoppingListMasterView() {
                       lookupAndOpenBarcode(barcodeText.trim());
                     }
                   }}
-                  placeholder="Type barcode number..."
+                  placeholder={t("Type barcode number...")}
                   className="bg-black/40 border-white/30 text-white placeholder:text-white/40"
                   data-testid="input-barcode"
                   disabled={barcodeLoading}
@@ -1410,10 +1449,10 @@ export default function ShoppingListMasterView() {
                     {barcodeLoading ? (
                       <span className="flex items-center gap-2">
                         <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Looking up…
+                        {t("Looking up…")}
                       </span>
                     ) : (
-                      "Look Up"
+                      t("Look Up")
                     )}
                   </Button>
                 )}
@@ -1427,7 +1466,7 @@ export default function ShoppingListMasterView() {
             <div className="w-full max-w-md rounded-2xl bg-black/90 border border-white/20 p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-white text-lg font-semibold">
-                  Bulk Add Items
+                  {t("Bulk Add Items")}
                 </h2>
                 <Button
                   size="icon"
@@ -1439,14 +1478,14 @@ export default function ShoppingListMasterView() {
                 </Button>
               </div>
               <p className="text-xs text-white/70">
-                Type or paste one item per line, or separate items with commas:
+                {t("Type or paste one item per line, or separate items with commas:")}
               </p>
               <textarea
                 value={bulkText}
                 onChange={(e) => setBulkText(e.target.value)}
                 rows={6}
                 className="w-full rounded-xl bg-black/60 border border-white/25 text-white text-sm p-2 focus:outline-none focus:ring-1 focus:ring-white/50"
-                placeholder={"milk\neggs\nchicken breast\nspinach\nbrown rice"}
+                placeholder={t("milk\neggs\nchicken breast\nspinach\nbrown rice")}
               />
               <div className="flex items-center justify-end gap-2">
                 <Button
@@ -1468,7 +1507,7 @@ export default function ShoppingListMasterView() {
                   disabled={!bulkText.trim()}
                   data-testid="button-bulk-add-items"
                 >
-                  Add Items
+                  {t("Add Items")}
                 </Button>
               </div>
             </div>
@@ -1483,6 +1522,7 @@ export default function ShoppingListMasterView() {
             sessionKey={productPickerSessionKey}
             currentSelection={productPickerTarget.currentSelection}
             onCommit={commitProductChoice}
+            onCommitReference={reference => commitProductChoice(reference, true)}
           />
         )}
       </div>

@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import { useMealShopping } from "@/hooks/useMealShopping";
 import { canonicalShoppingRecipe } from "@/lib/mealShoppingApi";
 import { selectionForRecipe } from "@shared/mealShoppingSelection";
@@ -36,7 +36,13 @@ export default function BuilderShoppingBar({
   currentWeekStartISO,
   sourceSlug,
 }: Props) {
-  const { t } = useTranslation("shoppingTransfer");
+  const { t, i18n } = useTranslation("shoppingTransfer");
+  // Display-only localization; saved dates, TZ and shopping notes stay unchanged.
+  const displayDay = (date: string, short = false) =>
+    new Intl.DateTimeFormat(i18n.resolvedLanguage || i18n.language || "en", {
+      timeZone: TZ, weekday: short ? "short" : "long",
+      ...(short ? { month: "numeric" as const, day: "numeric" as const } : {}),
+    }).format(new Date(`${date}T12:00:00Z`));
   const shopping = useMealShopping();
   const [shoppingError, setShoppingError] = useState("");
   const [location, setLocation] = useLocation();
@@ -160,7 +166,7 @@ export default function BuilderShoppingBar({
 
   async function sendDays(days: string[], label: string) {
     if (!shopping.checked || (!shopping.available && !shopping.legacyAllowed)) {
-      setShoppingError(shopping.reason || "Confirming shopping availability. Please retry.");
+      setShoppingError(shopping.reason || t("Confirming shopping availability. Please retry."));
       return;
     }
     if (shopping.available) {
@@ -174,7 +180,7 @@ export default function BuilderShoppingBar({
       ));
       const invalid = selections.find(value => !value.selection);
       if (!selections.length || invalid) {
-        setShoppingError(invalid?.reason || "No finalized meals were selected.");
+        setShoppingError(invalid?.reason || t("No finalized meals were selected."));
         return;
       }
       const response = await shopping.send(selections.map(value => value.selection!), shopping.result?.committed === false);
@@ -188,8 +194,8 @@ export default function BuilderShoppingBar({
     const ingredients = collectIngredients(days);
     if (ingredients.length === 0) {
       toast({
-        title: "No meals found",
-        description: "Add meals to your plan first.",
+        title: t("No meals found"),
+        description: t("Add meals to your plan first."),
         variant: "destructive",
       });
       return;
@@ -208,8 +214,8 @@ export default function BuilderShoppingBar({
     }));
     useShoppingListStore.getState().addItems(items);
     toast({
-      title: "Added to Shopping List",
-      description: `${ingredients.length} items added to your Smart Grocery List`,
+      title: t("Added to Shopping List"),
+      description: t("{{count}} items added to your Smart Grocery List", { count: ingredients.length }),
     });
     const url = sourceSlug
       ? `/shopping-list-v2?from=${sourceSlug}`
@@ -249,7 +255,7 @@ export default function BuilderShoppingBar({
     }
   }
 
-  const activeDayName = formatDateDisplay(activeDayISO, { weekday: "long" }, TZ);
+  const activeDayName = displayDay(activeDayISO);
 
   const barStyle = isDesktop
     ? { left: 240, right: 0, bottom: 0 }
@@ -265,20 +271,16 @@ export default function BuilderShoppingBar({
         <div className="bg-zinc-950/98 backdrop-blur-xl border-t border-white/20 px-4 py-4">
           <div className="container mx-auto">
             <div className="text-white text-sm font-semibold mb-1">
-              Choose days for your shopping list
+              {t("Choose days for your shopping list")}
             </div>
             <div className="text-white/40 text-xs mb-3">
-              {fetchingWeeks ? "Loading…" : "Next 7 days from today's selected day"}
+              {fetchingWeeks ? t("Loading…") : t("Next 7 days from today's selected day")}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
               {rollingDates.map((date) => {
                 const count = dayMealCounts[date] || 0;
                 const selected = selectedDays.includes(date);
-                const label = formatDateDisplay(date, {
-                  weekday: "short",
-                  month: "numeric",
-                  day: "numeric",
-                }, TZ);
+                const label = displayDay(date, true);
                 return (
                   <button
                     key={date}
@@ -300,10 +302,10 @@ export default function BuilderShoppingBar({
                       <div className="font-medium truncate">{label}</div>
                       <div className="text-xs opacity-70">
                         {fetchingWeeks && getWeekStartFromDate(date, TZ) !== currentWeekStartISO
-                          ? "Loading…"
+                          ? t("Loading…")
                           : count === 0
-                            ? "No meals"
-                            : `${count} meal${count !== 1 ? "s" : ""}`}
+                            ? t("No meals")
+                            : count === 1 ? t("{{count}} meal", { count }) : t("{{count}} meals", { count })}
                       </div>
                     </div>
                   </button>
@@ -319,7 +321,7 @@ export default function BuilderShoppingBar({
                 }}
                 className="flex-1 text-white/70 border border-white/20 hover:bg-white/10 min-h-[44px]"
               >
-                Cancel
+                {t("Cancel")}
               </Button>
               <Button
                 onClick={handleConfirmDays}
@@ -328,9 +330,11 @@ export default function BuilderShoppingBar({
                 data-testid="button-confirm-days-shopping"
               >
                 <ShoppingCart className="h-4 w-4 mr-2" />
-                {shopping.result?.committed === false ? "Update Shopping" : selectedDays.length > 0
-                  ? `Send ${selectedDays.length} Day${selectedDays.length !== 1 ? "s" : ""}`
-                  : "Send Days"}
+                {shopping.result?.committed === false ? t("Update Shopping") : selectedDays.length > 0
+                  ? selectedDays.length === 1
+                    ? t("Send {{count}} Day", { count: selectedDays.length })
+                    : t("Send {{count}} Days", { count: selectedDays.length })
+                  : t("Send Days")}
               </Button>
             </div>
           </div>
@@ -342,7 +346,7 @@ export default function BuilderShoppingBar({
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="text-white text-sm font-semibold flex-1 hidden sm:block">
-              Shopping Ready
+              {t("Shopping Ready")}
             </div>
             <Button
               onClick={handleSendDay}
@@ -351,7 +355,7 @@ export default function BuilderShoppingBar({
               data-testid="button-send-day-shopping"
             >
               <ShoppingCart className="h-4 w-4 mr-2" />
-              {shopping.result?.committed === false ? "Update Shopping" : `Send ${activeDayName}`}
+              {shopping.result?.committed === false ? t("Update Shopping") : t("Send {{day}}", { day: activeDayName })}
             </Button>
             <Button
               onClick={handleOpenPicker}
@@ -363,7 +367,7 @@ export default function BuilderShoppingBar({
               data-testid="button-choose-days-shopping"
             >
               <CalendarDays className="h-4 w-4 mr-2" />
-              Choose Days
+              {t("Choose Days")}
             </Button>
           </div>
         </div>

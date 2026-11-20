@@ -1,3 +1,5 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
+import { isCustomerLanguage } from "@/i18n/languagePreference";
 // 🔒🔒🔒 RESTAURANT GUIDE - GOOGLE PLACES UPGRADE (DECEMBER 11, 2025) 🔒🔒🔒
 // STATUS: Upgraded with Google Places API integration
 // UPGRADE: Added ZIP code input + real restaurant data (name, address, rating) from Google Places
@@ -861,7 +863,7 @@ export default function RestaurantGuidePage() {
               className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="text-sm font-medium">Social Hub</span>
+              <span className="text-sm font-medium"><BackNavigationLabel label="Social Hub" /></span>
             </button>
           )}
           <div className="flex justify-end">
@@ -1497,7 +1499,7 @@ export default function RestaurantGuidePage() {
                                     )}
                                   </summary>
                                   <div className="mt-2 flex flex-wrap gap-1.5">
-                                    {TRANSLATE_LANGUAGES.map((lang) => (
+                                    {TRANSLATE_LANGUAGES.filter(lang => isCustomerLanguage(lang.code)).map((lang) => (
                                       <button
                                         key={lang.code}
                                         disabled={translatingId === mealKey}

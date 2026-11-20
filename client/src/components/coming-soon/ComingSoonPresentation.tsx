@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { Link } from "wouter";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
@@ -51,7 +52,7 @@ export default function ComingSoonPresentation({
         <h1 className="text-2xl font-semibold">{title}</h1>
         <p className="mt-4">{description}</p>
         <Link className="mt-6 inline-block underline" href={backHref}>
-          {backLabel}
+          <BackNavigationLabel label={backLabel} />
         </Link>
       </div>
     </section>

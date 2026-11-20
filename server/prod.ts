@@ -6,6 +6,7 @@ import "openai/shims/node";
 // CRITICAL: Start server FIRST, import everything else AFTER
 // This ensures health checks pass even if other imports crash
 import express from "express";
+import { requestLanguageContext } from "./utils/languageInstruction";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import path from "path";
@@ -56,6 +57,7 @@ if (!process.env.SESSION_SECRET) {
 }
 
 const app = express();
+app.use("/api", requestLanguageContext);
 // Replit terminates TLS at a single reverse-proxy hop. Express must trust that
 // hop before secure cookies, req.protocol, req.ip, or rate limiting are used.
 // Without this, express-session will not emit the Secure MFA-pending session
@@ -982,7 +984,7 @@ async function initializeApp() {
       );
       res.header(
         "Access-Control-Allow-Headers",
-        "Content-Type, Authorization, x-user-id, x-device-id, x-auth-token, x-csrf-token, x-requested-with",
+        "Content-Type, Authorization, x-user-id, x-device-id, x-auth-token, x-csrf-token, x-requested-with, x-mpm-ui-language",
       );
 
       if (req.method === "OPTIONS") {

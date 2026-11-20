@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
@@ -263,13 +264,13 @@ export default function RestaurantFinderPage() {
               className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="text-sm font-medium">Social Hub</span>
+              <span className="text-sm font-medium"><BackNavigationLabel label="Social Hub" /></span>
             </button>
           )}
 
           <div className="flex items-center gap-3 mb-6">
             <button onClick={() => navigate("/social-hub")} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
-              <ArrowLeft className="w-4 h-4 text-white/70" />
+              <ArrowLeft className="w-4 h-4 text-white/70" /><span className="sr-only"><BackNavigationLabel /></span>
             </button>
             <div>
               <h1 className="text-lg font-bold text-white">Find Restaurants</h1>

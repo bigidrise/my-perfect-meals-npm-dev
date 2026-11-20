@@ -16,7 +16,10 @@ const forgotPasswordSchema = z.object({
 
 type ForgotPasswordForm = z.infer<typeof forgotPasswordSchema>;
 
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+
 export default function ForgotPassword() {
+  const { t } = useConsumerCopy();
   const [, setLocation] = useLocation();
   const [emailSent, setEmailSent] = useState(false);
 
@@ -57,16 +60,15 @@ export default function ForgotPassword() {
               <CheckCircle className="h-12 w-12 text-green-400" data-testid="icon-success" />
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">Check Your Email</h1>
+            <h1 className="text-2xl font-bold mb-2">{t("Check Your Email")}</h1>
             
             <p className="text-sm text-white/85 mb-6">
-              If that email exists in our system, we've sent you a password reset link. 
-              Please check your inbox and spam folder.
+              {t("If that email exists in our system, we've sent you a password reset link. Please check your inbox and spam folder.")}
             </p>
 
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6 w-full">
               <p className="text-xs text-blue-300">
-                <strong>Note:</strong> The link will expire in 30 minutes for security reasons.
+                <strong>{t("Note:")}</strong> {t("The link will expire in 30 minutes for security reasons.")}
               </p>
             </div>
 
@@ -77,7 +79,7 @@ export default function ForgotPassword() {
               data-testid="button-back-to-login"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Login
+              {t("Back to Login")}
             </Button>
           </div>
         </div>
@@ -100,7 +102,7 @@ export default function ForgotPassword() {
             data-testid="button-back"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            {t("Back")}
           </Button>
 
           <div className="flex items-center justify-center mb-6">
@@ -109,9 +111,9 @@ export default function ForgotPassword() {
             </div>
           </div>
 
-          <h1 className="text-2xl font-bold mb-1 text-center">Forgot Password?</h1>
+          <h1 className="text-2xl font-bold mb-1 text-center">{t("Forgot Password?")}</h1>
           <p className="text-sm text-white/85 mb-6 text-center">
-            Enter your email address and we'll send you a link to reset your password.
+            {t("Enter your email address and we'll send you a link to reset your password.")}
           </p>
 
           <Form {...form}>
@@ -121,11 +123,11 @@ export default function ForgotPassword() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-white">Email Address</FormLabel>
+                    <FormLabel className="text-white">{t("Email Address")}</FormLabel>
                     <FormControl>
                       <Input
                         type="email"
-                        placeholder="your@email.com"
+                        placeholder={t("your@email.com")}
                         className="bg-white/10 border-white/20 text-white placeholder-white/60
                                    focus:ring-2 focus:ring-white/30 focus:border-white/30"
                         data-testid="input-email"
@@ -144,14 +146,14 @@ export default function ForgotPassword() {
                            text-white shadow-md hover:bg-black/50 transition disabled:opacity-50"
                 data-testid="button-send-reset-link"
               >
-                {forgotPasswordMutation.isPending ? "Sending..." : "Send Reset Link"}
+                {forgotPasswordMutation.isPending ? t("Sending...") : t("Send Reset Link")}
               </Button>
 
               {forgotPasswordMutation.isError && (
                 <div className="text-sm text-red-300 text-center" data-testid="text-error">
                   {(forgotPasswordMutation.error as Error)?.message?.startsWith("503")
-                    ? "Email sending is temporarily unavailable, please try again later."
-                    : "An error occurred. Please try again later."}
+                    ? t("Email sending is temporarily unavailable, please try again later.")
+                    : t("An error occurred. Please try again later.")}
                 </div>
               )}
             </form>

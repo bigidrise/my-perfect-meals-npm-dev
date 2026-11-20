@@ -1,4 +1,41 @@
 {
+  "measurementPreferences": {
+    "title": "측정 단위 설정",
+    "country": "국가",
+    "system": "측정 단위 체계",
+    "auto": "자동",
+    "imperial": "미국 관용 단위",
+    "metric": "미터법",
+    "country_US": "미국",
+    "country_CA": "캐나다",
+    "country_AU": "호주",
+    "country_UK": "영국",
+    "country_NZ": "뉴질랜드",
+    "resolved": "자동: {{system}} · {{country}}",
+    "hint": "자동 설정은 언어나 기기가 아닌 저장된 국가를 따릅니다. 저장된 국가가 없으면 미국이 사용됩니다. 국가가 변경되어도 수동 선택은 유지됩니다.",
+    "saveFailed": "측정 단위 설정을 저장하지 못했습니다. 선택 사항은 여기에 유지됩니다. 다시 시도해 주세요.",
+    "refreshFailed": "선택 사항은 저장되었지만 새로 고치지 못했습니다. 이 화면에서 다시 시도하여 확인해 주세요.",
+    "equivalent": "환산값: {{quantity}}",
+    "invalidQuantity": "명확한 숫자나 분수를 입력하세요. 저장된 수량은 변경되지 않았습니다.",
+    "periodQuantity": "이 기간 {{quantity}}",
+    "weekQuantity": "이번 주 {{quantity}}",
+    "currentAverage": "현재 평균",
+    "weeklyChange": "주간 변화",
+    "totalChange": "총 변화",
+    "weightLabel": "체중 ({{unit}})",
+    "waistLabel": "허리둘레 ({{unit}})",
+    "quantityPlaceholder": "예: {{quantity}}",
+    "fluidOunces": "액량 온스"
+  },
+  "localeFoundation": {
+    "wakingUp": "식사 엔진을 준비하고 있어요…",
+    "startupHint": "처음 로드할 때는 몇 초 더 걸려요. 잠시만 기다려 주세요!",
+    "sessionUnavailable": "세션을 확인할 수 없습니다. 연결을 확인하고 다시 시도해 주세요.",
+    "sessionRetry": "세션 다시 확인",
+    "required": "필수",
+    "invalidEmail": "유효하지 않은 이메일",
+    "preferencesNote": "자동은 이 기기의 언어를 따릅니다. 직접 선택한 언어는 계정에 저장됩니다. 일부 기능은 아직 번역 중입니다."
+  },
   "shoppingTransfer": {
     "addedTitle": "장보기 목록에 추가했습니다",
     "savedTitle": "장보기 목록에 저장했습니다",
@@ -123,6 +160,9 @@
     "adjustPreferences": "내 설정 조정"
   },
   "language": {
+    "enDesc": "이 기기의 언어에 관계없이 인터페이스에 영어를 사용합니다.",
+    "esDesc": "이 기기의 언어에 관계없이 인터페이스에 스페인어를 사용합니다. 일부 기능은 여전히 영어로 표시될 수 있습니다.",
+    "measurementLink": "프로필 편집에서 국가 및 측정 단위 설정",
     "pageTitle": "언어",
     "intro": "My Perfect Meals는 식사 이름, 레시피, 레스토랑 추천, 쇼핑 안내, 코칭 응답을 귀하의 언어로 네이티브하게 생성합니다.",
     "auto": "자동 (기기)",

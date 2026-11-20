@@ -9,3 +9,4 @@ description: Navigation to modal, mobile scrolling, compact selectors, frontend 
 - [Icon pill choices](icon-pill-choice-layout.md) — food selectors place icons above compact text pills.
 - [Frontend static asset location](frontend-static-asset-location.md) — browser-facing images belong in client/public; verify the exact served asset before changing page layering.
 - [Frontend CSS testing](frontend-css-testing.md) — JSDOM color checks do not fully model browser specificity; fixtures must reflect application stylesheet order.
+- [Entry-screen readability](entry-screen-readability.md) — first-time readability must preserve the Hub's A / A+ / A++ preferences, dark branding and large headings.

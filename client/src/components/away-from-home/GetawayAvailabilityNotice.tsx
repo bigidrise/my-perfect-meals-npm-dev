@@ -1,8 +1,10 @@
 import type { GetawayAvailability } from "@shared/getawayAvailability";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 export default function GetawayAvailabilityNotice({ availability }: {
   availability: GetawayAvailability;
 }) {
+  const { t } = useConsumerCopy();
   const preferences = [
     availability.preferences.cuisine,
     ...availability.preferences.diets,
@@ -10,18 +12,18 @@ export default function GetawayAvailabilityNotice({ availability }: {
 
   return (
     <section
-      aria-label="Possible dining listings"
+      aria-label={t("Possible dining listings")}
       className="rounded-2xl border border-orange-500/20 bg-black/40 px-4 py-4"
     >
-      <h3 className="text-sm font-bold text-white">Possible dining listings</h3>
+      <h3 className="text-sm font-bold text-white">{t("Possible dining listings")}</h3>
       <p className="mt-1 text-xs leading-relaxed text-amber-100/80">
-        Location and menu need confirmation.
+        {t("Location and menu need confirmation.")}
       </p>
       <p className="mt-3 text-sm leading-relaxed text-white/75">{availability.summary}</p>
 
       {preferences.length > 0 && (
         <p className="mt-2 text-xs text-white/55">
-          Preferences considered: {preferences.join(" · ")}
+          {t("Preferences considered: {{preferences}}", { preferences: preferences.join(" · ") })}
         </p>
       )}
 

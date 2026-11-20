@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
@@ -127,7 +128,7 @@ export default function ApplyGuidance() {
               onClick={() => setLocation("/pricing")}
               className="flex items-center text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" /><span className="sr-only"><BackNavigationLabel /></span>
             </button>
             <h1 className="text-lg font-bold text-white">Start Personal Guidance</h1>
           </div>

@@ -3,6 +3,7 @@ import type { AccountProfessionalRole, CanonicalPractitionerRole } from "@shared
 import { apiUrl } from '@/lib/resolveApiBase';
 import { Capacitor } from '@capacitor/core';
 import { clearNutritionCache } from '../hooks/nutritionStateCache';
+import { storeLanguagePreference } from "@/i18n/languagePreference";
 
 export type MealBuilderType = "weekly" | "diabetic" | "glp1" | "anti_inflammatory" | "beach_body" | "general_nutrition" | "performance_competition";
 
@@ -269,7 +270,7 @@ export interface User {
   isAdmin?: boolean;
   // International / Metric Support
 
-  measurementSystem?: "imperial" | "metric";
+  measurementSystem?: "auto" | "imperial" | "metric";
 
   countryCode?: "US" | "CA" | "AU" | "UK" | "NZ";
   // Language Preference
@@ -685,6 +686,7 @@ export async function completeMfaChallenge(
 }
 
 export function logout(): void {
+  storeLanguagePreference("auto");
   // Fire-and-forget server-side token invalidation. The token is cleared from
   // localStorage immediately below regardless of whether the server call succeeds,
   // so logout is instant from the user's perspective.

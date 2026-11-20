@@ -1,3 +1,5 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import BeverageChoiceCards, { readBeverageChoiceResponse, useBeverageChoices } from "@/components/beverage/BeverageChoiceCards";
@@ -528,7 +530,7 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
               data-testid="athletebeveragecreator-back"
             >
               <ArrowLeft className="h-5 w-5" />
-              <span className="text-sm font-medium">Back</span>
+              <span className="text-sm font-medium"><BackNavigationLabel /></span>
             </button>
 
             <h1 className="text-lg font-bold text-white truncate min-w-0">
@@ -550,7 +552,7 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
               className="flex items-center gap-2 text-orange-400 hover:text-orange-300 mb-6 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="text-sm font-medium">Beverage Creator Hub</span>
+              <span className="text-sm font-medium"><BackNavigationLabel label="Beverage Creator Hub" /></span>
             </button>
           )}
           <Card className="shadow-2xl bg-black/10 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto mb-6">
@@ -1003,8 +1005,8 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                         {generatedBeverage.ingredients.map(
                           (ing: any, i: number) => (
                             <li key={i}>
-                              {ing.displayText ||
-                                `${ing.amount || ""} ${ing.unit || ""} ${ing.name || ing.item}`}
+                              <IngredientDisplay ingredient={ing} legacyText={ing.displayText ||
+                                `${ing.amount || ""} ${ing.unit || ""} ${ing.name || ing.item}`} />
                             </li>
                           ),
                         )}

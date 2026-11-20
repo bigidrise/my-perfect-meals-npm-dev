@@ -4,6 +4,7 @@ import { useState } from "react";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { InformationModal } from "@/components/ui/universal-modal";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 
 // Centralized macro data availability check
 function macroDataAvailable(meal: any): boolean {
@@ -234,9 +235,9 @@ function CookingInstructionsModal({ meal, open, onClose }: { meal: any, open: bo
               {hydratedMeal?.ingredients?.map((ingredient: any, idx: number) => (
                 <div key={idx} className="flex justify-between items-center bg-white/5 rounded-lg p-3">
                   <span className="text-zinc-200">
-                    {ingredient.amount && ingredient.unit && ingredient.name 
+                    <IngredientDisplay ingredient={ingredient} legacyText={ingredient.amount && ingredient.unit && ingredient.name
                       ? formatIngredientWithGrams(ingredient.amount, ingredient.unit, ingredient.name)
-                      : `${ingredient.amount || '—'} ${ingredient.name}`}
+                      : `${ingredient.amount || '—'} ${ingredient.name}`} />
                   </span>
                 </div>
               )) || (

@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
@@ -489,7 +490,7 @@ export default function MyPerfectBeginningProfilePage() {
             onClick={() => setLocation("/lifestyle/my-perfect-beginning")}
             className="w-full rounded-xl border border-emerald-400/40 bg-emerald-600/40 px-4 py-2.5 text-sm font-semibold text-white"
           >
-            Back to My Perfect Beginnings
+            <BackNavigationLabel label="Back to My Perfect Beginnings" />
           </button>
         </div>
       </div>
@@ -524,7 +525,7 @@ export default function MyPerfectBeginningProfilePage() {
               className="flex items-center gap-1.5 text-emerald-400 text-sm"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span>My Perfect Beginnings</span>
+              <span><BackNavigationLabel label="My Perfect Beginnings" /></span>
             </button>
           </div>
         </div>
@@ -542,7 +543,7 @@ export default function MyPerfectBeginningProfilePage() {
               className="flex items-center gap-1.5 text-emerald-400 text-sm"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span>Back to My Perfect Beginnings</span>
+              <span><BackNavigationLabel label="Back to My Perfect Beginnings" /></span>
             </button>
           </div>
         )}

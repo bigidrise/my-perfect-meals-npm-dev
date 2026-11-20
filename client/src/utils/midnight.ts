@@ -122,12 +122,12 @@ export function prevWeekISO(weekStartISO: string, timeZone: string = CANONICAL_T
 /**
  * Format a week label like "Dec 30–Jan 5" for display.
  */
-export function formatWeekLabel(weekStartISO: string, timeZone: string = CANONICAL_TZ): string {
+export function formatWeekLabel(weekStartISO: string, timeZone: string = CANONICAL_TZ, locale?: string): string {
   const start = isoToUtcNoonDate(weekStartISO);
   const end = new Date(start.getTime() + 6 * MS_DAY);
   
   const fmt = (d: Date) =>
-    new Intl.DateTimeFormat(undefined, {
+    new Intl.DateTimeFormat(locale, {
       month: "short",
       day: "numeric",
       timeZone,
@@ -143,10 +143,10 @@ export function formatWeekLabel(weekStartISO: string, timeZone: string = CANONIC
 export function formatDateDisplay(
   dateISO: string, 
   options: Intl.DateTimeFormatOptions, 
-  timeZone: string = CANONICAL_TZ
+  timeZone: string = CANONICAL_TZ, locale?: string
 ): string {
   const date = isoToUtcNoonDate(dateISO);
-  return new Intl.DateTimeFormat(undefined, { ...options, timeZone }).format(date);
+  return new Intl.DateTimeFormat(locale, { ...options, timeZone }).format(date);
 }
 
 // ============================================================================

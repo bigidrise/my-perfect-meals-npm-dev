@@ -1,3 +1,7 @@
+import { convertWeightLbsDisplay } from "@shared/units";
+import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
+import { useTranslation } from "react-i18next";
+import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect, useMemo } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -77,6 +81,14 @@ function buildWeeklyData(history: WeightRow[]): WeekBucket[] {
 }
 
 export default function WeeklyWeightTrendCard({ clientId }: WeeklyWeightTrendCardProps) {
+  const { user } = useAuth();
+  return <AccountWeeklyWeightTrend key={`${user?.id}:${clientId}`} clientId={clientId} />;
+}
+
+function AccountWeeklyWeightTrend({ clientId }: WeeklyWeightTrendCardProps) {
+  const { t } = useTranslation("measurementPreferences");
+  const system = useMeasurementSystem();
+  const displayWeight = (value: number) => convertWeightLbsDisplay(value, system);
   const [weightHistory, setWeightHistory] = useState<WeightRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -194,9 +206,9 @@ export default function WeeklyWeightTrendCard({ clientId }: WeeklyWeightTrendCar
       <div className="grid grid-cols-3 gap-3">
         <div className="p-3 rounded-xl bg-black/25 border border-white/10 text-center">
           <p className="text-lg font-bold text-white">
-            {currentWeekAvg != null ? `${currentWeekAvg}` : "—"}
+            {currentWeekAvg != null ? displayWeight(currentWeekAvg) : "—"}
           </p>
-          <p className="text-[10px] text-white/40">Current Avg (lb)</p>
+          <p className="text-[10px] text-white/40">{t("currentAverage")}</p>
         </div>
         <div className="p-3 rounded-xl bg-black/25 border border-white/10 text-center">
           <p className="text-lg font-bold">
@@ -210,14 +222,14 @@ export default function WeeklyWeightTrendCard({ clientId }: WeeklyWeightTrendCar
                   <Minus className="w-4 h-4 text-white/50" />
                 )}
                 <span className={weeklyChange < 0 ? "text-emerald-400" : weeklyChange > 0 ? "text-red-400" : "text-white/50"}>
-                  {weeklyChange > 0 ? "+" : ""}{weeklyChange}
+                  {weeklyChange > 0 ? "+" : ""}{displayWeight(weeklyChange)}
                 </span>
               </span>
             ) : (
               <span className="text-white/30">—</span>
             )}
           </p>
-          <p className="text-[10px] text-white/40">Week Change (lb)</p>
+          <p className="text-[10px] text-white/40">{t("weeklyChange")}</p>
         </div>
         <div className="p-3 rounded-xl bg-black/25 border border-white/10 text-center">
           <p className="text-lg font-bold">
@@ -231,14 +243,14 @@ export default function WeeklyWeightTrendCard({ clientId }: WeeklyWeightTrendCar
                   <Minus className="w-4 h-4 text-white/50" />
                 )}
                 <span className={totalChange < 0 ? "text-emerald-400" : totalChange > 0 ? "text-red-400" : "text-white/50"}>
-                  {totalChange > 0 ? "+" : ""}{totalChange}
+                  {totalChange > 0 ? "+" : ""}{displayWeight(totalChange)}
                 </span>
               </span>
             ) : (
               <span className="text-white/30">—</span>
             )}
           </p>
-          <p className="text-[10px] text-white/40">Total Change (lb)</p>
+          <p className="text-[10px] text-white/40">{t("totalChange")}</p>
         </div>
       </div>
 
@@ -253,6 +265,7 @@ export default function WeeklyWeightTrendCard({ clientId }: WeeklyWeightTrendCar
                 tickFormatter={formatTickLabel}
               />
               <YAxis
+                tickFormatter={value => displayWeight(Number(value))}
                 tick={{ fontSize: 9, fill: "#fff" }}
                 domain={["dataMin - 2", "dataMax + 2"]}
               />
@@ -265,7 +278,7 @@ export default function WeeklyWeightTrendCard({ clientId }: WeeklyWeightTrendCar
                   fontSize: 11,
                 }}
                 labelFormatter={formatTooltipLabel}
-                formatter={(value: number) => [`${value} lb`, "Avg Weight"]}
+                formatter={(value: number) => [displayWeight(value), "Avg Weight"]}
               />
               <Line
                 type="monotone"

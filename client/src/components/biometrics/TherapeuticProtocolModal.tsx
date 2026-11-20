@@ -1,5 +1,7 @@
 import { X, ShieldCheck } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { therapeuticModalBody } from "@/lib/therapeuticModalPresentation";
 
 interface TherapeuticModalContent {
   headline: string;
@@ -16,6 +18,7 @@ interface TherapeuticProtocolModalProps {
 }
 
 export default function TherapeuticProtocolModal({ content, onClose }: TherapeuticProtocolModalProps) {
+  const { t, i18n } = useConsumerCopy();
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
@@ -27,11 +30,12 @@ export default function TherapeuticProtocolModal({ content, onClose }: Therapeut
             <ShieldCheck className="w-5 h-5 text-teal-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-white font-bold text-lg leading-tight">{content.headline}</h2>
-            <p className="text-white/50 text-xs mt-0.5">Therapeutic Nutrition Intelligence</p>
+            <h2 className="text-white font-bold text-lg leading-tight">{t(content.headline)}</h2>
+            <p className="text-white/50 text-xs mt-0.5">{t("Therapeutic Nutrition Intelligence")}</p>
           </div>
           <button
             onClick={onClose}
+            aria-label={t("Close")}
             className="flex-shrink-0 p-1.5 rounded-lg bg-white/5 text-white/50 active:bg-white/10"
           >
             <X className="w-4 h-4" />
@@ -41,7 +45,7 @@ export default function TherapeuticProtocolModal({ content, onClose }: Therapeut
         <div className="relative p-5 space-y-4">
           {content.selectedItems.length > 0 && (
             <div>
-              <p className="text-white/50 text-[11px] uppercase tracking-wide font-semibold mb-2">You Selected</p>
+              <p className="text-white/50 text-[11px] uppercase tracking-wide font-semibold mb-2">{t("You Selected")}</p>
               <div className="flex flex-wrap gap-1.5">
                 {content.selectedItems.map(item => (
                   <span key={item} className="px-2.5 py-1 rounded-full bg-teal-500/20 border border-teal-500/30 text-teal-300 text-xs font-medium">
@@ -54,11 +58,11 @@ export default function TherapeuticProtocolModal({ content, onClose }: Therapeut
 
           {content.activeProtocols.length > 0 && (
             <div>
-              <p className="text-white/50 text-[11px] uppercase tracking-wide font-semibold mb-2">Also Active</p>
+              <p className="text-white/50 text-[11px] uppercase tracking-wide font-semibold mb-2">{t("Also Active")}</p>
               <div className="flex flex-wrap gap-1.5">
                 {content.activeProtocols.map(p => (
                   <span key={p} className="px-2.5 py-1 rounded-full bg-orange-500/20 border border-orange-500/30 text-orange-300 text-xs font-medium">
-                    {p}
+                    {t(p)}
                   </span>
                 ))}
               </div>
@@ -66,19 +70,19 @@ export default function TherapeuticProtocolModal({ content, onClose }: Therapeut
           )}
 
           <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-            <p className="text-white/90 text-sm leading-relaxed">{content.body}</p>
+            <p className="text-white/90 text-sm leading-relaxed">{therapeuticModalBody(content, t, i18n?.resolvedLanguage ?? "en")}</p>
           </div>
 
           {content.priorities.length > 0 && (
             <div>
-              <p className="text-white/50 text-[11px] uppercase tracking-wide font-semibold mb-2">Nutrition Priorities</p>
+              <p className="text-white/50 text-[11px] uppercase tracking-wide font-semibold mb-2">{t("Nutrition Priorities")}</p>
               <ul className="space-y-1.5">
                 {content.priorities.map((p, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <span className="flex-shrink-0 w-4 h-4 rounded-full bg-teal-500/20 border border-teal-500/30 flex items-center justify-center mt-0.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />
                     </span>
-                    <span className="text-white/70 text-sm capitalize">{p}</span>
+                    <span className="text-white/70 text-sm capitalize">{t(p)}</span>
                   </li>
                 ))}
               </ul>
@@ -87,7 +91,7 @@ export default function TherapeuticProtocolModal({ content, onClose }: Therapeut
 
           <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
             <ShieldCheck className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-            <p className="text-amber-200/80 text-xs leading-relaxed">{content.conflictPolicy}</p>
+            <p className="text-amber-200/80 text-xs leading-relaxed">{t(content.conflictPolicy)}</p>
           </div>
         </div>
 
@@ -96,7 +100,7 @@ export default function TherapeuticProtocolModal({ content, onClose }: Therapeut
             onClick={onClose}
             className="w-full bg-teal-600 hover:bg-teal-500 text-white font-semibold py-3 rounded-xl"
           >
-            Got It — Protocol Active
+            {t("Got It — Protocol Active")}
           </PillButton>
         </div>
       </div>

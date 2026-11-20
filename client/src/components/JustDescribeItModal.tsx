@@ -4,6 +4,7 @@ import { Loader2, Minus, Plus, CheckCircle2 } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { useToast } from "@/hooks/use-toast";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 interface MacroEstimate {
   protein: number;
@@ -64,6 +65,8 @@ function clearResult() {
 }
 
 export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
+  const { t } = useConsumerCopy();
+  const portionLabels = { smaller: t("smaller"), typical: t("typical"), larger: t("larger") };
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [estimate, setEstimate] = useState<MacroEstimate | null>(null);
@@ -123,8 +126,8 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
       setLogged(false);
     } catch {
       toast({
-        title: "Estimation failed",
-        description: "Couldn't estimate macros. Please try again.",
+        title: t("Estimation failed"),
+        description: t("Couldn't estimate macros. Please try again."),
         variant: "destructive",
       });
     } finally {
@@ -172,15 +175,15 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-white">Just Describe It</h2>
+              <h2 className="text-lg font-semibold text-white">{t("Just Describe It")}</h2>
               {!estimate && (
-                <p className="text-sm text-white/60">Tell us what you ate. We'll estimate the macros.</p>
+                <p className="text-sm text-white/60">{t("Tell us what you ate. We'll estimate the macros.")}</p>
               )}
             </div>
             {logged && estimate && (
               <div className="flex items-center gap-1.5 bg-lime-600/20 border border-lime-500/30 rounded-full px-3 py-1">
                 <CheckCircle2 className="h-3.5 w-3.5 text-lime-400" />
-                <span className="text-xs text-lime-300 font-medium">Logged</span>
+                <span className="text-xs text-lime-300 font-medium">{t("Logged")}</span>
               </div>
             )}
           </div>
@@ -192,7 +195,7 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Two scoops of vanilla ice cream, a large Cinnabon, grilled chicken sandwich..."
+                  placeholder={t("Two scoops of vanilla ice cream, a large Cinnabon, grilled chicken sandwich...")}
                   className="min-w-0 flex-1 h-28 p-3 rounded-xl bg-black/40 border border-white/20 text-white placeholder:text-white/40 text-sm resize-none focus:outline-none focus:border-amber-500/50"
                   autoFocus
                 />
@@ -200,26 +203,26 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
                   value={description}
                   onChange={setDescription}
                   disabled={loading}
-                  label="Use voice input to describe what you ate"
+                  label={t("Use voice input to describe what you ate")}
                   className="shrink-0"
                 />
               </div>
               <p className="text-xs text-white/50 mt-2 mb-4">
-                Include portion size if you can — "large", "small", "half", etc.
+                {t("Include portion size if you can — \"large\", \"small\", \"half\", etc.")}
               </p>
               <div className="flex gap-3">
                 <Button
                   onClick={onClose}
                   className="flex-1 bg-white/10 text-white border border-white/20 hover:bg-white/15"
                 >
-                  Cancel
+                  {t("Cancel")}
                 </Button>
                 <Button
                   onClick={handleEstimate}
                   disabled={!description.trim() || loading}
                   className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Estimate"}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("Estimate")}
                 </Button>
               </div>
             </>
@@ -232,27 +235,27 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
                 <div className="text-xs text-white/50 mb-2 truncate">"{estimate.description}"</div>
                 <div className="text-sm text-white/90 space-y-1">
                   <div className="flex justify-between">
-                    <span>Protein</span>
+                    <span>{t("Protein")}</span>
                     <span className="font-semibold text-white">{adjusted?.protein}g</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Carbs</span>
+                    <span>{t("Carbs")}</span>
                     <span className="font-semibold text-white">{adjusted?.carbs}g</span>
                   </div>
                   <div className="flex justify-between text-white/60 text-xs pl-3">
-                    <span>Starchy</span>
+                    <span>{t("Starchy")}</span>
                     <span>{adjusted?.starchyCarbs}g</span>
                   </div>
                   <div className="flex justify-between text-white/60 text-xs pl-3">
-                    <span>Fibrous</span>
+                    <span>{t("Fibrous")}</span>
                     <span>{adjusted?.fibrousCarbs}g</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Fat</span>
+                    <span>{t("Fat")}</span>
                     <span className="font-semibold text-white">{adjusted?.fat}g</span>
                   </div>
                   <div className="flex justify-between pt-1 border-t border-white/10">
-                    <span>Calories</span>
+                    <span>{t("Calories")}</span>
                     <span className="font-semibold text-white">{adjusted?.calories}</span>
                   </div>
                 </div>
@@ -261,7 +264,7 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
               {/* Portion selector — hidden when logged */}
               {!logged && (
                 <div className="mb-4">
-                  <div className="text-xs text-white/60 mb-2 text-center">Adjust portion</div>
+                  <div className="text-xs text-white/60 mb-2 text-center">{t("Adjust portion")}</div>
                   <div className="flex gap-2 justify-center">
                     {(["smaller", "typical", "larger"] as PortionSize[]).map((size) => (
                       <button
@@ -274,7 +277,7 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
                         }`}
                       >
                         {size === "smaller" && <Minus className="h-3 w-3 inline mr-1" />}
-                        {size}
+                        {portionLabels[size]}
                         {size === "larger" && <Plus className="h-3 w-3 inline ml-1" />}
                       </button>
                     ))}
@@ -284,7 +287,7 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
 
               {!logged && (
                 <p className="text-xs text-white/50 text-center mb-4">
-                  This is a best estimate. Good enough to stay on track.
+                  {t("This is a best estimate. Good enough to stay on track.")}
                 </p>
               )}
 
@@ -295,13 +298,13 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
                     onClick={onClose}
                     className="flex-1 bg-white/10 text-white border border-white/20 hover:bg-white/15"
                   >
-                    Done
+                    {t("Done")}
                   </Button>
                   <Button
                     onClick={handleDescribeAnother}
                     className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
                   >
-                    Describe Another
+                    {t("Describe Another")}
                   </Button>
                 </div>
               ) : (
@@ -310,13 +313,13 @@ export function JustDescribeItModal({ open, onClose, onAdd }: Props) {
                     onClick={handleDescribeAnother}
                     className="flex-1 bg-white/10 text-white border border-white/20 hover:bg-white/15"
                   >
-                    Try Again
+                    {t("Try Again")}
                   </Button>
                   <Button
                     onClick={handleAdd}
                     className="flex-1 bg-lime-600 hover:bg-lime-700 text-white"
                   >
-                    Add to Today
+                    {t("Add to Today")}
                   </Button>
                 </div>
               )}

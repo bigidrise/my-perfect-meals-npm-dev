@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { UniversalDialog } from "@/components/ui/universal-modal";
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,9 @@ function labelTrigger(field: string): string {
     tsh_low:                  "TSH (suppressed)",
     free_t4_low:              "Free T4 (low)",
     free_t3_low:              "Free T3 (low)",
+    free_t4_high:             "Free T4 (high)",
+    free_t3_high:             "Free T3 (high)",
+    reverse_t3_high:          "Reverse T3 (high)",
     tpo_antibodies:           "TPO Antibodies",
     thyroglobulin_antibodies: "Thyroglobulin Antibodies",
   };
@@ -46,6 +50,7 @@ export default function ThyroidRecommendationModal({
   onAccepted,
   physicianLocked = false,
 }: ThyroidRecommendationModalProps) {
+  const { t: displayT } = useConsumerCopy();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -86,11 +91,11 @@ export default function ThyroidRecommendationModal({
           <div className="flex items-center gap-2 mb-1">
             <FlaskConical className="w-4 h-4 text-teal-400 shrink-0" />
             <DialogTitle className="text-base font-semibold text-white leading-snug">
-              Thyroid Support Nutrition Modifier
+              {displayT("Thyroid Support Nutrition Modifier")}
             </DialogTitle>
           </div>
           <DialogDescription className="text-xs text-white/50">
-            Lab-based modifier — additive to your current nutrition protocol
+            {displayT("Lab-based modifier — additive to your current nutrition protocol")}
           </DialogDescription>
         </DialogHeader>
 
@@ -101,31 +106,31 @@ export default function ThyroidRecommendationModal({
               variant="outline"
               className={`text-[10px] font-medium border px-2 py-0.5 rounded-full ${confColor}`}
             >
-              {signal.confidence.charAt(0).toUpperCase() + signal.confidence.slice(1)} confidence
+              {displayT("{{confidence}} confidence", { confidence: displayT(signal.confidence.charAt(0).toUpperCase() + signal.confidence.slice(1)) })}
             </Badge>
             {signal.isAutoimmune && (
               <Badge
                 variant="outline"
                 className="text-[10px] font-medium border px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-300 border-teal-500/30"
               >
-                Autoimmune Pattern
+                {displayT("Autoimmune Pattern")}
               </Badge>
             )}
           </div>
 
           {/* Reason text */}
-          <p className="text-sm text-white/80 leading-relaxed">{signal.reason}</p>
+          <p className="text-sm text-white/80 leading-relaxed">{displayT(signal.reason)}</p>
 
           {/* Trigger fields */}
           {signal.triggerFields.length > 0 && (
             <div className="bg-white/5 rounded-xl p-3 space-y-1">
               <p className="text-[10px] text-white/40 uppercase tracking-wide mb-1">
-                Markers detected
+                {displayT("Markers detected")}
               </p>
               {signal.triggerFields.map((f) => (
                 <div key={f} className="flex items-center gap-2">
                   <Activity className="w-3 h-3 text-teal-400 shrink-0" />
-                  <span className="text-xs text-white/70">{labelTrigger(f)}</span>
+                  <span className="text-xs text-white/70">{displayT(labelTrigger(f))}</span>
                 </div>
               ))}
             </div>
@@ -134,9 +139,7 @@ export default function ThyroidRecommendationModal({
           {/* What happens on accept */}
           <div className="bg-teal-900/20 border border-teal-500/20 rounded-xl px-4 py-3">
             <p className="text-xs text-teal-300/80 leading-relaxed">
-              Activating Thyroid Support adds selenium-rich foods, anti-inflammatory meal
-              patterns, and medication-timing awareness to your meal guidance — without
-              changing your current meal builder.
+              {displayT("Activating Thyroid Support adds selenium-rich foods, anti-inflammatory meal patterns, and medication-timing awareness to your meal guidance — without changing your current meal builder.")}
             </p>
           </div>
 
@@ -147,8 +150,8 @@ export default function ThyroidRecommendationModal({
           </div>
         </div>
 
-        {error && <p role="alert" className="px-6 text-sm text-red-300">{error}</p>}
-        {physicianLocked && <p className="px-6 text-sm text-amber-200">Your clinical assignments require care-team review before activation.</p>}
+        {error && <p role="alert" className="px-6 text-sm text-red-300">{displayT(error)}</p>}
+        {physicianLocked && <p className="px-6 text-sm text-amber-200">{displayT("Your clinical assignments require care-team review before activation.")}</p>}
         <div className="px-6 pb-6 pt-2 flex gap-3">
           <Button
             className="flex-1 bg-white/10 border border-white/20 text-white hover:bg-white/20 active:bg-white/30 transition"
@@ -156,7 +159,7 @@ export default function ThyroidRecommendationModal({
             onClick={() => postDecision("rejected")}
           >
             {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Stay the Same
+            {displayT("Stay the Same")}
           </Button>
           <Button
             className="flex-1 bg-teal-700 hover:bg-teal-600 text-white font-semibold"
@@ -164,7 +167,7 @@ export default function ThyroidRecommendationModal({
             onClick={() => { if (!physicianLocked) void postDecision("accepted"); }}
           >
             {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Activate Thyroid Support
+            {displayT("Activate Thyroid Support")}
           </Button>
         </div>
     </UniversalDialog>

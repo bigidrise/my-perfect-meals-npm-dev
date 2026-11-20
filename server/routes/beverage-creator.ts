@@ -1,3 +1,4 @@
+import { resolveMeasurementSystem } from "@shared/units";
 import { Router } from "express";
 import { randomUUID } from "node:crypto";
 import OpenAI from "openai";
@@ -360,10 +361,11 @@ beverageCreatorRouter.post("/", async (req, res) => {
           palateSeasoningIntensity: users.palateSeasoningIntensity,
           palateFlavorStyle: users.palateFlavorStyle,
           measurementSystem: users.measurementSystem,
+          countryCode: users.countryCode,
         }).from(users).where(eq(users.id, userId)).limit(1);
         
         if (user) {
-          beverageMeasurementSystem = (user.measurementSystem as MeasurementSystem) ?? "imperial";
+          beverageMeasurementSystem = resolveMeasurementSystem(user.measurementSystem, user.countryCode);
           if (!skipPalate && (user.palateSpiceTolerance || user.palateSeasoningIntensity || user.palateFlavorStyle)) {
             const palatePrefs: PalatePreferences = {
               palateSpiceTolerance: user.palateSpiceTolerance as PalatePreferences['palateSpiceTolerance'],

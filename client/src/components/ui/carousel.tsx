@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import * as React from "react"
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
@@ -215,7 +216,7 @@ const CarouselPrevious = React.forwardRef<
       {...props}
     >
       <ArrowLeft className="h-4 w-4" />
-      <span className="sr-only">Previous slide</span>
+      <span className="sr-only"><BackNavigationLabel label="Previous slide" /></span>
     </Button>
   )
 })

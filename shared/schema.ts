@@ -446,7 +446,8 @@ export const users = pgTable("users", {
   fontSizePreference: text("font_size_preference").$type<"standard"|"large"|"xl">().default("standard"),
   narrationSpeedPreference: text("narration_speed_preference").$type<"0.75"|"1.0"|"1.25"|"1.5">().default("1.0"),
   // International / Metric Support
-  measurementSystem: text("measurement_system").$type<"imperial"|"metric">().default("imperial"),
+  // Keep the database default unchanged; new signup supplies Auto explicitly.
+  measurementSystem: text("measurement_system").$type<"auto"|"imperial"|"metric">().default("imperial"),
   countryCode: text("country_code").$type<"US"|"CA"|"AU"|"UK"|"NZ">().default("US"),
   // Language Preference — "auto" = use device language (navigator.language), explicit BCP-47 = user override
   preferredLanguage: text("preferred_language").default("auto"),

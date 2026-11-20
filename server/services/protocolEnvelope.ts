@@ -1,4 +1,6 @@
 import { assertPregnancyRecommendationsAvailable } from "@shared/pregnancyAvailability";
+import { resolveMeasurementSystem } from "@shared/units";
+import { resolveRequestLanguagePreference } from "../utils/languageInstruction";
 /**
  * protocolEnvelope.ts
  *
@@ -946,6 +948,7 @@ export async function loadUserProtocolEnvelope(
         thyroidType: (users as any).thyroidType,
         activeHouseholdProfileId: (users as any).activeHouseholdProfileId,
         measurementSystem: users.measurementSystem,
+        countryCode: users.countryCode,
         fitnessGoal: users.fitnessGoal,
         goalType: (users as any).goalType,
         goalTarget: (users as any).goalTarget,
@@ -1648,7 +1651,7 @@ export async function loadUserProtocolEnvelope(
       thyroidMedication,
       thyroidType,
       hormoneOptimization,
-      measurementSystem: ((user as any).measurementSystem as "imperial" | "metric") ?? "imperial",
+      measurementSystem: resolveMeasurementSystem(user.measurementSystem, user.countryCode),
       fitnessGoal: (user.fitnessGoal as string | null) ?? null,
       goalType: ((user as any).goalType as "lose" | "maintain" | "gain" | null) ?? null,
       goalTarget: ((user as any).goalTarget as string | null) ?? null,
@@ -2366,8 +2369,9 @@ SELF-CHECK before responding: Verify the meal reflects at least 3 of these authe
   // Phase 1 internationalization: AI generates directly in the user's language.
   // This means meals, coaching, recipes, and explanations arrive in Spanish,
   // French, Chinese, etc. — no Translate button needed for normal use.
-  if (envelope.preferredLanguage && envelope.preferredLanguage !== "auto") {
-    const base = envelope.preferredLanguage.split("-")[0].toLowerCase();
+  const responseLanguage = resolveRequestLanguagePreference(envelope.preferredLanguage);
+  if (responseLanguage !== "en") {
+    const base = responseLanguage;
     const LANGUAGE_NAMES: Record<string, string> = {
       es: "Spanish", fr: "French", de: "German", it: "Italian", pt: "Portuguese",
       zh: "Chinese (Simplified)", ja: "Japanese", ko: "Korean", ar: "Arabic",

@@ -20,7 +20,10 @@ const resetPasswordSchema = z.object({
 
 type ResetPasswordForm = z.infer<typeof resetPasswordSchema>;
 
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+
 export default function ResetPassword() {
+  const { t } = useConsumerCopy();
   const [, setLocation] = useLocation();
   const [token, setToken] = useState<string | null>(null);
   const [resetSuccess, setResetSuccess] = useState(false);
@@ -89,10 +92,10 @@ export default function ResetPassword() {
               <AlertCircle className="h-12 w-12 text-red-400" data-testid="icon-error" />
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">Invalid Reset Link</h1>
+            <h1 className="text-2xl font-bold mb-2">{t("Invalid Reset Link")}</h1>
             
             <p className="text-sm text-white/85 mb-6">
-              This password reset link is invalid or has expired. Please request a new one.
+              {t("This password reset link is invalid or has expired. Please request a new one.")}
             </p>
 
             <Button
@@ -101,7 +104,7 @@ export default function ResetPassword() {
                          text-white shadow-md hover:bg-black/50 transition"
               data-testid="button-request-new-link"
             >
-              Request New Link
+              {t("Request New Link")}
             </Button>
           </div>
         </div>
@@ -122,10 +125,10 @@ export default function ResetPassword() {
               <AlertCircle className="h-12 w-12 text-orange-400" data-testid="icon-expired" />
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">Link Expired</h1>
+            <h1 className="text-2xl font-bold mb-2">{t("Link Expired")}</h1>
 
             <p className="text-sm text-white/85 mb-6">
-              This password reset link has expired or has already been used. Reset links are valid for 30 minutes.
+              {t("This password reset link has expired or has already been used. Reset links are valid for 30 minutes.")}
             </p>
 
             <button
@@ -134,7 +137,7 @@ export default function ResetPassword() {
                          shadow-md transition"
               data-testid="button-request-new-link-expired"
             >
-              Request a New Link
+              {t("Request a New Link")}
             </button>
 
             <button
@@ -142,7 +145,7 @@ export default function ResetPassword() {
               className="mt-4 text-sm text-white/70 underline"
               data-testid="link-back-to-login-expired"
             >
-              Back to Login
+              {t("Back to Login")}
             </button>
           </div>
         </div>
@@ -163,14 +166,14 @@ export default function ResetPassword() {
               <CheckCircle className="h-12 w-12 text-green-400" data-testid="icon-success" />
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">Password Reset Successful!</h1>
+            <h1 className="text-2xl font-bold mb-2">{t("Password Reset Successful!")}</h1>
             
             <p className="text-sm text-white/85 mb-4">
-              Your password has been successfully reset.
+              {t("Your password has been successfully reset.")}
             </p>
 
             <p className="text-xs text-white/70 mb-6">
-              Redirecting to login in 3 seconds...
+              {t("Redirecting to login in 3 seconds...")}
             </p>
 
             <Button
@@ -179,7 +182,7 @@ export default function ResetPassword() {
                          text-white shadow-md hover:bg-black/50 transition"
               data-testid="button-go-to-login"
             >
-              Go to Login Now
+              {t("Go to Login Now")}
             </Button>
           </div>
         </div>
@@ -201,9 +204,9 @@ export default function ResetPassword() {
             </div>
           </div>
 
-          <h1 className="text-2xl font-bold mb-1 text-center">Set New Password</h1>
+          <h1 className="text-2xl font-bold mb-1 text-center">{t("Set New Password")}</h1>
           <p className="text-sm text-white/85 mb-6 text-center">
-            Choose a strong password for your account.
+            {t("Choose a strong password for your account.")}
           </p>
 
           <Form {...form}>
@@ -213,12 +216,12 @@ export default function ResetPassword() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-white">New Password</FormLabel>
+                    <FormLabel className="text-white">{t("New Password")}</FormLabel>
                     <FormControl>
                       <div className="space-y-2">
                         <Input
                           type={showPassword ? "text" : "password"}
-                          placeholder="Enter new password"
+                          placeholder={t("Enter new password")}
                           className="bg-white/10 border-white/20 text-white placeholder-white/60
                                      focus:ring-2 focus:ring-white/30 focus:border-white/30 h-10"
                           autoCorrect="off"
@@ -233,7 +236,7 @@ export default function ResetPassword() {
                             onChange={(e) => setShowPassword(e.target.checked)}
                             className="h-4 w-4 rounded border-white/30 bg-white/10 text-orange-500 focus:ring-orange-500/50"
                           />
-                          Show password
+                          {t("Show password")}
                         </label>
                       </div>
                     </FormControl>
@@ -247,12 +250,12 @@ export default function ResetPassword() {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-white">Confirm Password</FormLabel>
+                    <FormLabel className="text-white">{t("Confirm Password")}</FormLabel>
                     <FormControl>
                       <div className="space-y-2">
                         <Input
                           type={showConfirmPassword ? "text" : "password"}
-                          placeholder="Confirm new password"
+                          placeholder={t("Confirm new password")}
                           className="bg-white/10 border-white/20 text-white placeholder-white/60
                                      focus:ring-2 focus:ring-white/30 focus:border-white/30 h-10"
                           autoCorrect="off"
@@ -267,7 +270,7 @@ export default function ResetPassword() {
                             onChange={(e) => setShowConfirmPassword(e.target.checked)}
                             className="h-4 w-4 rounded border-white/30 bg-white/10 text-orange-500 focus:ring-orange-500/50"
                           />
-                          Show password
+                          {t("Show password")}
                         </label>
                       </div>
                     </FormControl>
@@ -283,12 +286,12 @@ export default function ResetPassword() {
                            text-white shadow-md hover:bg-black/50 transition disabled:opacity-50"
                 data-testid="button-reset-password"
               >
-                {resetPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
+                {resetPasswordMutation.isPending ? t("Resetting...") : t("Reset Password")}
               </Button>
 
               {resetPasswordMutation.isError && (
                 <div className="text-sm text-red-300 text-center" data-testid="text-error">
-                  {resetPasswordMutation.error?.message || "Failed to reset password. The link may be invalid or expired."}
+                  {t(resetPasswordMutation.error?.message || "Failed to reset password. The link may be invalid or expired.")}
                 </div>
               )}
             </form>
@@ -300,7 +303,7 @@ export default function ResetPassword() {
               className="text-sm text-white/70 hover:text-white underline"
               data-testid="link-back-to-login"
             >
-              Back to Login
+              {t("Back to Login")}
             </button>
           </div>
         </div>

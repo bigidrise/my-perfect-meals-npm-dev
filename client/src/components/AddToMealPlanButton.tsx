@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { CalendarPlus, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -17,6 +18,7 @@ interface AddToMealPlanButtonProps {
 }
 
 export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanButtonProps) {
+  const { t } = useConsumerCopy();
   const [isOpen, setIsOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
@@ -25,7 +27,7 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
 
   const openPicker = (event: React.MouseEvent) => {
     event.stopPropagation();
-    guardAction("Add meals to your weekly plan and track your nutrition with Essential.", () => {
+    guardAction(t("Add meals to your weekly plan and track your nutrition with Essential."), () => {
       setIsOpen(true);
     });
   };
@@ -84,8 +86,8 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
       }));
       window.dispatchEvent(new CustomEvent("show-toast", {
         detail: {
-          title: result.wasOccupied ? "Meal Replaced!" : "Added to Meal Plan!",
-          description: `${meal.name || meal.title} was added to your plan.`,
+          title: result.wasOccupied ? t("Meal Replaced!") : t("Added to Meal Plan!"),
+          description: t("{{name}} was added to your plan.", { name: meal.name || meal.title }),
         },
       }));
       setIsOpen(false);
@@ -95,7 +97,7 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
       window.dispatchEvent(new CustomEvent("show-toast", {
         detail: {
           title: "Error",
-          description: "Failed to add meal to your plan. Please try again.",
+          description: t("Failed to add meal to your plan. Please try again."),
           variant: "destructive",
         },
       }));
@@ -114,7 +116,7 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
         onClick={openPicker}
       >
         <CalendarPlus className="mr-1 h-4 w-4" />
-        Add to Plan
+        {t("Add to Plan")}
         {isFree && <Lock className="ml-1 h-3 w-3 opacity-60" />}
       </Button>
       <MealPlanDestinationPicker
@@ -122,7 +124,7 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
         onOpenChange={setIsOpen}
         title={meal.name || meal.title}
         busy={isAdding}
-        busyLabel="Adding…"
+        busyLabel={t("Adding…")}
         onSelect={addToSelectedDestination}
       />
       <UpgradeLockModal open={showLockModal} onClose={closeLockModal} message={lockMessage} />

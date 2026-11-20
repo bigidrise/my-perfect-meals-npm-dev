@@ -6,6 +6,7 @@ import { ChefCapIcon } from "./ChefCapIcon";
 import { getGuestPageExplanation } from "./CopilotPageExplanations";
 import { CopilotExplanationStore } from "./CopilotExplanationStore";
 import { isGuestMode } from "@/lib/guestMode";
+import { isCalculatorCopilotPaused } from "./calculatorCopilotPause";
 
 export const CopilotButton: React.FC = () => {
   const { open, close, isOpen, setLastResponse } = useCopilot();
@@ -16,6 +17,7 @@ export const CopilotButton: React.FC = () => {
   }, []);
 
   const handleClick = useCallback(() => {
+    if (isCalculatorCopilotPaused(pathname)) return;
     if (isOpen) {
       close();
       return;
@@ -39,6 +41,8 @@ export const CopilotButton: React.FC = () => {
       }, 300);
     }
   }, [isOpen, open, close, pathname, normalizePath, setLastResponse]);
+
+  if (isCalculatorCopilotPaused(pathname)) return null;
 
   return (
     <motion.button

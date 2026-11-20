@@ -1,9 +1,11 @@
+import { useBackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useLocation } from "wouter";
 import { ArrowLeft } from "lucide-react";
 import CoachingProfileSetup from "@/components/ace/CoachingProfileSetup";
 import { useCoachingProfile } from "@/hooks/useCoachingProfile";
 
 export default function AceProfilePage() {
+  const navigationLabel = useBackNavigationLabel();
   const [, setLocation] = useLocation();
   const { data: profile, isLoading } = useCoachingProfile();
 
@@ -15,7 +17,7 @@ export default function AceProfilePage() {
             type="button"
             onClick={() => setLocation("/dashboard")}
             className="p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-all"
-            aria-label="Back to dashboard"
+            aria-label={navigationLabel("Back to dashboard")}
           >
             <ArrowLeft className="w-5 h-5" />
           </button>

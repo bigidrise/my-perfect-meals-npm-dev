@@ -7,9 +7,19 @@ import "@testing-library/jest-dom";
 import { post } from "@/lib/api";
 import ShoppingProductPicker from "@/components/shopping/ShoppingProductPicker";
 import SmartShoppingProductChoice from "@/components/shopping/SmartShoppingProductChoice";
-import type { ShoppingIngredientRequest, ShoppingProductSelection } from "@shared/shoppingProductSelection";
+import { BetterAlternativesSection } from "@/components/biometrics/IngredientIntelligenceSheet";
+import { parseShoppingProductReference } from "@shared/shoppingProductSelection";
+import type { ShoppingIngredientRequest, ShoppingProductReference, ShoppingProductSelection } from "@shared/shoppingProductSelection";
 
 jest.mock("@/lib/api", () => ({ post: jest.fn() }));
+jest.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: { id: "offline-shopping-user" } }) }));
+jest.mock("@/components/shopping/RecommendedProductActions", () => ({
+  __esModule: true,
+  default: jest.fn(() => <button>Coach Save recommendation</button>),
+}));
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (key: string) => key === "common.cancel" ? "Cancel" : key }),
+}));
 jest.mock("@/components/ui/universal-modal", () => ({
   PickerModal: ({ open, title, description, children, footer }: any) => open
     ? <section role="dialog" aria-label={title}><p>{description}</p>{children}{footer}</section>
@@ -61,6 +71,83 @@ const review = {
   shoppingSelection: { eligible: false, reason: "needs_review" },
 };
 
+function makeShoppingReference(
+  productKey = "synthetic-reference-oil",
+  ingredientRequest: ShoppingIngredientRequest = { originalName: "olive oil", requirements: [] },
+  decisionStatus: "needs_verification" | "rejected" = "needs_verification",
+): ShoppingProductReference {
+  const identity = {
+    match: "exact_variant",
+    key: productKey,
+    name: "Olive Oil",
+    brand: "Synthetic Alpha",
+    variant: "Cold-pressed",
+    provenance: { source: "Synthetic catalog", sourceRecordId: "reference-record" },
+  };
+  return parseShoppingProductReference({
+    ingredient: ingredientRequest,
+    product: {
+      ...selection.product,
+      selectionKind: "unverified_shopping_reference",
+      productKey,
+      name: "Olive Oil",
+      brand: "Synthetic Alpha",
+      variant: "Cold-pressed",
+      packageDescription: "500 mL glass bottle",
+      upc: "12345678",
+      source: { source: "Synthetic catalog", sourceRecordId: "reference-record" },
+      sourcePayloadJson: JSON.stringify({
+        identity: { ...identity, barcode: "12345678", packageSize: "500 mL glass bottle" },
+        decision: {
+          status: decisionStatus,
+          productKey,
+          subjectId: "member-a",
+          contextFingerprint: "profile-a",
+          reasons: decisionStatus === "rejected" ? [{ code: "hard_conflict" }] : [],
+        },
+      }),
+      assessment: {
+        status: "review_required",
+        unresolvedRequirements: ["Current ingredient label not reviewed", "Dietary context unresolved"],
+        reasons: ["Reference is not an eligibility decision"],
+        subjectReference: "member-a",
+        contextReference: "profile-a",
+        evaluatedAt: "2026-10-21",
+        policyVersion: "synthetic-only",
+      },
+    },
+  });
+}
+
+function referenceResponse(options: {
+  reference?: ShoppingProductReference;
+  catalogReference?: ShoppingProductReference;
+  identityVerified?: boolean;
+} = {}) {
+  const response: any = sharedResponse("olive oil");
+  const reference = options.reference ?? makeShoppingReference();
+  response.recommendations = response.recommendations.slice(0, 1);
+  response.catalogMatches = [{
+    ...response.catalogMatches[0],
+    productKey: reference.product.productKey,
+    name: reference.product.name,
+    brand: reference.product.brand!,
+    variant: reference.product.variant,
+    recommendationIdentityVerified: options.identityVerified ?? true,
+    recommendationLead: response.recommendations[0].category,
+    shoppingReference: options.catalogReference ?? reference,
+    shoppingSelection: { eligible: false, reason: "reference_only" },
+  }];
+  response.recommendationChecks = [{
+    recommendationCategory: response.recommendations[0].category,
+    status: "review_only",
+    catalogProductKey: reference.product.productKey,
+    reason: "Label review remains unresolved.",
+    reference,
+  }];
+  return response;
+}
+
 function renderPicker(props: Partial<React.ComponentProps<typeof ShoppingProductPicker>> = {}) {
   const onOpenChange = jest.fn();
   const onCommit = jest.fn().mockResolvedValue(undefined);
@@ -79,13 +166,423 @@ function renderPicker(props: Partial<React.ComponentProps<typeof ShoppingProduct
   return { ...result, onOpenChange, onCommit };
 }
 
+function sharedResponse(originalName = "olive oil") {
+  const rowIngredient = { originalName, requirements: [] };
+  const recommendations = ["Alpha", "Beta", "Gamma"].map(brand => ({
+    category: `Synthetic ${brand} Olive Oil`, brand: `Synthetic ${brand}`, productName: "Olive Oil",
+    whyBetter: [`Original personalized ${brand} explanation`],
+    targetCriteria: `Check the ${brand} label`,
+  }));
+  const catalogMatches = recommendations.map((alternative, index) => {
+    const productKey = `synthetic-oil-${index}`;
+    return {
+      ...supported, productKey, name: "Olive Oil", brand: alternative.brand,
+      ingredients: "Olive oil", shoppingDisplay: "selectable",
+      recommendationIdentityVerified: true,
+      recommendationLead: alternative.category,
+      shoppingSelection: { eligible: true, selection: {
+        ...selection, ingredient: rowIngredient,
+        product: { ...selection.product, productKey, name: "Olive Oil", brand: alternative.brand },
+      } },
+    };
+  });
+  return {
+    catalogSearchAvailable: true, recommendations, catalogMatches,
+    recommendationChecks: recommendations.map((alternative, index) => ({
+      recommendationCategory: alternative.category, status: "eligible",
+      productKey: catalogMatches[index].productKey, reason: "Exact record passed.",
+    })),
+    recommendationContext: { query: originalName, educationalFooter: "Original education", verdictLevel: "buy" },
+  };
+}
+
+test.each(["olive oil", "Synthetic Brand Olive Oil"])(
+  "shared Find a Product cards auto-search %s and commit only the chosen exact reference",
+  async originalName => {
+    const response = sharedResponse(originalName);
+    (post as jest.Mock).mockResolvedValue(response);
+    const { onCommit } = renderPicker({ open: true, ingredient: { originalName, requirements: [] } });
+    const choices = await screen.findAllByRole("button", { name: "Choose for My List" });
+    expect(choices).toHaveLength(3);
+    response.recommendations.forEach(alt => {
+      expect(screen.getByText(alt.category)).toBeInTheDocument();
+      expect(screen.getByText(alt.whyBetter[0])).toBeInTheDocument();
+      expect(screen.getByText(new RegExp(alt.targetCriteria))).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Coach Save recommendation")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^ingredientSheet.add$/ })).not.toBeInTheDocument();
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(post).toHaveBeenCalledWith("/api/grocery-coach/product-advisor", {
+      mode: "find_product", ingredients: [originalName], shoppingIngredient: { originalName, requirements: [] },
+    });
+    expect(screen.getByText(/Original amount: 2 cups/)).toBeInTheDocument();
+    fireEvent.click(choices[1]);
+    await waitFor(() => expect(onCommit).toHaveBeenCalledWith(response.catalogMatches[1].shoppingSelection.selection));
+    expect(onCommit).toHaveBeenCalledTimes(1);
+    expect(post).toHaveBeenCalledTimes(1);
+  },
+);
+
+test("Find a Product retains its original Add and Save action presentation without the adapter", () => {
+  const response = sharedResponse();
+  const add = jest.fn();
+  render(<BetterAlternativesSection alternatives={response.recommendations} branded
+    query="olive oil" educationalFooter="Original education" onAddToList={add} />);
+  expect(screen.getAllByText("Coach Save recommendation")).toHaveLength(3);
+  fireEvent.click(screen.getAllByRole("button", { name: "ingredientSheet.add" })[1]);
+  expect(add).toHaveBeenCalledWith("Synthetic Beta Olive Oil");
+  expect(screen.getByRole("button", { name: "ingredientSheet.added" })).toBeInTheDocument();
+});
+
+test("review-only cards preserve original explanations and the exact unresolved requirement", async () => {
+  const response = sharedResponse();
+  response.recommendationChecks = response.recommendationChecks.map(check => ({
+    ...check, status: "review_only", reason: "Current allergen statement is unavailable.",
+  }));
+  (post as jest.Mock).mockResolvedValue(response);
+  const { onCommit } = renderPicker({ open: true, ingredient: { originalName: "olive oil", requirements: [] } });
+  expect(await screen.findAllByText(/Review only — Current allergen statement is unavailable/)).toHaveLength(3);
+  expect(screen.getByText("Original personalized Alpha explanation")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Choose/ })).not.toBeInTheDocument();
+  expect(onCommit).not.toHaveBeenCalled();
+});
+
+test("an exact unverified reference requires confirmation, retains warnings, and can be cancelled", async () => {
+  const response = referenceResponse();
+  const onCommitReference = jest.fn().mockResolvedValue(undefined);
+  (post as jest.Mock).mockResolvedValue(response);
+  renderPicker({ open: true, ingredient: { originalName: "olive oil", requirements: [] }, onCommitReference });
+
+  fireEvent.click(await screen.findByRole("button", { name: "Use as shopping reference" }));
+  expect(onCommitReference).not.toHaveBeenCalled();
+  expect(screen.getByText("This records shopping intent only. It is not medical or restricted-diet clearance.")).toBeInTheDocument();
+  expect(screen.getByText("Current ingredient label not reviewed")).toBeInTheDocument();
+  expect(screen.getByText("Dietary context unresolved")).toBeInTheDocument();
+  expect(screen.getByText(/Cold-pressed.*500 mL glass bottle/)).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "Cancel shopping reference" }));
+  expect(onCommitReference).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Use as shopping reference" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm shopping reference" }));
+  await waitFor(() => expect(onCommitReference).toHaveBeenCalledTimes(1));
+  expect(onCommitReference).toHaveBeenCalledWith(response.recommendationChecks[0].reference);
+  expect(onCommitReference.mock.calls[0][0].product.selectionKind).toBe("unverified_shopping_reference");
+  expect(onCommitReference.mock.calls[0][0].product.assessment.status).toBe("review_required");
+});
+
+test.each(["different exact product", "known conflict", "unverified catalog identity"])(
+  "reference action fails closed for %s",
+  async defect => {
+    const reference = makeShoppingReference();
+    let response: any;
+    if (defect === "different exact product") {
+      response = referenceResponse({ reference, catalogReference: makeShoppingReference("different-product") });
+    } else if (defect === "known conflict") {
+      const conflicted = {
+        ...reference,
+        product: {
+          ...reference.product,
+          sourcePayloadJson: JSON.stringify({
+            identity: {
+              match: "exact_variant", key: reference.product.productKey, name: reference.product.name,
+              brand: reference.product.brand, variant: reference.product.variant,
+              provenance: { source: "Synthetic catalog", sourceRecordId: "reference-record" },
+              barcode: reference.product.upc,
+            },
+            decision: {
+              status: "rejected", productKey: reference.product.productKey,
+              subjectId: "member-a", contextFingerprint: "profile-a",
+              reasons: [{ code: "hard_conflict" }],
+            },
+          }),
+        },
+      } as ShoppingProductReference;
+      response = referenceResponse({ reference: conflicted, catalogReference: conflicted });
+    } else {
+      response = referenceResponse({ reference, identityVerified: false });
+    }
+    (post as jest.Mock).mockResolvedValue(response);
+    const onCommitReference = jest.fn();
+    renderPicker({ open: true, ingredient: { originalName: "olive oil", requirements: [] }, onCommitReference });
+    expect(await screen.findByText(/Review only —/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Use as shopping reference" })).not.toBeInTheDocument();
+    expect(onCommitReference).not.toHaveBeenCalled();
+  },
+);
+
+test.each(["missing key", "cross-linked brand", "wrong ingredient", "hidden", "unverified evidence", "missing selection", "unverified variant"])(
+  "shared cards fail closed for %s despite a claimed eligible recommendation",
+  async defect => {
+    const response = sharedResponse();
+    response.recommendations = response.recommendations.slice(0, 1);
+    response.recommendationChecks = response.recommendationChecks.slice(0, 1);
+    const record = response.catalogMatches[0];
+    if (defect === "missing key") response.recommendationChecks[0].productKey = "not-present";
+    if (defect === "cross-linked brand") response.recommendationChecks[0].productKey = response.catalogMatches[1].productKey;
+    if (defect === "wrong ingredient") record.shoppingSelection.selection.ingredient.originalName = "sauce";
+    if (defect === "hidden") record.shoppingDisplay = "hidden";
+    if (defect === "unverified evidence") record.evidenceStatus = "needs_verification";
+    if (defect === "missing selection") record.shoppingSelection.selection = null as any;
+    if (defect === "unverified variant") record.recommendationIdentityVerified = false;
+    (post as jest.Mock).mockResolvedValue(response);
+    const { onCommit } = renderPicker({ open: true, ingredient: { originalName: "olive oil", requirements: [] } });
+    expect(await screen.findByText(/Review only — A matching exact-product selection could not be verified/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Choose/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Exact record passed/)).not.toBeInTheDocument();
+    expect(onCommit).not.toHaveBeenCalled();
+  },
+);
+
+test("review-only cards expose matching source identity and label evidence without a selection capability", async () => {
+  const response = sharedResponse();
+  response.recommendationChecks = response.recommendationChecks.map(check => ({
+    ...check, status: "review_only", productKey: undefined as any,
+    catalogProductKey: check.productKey,
+    reason: "Reviewed checks aren't available for the foods you avoid (quinoa). This does not mean the product contains a restricted ingredient.",
+  }));
+  (post as jest.Mock).mockResolvedValue(response);
+  const { onCommit } = renderPicker({ open: true, ingredient: { originalName: "olive oil", requirements: [] } });
+  const summaries = await screen.findAllByText("Review product identity and label evidence");
+  expect(summaries).toHaveLength(3);
+  fireEvent.click(summaries[0]);
+  expect(screen.getAllByText(/Catalog ingredient list: Olive oil/)).toHaveLength(3);
+  expect(screen.getAllByText(/Record: record-1/)).toHaveLength(3);
+  expect(screen.getAllByText(/Review only — Reviewed checks aren't available.*quinoa/)).toHaveLength(3);
+  expect(screen.queryByRole("button", { name: /Choose/ })).not.toBeInTheDocument();
+  expect(onCommit).not.toHaveBeenCalled();
+});
+
+test("catalog outage keeps the actual shared recommendation cards visible without Choose", async () => {
+  const response = sharedResponse();
+  response.catalogSearchAvailable = false;
+  (post as jest.Mock).mockResolvedValue(response);
+  renderPicker({ open: true, ingredient: { originalName: "olive oil", requirements: [] } });
+  expect(await screen.findByText("Synthetic Alpha Olive Oil")).toBeInTheDocument();
+  expect(screen.getByText("Original personalized Gamma explanation")).toBeInTheDocument();
+  expect(screen.getAllByText(/Review only — The product catalog is temporarily unavailable/)).toHaveLength(3);
+  expect(screen.queryByRole("button", { name: /Choose/ })).not.toBeInTheDocument();
+});
+
 beforeEach(() => {
   jest.clearAllMocks();
+});
+
+test.each(["olive oil", "Muir Glen Organic Tomato Basil Sauce"])(
+  "opening the picker forwards its %s row directly without a search field or Add/Save action",
+  async originalName => {
+    (post as jest.Mock).mockResolvedValue({ catalogSearchAvailable: true, catalogMatches: [] });
+    const rowIngredient = { originalName, requirements: [] };
+    const { onCommit } = renderPicker({ open: true, ingredient: rowIngredient });
+    await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+    expect(post).toHaveBeenCalledWith("/api/grocery-coach/product-advisor", {
+      mode: "find_product",
+      ingredients: [originalName],
+      shoppingIngredient: rowIngredient,
+    });
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^(add|save)( |$)/i })).not.toBeInTheDocument();
+    expect(onCommit).not.toHaveBeenCalled();
+  },
+);
+
+test("shows the reused personalized explanation while Choose still requires structured eligibility", async () => {
+  const notice = "Personalized recommendations were found, but their exact products or required checks could not be fully verified.";
+  (post as jest.Mock).mockResolvedValue({
+    catalogSearchAvailable: true, recommendationCount: 2, recommendationNotice: notice,
+    catalogMatches: [{ ...review, shoppingCaution: "Reviewed checks aren't available for your dietary requirements.",
+      recommendationExplanation: { whyBetter: ["Personalized explanation from Find a Product."], targetCriteria: "Check the current serving basis." } }],
+  });
+  renderPicker({ open: true });
+  expect(await screen.findByText("Personalized explanation from Find a Product.")).toBeInTheDocument();
+  expect(screen.getByText(notice)).toBeInTheDocument();
+  expect(screen.getByText(/Reviewed checks aren't available/)).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Choose this option/ })).not.toBeInTheDocument();
 });
 
 test("does not request on list render or while the picker is closed", () => {
   renderPicker();
   expect(post).not.toHaveBeenCalled();
+});
+
+test("StrictMode dispatches one request per real opening and still refreshes on reopen", async () => {
+  (post as jest.Mock).mockResolvedValue({ catalogMatches: [], catalogSearchAvailable: true });
+  const props = {
+    onOpenChange: jest.fn(), ingredient, quantityLabel: "2 cups",
+    sessionKey: "member-a:profile-a", currentSelection: null,
+    onCommit: jest.fn().mockResolvedValue(undefined),
+  };
+  const { rerender } = render(<React.StrictMode><ShoppingProductPicker {...props} open /></React.StrictMode>);
+  await screen.findByText(/No suitable specific product could be identified/);
+  expect(post).toHaveBeenCalledTimes(1);
+  rerender(<React.StrictMode><ShoppingProductPicker {...props} open={false} /></React.StrictMode>);
+  rerender(<React.StrictMode><ShoppingProductPicker {...props} open /></React.StrictMode>);
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
+  await screen.findByText(/No suitable specific product could be identified/);
+  expect(post).toHaveBeenCalledTimes(2);
+});
+
+test("closing before dispatch cancels the abandoned lookup without blocking a fresh open", async () => {
+  (post as jest.Mock).mockResolvedValue({ catalogMatches: [], catalogSearchAvailable: true });
+  const props = {
+    onOpenChange: jest.fn(), ingredient, quantityLabel: "2 cups",
+    sessionKey: "member-a:profile-a", currentSelection: null,
+    onCommit: jest.fn().mockResolvedValue(undefined),
+  };
+  const { rerender } = render(<ShoppingProductPicker {...props} open />);
+  rerender(<ShoppingProductPicker {...props} open={false} />);
+  await act(async () => {});
+  expect(post).not.toHaveBeenCalled();
+  rerender(<ShoppingProductPicker {...props} open />);
+  await screen.findByText(/No suitable specific product could be identified/);
+  expect(post).toHaveBeenCalledTimes(1);
+});
+
+test("an explicit retry after failure sends a fresh request for the same ingredient", async () => {
+  (post as jest.Mock).mockRejectedValueOnce({ status: 503 })
+    .mockResolvedValueOnce({ catalogMatches: [supported], catalogSearchAvailable: true });
+  const props = {
+    onOpenChange: jest.fn(), ingredient, quantityLabel: "2 cups",
+    sessionKey: "member-a:profile-a", currentSelection: null,
+    onCommit: jest.fn().mockResolvedValue(undefined),
+  };
+  const { rerender } = render(<ShoppingProductPicker {...props} open />);
+  await screen.findByRole("alert");
+  expect(post).toHaveBeenCalledTimes(1);
+  rerender(<ShoppingProductPicker {...props} open={false} />);
+  rerender(<ShoppingProductPicker {...props} open />);
+  await screen.findByTestId("catalog-choice-milk-a");
+  expect(post).toHaveBeenCalledTimes(2);
+});
+
+test("an abandoned ingredient lookup never sends and a changed product can be opened freshly", async () => {
+  (post as jest.Mock).mockResolvedValue({ catalogMatches: [], catalogSearchAvailable: true });
+  const nextIngredient = { originalName: "oatmeal", requirements: [] };
+  const props = {
+    onOpenChange: jest.fn(), quantityLabel: "2 cups",
+    sessionKey: "member-a:profile-a", currentSelection: null,
+    onCommit: jest.fn().mockResolvedValue(undefined),
+  };
+  const { rerender } = render(<ShoppingProductPicker {...props} ingredient={ingredient} open />);
+  rerender(<ShoppingProductPicker {...props} ingredient={nextIngredient} open />);
+  await act(async () => {});
+  expect(props.onOpenChange).toHaveBeenCalledWith(false);
+  expect(post).not.toHaveBeenCalled();
+  rerender(<ShoppingProductPicker {...props} ingredient={nextIngredient} open={false} />);
+  rerender(<ShoppingProductPicker {...props} ingredient={nextIngredient} open />);
+  await screen.findByText(/No suitable specific product could be identified/);
+  expect(post).toHaveBeenCalledTimes(1);
+  expect(post).toHaveBeenLastCalledWith("/api/grocery-coach/product-advisor", {
+    mode: "find_product", ingredients: ["oatmeal"], shoppingIngredient: nextIngredient,
+  });
+});
+
+test("a new mount for the same ingredient does not reuse an earlier request", async () => {
+  let resolveOld!: (value: any) => void;
+  (post as jest.Mock).mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve; }))
+    .mockResolvedValueOnce({ catalogMatches: [], catalogSearchAvailable: true });
+  const first = renderPicker({ open: true });
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  first.unmount();
+  renderPicker({ open: true });
+  await screen.findByText(/No suitable specific product could be identified/);
+  await act(async () => { resolveOld({ catalogMatches: [supported], catalogSearchAvailable: true }); });
+  expect(post).toHaveBeenCalledTimes(2);
+  expect(screen.queryByTestId("catalog-choice-milk-a")).not.toBeInTheDocument();
+});
+
+test.each([
+  "oatmeal", "olive oil", "seasoning blend", "spice blend", "ketchup",
+  "canned beans", "yogurt", "cereal", "bread", "tomato sauce",
+])("the %s row offers a neutral, explicit product-options action without searching", name => {
+  const onChoose = jest.fn();
+  render(<SmartShoppingProductChoice
+    item={{ name } as any}
+    enabled
+    hasAccess
+    onChoose={onChoose}
+    onUpgrade={jest.fn()}
+    onClear={jest.fn().mockResolvedValue(undefined)}
+  />);
+  expect(post).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "See Product Options" }));
+  expect(onChoose).toHaveBeenCalledTimes(1);
+  expect(post).not.toHaveBeenCalled();
+});
+
+test.each(["fresh tomatoes", "spinach", "fresh basil", "raw chicken", "homemade oatmeal"])(
+  "%s does not offer a product lookup", name => {
+    render(<SmartShoppingProductChoice
+      item={{ name } as any}
+      enabled
+      hasAccess
+      onChoose={jest.fn()}
+      onUpgrade={jest.fn()}
+      onClear={jest.fn().mockResolvedValue(undefined)}
+    />);
+    expect(screen.queryByRole("button", { name: "See Product Options" })).not.toBeInTheDocument();
+    expect(post).not.toHaveBeenCalled();
+  },
+);
+
+test("the new action still upgrades a customer without access and never searches", () => {
+  const onChoose = jest.fn(), onUpgrade = jest.fn();
+  render(<SmartShoppingProductChoice
+    item={{ name: "oatmeal" } as any}
+    enabled
+    hasAccess={false}
+    onChoose={onChoose}
+    onUpgrade={onUpgrade}
+    onClear={jest.fn().mockResolvedValue(undefined)}
+  />);
+  fireEvent.click(screen.getByRole("button", { name: "See Product Options" }));
+  expect(onUpgrade).toHaveBeenCalledTimes(1);
+  expect(onChoose).not.toHaveBeenCalled();
+  expect(post).not.toHaveBeenCalled();
+});
+
+test("the product-options action remains unavailable when Development metadata is disabled", () => {
+  render(<SmartShoppingProductChoice
+    item={{ name: "oatmeal" } as any}
+    enabled={false}
+    hasAccess
+    onChoose={jest.fn()}
+    onUpgrade={jest.fn()}
+    onClear={jest.fn().mockResolvedValue(undefined)}
+  />);
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  expect(post).not.toHaveBeenCalled();
+});
+
+test("disabled Smart Shopping does not expand historical Grocery Coach presentation", () => {
+  render(<SmartShoppingProductChoice
+    item={{ name: "oatmeal", ingredientMetadata: { ingredient: { originalName: "oatmeal" },
+      selectedProduct: { ...selection.product, source: { source: "Product Scan by-name guidance" } } } } as any}
+    enabled={false}
+    hasAccess
+    onChoose={jest.fn()}
+    onUpgrade={jest.fn()}
+    onClear={jest.fn().mockResolvedValue(undefined)}
+  />);
+  expect(screen.queryByText("Northfield Whole Milk")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  expect(post).not.toHaveBeenCalled();
+});
+
+test.each([0, 1, 2, 3])("renders %i sourced options without filling missing slots", async count => {
+  const catalogMatches = Array.from({ length: count }, (_, index) => {
+    const productKey = `milk-${index}`;
+    return { ...supported, productKey, shoppingSelection: { eligible: true, selection: {
+      ...selection, product: { ...selection.product, productKey },
+    } } };
+  });
+  (post as jest.Mock).mockResolvedValue({ catalogMatches, catalogSearchAvailable: true });
+  const { onCommit } = renderPicker({ open: true });
+  expect(screen.getByRole("dialog", { name: "Here are your product options." })).toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
+  expect(screen.queryAllByRole("article")).toHaveLength(count);
+  expect(screen.queryAllByRole("button", { name: "Choose this option" })).toHaveLength(count);
+  expect(post).toHaveBeenCalledTimes(1);
+  expect(onCommit).not.toHaveBeenCalled();
 });
 
 test("a denied Pro action has no picker mount and makes no request", () => {
@@ -226,11 +723,38 @@ test("Change starts a fresh explicit picker action and Clear waits for the save"
   await waitFor(() => expect(onClear).toHaveBeenCalledTimes(1));
 });
 
+test("saved unverified reference is distinct, shows variant/package and every unresolved warning", () => {
+  const reference = makeShoppingReference();
+  const onChoose = jest.fn();
+  const onClear = jest.fn().mockResolvedValue(undefined);
+  render(<SmartShoppingProductChoice
+    item={{ name: "olive oil", ingredientMetadata: {
+      ingredient: { originalName: "olive oil" },
+      selectedProduct: reference.product,
+    } } as any}
+    enabled
+    hasAccess
+    onChoose={onChoose}
+    onUpgrade={jest.fn()}
+    onClear={onClear}
+  />);
+  expect(screen.getByText("Shopping reference — Unverified")).toBeInTheDocument();
+  expect(screen.getByText(/Cold-pressed.*500 mL glass bottle/)).toBeInTheDocument();
+  expect(screen.getByText("Unresolved: Current ingredient label not reviewed")).toBeInTheDocument();
+  expect(screen.getByText("Unresolved: Dietary context unresolved")).toBeInTheDocument();
+  expect(screen.getByText("Not medical or restricted-diet clearance.")).toBeInTheDocument();
+  expect(screen.queryByText("Saved with review required")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Change" }));
+  expect(onChoose).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+  expect(onClear).toHaveBeenCalledTimes(1);
+});
+
 test("a profile change invalidates an open response without launching another lookup", async () => {
   let resolveRequest!: (value: any) => void;
   (post as jest.Mock).mockImplementation(() => new Promise(resolve => { resolveRequest = resolve; }));
   const { rerender } = renderPicker({ open: true });
-  expect(post).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
   rerender(
     <ShoppingProductPicker
       open
@@ -257,7 +781,7 @@ test("a successful empty result shows one supplied shopping tip without changing
   expect(await screen.findByText("No suitable specific product could be identified. You can keep this ingredient generic.")).toBeInTheDocument();
   expect(screen.getAllByText("Compare sodium and saturated fat using the same serving size.")).toHaveLength(1);
   expect(screen.queryByText(/Long generic medical disclaimer/)).not.toBeInTheDocument();
-  expect(screen.getByText(/plain milk · Recipe amount: 2 cups/)).toBeInTheDocument();
+  expect(screen.getByText(/plain milk · Original amount: 2 cups/)).toBeInTheDocument();
   expect(onCommit).not.toHaveBeenCalled();
   expect(post).toHaveBeenCalledTimes(1);
 });
@@ -312,6 +836,6 @@ test("review-only display cannot acquire a button even when the underlying paylo
   const { onCommit } = renderPicker({ open: true });
   await screen.findByText("Check the current label");
   expect(screen.queryByRole("button", { name: "Choose this option" })).not.toBeInTheDocument();
-  expect(screen.getByText(/No suitable specific product could be identified/)).toBeInTheDocument();
+  expect(screen.getByText(/verification is incomplete/)).toBeInTheDocument();
   expect(onCommit).not.toHaveBeenCalled();
 });

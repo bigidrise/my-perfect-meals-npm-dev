@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { useGlp1FormCopy, useBatchOneErrorCopy } from "@/i18n/useBatchOneDisplayCopy";
 import { AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
 import { useGlp1HubCheckin } from "@/hooks/useGlp1HubCheckin";
 import type { HubCheckinPayload } from "@shared/glp1-schema";
@@ -83,6 +85,9 @@ export default function GLP1MealPreflight({
   onSaved: () => Promise<void>;
   onOpenSettings: () => void;
 }) {
+  const { t } = useConsumerCopy();
+  const formCopy = useGlp1FormCopy();
+  const errorCopy = useBatchOneErrorCopy();
   const { checkin, tolerance, isLoading, isSubmitting, hasLoaded, submit, reload, error } = useGlp1HubCheckin();
   const [form, setForm] = useState<MealRelevantForm>(DEFAULT_FORM);
   const [hydratedKey, setHydratedKey] = useState<string | null>(null);
@@ -150,21 +155,21 @@ export default function GLP1MealPreflight({
             ? <AlertTriangle className="mt-0.5 h-5 w-5 text-red-300" />
             : <CheckCircle className="mt-0.5 h-5 w-5 text-violet-200" />}
           <div>
-            <p className="text-sm font-bold text-violet-100">GLP-1 settings are being applied</p>
+            <p className="text-sm font-bold text-violet-100">{t("GLP-1 settings are being applied")}</p>
             <p className="mt-0.5 text-xs text-white/55">
               {checkin
-                ? `Today's appetite: ${checkin.appetiteLevel.replace("_", " ")}.`
-                : "Add today's appetite and tolerance before creating ideas."}
-              {" "}Shot history is maintenance and does not block meal ideas.
+                ? t("Today's appetite: {{appetite}}.", { appetite: formCopy.appetite[checkin.appetiteLevel] ?? checkin.appetiteLevel.replace("_", " ") })
+                : t("Add today's appetite and tolerance before creating ideas.")}
+              {" "}{t("Shot history is maintenance and does not block meal ideas.")}
             </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => onOpenChange(!open)} className="text-sm font-bold text-violet-200">
-            Update how you’re feeling
+            {t("Update how you’re feeling")}
           </button>
           <button type="button" onClick={onOpenSettings} className="text-sm font-semibold text-white/55">
-            Full settings
+            {t("Full settings")}
           </button>
         </div>
       </div>
@@ -175,61 +180,53 @@ export default function GLP1MealPreflight({
             <div className="flex min-h-24 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-violet-200" /></div>
           ) : !hasLoaded ? (
             <div className="rounded-xl border border-red-300/20 bg-red-950/20 p-4">
-              <p className="text-sm font-semibold text-red-100">We couldn’t load today’s GLP-1 check-in.</p>
-              <p className="mt-1 text-xs text-white/55">Nothing can be saved until your current record is loaded.</p>
+              <p className="text-sm font-semibold text-red-100">{t("We couldn’t load today’s GLP-1 check-in.")}</p>
+              <p className="mt-1 text-xs text-white/55">{t("Nothing can be saved until your current record is loaded.")}</p>
               <button type="button" onClick={() => void reload()} className="mt-3 min-h-10 rounded-xl border border-white/15 px-4 text-sm font-bold text-white">
-                Try Again
+                {t("Try Again")}
               </button>
             </div>
           ) : (
             <>
-              <p className="mb-3 text-sm text-white/65">Only answers that can change today’s meal are shown here.</p>
+              <p className="mb-3 text-sm text-white/65">{t("Only answers that can change today’s meal are shown here.")}</p>
               <div className="grid gap-3 sm:grid-cols-2">
-                <SelectField label="Appetite today" value={form.appetiteLevel} onChange={(value) => set("appetiteLevel", value)} options={[
-                  { value: "suppressed", label: "Suppressed" },
-                  { value: "reduced", label: "Reduced" },
-                  { value: "normal", label: "Normal" },
-                  { value: "increased", label: "Increased" },
+                <SelectField label={t("Appetite today")} value={form.appetiteLevel} onChange={(value) => set("appetiteLevel", value)} options={[
+                  { value: "suppressed", label: t("Suppressed") },
+                  { value: "reduced", label: t("Reduced") },
+                  { value: "normal", label: t("Normal") },
+                  { value: "increased", label: t("Increased") },
                 ]} />
                 {(["nausea", "reflux", "constipation", "diarrhea", "bloating", "earlyFullness", "foodAversions"] as const).map((key) => (
                   <SelectField
                     key={key}
-                    label={{
-                      nausea: "Nausea",
-                      reflux: "Reflux",
-                      constipation: "Constipation",
-                      diarrhea: "Diarrhea",
-                      bloating: "Bloating",
-                      earlyFullness: "Early fullness",
-                      foodAversions: "Food aversions",
-                    }[key]}
+                    label={formCopy.symptoms[key]}
                     value={form[key]}
                     onChange={(value) => set(key, value)}
-                    options={severityOptions}
+                    options={severityOptions.map(option => ({ ...option, label: formCopy.severity[option.value] }))}
                   />
                 ))}
-                <SelectField label="Vomiting" value={form.vomiting} onChange={(value) => set("vomiting", value)} options={[
-                  { value: "none", label: "None" },
-                  { value: "once", label: "Once" },
-                  { value: "multiple", label: "Multiple times" },
-                  { value: "cant_keep_fluids", label: "Cannot keep fluids down" },
+                <SelectField label={t("Vomiting")} value={form.vomiting} onChange={(value) => set("vomiting", value)} options={[
+                  { value: "none", label: t("None") },
+                  { value: "once", label: t("Once") },
+                  { value: "multiple", label: t("Multiple times") },
+                  { value: "cant_keep_fluids", label: t("Cannot keep fluids down") },
                 ]} />
-                <SelectField label="Can you keep fluids down?" value={form.canKeepFluidsDown} onChange={(value) => set("canKeepFluidsDown", value)} options={[
-                  { value: "yes", label: "Yes" },
-                  { value: "with_difficulty", label: "With difficulty" },
-                  { value: "no", label: "No" },
+                <SelectField label={t("Can you keep fluids down?")} value={form.canKeepFluidsDown} onChange={(value) => set("canKeepFluidsDown", value)} options={[
+                  { value: "yes", label: t("Yes") },
+                  { value: "with_difficulty", label: t("With difficulty") },
+                  { value: "no", label: t("No") },
                 ]} />
-                <SelectField label="Can you eat without symptoms worsening?" value={form.canEatWithoutWorsening} onChange={(value) => set("canEatWithoutWorsening", value)} options={[
-                  { value: "yes", label: "Yes" },
-                  { value: "partially", label: "Partially" },
-                  { value: "no", label: "No" },
+                <SelectField label={t("Can you eat without symptoms worsening?")} value={form.canEatWithoutWorsening} onChange={(value) => set("canEatWithoutWorsening", value)} options={[
+                  { value: "yes", label: t("Yes") },
+                  { value: "partially", label: t("Partially") },
+                  { value: "no", label: t("No") },
                 ]} />
               </div>
-              {error && <p className="mt-3 text-sm text-red-300">{error}</p>}
+              {error && <p className="mt-3 text-sm text-red-300">{errorCopy(error)}</p>}
               <div className="mt-4 flex justify-end gap-2">
-                <button type="button" onClick={() => onOpenChange(false)} className="min-h-10 rounded-xl border border-white/15 px-4 text-sm text-white/65">Cancel</button>
+                <button type="button" onClick={() => onOpenChange(false)} className="min-h-10 rounded-xl border border-white/15 px-4 text-sm text-white/65">{t("Cancel")}</button>
                 <button type="button" disabled={isSubmitting || !canSave} onClick={() => void save()} className="min-h-10 rounded-xl bg-violet-500 px-4 text-sm font-black text-white disabled:opacity-60">
-                  {isSubmitting ? "Saving…" : "Save & Continue"}
+                  {isSubmitting ? t("Saving…") : t("Save & Continue")}
                 </button>
               </div>
             </>

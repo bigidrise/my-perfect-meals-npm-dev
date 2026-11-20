@@ -1,3 +1,4 @@
+import { MeasurementQuantity } from "@/components/MeasurementQuantity";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { createPortal } from "react-dom";
@@ -26,7 +27,7 @@ import {
   RotateCcw,
   PackageSearch,
 } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation, useFoodCategoryLabels } from "@/i18n/useConsumerCopy";
 import MealRefinementSheet from "@/components/MealRefinementSheet";
 import VoiceInputButton from "@/components/voice/VoiceInputButton";
 import { useLocation } from "wouter";
@@ -41,7 +42,7 @@ import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
 import { packagedProductEligibility, recipeShoppingQuantity } from "@/lib/groceryCoachPackagedIngredients";
 import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
-import { groceryCoachSelectedProductMetadata } from "@/lib/groceryCoachShoppingTransfer";
+import { groceryCoachSelectedProductMetadata, groceryCoachStandaloneProductMetadata } from "@/lib/groceryCoachShoppingTransfer";
 import MealIngredientBrands from "./MealIngredientBrands";
 import type { ShoppingCatalogDecision } from "@shared/shoppingProductSelection";
 import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
@@ -142,6 +143,11 @@ interface ProductAdviceResult {
     nutrition?: { statement: string; source: string }[];
     allergenInformation?: { statement: string; source: string }[];
     profileInsight?: string;
+    recommendationExplanation?: { whyBetter: string[]; targetCriteria: string };
+    recommendationIdentityVerified?: boolean;
+    variant?: string;
+    packageSize?: string;
+    shoppingReference?: import("@shared/shoppingProductSelection").ShoppingProductReference;
     shoppingSelection?: ShoppingCatalogDecision;
     shoppingDisplay?: "selectable" | "label_review" | "hidden";
     shoppingCaution?: string;
@@ -319,6 +325,19 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { t } = useTranslation("shopping");
+  const categoryLabels = useFoodCategoryLabels();
+  const quickStartLabels = [
+    t("What's for dinner tonight?"), t("Give me something high-protein"),
+    t("I need something quick"), t("Family-friendly meal"),
+    // Condition-specific prompts require separate wording approval.
+    QUICK_STARTS[4], QUICK_STARTS[5],
+  ];
+  const loadingLabels: Record<string, string> = {
+    [LOADING_MESSAGES[1]]: t("Finding the right meal for you…"),
+    [LOADING_MESSAGES[2]]: t("Scaling ingredient quantities…"),
+    [LOADING_MESSAGES[3]]: t("Building your shopping list…"),
+    [LOADING_MESSAGES[4]]: t("Personalizing your recommendation…"),
+  };
   const addItems = useShoppingListStore((s) => s.addItems);
   const addItem = useShoppingListStore((s) => s.addItem);
   const [, setLocation] = useLocation();
@@ -644,10 +663,14 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       quantity: 1,
       unit: "",
       sourceMeals: [t("findProduct.tabFindProduct")],
+      ...(shoppingMetadataEnabled && productSearch?.analysis ? {
+        ingredientMetadata: groceryCoachStandaloneProductMetadata(brand,
+          { name: brand, byNameAnalysis: productSearch.analysis }),
+      } : {}),
     }]);
     setProductAddedKeys((prev) => new Set(Array.from(prev).concat(key)));
     toast({ title: t("findProduct.added") });
-  }, [productAddedKeys, addItems, toast, t]);
+  }, [productAddedKeys, addItems, toast, t, productSearch]);
 
   const handleCatalogAddToList = useCallback((product: CatalogProductMatch) => {
     const key = `catalog:${product.productKey}`;
@@ -660,6 +683,9 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     addItem({
       name, quantity: 1, unit: "", category: "Other",
       sourceMeals: [t("findProduct.tabFindProduct")],
+      ...(shoppingMetadataEnabled ? {
+        ingredientMetadata: groceryCoachStandaloneProductMetadata(name, product),
+      } : {}),
     });
     setProductAddedKeys((prev) => new Set([...prev, key]));
     toast({ title: t("findProduct.added"), description: name });
@@ -696,7 +722,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       toast({ title: t("findProduct.saved"), description: `${product.brand} · ${product.name}` });
     } catch {
       if (sessionGenRef.current === generation) {
-        toast({ title: "Could not save grocery", description: "Please try again.", variant: "destructive" });
+        toast({ title: t("Could not save grocery"), description: t("Please try again."), variant: "destructive" });
       }
     } finally {
       if (sessionGenRef.current === generation) setSavingKey(null);
@@ -901,7 +927,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     if (groceryCoachCatalogEnabled && result.shoppingList.some(s =>
       pickedBrands.get(s.item.toLowerCase())?.catalogProduct && recipeShoppingQuantity(s.quantity) === null
     )) {
-      toast({ title: "Recipe quantity needs review", description: "A selected product has an unspecified recipe amount. Clear that shopping choice before adding the list; no package quantity has been invented." });
+      toast({ title: t("Recipe quantity needs review"), description: t("A selected product has an unspecified recipe amount. Clear that shopping choice before adding the list; no package quantity has been invented.") });
       return;
     }
     const mealName = result.meal?.name || "Grocery Coach";
@@ -932,17 +958,17 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       ];
     } catch (error) {
       if (!shoppingMetadataEnabled) throw error;
-      toast({ title: "Shopping choice needs review", description: "The chosen product information couldn't be preserved. Nothing was added; refresh the choice before trying again." });
+      toast({ title: t("Shopping choice needs review"), description: t("The chosen product information couldn't be preserved. Nothing was added; refresh the choice before trying again.") });
       return;
     }
     addItems(allItems);
     setAddedToList(true);
     const pickedCount = pickedBrands.size;
     const desc = pickedCount > 0
-      ? `${allItems.length} items added — ${pickedCount} with your brand selection.`
-      : `${allItems.length} items added.`;
-    toast({ title: "Added to shopping list!", description: desc });
-  }, [result, pickedBrands, addItems, toast, mealCard?.id]);
+      ? t("{{count}} items added — {{brands}} with your brand selection.", { count: allItems.length, brands: pickedCount })
+      : t("{{count}} items added.", { count: allItems.length });
+    toast({ title: t("Added to shopping list!"), description: desc });
+  }, [result, pickedBrands, addItems, toast, mealCard?.id, t]);
 
   const finalizeCard = useCallback(async (coachResult: CoachResult) => {
     const gen = sessionGenRef.current; // capture before first await
@@ -1054,8 +1080,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setSwapResult(null);
     setSwapSelected(null);
     setSwapCustom("");
-    toast({ title: "Ingredient replaced!", description: `${replaced} → ${chosen}` });
-  }, [swapTarget, swapSelected, toast, result, finalizeCard]);
+    toast({ title: t("Ingredient replaced!"), description: `${replaced} → ${chosen}` });
+  }, [swapTarget, swapSelected, toast, result, finalizeCard, t]);
 
   const handleSubmit = useCallback(() => {
     sendMessage(input);
@@ -1081,7 +1107,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         className="grocery-coach-sheet"
         role="dialog"
         aria-modal="true"
-        aria-label="Grocery Store Coach"
+        aria-label={t("Grocery Store Coach")}
         data-testid="grocery-coach-sheet"
         data-compact-viewport={!!viewport && viewport.height < 480}
         style={{
@@ -1114,21 +1140,21 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
             <ChefHat style={{ width: 20, height: 20, color: "#fb923c" }} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: "white", fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>Grocery Store Coach</div>
-            <div className="grocery-coach-subtitle" style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>Decide what to make. Know what to buy.</div>
+            <div style={{ color: "white", fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>{t("Grocery Store Coach")}</div>
+            <div className="grocery-coach-subtitle" style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>{t("Decide what to make. Know what to buy.")}</div>
           </div>
           {result && (
             <button
               onClick={handleNewSession}
-              title="Start a new session"
+              title={t("Start a new session")}
               style={{ padding: "5px 10px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.45)", fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}
             >
-              New
+              {t("New")}
             </button>
           )}
           <button
             onClick={() => onOpenChange(false)}
-            aria-label="Close Grocery Store Coach"
+            aria-label={t("Close")}
             style={{ padding: 8, borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "none", color: "rgba(255,255,255,0.5)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
           >
             <X style={{ width: 16, height: 16 }} />
@@ -1229,11 +1255,11 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                               : "Check Current Label"}
                           </div>
                           <div style={{ color: "rgba(255,255,255,0.62)", fontSize: 12, marginTop: 7, lineHeight: 1.45 }}>
-                            {product.ingredients ? `Catalog ingredients: ${product.ingredients}` : "Ingredient declaration unavailable."}
+                            {product.ingredients ? <>{t("Catalog ingredients:")} {product.ingredients}</> : t("Ingredient declaration unavailable.")}
                           </div>
                           {product.nutrition?.length ? (
                             <div style={{ color: "rgba(255,255,255,0.62)", fontSize: 11, marginTop: 7, lineHeight: 1.45 }}>
-                              Source nutrition: {product.nutrition.slice(0, 5).map((fact) => fact.statement).join(" · ")}
+                              {t("Source nutrition:")} {product.nutrition.slice(0, 5).map((fact) => fact.statement).join(" · ")}
                             </div>
                           ) : null}
                           {product.allergenInformation?.length ? (
@@ -1245,22 +1271,22 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                           ) : null}
                           {product.profileInsight && (
                             <div style={{ color: "#d6d3d1", fontSize: 12, marginTop: 8, lineHeight: 1.45 }}>
-                               {product.recommendationStatus === "profile_matched_pick" ? "Why this pick: " : "Why compare this choice: "}
+                               {product.recommendationStatus === "profile_matched_pick" ? t("Why this pick: ") : t("Why compare this choice: ")}
                               {product.profileInsight}
                             </div>
                           )}
                           {product.research?.length ? (
                             <div style={{ color: "rgba(255,255,255,0.52)", fontSize: 11, marginTop: 7 }}>
-                              Sources checked: {product.research.map((step) =>
+                              {t("Sources checked:")} {product.research.map((step) =>
                                 `${step.source === "usda_branded" ? "USDA" : "Open Food Facts"} ${step.phase?.replace("_", " ") ?? "lookup"}: ${step.result.replace("_", " ")}`
                               ).join(" · ")}
                             </div>
                           ) : null}
                           <div style={{ color: "rgba(255,255,255,0.48)", fontSize: 11, marginTop: 7, lineHeight: 1.5 }}>
-                            {product.serving ? `Serving: ${product.serving} · ` : ""}
+                            {product.serving ? t("Serving: {{serving}} · ", { serving: product.serving }) : ""}
                             {product.barcode ? `GTIN/UPC: ${product.barcode} · ` : ""}
                             {product.source} #{product.sourceRecordId}
-                            {product.catalogDate ? ` · Source identity date (not formulation date): ${product.catalogDate}` : ""}
+                            {product.catalogDate ? t(" · Source identity date (not formulation date): {{date}}", { date: product.catalogDate }) : ""}
                           </div>
                           <div style={{ color: "#fdba74", fontSize: 11, marginTop: 8, lineHeight: 1.4 }}>{product.verificationMessage}</div>
                           <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1273,7 +1299,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                               {savedProductKeys.has(catalogSavedKey(product))
                                 ? t("findProduct.saved")
                                 : savingKey === catalogSavedKey(product)
-                                  ? t("findProduct.saving") : "Save to Groceries"}
+                                  ? t("findProduct.saving") : t("Save to Groceries")}
                             </PillButton>
                             <PillButton
                               active={productAddedKeys.has(`catalog:${product.productKey}`)}
@@ -1369,7 +1395,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                                         ? "1px solid rgba(251,146,60,0.35)"
                                         : `1px solid ${GRADE_COLOR[brand.grade] ?? "#fb923c"}44`,
                                     }}>
-                                      {brand.evidenceStatus === "unverified" ? "Scan to verify" : brand.grade}
+                                      {brand.evidenceStatus === "unverified" ? t("Scan to verify") : brand.grade}
                                     </span>
                                   </div>
                                   <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, lineHeight: 1.4, marginBottom: 8 }}>
@@ -1449,7 +1475,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
               >
                 <div>
                   <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-                    How many people?
+                    {t("How many people?")}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
                     <button
@@ -1462,7 +1488,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                     <div style={{ flex: 1, textAlign: "center" }}>
                       <div style={{ color: "white", fontWeight: 700, fontSize: 28 }}>{servingCount}</div>
                       <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, marginTop: 2 }}>
-                        {servingCount === 1 ? "Just me" : servingCount === 2 ? "2 people" : `${servingCount} people`}
+                        {servingCount === 1 ? t("Just me") : servingCount === 2 ? t("2 people") : t("{{count}} people", { count: servingCount })}
                       </div>
                     </div>
                     <button
@@ -1485,7 +1511,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                           border: servingCount === n ? "1px solid #f97316" : "1px solid rgba(255,255,255,0.1)",
                         }}
                       >
-                        {n === 1 ? "Me" : n}
+                        {n === 1 ? t("Me") : n}
                       </button>
                     ))}
                   </div>
@@ -1493,16 +1519,16 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
                 <div>
                   <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-                    Quick start
+                    {t("Quick start")}
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {QUICK_STARTS.map((chip) => (
+                    {QUICK_STARTS.map((chip, index) => (
                       <button
                         key={chip}
                         onClick={() => sendMessage(chip)}
                         style={{ padding: "8px 12px", borderRadius: 999, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", fontSize: 13, cursor: "pointer" }}
                       >
-                        {chip}
+                        {quickStartLabels[index]}
                       </button>
                     ))}
                   </div>
@@ -1528,7 +1554,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                 <motion.div key={loadingMsg} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
                   style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, textAlign: "center", fontWeight: 500 }}
                 >
-                  {loadingMsg}
+                  {loadingLabels[loadingMsg] || loadingMsg}
                 </motion.div>
               </motion.div>
             )}
@@ -1542,17 +1568,17 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                 <div style={{ borderRadius: 12, background: "rgba(234,88,12,0.12)", border: "1px solid rgba(249,115,22,0.3)", padding: 16 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
                     <div style={{ color: "#fb923c", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                      Tonight's Recommendation
+                      {t("Tonight's Recommendation")}
                     </div>
                     {cardPhase === "ready" && (
                       <div style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(5,150,105,0.18)", border: "1px solid rgba(52,211,153,0.35)", borderRadius: 999, padding: "3px 9px" }}>
                         <BookmarkCheck style={{ width: 12, height: 12, color: "#34d399", flexShrink: 0 }} />
-                        <span style={{ color: "#34d399", fontSize: 11, fontWeight: 600 }}>Saved to Favorites</span>
+                        <span style={{ color: "#34d399", fontSize: 11, fontWeight: 600 }}>{t("Saved to Favorites")}</span>
                       </div>
                     )}
                   </div>
                   <div style={{ color: "white", fontWeight: 700, fontSize: 20, lineHeight: 1.2, marginBottom: 8 }}>
-                    {result.meal?.name || "Your Personalized Meal"}
+                    {result.meal?.name || t("Your Personalized Meal")}
                   </div>
                   <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>
                     {result.meal?.description}
@@ -1560,12 +1586,12 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   <div style={{ display: "flex", gap: 16, marginBottom: 12 }}>
                     <span style={{ display: "flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,0.5)", fontSize: 13 }}>
                       <Clock style={{ width: 14, height: 14, flexShrink: 0 }} />
-                      {result.meal?.prepTime || "~30 min"}
+                      {result.meal?.prepTime || t("~30 min")}
                     </span>
                     <span style={{ display: "flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,0.5)", fontSize: 13 }}>
                       <Users style={{ width: 14, height: 14, flexShrink: 0 }} />
                       {result.servingCount || result.meal?.servings || 1}{" "}
-                      {(result.servingCount || result.meal?.servings || 1) === 1 ? "serving" : "servings"}
+                      {(result.servingCount || result.meal?.servings || 1) === 1 ? t("serving") : t("servings")}
                     </span>
                   </div>
                   {/* Undo refinement row */}
@@ -1573,14 +1599,14 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", borderRadius: 8, background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.3)", marginBottom: 10 }}>
                       <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#a78bfa", fontSize: 12, fontWeight: 600 }}>
                         <Wand2 style={{ width: 12, height: 12 }} />
-                        Showing refined version
+                        {t("Showing refined version")}
                       </span>
                       <button
                         onClick={() => { setResult(preRefinedResult); setResultOwnerKey(SESSION_KEY); setPreRefinedResult(null); }}
                         style={{ display: "flex", alignItems: "center", gap: 5, color: "#a78bfa", fontSize: 12, fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}
                       >
                         <RotateCcw style={{ width: 11, height: 11 }} />
-                        Restore original
+                        {t("Restore original")}
                       </button>
                     </div>
                   )}
@@ -1590,7 +1616,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                 {cardPhase === "generating" && (
                   <div style={{ borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
                     <Loader2 style={{ width: 16, height: 16, color: "#fb923c", flexShrink: 0, animation: "spin 1s linear infinite" }} />
-                    <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>Creating your personalized recipe card…</span>
+                    <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>{t("Creating your personalized recipe card…")}</span>
                   </div>
                 )}
 
@@ -1598,17 +1624,17 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   <div style={{ borderRadius: 12, background: "rgba(5,150,105,0.1)", border: "1px solid rgba(52,211,153,0.3)", padding: 16 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                       <CheckCircle2 style={{ width: 18, height: 18, color: "#34d399", flexShrink: 0 }} />
-                      <span style={{ color: "#34d399", fontWeight: 700, fontSize: 15 }}>Recipe Ready</span>
+                      <span style={{ color: "#34d399", fontWeight: 700, fontSize: 15 }}>{t("Recipe Ready")}</span>
                     </div>
                     <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, lineHeight: 1.55, marginBottom: 14 }}>
-                      Your Grocery Coach created a complete meal card and saved it to <span style={{ color: "white", fontWeight: 600 }}>Favorites</span>. It includes the recipe, cooking instructions, nutrition details, and your full shopping list.
+                      {t("Your Grocery Coach created a complete meal card and saved it to")} <span style={{ color: "white", fontWeight: 600 }}>{t("Favorites")}</span>{t(". It includes the recipe, cooking instructions, nutrition details, and your full shopping list.")}
                     </div>
                     <button
                       onClick={() => { onOpenChange(false); setLocation(mealCard.destination); }}
                       style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px 0", borderRadius: 10, background: "rgba(52,211,153,0.2)", border: "1px solid rgba(52,211,153,0.4)", color: "#34d399", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
                     >
                       <BookmarkCheck style={{ width: 16, height: 16, flexShrink: 0 }} />
-                      View Meal Card
+                      {t("View Meal Card")}
                     </button>
                   </div>
                 )}
@@ -1618,14 +1644,14 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                     <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                       <AlertTriangle style={{ width: 16, height: 16, color: "#f87171", flexShrink: 0, marginTop: 1 }} />
                       <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 13, lineHeight: 1.45 }}>
-                        Your recommendation is ready. Recover its saved meal card or finish creating it. An existing Favorite will be reused, not duplicated.
+                        {t("Your recommendation is ready. Recover its saved meal card or finish creating it. An existing Favorite will be reused, not duplicated.")}
                       </span>
                     </div>
                     <button
                       onClick={() => { setCardPhase("generating"); finalizeCard(result); }}
                       style={{ width: "100%", padding: "12px 14px", borderRadius: 8, background: "rgba(249,115,22,0.18)", border: "1px solid rgba(249,115,22,0.4)", color: "#fb923c", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
                     >
-                      Create or Recover Meal Card
+                      {t("Create or Recover Meal Card")}
                     </button>
                   </div>
                 )}
@@ -1637,7 +1663,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                     style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.65)", fontSize: 12, cursor: "pointer" }}
                   >
                     <Wand2 style={{ width: 12, height: 12 }} />
-                    Refine Meal
+                    {t("Refine Meal")}
                   </button>
                 </div>
 
@@ -1652,7 +1678,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                 {result.reasoning?.length > 0 && (
                   <div style={{ borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", padding: 16 }}>
                     <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
-                      Why This Fits You
+                      {t("Why This Fits You")}
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       {result.reasoning.map((r, i) => (
@@ -1674,8 +1700,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <ShoppingCart style={{ width: 16, height: 16, color: "#fb923c" }} />
-                        <span style={{ color: "white", fontWeight: 600, fontSize: 14 }}>Shopping List</span>
-                        <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>({result.shoppingList.length} items)</span>
+                        <span style={{ color: "white", fontWeight: 600, fontSize: 14 }}>{t("Shopping List")}</span>
+                        <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>({result.shoppingList.length} {t("items)")}</span>
                       </div>
                       {listExpanded
                         ? <ChevronUp style={{ width: 16, height: 16, color: "rgba(255,255,255,0.4)" }} />
@@ -1694,17 +1720,17 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                             {[...sortedCategories, ...otherCategories].map((cat) => (
                               <div key={cat}>
                                 <div style={{ color: "rgba(251,146,60,0.7)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-                                  {cat}
+                                  {categoryLabels[cat] || cat}
                                 </div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                                   {groupedList[cat].map((s, i) => (
                                     <div key={`${SESSION_KEY}:${JSON.stringify(result)}:${i}`} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 14, padding: "2px 0" }}>
                                       <span style={{ color: "rgba(255,255,255,0.85)", lineHeight: 1.3, flex: 1, minWidth: 0 }}>{s.item}</span>
                                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                                        <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 12 }}>{s.quantity} {s.unit}</span>
+                                        <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 12 }}><MeasurementQuantity amount={s.quantity} unit={s.unit} /></span>
                                         <button
                                           onClick={() => handleSwapRequest(s)}
-                                          title={`Replace ${s.item}`}
+                                          title={t("Replace {{item}}", { item: s.item })}
                                           style={{
                                             display: "flex", alignItems: "center", gap: 4,
                                             padding: "3px 8px", borderRadius: 999,
@@ -1715,7 +1741,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                                           }}
                                         >
                                           <ArrowLeftRight style={{ width: 10, height: 10 }} />
-                                          Replace
+                                          {t("Replace")}
                                         </button>
                                       </div>
                                       {packagedProductEligibility(s.item).eligible && (
@@ -1768,19 +1794,19 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <CheckCircle2 style={{ width: 15, height: 15, color: "rgba(255,255,255,0.35)", flexShrink: 0 }} />
                         <span style={{ color: "rgba(255,255,255,0.5)", fontWeight: 600, fontSize: 13 }}>
-                          You mentioned having
+                          {t("You mentioned having")}
                         </span>
-                        <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>({result.ownedIngredients.length} item{result.ownedIngredients.length !== 1 ? "s" : ""})</span>
+                        <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>({result.ownedIngredients.length} {result.ownedIngredients.length === 1 ? t("item") : t("items")})</span>
                       </div>
                       <p style={{ margin: "4px 0 0 23px", color: "rgba(255,255,255,0.28)", fontSize: 11, lineHeight: 1.4 }}>
-                        These are ingredients you told the coach you already have at home — they won't be added to your shopping list.
+                        {t("These are ingredients you told the coach you already have at home — they won't be added to your shopping list.")}
                       </p>
                     </div>
                     <div style={{ padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
                       {result.ownedIngredients.map((o, i) => (
                         <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 13 }}>
                           <span style={{ color: "rgba(255,255,255,0.55)", lineHeight: 1.3 }}>{o.item}</span>
-                          <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, flexShrink: 0 }}>{o.quantity} {o.unit}</span>
+                          <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, flexShrink: 0 }}><MeasurementQuantity amount={o.quantity} unit={o.unit} /></span>
                         </div>
                       ))}
                     </div>
@@ -1804,16 +1830,16 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                           >
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                               <Sparkles style={{ width: 16, height: 16, color: "#fb923c" }} />
-                              <span style={{ color: "white", fontWeight: 600, fontSize: 14 }}>Smart Cart</span>
+                              <span style={{ color: "white", fontWeight: 600, fontSize: 14 }}>{t("Smart Cart")}</span>
                               {advisorLoading && (
                                 <div style={{ display: "flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
                                   <Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} />
-                                  Finding best brands…
+                                  {t("Finding best brands…")}
                                 </div>
                               )}
                               {hasAdvice && !advisorLoading && (
                                 <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
-                                  ({productAdvice!.advice.length} ingredient{productAdvice!.advice.length !== 1 ? "s" : ""})
+                                  ({productAdvice!.advice.length} {productAdvice!.advice.length === 1 ? t("ingredient") : t("ingredients")})
                                 </span>
                               )}
                             </div>
@@ -1826,7 +1852,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                           {hasSavedInCart && !advisorLoading && (
                             <button
                               onClick={(e) => { e.stopPropagation(); setShowSavedOnly((v) => !v); }}
-                              title={showSavedOnly ? "Show all ingredients" : "Show saved favorites only"}
+                              title={showSavedOnly ? t("Show all ingredients") : t("Show saved favorites only")}
                               style={{
                                 flexShrink: 0, display: "flex", alignItems: "center", gap: 5,
                                 margin: "0 12px 0 0", padding: "5px 10px", borderRadius: 999,
@@ -1837,7 +1863,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                               }}
                             >
                               <BookmarkCheck style={{ width: 12, height: 12, flexShrink: 0 }} />
-                              {showSavedOnly ? "Saved only" : "Saved only"}
+                              {t("Saved only")}
                             </button>
                           )}
                         </div>
@@ -1935,9 +1961,9 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                     }}
                   >
                     {addedToList ? (
-                      <><CheckCircle2 style={{ width: 20, height: 20 }} /> Added to List!</>
+                      <><CheckCircle2 style={{ width: 20, height: 20 }} /> {t("Added to List!")}</>
                     ) : (
-                      <><ShoppingCart style={{ width: 20, height: 20 }} /> Add All to Shopping List</>
+                      <><ShoppingCart style={{ width: 20, height: 20 }} /> {t("Add All to Shopping List")}</>
                     )}
                   </button>
 
@@ -1956,7 +1982,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                     style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px 0", borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
                   >
                     <RefreshCw style={{ width: 16, height: 16 }} />
-                    Try a Different Meal
+                    {t("Try a Different Meal")}
                   </button>
                 </div>
 
@@ -1964,7 +1990,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                 {result.followUpSuggestions?.length > 0 && (
                   <div>
                     <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-                      Refine this recommendation
+                      {t("Refine this recommendation")}
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                       {result.followUpSuggestions.map((chip) => (
@@ -1992,11 +2018,11 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
             <label htmlFor="grocery-coach-product-query" style={{ display: "block", color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
               {t("findProduct.inputLabel")}
             </label>
-            <div className="grocery-coach-composer flex min-w-0 gap-2 items-end" data-testid="product-search-composer">
+            <div className="grocery-coach-composer flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end" data-testid="product-search-composer">
               <textarea
                 className="grocery-coach-product-input"
                 id="grocery-coach-product-query"
-                rows={1}
+                rows={3}
                 wrap="soft"
                 value={productQuery}
                 onChange={(e) => setProductQuery(e.target.value)}
@@ -2011,7 +2037,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   color: "white", fontSize: 16, outline: "none",
                 }}
               />
-              <div className="grocery-coach-product-actions flex min-w-0 items-start gap-2 shrink-0" data-testid="product-search-actions">
+              <div className="grocery-coach-product-actions flex w-full min-w-0 items-center gap-2 sm:w-auto sm:shrink-0" data-testid="product-search-actions">
                 <VoiceInputButton value={productQuery} onChange={setProductQuery} mode="replace" label={t("findProduct.voiceStart")} className="min-w-0" />
                 <button
                   className="grocery-coach-send flex-1 sm:flex-none"
@@ -2051,15 +2077,15 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
           }}>
             {phase === "idle" && (
               <div className="grocery-coach-composer-caption" style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-                Or describe what you're feeling
+                {t("Or describe what you're feeling")}
               </div>
             )}
             {phase === "result" && (
               <div className="grocery-coach-composer-caption" style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-                Refine this recommendation
+                {t("Refine this recommendation")}
               </div>
             )}
-            <div className="grocery-coach-composer" style={{ display: "flex", gap: 8 }}>
+            <div className="grocery-coach-composer flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end" data-testid="meal-request-composer">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -2067,51 +2093,63 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }}
                 placeholder={
                   phase === "idle"
-                    ? "e.g. I have no idea what I want for dinner…"
-                    : "Make it cheaper… faster… vegetarian…"
+                    ? t("e.g. I have no idea what I want for dinner…")
+                    : t("Make it cheaper… faster… vegetarian…")
                 }
-                rows={2}
-                aria-label="Describe your meal needs"
-                data-testid="input-coach-meal"
+                rows={3}
+                aria-label={phase === "idle" ? t("Or describe what you're feeling") : t("Refine this recommendation")}
+                data-testid="input-meal-request"
                 style={{
                   flex: 1,
                   minWidth: 0,
+                  width: "100%",
+                  maxWidth: "100%",
+                  boxSizing: "border-box",
                   background: "rgba(255,255,255,0.05)",
                   border: "1px solid rgba(255,255,255,0.1)",
                   borderRadius: 12,
-                  padding: "10px 12px",
+                  padding: "12px 14px",
                   color: "white",
                   fontSize: 16,
-                  resize: "none",
+                  resize: "vertical",
+                  whiteSpace: "pre-wrap",
+                  overflowWrap: "anywhere",
+                  overflowX: "hidden",
                   outline: "none",
                   fontFamily: "inherit",
                 }}
               />
-              <VoiceInputButton
-                value={input}
-                onChange={setInput}
-                label="Describe your meal needs by voice"
-                className="shrink-0"
-              />
-              <button
-                className="grocery-coach-send"
-                aria-label="Send meal request"
-                onClick={handleSubmit}
-                disabled={!input.trim()}
-                style={{
-                  padding: "0 16px",
-                  borderRadius: 12,
-                  background: input.trim() ? "#ea580c" : "rgba(255,255,255,0.1)",
-                  border: "none",
-                  color: input.trim() ? "white" : "rgba(255,255,255,0.3)",
-                  cursor: input.trim() ? "pointer" : "not-allowed",
-                  display: "flex",
-                  alignItems: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Send style={{ width: 16, height: 16 }} />
-              </button>
+              <div className="grocery-coach-product-actions flex w-full min-w-0 items-center gap-2 sm:w-auto sm:shrink-0" data-testid="meal-request-actions">
+                <VoiceInputButton
+                  value={input}
+                  onChange={setInput}
+                  label={t("Describe your meal needs by voice")}
+                  className="shrink-0"
+                />
+                <button
+                  className="grocery-coach-send flex-1 sm:flex-none"
+                  aria-label={t("Send message")}
+                  onClick={handleSubmit}
+                  disabled={!input.trim()}
+                  data-testid="button-meal-request-send"
+                  style={{
+                    minHeight: 48, padding: "12px 16px",
+                    borderRadius: 12,
+                    background: input.trim() ? "#ea580c" : "rgba(255,255,255,0.1)",
+                    border: "none",
+                    color: input.trim() ? "white" : "rgba(255,255,255,0.3)",
+                    cursor: input.trim() ? "pointer" : "not-allowed",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    flexShrink: 0,
+                  }}
+                >
+                  <Send style={{ width: 16, height: 16 }} />
+                  <span>{t("Send message")}</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -2142,8 +2180,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
               <X style={{ width: 18, height: 18 }} />
             </button>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ color: "white", fontWeight: 700, fontSize: 15 }}>Replace {swapTarget.item}</div>
-              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>Coach keeps the rest of your meal</div>
+              <div style={{ color: "white", fontWeight: 700, fontSize: 15 }}>{t("Replace")} {swapTarget.item}</div>
+              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>{t("Coach keeps the rest of your meal")}</div>
             </div>
           </div>
 
@@ -2152,7 +2190,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
             {swapLoading && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "48px 0", color: "rgba(255,255,255,0.5)" }}>
                 <Loader2 style={{ width: 28, height: 28, color: "#fb923c", animation: "spin 1s linear infinite" }} />
-                <span style={{ fontSize: 14 }}>Finding the best replacement…</span>
+                <span style={{ fontSize: 14 }}>{t("Finding the best replacement…")}</span>
               </div>
             )}
             {swapError && !swapLoading && (
@@ -2170,7 +2208,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                 )}
                 <div>
                   <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-                    Coach's Best Pick
+                    {t("Coach's Best Pick")}
                   </div>
                   <SwapOptionCard
                     suggestion={swapResult.coachSuggestion}
@@ -2182,7 +2220,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                 {swapResult.savedOption && (
                   <div>
                     <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-                      ★ From Your Saved Groceries
+                      {t("★ From Your Saved Groceries")}
                     </div>
                     <SwapOptionCard
                       suggestion={swapResult.savedOption}
@@ -2195,7 +2233,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                 {swapResult.alternatives.length > 0 && (
                   <div>
                     <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-                      Other Options
+                      {t("Other Options")}
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       {swapResult.alternatives.map((alt) => (
@@ -2212,13 +2250,13 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                 )}
                 <div>
                   <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-                    Or Type What You Want
+                    {t("Or Type What You Want")}
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <input
                       value={swapCustom}
                       onChange={(e) => setSwapCustom(e.target.value)}
-                      placeholder="e.g. brown rice, zucchini noodles…"
+                      placeholder={t("e.g. brown rice, zucchini noodles…")}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && swapCustom.trim()) {
                           handleSwapRequest(swapTarget!, swapCustom.trim());
@@ -2234,7 +2272,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                       value={swapCustom}
                       onChange={setSwapCustom}
                       disabled={swapCustomLoading}
-                      label="Describe your preferred swap by voice"
+                      label={t("Describe your preferred swap by voice")}
                       className="shrink-0"
                     />
                     <button
@@ -2250,7 +2288,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                     >
                       {swapCustomLoading
                         ? <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} />
-                        : "Ask Coach"
+                        : t("Ask Coach")
                       }
                     </button>
                   </div>
@@ -2266,7 +2304,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                 onClick={() => { setSwapTarget(null); setSwapResult(null); setSwapError(null); setSwapCustom(""); }}
                 style={{ flex: 1, padding: "14px 0", borderRadius: 12, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
               >
-                Cancel
+                {t("Cancel")}
               </button>
               {swapResult && (
                 <button
@@ -2280,7 +2318,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                     cursor: swapSelected ? "pointer" : "default",
                   }}
                 >
-                  Use This
+                  {t("Use This")}
                 </button>
               )}
             </div>
@@ -2397,7 +2435,7 @@ function SwapOptionCard({
         <span style={{ color: "white", fontWeight: 600, fontSize: 14 }}>{suggestion.item}</span>
         {suggestion.quantity && (
           <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
-            · {suggestion.quantity}{suggestion.unit ? ` ${suggestion.unit}` : ""}
+            · <MeasurementQuantity amount={suggestion.quantity} unit={suggestion.unit} />
           </span>
         )}
       </div>
@@ -2436,7 +2474,7 @@ export function SmartCartAdviceBody({
         >
           <span style={{ fontSize: 14 }}>★</span>
           <span style={{ color: "#fb923c", fontSize: 12, fontWeight: 600 }}>
-            Personalized from your Saved Groceries
+            {t("Personalized from your Saved Groceries")}
           </span>
         </div>
       )}
@@ -2482,7 +2520,7 @@ export function SmartCartAdviceBody({
                           ? "1px solid rgba(251,146,60,0.35)"
                           : `1px solid ${GRADE_COLOR[brand.grade] ?? "#fb923c"}44`,
                       }}>
-                        {brand.evidenceStatus === "unverified" ? "Scan to verify" : brand.grade}
+                        {brand.evidenceStatus === "unverified" ? t("Scan to verify") : brand.grade}
                       </span>
                       {isSaved && (
                         <span
@@ -2494,7 +2532,7 @@ export function SmartCartAdviceBody({
                             border: "1px solid rgba(249,115,22,0.35)",
                           }}
                         >
-                          ★ Saved
+                          {t("★ Saved")}
                         </span>
                       )}
                     </div>
@@ -2535,7 +2573,7 @@ export function SmartCartAdviceBody({
                       disabled={isSaved || isSaving}
                       style={{ minWidth: 72 }}
                     >
-                      {isSaved ? "Saved ✓" : isSaving ? "Saving…" : "Save"}
+                      {isSaved ? t("Saved ✓") : isSaving ? t("Saving…") : t("Save")}
                     </PillButton>
                   </div>
                 </div>

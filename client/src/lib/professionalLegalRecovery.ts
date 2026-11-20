@@ -8,10 +8,17 @@ const STORAGE_KEY = "mpm_professional_legal_recovery";
 interface RecoveryContext {
   returnTo: string;
   action: ProfessionalLegalRecoveryAction;
+  userId?: string;
 }
 
 export function safeProfessionalReturnTo(value: string | null | undefined): string | null {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
+  if (/[\\\u0000-\u0020\u007f]/.test(value)) return null;
+  try {
+    if (new URL(value, "https://professional-return.invalid").origin !== "https://professional-return.invalid") return null;
+  } catch {
+    return null;
+  }
   if (value.startsWith("/auth") || value.startsWith("/procare-attestation")) return null;
   return value;
 }
@@ -40,9 +47,10 @@ export function inferProfessionalLegalAction(
 export function createProfessionalLegalRecoveryUrl(
   returnTo: string | null | undefined,
   action: ProfessionalLegalRecoveryAction = "professional-workspace",
+  userId?: string,
 ): string {
   const safeReturnTo = safeProfessionalReturnTo(returnTo) || "/professional-dashboard";
-  const context: RecoveryContext = { returnTo: safeReturnTo, action };
+  const context: RecoveryContext = { returnTo: safeReturnTo, action, userId };
   try {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(context));
   } catch {
@@ -51,6 +59,7 @@ export function createProfessionalLegalRecoveryUrl(
 
   const params = new URLSearchParams({
     recovery: "true",
+    legalOnly: "true",
     action,
     returnTo: safeReturnTo,
   });
@@ -59,6 +68,7 @@ export function createProfessionalLegalRecoveryUrl(
 
 export function readProfessionalLegalRecovery(
   search: string,
+  userId?: string,
 ): RecoveryContext | null {
   const params = new URLSearchParams(search);
   const queryReturnTo = safeProfessionalReturnTo(params.get("returnTo"));
@@ -79,6 +89,7 @@ export function readProfessionalLegalRecovery(
     const storedReturnTo = safeProfessionalReturnTo(stored?.returnTo);
     if (
       storedReturnTo &&
+      (!userId || stored?.userId === userId) &&
       (
         stored?.action === "studio-creation" ||
         stored?.action === "client-invite" ||

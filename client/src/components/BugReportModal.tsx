@@ -1,3 +1,4 @@
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 /**
  * BugReportModal — compact report-a-bug form.
  *
@@ -31,6 +32,7 @@ interface Props {
 type Phase = "form" | "submitting" | "success" | "error";
 
 export function BugReportModal({ open, onClose }: Props) {
+  const { t } = useConsumerCopy();
   const { user } = useAuth();
 
   const [description,        setDescription]        = useState("");
@@ -191,7 +193,7 @@ export function BugReportModal({ open, onClose }: Props) {
               {/* What were you trying to do */}
               <div>
                 <label className="block text-xs font-medium text-white/70 mb-1.5">
-                  What were you trying to do? <span className="text-white/30 font-normal">(optional)</span>
+                  What were you trying to do? <span className="text-white/30 font-normal">{t("(optional)")}</span>
                 </label>
                 <textarea
                   className="w-full bg-zinc-800 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/30 resize-none focus:outline-none focus:ring-1 focus:ring-amber-500/50"

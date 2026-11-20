@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { PillButton } from "@/components/ui/pill-button";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp, AlertTriangle, CheckCircle, ClipboardList, Clock } from "lucide-react";
@@ -240,6 +241,7 @@ function AdaptationCard({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function GLP1DailyCheckin() {
+  const { t: consumerT } = useConsumerCopy();
   const { t } = useTranslation();
   const { checkin, tolerance, isLoading, isSubmitting, lastUpdated, submit, error } =
     useGlp1HubCheckin();
@@ -534,7 +536,7 @@ export default function GLP1DailyCheckin() {
               options={[
                 { value: "none",      label: t("glp1Checkin.notify.keepPrivate") },
                 { value: "coach",     label: t("glp1Checkin.notify.coach") },
-                { value: "physician", label: "Notify my physician" },
+                { value: "physician", label: consumerT("Notify my physician") },
                 { value: "both",      label: t("glp1Checkin.notify.both") },
               ]}
             />

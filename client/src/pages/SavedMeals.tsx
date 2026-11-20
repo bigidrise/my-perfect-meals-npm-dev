@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
@@ -140,7 +141,7 @@ export default function SavedMeals() {
               onClick={() => setLocation("/dashboard")}
               className="p-2 rounded-lg bg-white/10 active:scale-[0.98]"
             >
-              <ArrowLeft className="h-5 w-5 text-white" />
+              <ArrowLeft className="h-5 w-5 text-white" /><span className="sr-only"><BackNavigationLabel /></span>
             </button>
             <h1 className="text-xl font-bold flex items-center gap-2 flex-1">
               <Heart className="h-6 w-6 text-red-500" fill="currentColor" />

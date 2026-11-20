@@ -1,4 +1,41 @@
 {
+  "measurementPreferences": {
+    "title": "Préférences de mesure",
+    "country": "Pays",
+    "system": "Système de mesure",
+    "auto": "Automatique",
+    "imperial": "Unités américaines",
+    "metric": "Métrique",
+    "country_US": "États-Unis",
+    "country_CA": "Canada",
+    "country_AU": "Australie",
+    "country_UK": "Royaume-Uni",
+    "country_NZ": "Nouvelle-Zélande",
+    "resolved": "Automatique : {{system}} · {{country}}",
+    "hint": "Le mode automatique suit votre pays enregistré, pas votre langue ni votre appareil. Sans pays enregistré, les États-Unis sont utilisés. Les choix manuels restent inchangés lorsque le pays change.",
+    "saveFailed": "Impossible d’enregistrer vos préférences de mesure. Vos choix sont conservés ici ; réessayez.",
+    "refreshFailed": "Vos choix ont été enregistrés, mais n’ont pas pu être actualisés. Restez ici et réessayez pour les confirmer.",
+    "equivalent": "Équivalent : {{quantity}}",
+    "invalidQuantity": "Saisissez un nombre ou une fraction explicite. La quantité enregistrée n’a pas été modifiée.",
+    "periodQuantity": "{{quantity}} sur cette période",
+    "weekQuantity": "{{quantity}} cette semaine",
+    "currentAverage": "Moyenne actuelle",
+    "weeklyChange": "Variation hebdomadaire",
+    "totalChange": "Variation totale",
+    "weightLabel": "Poids ({{unit}})",
+    "waistLabel": "Tour de taille ({{unit}})",
+    "quantityPlaceholder": "p. ex. {{quantity}}",
+    "fluidOunces": "fl oz"
+  },
+  "localeFoundation": {
+    "wakingUp": "Préparation de votre moteur de repas…",
+    "startupHint": "Le premier chargement prend quelques secondes de plus. Un instant !",
+    "sessionUnavailable": "Impossible de vérifier votre session. Vérifiez votre connexion et réessayez.",
+    "sessionRetry": "Vérifier à nouveau la session",
+    "required": "Obligatoire",
+    "invalidEmail": "Adresse e-mail non valide",
+    "preferencesNote": "Auto suit la langue de cet appareil. Un choix de langue explicite est enregistré dans votre compte. Certaines fonctionnalités sont encore en cours de traduction."
+  },
   "shoppingTransfer": {
     "addedTitle": "Ajouté à la liste de courses",
     "savedTitle": "Enregistré dans la liste de courses",
@@ -123,6 +160,9 @@
     "adjustPreferences": "Ajuster mes préférences"
   },
   "language": {
+    "enDesc": "Utiliser l’anglais pour l’interface, quelle que soit la langue de cet appareil.",
+    "esDesc": "Utiliser l’espagnol pour l’interface, quelle que soit la langue de cet appareil. Certaines fonctionnalités peuvent encore apparaître en anglais.",
+    "measurementLink": "Pays et mesures dans Modifier le profil",
     "pageTitle": "Langue",
     "intro": "My Perfect Meals génère des noms de repas, des recettes, des recommandations de restaurants, des conseils d'épicerie et des réponses de coaching nativement dans votre langue.",
     "auto": "Automatique (Appareil)",

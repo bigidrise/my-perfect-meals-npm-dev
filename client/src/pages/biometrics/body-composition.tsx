@@ -1,3 +1,4 @@
+import { useBackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ interface BodyFatEntry {
 }
 
 export default function BodyCompositionPro() {
+  const navigationLabel = useBackNavigationLabel();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [units, setUnits] = useState<Units>("imperial");
@@ -206,7 +208,7 @@ export default function BodyCompositionPro() {
         <Button
           onClick={() => setLocation("/macro-counter")}
           className="bg-black/10 blur-none border border-white/20 text-white hover:bg-black/20 rounded-2xl w-10 h-10 p-0"
-          aria-label="Back to Macro Calculator"
+          aria-label={navigationLabel("Back to Macro Calculator")}
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>

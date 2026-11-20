@@ -1,9 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import { useConsumerCopy as useTranslation } from "@/i18n/useConsumerCopy";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
 import { apiRequest } from "@/lib/apiRequest";
+import { localizeComplianceOpportunity } from "@/i18n/dashboardComplianceCopy";
 
 interface ActivitySummary {
   complianceScore: number | null;
@@ -176,40 +177,40 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
         {/* Behavioral highlights — PRIMARY */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-white/80">Meal consistency</span>
+            <span className="text-white/80">{t("Meal consistency")}</span>
             <span className="font-semibold text-white">{data.mealConsistency}%</span>
           </div>
           <div className="ml-2 space-y-1 border-l border-white/10 pl-3">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-white/55">Meals completed</span>
+              <span className="text-white/55">{t("Meals completed")}</span>
               <span className="font-medium text-white/80">
                 {data.mealCompletion === null
-                  ? "Not yet tracked"
+                  ? t("Not yet tracked")
                   : `${data.mealActivity.completedMealCount}/${data.mealActivity.expectedMealCount} · ${data.mealCompletion}%`}
               </span>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-white/55">Days with meal logs</span>
+              <span className="text-white/55">{t("Days with meal logs")}</span>
               <span className="font-medium text-white/80">
                 {data.loggedDays7}/{win} · {data.mealLogging}%
               </span>
             </div>
           </div>
           <div className="flex items-center justify-between gap-3 text-sm">
-            <span className="text-white/80">Whole-plan macro adherence</span>
+            <span className="text-white/80">{t("Whole-plan macro adherence")}</span>
             <span className="font-semibold text-white text-right">
-              {data.macroAdherenceEligible ? `${data.macroAdherence}%` : "Not currently scored"}
+              {data.macroAdherenceEligible ? `${data.macroAdherence}%` : t("Not currently scored")}
             </span>
           </div>
           {data.hydrationEligible && data.hydrationAdherence !== null && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-white/80">Hydration adherence</span>
+              <span className="text-white/80">{t("Hydration adherence")}</span>
               <span className="font-semibold text-white">{data.hydrationAdherence}%</span>
             </div>
           )}
           {!data.hydrationEligible && (
             <p className="text-xs text-white/45">
-              Hydration is not scored because no current measurable Hydration target is established.
+              {t("Hydration is not scored because no current measurable Hydration target is established.")}
             </p>
           )}
           {(slots.breakfast + slots.lunch + slots.dinner > 0) && (
@@ -238,7 +239,7 @@ export function ComplianceCard({ userId }: ComplianceCardProps) {
             <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wide mb-0.5">
               {t("complianceCard.biggestOpportunity")}
             </p>
-            <p className="text-white/80 text-xs leading-snug">{data.biggestOpportunity}</p>
+            <p className="text-white/80 text-xs leading-snug">{localizeComplianceOpportunity(data.biggestOpportunity, t)}</p>
           </div>
         )}
 

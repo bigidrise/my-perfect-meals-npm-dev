@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { ArrowLeft, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
@@ -28,7 +29,7 @@ export default function PrivacySecurity() {
             data-testid="button-back"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="text-xs font-medium">Back</span>
+            <span className="text-xs font-medium"><BackNavigationLabel /></span>
           </Button>
           <h1 className="text-lg font-bold text-white flex items-center gap-2">
             Privacy & Security

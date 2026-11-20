@@ -1,4 +1,41 @@
 {
+  "measurementPreferences": {
+    "title": "Tùy chọn đo lường",
+    "country": "Quốc gia",
+    "system": "Hệ đo lường",
+    "auto": "Tự động",
+    "imperial": "Hệ đo lường Hoa Kỳ",
+    "metric": "Hệ mét",
+    "country_US": "Hoa Kỳ",
+    "country_CA": "Canada",
+    "country_AU": "Úc",
+    "country_UK": "Vương quốc Anh",
+    "country_NZ": "New Zealand",
+    "resolved": "Tự động: {{system}} · {{country}}",
+    "hint": "Chế độ tự động tuân theo quốc gia đã lưu, không phải ngôn ngữ hay thiết bị. Nếu chưa lưu quốc gia, Hoa Kỳ sẽ được sử dụng. Các lựa chọn thủ công không đổi khi thay đổi quốc gia.",
+    "saveFailed": "Không thể lưu tùy chọn đo lường. Các lựa chọn của bạn vẫn được giữ ở đây; vui lòng thử lại.",
+    "refreshFailed": "Các lựa chọn đã được lưu nhưng không thể làm mới. Hãy ở lại đây và thử lại để xác nhận.",
+    "equivalent": "Tương đương: {{quantity}}",
+    "invalidQuantity": "Nhập một số hoặc phân số rõ ràng. Số lượng đã lưu chưa bị thay đổi.",
+    "periodQuantity": "{{quantity}} trong kỳ này",
+    "weekQuantity": "{{quantity}} trong tuần này",
+    "currentAverage": "Trung bình hiện tại",
+    "weeklyChange": "Thay đổi trong tuần",
+    "totalChange": "Tổng thay đổi",
+    "weightLabel": "Cân nặng ({{unit}})",
+    "waistLabel": "Vòng eo ({{unit}})",
+    "quantityPlaceholder": "ví dụ: {{quantity}}",
+    "fluidOunces": "ounce chất lỏng"
+  },
+  "localeFoundation": {
+    "wakingUp": "Đang chuẩn bị công cụ bữa ăn của bạn…",
+    "startupHint": "Lần tải đầu mất thêm vài giây. Vui lòng chờ một chút!",
+    "sessionUnavailable": "Không thể xác minh phiên của bạn. Kiểm tra kết nối rồi thử lại.",
+    "sessionRetry": "Xác minh lại phiên",
+    "required": "Bắt buộc",
+    "invalidEmail": "Email không hợp lệ",
+    "preferencesNote": "Tự động dùng ngôn ngữ của thiết bị này. Ngôn ngữ bạn chọn cụ thể được lưu vào tài khoản. Một số tính năng vẫn đang được dịch."
+  },
   "shoppingTransfer": {
     "addedTitle": "Đã thêm vào danh sách mua sắm",
     "savedTitle": "Đã lưu vào danh sách mua sắm",
@@ -123,6 +160,9 @@
     "adjustPreferences": "Điều chỉnh tùy chọn của tôi"
   },
   "language": {
+    "enDesc": "Sử dụng tiếng Anh cho giao diện, bất kể ngôn ngữ của thiết bị này.",
+    "esDesc": "Sử dụng tiếng Tây Ban Nha cho giao diện, bất kể ngôn ngữ của thiết bị này. Một số tính năng vẫn có thể hiển thị bằng tiếng Anh.",
+    "measurementLink": "Quốc gia và đơn vị đo trong Chỉnh sửa hồ sơ",
     "pageTitle": "Ngôn ngữ",
     "intro": "My Perfect Meals tạo tên bữa ăn, công thức, đề xuất nhà hàng, hướng dẫn mua sắm và phản hồi huấn luyện bằng ngôn ngữ của bạn.",
     "auto": "Tự động (Thiết bị)",

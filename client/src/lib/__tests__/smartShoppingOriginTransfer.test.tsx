@@ -3,7 +3,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { createDevelopmentShoppingListStore } from "@/stores/developmentShoppingListStore";
-import { groceryCoachSelectedProductMetadata } from "@/lib/groceryCoachShoppingTransfer";
+import { groceryCoachSelectedProductMetadata, groceryCoachStandaloneProductMetadata } from "@/lib/groceryCoachShoppingTransfer";
 import { recipeIngredientTransfer } from "@/lib/shoppingIngredientTransfer";
 import { buildConsolidatedItems } from "@/lib/shoppingConsolidation";
 import SmartShoppingProductChoice from "@/components/shopping/SmartShoppingProductChoice";
@@ -25,6 +25,15 @@ const product = {
   allergenInformation: [{ statement: "May contain milk.", source: "Synthetic catalog" }],
 };
 const ingredient = { item: "low-sodium spaghetti sauce", quantity: "1/2", unit: "cup" };
+test("standalone Product Scan import preserves branded identity without inventing a recipe or clearance", () => {
+  const metadata = groceryCoachStandaloneProductMetadata("Synthetic Brand Tomato Sauce", product);
+  expect(metadata.ingredient.originalName).toBe("Synthetic Brand Tomato Sauce");
+  expect(metadata.selectedProduct?.productKey).toBe(product.productKey);
+  expect(metadata.selectedProduct?.upc).toBe(product.barcode);
+  expect(metadata.selectedProduct?.assessment.status).toBe("review_required");
+  expect(metadata.contributions[0].recipeId).toBeUndefined();
+  expect(metadata.contributions[0].recipeName).toBeUndefined();
+});
 function selected(name = ingredient.item) {
   return {
     name, quantity: .5, unit: "cup",
@@ -121,19 +130,19 @@ test.each(["coach-first", "meal-first"])("compatible %s contributions merge, sav
   render(<SmartShoppingProductChoice item={row} enabled hasAccess onChoose={jest.fn()}
     onClear={jest.fn()} onUpgrade={jest.fn()} />);
   expect(screen.getByText("Synthetic Brand Tomato Sauce")).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Choose Product" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "See Product Options" })).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Change" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Clear" })).toBeInTheDocument();
   expect(global.fetch).not.toHaveBeenCalled();
 });
 
-test("a standalone generic meal-card ingredient retains Choose Product and no automatic lookup", async () => {
+test("a standalone generic meal-card ingredient offers See Product Options and no automatic lookup", async () => {
   const f = fixture();
   f.store.getState().addItems([generic()]);
   await f.store.getState().hydrate();
   render(<SmartShoppingProductChoice item={f.store.getState().items[0]} enabled hasAccess
     onChoose={jest.fn()} onClear={jest.fn()} onUpgrade={jest.fn()} />);
-  expect(screen.getByRole("button", { name: "Choose Product" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "See Product Options" })).toBeInTheDocument();
   expect(global.fetch).not.toHaveBeenCalled();
   expect(f.request.mock.calls.every(([path]) => !path.includes("product-advisor"))).toBe(true);
 });
@@ -220,12 +229,27 @@ test("incompatible requirement origins and authority references never merge", ()
 
 test("unrelated identical generic ingredients still consolidate as before", () => {
   const a = makeIngredientMetadata({ name: "zucchini", quantity: 71, unit: "g" });
-  const b = makeIngredientMetadata({ name: "zucchini", quantity: .5, unit: "cup" });
+  const b = makeIngredientMetadata({ name: "zucchini", quantity: 29, unit: "g" });
   const rows = [a, b].map((ingredientMetadata, i) => ({
-    id: String(i), name: "zucchini", quantity: i ? .5 : 71, unit: i ? "cup" : "g",
+    id: String(i), name: "zucchini", quantity: i ? 29 : 71, unit: "g",
     normalizedName: "zucchini", category: "Produce", isChecked: false, isPantryStaple: false,
     ingredientMetadata,
   }));
   expect(buildConsolidatedItems(rows as any)).toHaveLength(1);
-  expect(buildConsolidatedItems(rows as any)[0].quantity).toBeCloseTo(71 + .5 * 236.588);
+  expect(buildConsolidatedItems(rows as any)[0].quantity).toBeCloseTo(100);
+});
+
+test("generic mass and volume requirements stay separate and retain their source amounts", () => {
+  const amounts = [{ quantity: 71, unit: "g" }, { quantity: .5, unit: "cup" }];
+  const rows = amounts.map((amount, index) => ({
+    id: String(index), name: "zucchini", ...amount,
+    normalizedName: "zucchini", category: "Produce", isChecked: false, isPantryStaple: false,
+    ingredientMetadata: makeIngredientMetadata({ name: "zucchini", ...amount }),
+  }));
+  const result = buildConsolidatedItems(rows as any);
+  expect(result).toHaveLength(2);
+  expect(result.map(row => row.ingredientMetadata?.contributions.map(c => [c.quantity, c.unit])))
+    .toEqual([[[71, "g"]], [[.5, "cup"]]]);
+  expect(result[0].quantity).toBe(71);
+  expect(result[1].quantity).toBeCloseTo(.5 * 236.588);
 });

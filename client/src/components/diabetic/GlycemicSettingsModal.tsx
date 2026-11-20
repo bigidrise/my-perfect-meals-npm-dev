@@ -5,6 +5,9 @@ import { PillButton } from "@/components/ui/pill-button";
 import { useGlycemicSettings } from "@/hooks/useGlycemicSettings";
 import { LOW_RANGE_OPTIONS, MID_RANGE_OPTIONS, HIGH_RANGE_OPTIONS } from "@/types/glycemic";
 import { useToast } from "@/hooks/use-toast";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { useGlycemicFoodLabels } from "@/i18n/useConsumerChoiceLabels";
+import { useConsumerNotice } from "@/i18n/ConsumerNotice";
 
 interface GlycemicSettingsModalProps {
   open: boolean;
@@ -12,8 +15,11 @@ interface GlycemicSettingsModalProps {
 }
 
 export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalProps) {
+  const { t } = useConsumerCopy();
+  const foodLabels = useGlycemicFoodLabels();
   const { data: glycemicData, save, isSaving } = useGlycemicSettings();
   const { toast } = useToast();
+  const notice = useConsumerNotice();
 
   const [lowRangeCarbs, setLowRangeCarbs] = useState<string[]>([]);
   const [midRangeCarbs, setMidRangeCarbs] = useState<string[]>([]);
@@ -42,10 +48,10 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
         // Empty arrays are an intentional, configured choice.
         glycemicPreferencesConfigured: true,
       });
-      toast({ title: "Glucose carb preferences saved" });
+      toast({ title: notice("Glucose carb preferences saved") });
       onClose();
     } catch {
-      toast({ title: "Failed to save preferences", variant: "destructive" });
+      toast({ title: notice("Failed to save preferences"), variant: "destructive" });
     }
   };
 
@@ -75,8 +81,8 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
 
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between p-4 bg-zinc-900/95 backdrop-blur-sm border-b border-white/10">
-          <h2 className="text-lg font-bold text-white">Glucose-Based Carb Choices</h2>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors">
+          <h2 className="text-lg font-bold text-white">{t("Glucose-Based Carb Choices")}</h2>
+          <button onClick={onClose} aria-label={t("Close carb choices")} className="p-1 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -85,7 +91,7 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
 
           {/* How It Works Explainer */}
           <div className="rounded-xl border border-orange-500/30 bg-orange-950/20 p-4 space-y-3">
-            <p className="text-orange-300 text-sm font-bold">How Glucose-Based Food Choices Work</p>
+            <p className="text-orange-300 text-sm font-bold">{t("How Glucose-Based Food Choices Work")}</p>
             <p className="text-white/80 text-sm leading-relaxed">
               Your body needs different types of carbs depending on your blood sugar level. My Perfect Meals uses your glucose reading and your selected foods to adjust how meals are built for you.
             </p>
@@ -104,16 +110,16 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
               </div>
             </div>
             <p className="text-white/50 text-xs pt-1 border-t border-white/10">
-              You choose the foods you prefer for each range below. The system uses those choices to guide your meals automatically when you generate food.
+              {t("You choose the foods you prefer for each range below. The system uses those choices to guide your meals automatically when you generate food.")}
             </p>
           </div>
 
           {/* LOW GLUCOSE RANGE */}
           <div className="rounded-xl border border-blue-500/30 bg-blue-950/20 p-3">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
               <div>
                 <p className="text-blue-300 text-sm font-semibold flex items-center gap-2">
-                  <span className="text-lg">🔵</span> Low Glucose Range
+                  <span className="text-lg">🔵</span> {t("Low Glucose Range")}
                 </p>
                 <p className="text-blue-200/50 text-xs mt-0.5">When your blood sugar is low — what helps you recover</p>
               </div>
@@ -121,7 +127,7 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
                 active={LOW_RANGE_OPTIONS.every(f => lowRangeCarbs.includes(f))}
                 onClick={() => selectAll(LOW_RANGE_OPTIONS, lowRangeCarbs, setLowRangeCarbs)}
               >
-                {LOW_RANGE_OPTIONS.every(f => lowRangeCarbs.includes(f)) ? "Clear All" : "Select All"}
+                {LOW_RANGE_OPTIONS.every(f => lowRangeCarbs.includes(f)) ? t("Clear All") : t("Select All")}
               </PillButton>
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
@@ -131,7 +137,7 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
                   active={lowRangeCarbs.includes(food)}
                   onClick={() => toggle(food, lowRangeCarbs, setLowRangeCarbs)}
                 >
-                  {food}
+                  {foodLabels[food] ?? food}
                 </PillButton>
               ))}
             </div>
@@ -139,10 +145,10 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
 
           {/* IN-RANGE GLUCOSE */}
           <div className="rounded-xl border border-green-500/30 bg-green-950/20 p-3">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
               <div>
                 <p className="text-green-300 text-sm font-semibold flex items-center gap-2">
-                  <span className="text-lg">🟢</span> In-Range Glucose
+                  <span className="text-lg">🟢</span> {t("In-Range Glucose")}
                 </p>
                 <p className="text-green-200/50 text-xs mt-0.5">When your blood sugar is stable — balanced carbs for steady energy</p>
               </div>
@@ -150,7 +156,7 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
                 active={MID_RANGE_OPTIONS.every(f => midRangeCarbs.includes(f))}
                 onClick={() => selectAll(MID_RANGE_OPTIONS, midRangeCarbs, setMidRangeCarbs)}
               >
-                {MID_RANGE_OPTIONS.every(f => midRangeCarbs.includes(f)) ? "Clear All" : "Select All"}
+                {MID_RANGE_OPTIONS.every(f => midRangeCarbs.includes(f)) ? t("Clear All") : t("Select All")}
               </PillButton>
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
@@ -160,7 +166,7 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
                   active={midRangeCarbs.includes(food)}
                   onClick={() => toggle(food, midRangeCarbs, setMidRangeCarbs)}
                 >
-                  {food}
+                  {foodLabels[food] ?? food}
                 </PillButton>
               ))}
             </div>
@@ -168,10 +174,10 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
 
           {/* HIGH GLUCOSE RANGE */}
           <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-3">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
               <div>
                 <p className="text-red-300 text-sm font-semibold flex items-center gap-2">
-                  <span className="text-lg">🔴</span> High Glucose Range
+                  <span className="text-lg">🔴</span> {t("High Glucose Range")}
                 </p>
                 <p className="text-red-200/50 text-xs mt-0.5">When your blood sugar is elevated — low-glycemic options to bring it down</p>
               </div>
@@ -179,7 +185,7 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
                 active={HIGH_RANGE_OPTIONS.every(f => highRangeCarbs.includes(f))}
                 onClick={() => selectAll(HIGH_RANGE_OPTIONS, highRangeCarbs, setHighRangeCarbs)}
               >
-                {HIGH_RANGE_OPTIONS.every(f => highRangeCarbs.includes(f)) ? "Clear All" : "Select All"}
+                {HIGH_RANGE_OPTIONS.every(f => highRangeCarbs.includes(f)) ? t("Clear All") : t("Select All")}
               </PillButton>
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
@@ -189,7 +195,7 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
                   active={highRangeCarbs.includes(food)}
                   onClick={() => toggle(food, highRangeCarbs, setHighRangeCarbs)}
                 >
-                  {food}
+                  {foodLabels[food] ?? food}
                 </PillButton>
               ))}
             </div>
@@ -202,9 +208,9 @@ export function GlycemicSettingsModal({ open, onClose }: GlycemicSettingsModalPr
           <Button
             onClick={handleSave}
             disabled={isSaving}
-            className="w-full bg-orange-600 hover:bg-orange-500 text-white font-semibold py-3 rounded-xl"
+            className="h-auto min-h-10 w-full whitespace-normal bg-orange-600 hover:bg-orange-500 text-white font-semibold py-3 rounded-xl"
           >
-            {isSaving ? "Saving..." : "Save Glucose Carb Preferences"}
+            {isSaving ? t("Saving...") : t("Save Glucose Carb Preferences")}
           </Button>
         </div>
       </div>

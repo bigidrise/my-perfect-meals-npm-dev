@@ -89,6 +89,19 @@ const originalEnvironment = process.env.NODE_ENV;
 beforeEach(() => { process.env.NODE_ENV = "development"; state.rows = []; state.sources = []; state.writes = []; });
 afterAll(() => { process.env.NODE_ENV = originalEnvironment; });
 
+test("Production rejects the unverified shopping reference payload before any update", async () => {
+  process.env.NODE_ENV = "production";
+  state.rows = [{ id: "synthetic-row", userId: "synthetic-a", name: "olive oil", quantity: "3", unit: "tsp" }];
+  const handler = v2.stack.find((layer: any) => layer.route?.path === "/:id" &&
+    layer.route.methods.patch).route.stack.at(-1).handle;
+  const res: any = { status: jest.fn().mockReturnThis(), json: jest.fn().mockReturnThis() };
+  await handler({ params: { id: "synthetic-row" }, authUser: { id: "synthetic-a" },
+    body: { ingredientMetadata: { selectedProduct: { selectionKind: "unverified_shopping_reference" } } } }, res);
+  expect(res.status).toHaveBeenCalledWith(403);
+  expect(state.writes).toEqual([]);
+  expect(state.rows[0].quantity).toBe("3");
+});
+
 describe("Development origin-aware merging with synthetic storage", () => {
   function metadata(selected: boolean, recipeId: string) {
     const base = makeIngredientMetadata({

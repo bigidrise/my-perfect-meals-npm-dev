@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import React from "react";
 
 export type DemoWorkflow = "onboarding" | "macro" | "dashboard";
@@ -308,7 +309,7 @@ export default function StudioControls({
               <button className="ds-button" type="button" onClick={onResetAll}>Reset All Demo Data</button>
               {onResetDemo && <button className="ds-button" type="button" onClick={onResetDemo}>Reset Demo</button>}
               <button className="ds-button ds-button-quiet ds-return" type="button" onClick={onReturn}>
-                Return to Demo Studio
+          <BackNavigationLabel label="Return to Demo Studio" />
               </button>
             </div>
           </>

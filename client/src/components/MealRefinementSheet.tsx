@@ -1,3 +1,4 @@
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 /**
  * MealRefinementSheet
  *
@@ -8,6 +9,7 @@
  */
 
 import { useState, useRef, useCallback } from "react";
+import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -89,6 +91,7 @@ export default function MealRefinementSheet({
   existingMeal,
   mealType,
 }: Props) {
+  const { t } = useConsumerCopy();
   const [phase, setPhase] = useState<Phase>("idle");
   const [input, setInput] = useState("");
   const [selectedChip, setSelectedChip] = useState<string | null>(null);
@@ -467,7 +470,7 @@ export default function MealRefinementSheet({
                         setError(null);
                       }}
                       mode="append"
-                      label="Add refinement by voice"
+                      label={t("Add refinement by voice")}
                     />
                 </div>
 
@@ -759,7 +762,7 @@ export default function MealRefinementSheet({
                                   >
                                     <span style={{ color: "#a78bfa" }}>•</span>
                                     <span>
-                                      {qty ? `${qty} ${name}` : name}
+                                      <IngredientDisplay ingredient={ing} legacyText={qty ? `${qty} ${name}` : name} />
                                     </span>
                                   </li>
                                 );

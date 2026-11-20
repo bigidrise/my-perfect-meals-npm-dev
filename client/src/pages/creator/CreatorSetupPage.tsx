@@ -1,3 +1,4 @@
+import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
@@ -226,7 +227,7 @@ export default function CreatorSetupPage() {
             onClick={() => setLocation("/lifestyle")}
             className="w-full py-3 text-sm text-white/50 hover:text-white/80 transition-colors"
           >
-            Back to Lifestyle Hub
+            <BackNavigationLabel label="Back to Lifestyle Hub" />
           </button>
         </div>
       </motion.div>
@@ -465,7 +466,7 @@ export default function CreatorSetupPage() {
             onClick={() => step > 0 ? setStep(s => s - 1) : setLocation("/creator/start")}
             className="p-2 rounded-lg bg-white/5 text-white/60 hover:text-white transition-colors"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4" /><span className="sr-only"><BackNavigationLabel /></span>
           </button>
           <div className="flex-1 bg-white/10 rounded-full h-1.5">
             <div
