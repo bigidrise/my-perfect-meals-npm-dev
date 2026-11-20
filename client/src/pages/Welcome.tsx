@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import "@/styles/entry-readability.css";
+import { entryReadabilityClassName } from "@/styles/entryReadabilityGate";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Sparkles, LogIn, X, ArrowLeft, UserPlus, Stethoscope, User, Dumbbell, Building2 } from "lucide-react";
@@ -227,9 +229,11 @@ export default function Welcome() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.25 }}
-            className="w-full max-w-sm mx-6"
+            className={entryReadabilityClassName
+              ? "w-[calc(100%-2rem)] max-w-sm mx-4 min-w-0"
+              : "w-full max-w-sm mx-6"}
           >
-            <div className="relative rounded-2xl bg-black/60 backdrop-blur-xl border border-white/10 p-6 shadow-2xl">
+            <div className="mpm-welcome-modal relative rounded-2xl bg-black/60 backdrop-blur-xl border border-white/10 p-6 shadow-2xl">
               {modalStep === "choose" && (
                 <button
                   onClick={closeModal}
@@ -400,7 +404,7 @@ export default function Welcome() {
 
   if (!SHOW_CAROUSEL) {
     return (
-      <div className="relative min-h-screen bg-black text-white flex flex-col items-center justify-center px-6">
+      <div className={`relative min-h-screen bg-black text-white flex flex-col items-center justify-center px-6 ${entryReadabilityClassName}`}>
         {renderModal()}
 
         <div className="mb-1">
@@ -424,7 +428,7 @@ export default function Welcome() {
         </p>
 
         <div className="mb-12 flex flex-col items-center gap-2">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-black via-orange-600 to-black rounded-2xl border border-orange-400/30 shadow-lg">
+          <div className="mpm-emotion-badge inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-black via-orange-600 to-black rounded-2xl border border-orange-400/30 shadow-lg">
             <div className="w-2 h-2 bg-orange-400 rounded-2xl animate-pulse"></div>
             <span className="text-white font-semibold text-sm">
               {t("Powered by Emotion AI™")}
@@ -457,7 +461,7 @@ export default function Welcome() {
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-neutral-700 via-black to-black text-white flex flex-col items-center overflow-x-hidden">
+    <div className={`relative min-h-screen bg-gradient-to-br from-neutral-700 via-black to-black text-white flex flex-col items-center overflow-x-hidden ${entryReadabilityClassName}`}>
       {renderModal()}
 
       <header className="w-full max-w-xl text-center pt-8 px-4">

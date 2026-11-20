@@ -1,4 +1,6 @@
 import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
+import "@/styles/entry-readability.css";
+import { entryReadabilityClassName } from "@/styles/entryReadabilityGate";
 import { useState, useEffect, useRef } from "react";
 import { PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED } from "@shared/personalFoodSupportFreeze";
 import { useLocation } from "wouter";
@@ -1458,7 +1460,7 @@ function AccountOnboardingV3() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
+    <div className={`min-h-screen bg-black text-white flex flex-col ${entryReadabilityClassName}`}>
       {welcomeExperiment
         ? <OnboardingWelcome key={user!.id} accountId={user!.id} />
         : <GuidedWorkflowNextStep busy={saving} />}
@@ -1507,7 +1509,7 @@ function AccountOnboardingV3() {
       })()}
 
       <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] space-y-2">
-        <div className="flex items-center justify-between text-xs text-white/50">
+        <div className="mpm-onboarding-progress flex items-center justify-between text-xs text-white/50">
           <span>{t("Step")} {step} {t("of")} {TOTAL_STEPS}</span>
           <span>{Math.round(progress)}%</span>
         </div>

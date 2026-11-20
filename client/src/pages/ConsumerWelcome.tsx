@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import "@/styles/entry-readability.css";
+import { entryReadabilityClassName } from "@/styles/entryReadabilityGate";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -35,7 +37,7 @@ export default function ConsumerWelcome() {
   ), [t]);
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
+    <div className={`min-h-screen bg-black text-white flex flex-col ${entryReadabilityClassName}`}>
       <div className="flex-1 overflow-y-auto px-4 pb-40">
         <div className="pt-10 pb-2" />
 

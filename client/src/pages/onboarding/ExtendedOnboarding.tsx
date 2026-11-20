@@ -1,4 +1,6 @@
 import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
+import "@/styles/entry-readability.css";
+import { entryReadabilityClassName } from "@/styles/entryReadabilityGate";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -625,10 +627,10 @@ export default function ExtendedOnboarding() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-black text-white"
+      className={`min-h-screen bg-gradient-to-br from-black via-zinc-900 to-black text-white ${entryReadabilityClassName}`}
     >
       <div
-        className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+        className="mpm-extended-header fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="px-4 py-3">
@@ -641,7 +643,9 @@ export default function ExtendedOnboarding() {
       <div
         className="px-4 py-6 max-w-md mx-auto"
         style={{
-          paddingTop: "calc(env(safe-area-inset-top, 0px) + 80px)",
+          paddingTop: entryReadabilityClassName
+            ? "calc(env(safe-area-inset-top, 0px) + 6rem)"
+            : "calc(env(safe-area-inset-top, 0px) + 80px)",
           paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 120px)",
         }}
       >

@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import "@/styles/entry-readability.css";
+import { entryReadabilityClassName } from "@/styles/entryReadabilityGate";
 import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { login, signUp, getProCareSignupData, getAuthHeaders } from "@/lib/auth";
@@ -344,7 +346,7 @@ export default function Auth() {
 
   if (showMfaEnrollment) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 text-white bg-gradient-to-br from-neutral-700 via-black to-black">
+      <div className={`min-h-screen flex items-center justify-center p-6 text-white bg-gradient-to-br from-neutral-700 via-black to-black ${entryReadabilityClassName}`}>
         <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/70 p-6 shadow-2xl">
           <div className="mb-5">
             <h1 className="text-xl font-semibold text-white">{t("Secure your account")}</h1>
@@ -370,7 +372,7 @@ export default function Auth() {
 
   if (showMfaChallenge) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 text-white bg-gradient-to-br from-neutral-700 via-black to-black">
+      <div className={`min-h-screen flex items-center justify-center p-6 text-white bg-gradient-to-br from-neutral-700 via-black to-black ${entryReadabilityClassName}`}>
         <MfaChallengeModal
           onSuccess={async (u: User) => {
             try {
@@ -388,15 +390,14 @@ export default function Auth() {
   }
 
   if (showWorkspaceChooser) {
-    return (
-      <WorkspaceChooser
-        onSelected={() => setShowWorkspaceChooser(false)}
-      />
-    );
+    const chooser = <WorkspaceChooser onSelected={() => setShowWorkspaceChooser(false)} />;
+    return entryReadabilityClassName
+      ? <div className={entryReadabilityClassName}>{chooser}</div>
+      : chooser;
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 text-white bg-gradient-to-br from-neutral-700 via-black to-black">
+    <div className={`min-h-screen flex items-center justify-center p-6 text-white bg-gradient-to-br from-neutral-700 via-black to-black ${entryReadabilityClassName}`}>
       <div className="relative isolate w-full max-w-sm rounded-2xl p-6
                       bg-black/25 backdrop-blur-xl border border-white/10 shadow-xl">
         <span className="absolute inset-0 -z-0 pointer-events-none rounded-2xl
@@ -487,7 +488,7 @@ export default function Auth() {
               value={pwd}
               onChange={(e) => setPwd(e.target.value)}
             />
-            <label className="flex items-center gap-2 text-sm text-white/80 select-none cursor-pointer">
+            <label className="mpm-show-password flex items-center gap-2 text-sm text-white/80 select-none cursor-pointer">
               <input
                 type="checkbox"
                 checked={showPassword}
@@ -503,7 +504,7 @@ export default function Auth() {
               <button
                 type="button"
                 onClick={() => setLocation("/forgot-password")}
-                className="text-xs text-indigo-300 underline active:scale-[0.98]"
+                className="mpm-forgot-password text-xs text-indigo-300 underline active:scale-[0.98]"
                 data-testid="link-forgot-password"
               >
                 {t("Forgot password?")}
