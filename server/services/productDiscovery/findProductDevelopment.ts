@@ -59,7 +59,7 @@ type EvaluatedProduct = Awaited<ReturnType<typeof discoverProductCandidates>>["e
 
 /** Relevance only, never an identity/evidence approval or a semantic substitution. */
 export function shoppingRecommendationMatches(lead: string, candidate: ProductCandidate): boolean {
-  const words = (value: string) => value.toLowerCase().normalize("NFKD")
+  const words = (value: string): string[] => value.toLowerCase().normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "").match(/[a-z0-9]+/g) ?? [];
   const terms = words(lead);
   const brand = new Set(words(candidate.identity.brand));
