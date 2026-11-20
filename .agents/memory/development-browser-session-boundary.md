@@ -63,3 +63,14 @@ Vite's intentional restriction on generated artifacts.
 **How to apply:** Use only synthetic, self-contained markup with no scripts,
 remote assets or application startup. State the composed-fixture limitation;
 never treat this as a substitute for required full-page or write-path evidence.
+
+Full-page API fixtures need coherent, per-identity profile state: every profile
+read alias must return the updates accepted by its mocked profile writes.
+
+**Why:** Frozen profile reads paired with echo-only writes caused a continuous
+client synchronization loop during an isolated Shopping review. Returning the
+same updated fixture state removed the loop without application changes.
+
+**How to apply:** Model accepted mutations in the fixture before checking request
+counts or reload behavior. Distinguish fixture synchronization failures from
+application regressions, and never replace fixtures with unapproved live writes.

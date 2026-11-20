@@ -1587,3 +1587,17 @@ mtime_ms = 1795132079904
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/1174b5ad-1473-42a4-89d7-a26b3e70c882/5fee9ba7-8205-48d3-8552-3ebe7f22f772"
 storage_version_token = "1795132347259747"
 content_type = "image/png"
+
+[[outputs]]
+id = "9UCGBy2pimVVoWLWBYeCB"
+uri = "file://.local/shopping-product-options-1897/generated-artifacts/shopping-product-options/browser/r-06-generic-after-reload.png"
+type = "image"
+title = "Clear and reload verification"
+description = "Isolated browser fixtures: oatmeal remains generic and checked after Clear and a normal reload. No live database or catalog verification is implied."
+logical_id = "bf5c24a6-9f11-499c-867d-78cfdaf0c551"
+content_hash = "sha256:119f3d23e061b0437cd874489f7621afb1beb78db41b6a10eb46d50c4aa1a9ae"
+size = 200231
+mtime_ms = 1795133034852
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/bf5c24a6-9f11-499c-867d-78cfdaf0c551/36c0af66-2333-4bc3-a8d0-c3496731f684"
+storage_version_token = "1795133355153247"
+content_type = "image/png"
