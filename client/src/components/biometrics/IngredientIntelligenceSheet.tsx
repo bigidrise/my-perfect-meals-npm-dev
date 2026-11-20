@@ -246,6 +246,7 @@ export function BetterAlternativesSection({
   subjectKind,
   showEvidenceNote = true,
   renderAction,
+  badgeLabel,
 }: {
   alternatives: BetterAlternative[];
   branded?: boolean;
@@ -258,6 +259,8 @@ export function BetterAlternativesSection({
   showEvidenceNote?: boolean;
   /** Optional presentation adapter. When supplied, replaces both shared actions. */
   renderAction?: (alternative: BetterAlternative, index: number) => ReactNode;
+  /** Adapter-specific neutral heading; default Coach presentation stays unchanged. */
+  badgeLabel?: string;
 }) {
   const { t } = useTranslation();
   const [addedIndex, setAddedIndex] = useState<number | null>(null);
@@ -280,7 +283,7 @@ export function BetterAlternativesSection({
         <p className="text-sm font-bold text-white/80">{headingText}</p>
         {verdictLevel !== 'buy' && (
           <span className="text-[10px] font-semibold text-orange-400 bg-orange-500/15 border border-orange-500/25 rounded-full px-2 py-0.5 uppercase tracking-wide">
-            {t('ingredientSheet.alternatives.profileMatched')}
+            {badgeLabel ?? t('ingredientSheet.alternatives.profileMatched')}
           </span>
         )}
       </div>

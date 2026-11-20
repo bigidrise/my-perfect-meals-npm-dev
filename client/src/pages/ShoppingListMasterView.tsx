@@ -70,7 +70,8 @@ import { isProOrAbove } from "@/lib/subscriptionCheck";
 import ShoppingProductPicker from "@/components/shopping/ShoppingProductPicker";
 import SmartShoppingProductChoice from "@/components/shopping/SmartShoppingProductChoice";
 import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
-import { shoppingIngredientFor, applyShoppingProductChoice } from "@/lib/shoppingProductChoice";
+import { shoppingIngredientFor, applyShoppingProductChoice, applyShoppingProductReference } from "@/lib/shoppingProductChoice";
+import { parseShoppingProductReference } from "@shared/shoppingProductSelection";
 import type { ShoppingIngredientRequest, ShoppingProductSelection } from "@shared/shoppingProductSelection";
 
 const CATEGORY_ORDER = [
@@ -372,7 +373,7 @@ export default function ShoppingListMasterView() {
     });
   }, [productPickerEnabled, hasProductPickerAccess, requestUpgrade, productPickerSessionKey, measurementSystem]);
 
-  const commitProductChoice = useCallback(async (selection: ShoppingProductSelection | null) => {
+  const commitProductChoice = useCallback(async (selection: ShoppingProductSelection | null, reference = false) => {
     const target = productPickerTarget;
     if (!target) throw new Error("Shopping row is no longer available");
     if (target.sessionKey !== productPickerSessionKey) throw new Error("The account or profile changed. Look up products again.");
@@ -387,7 +388,9 @@ export default function ShoppingListMasterView() {
       setProductPickerTarget(null);
       throw new Error("Shopping row changed before the choice could be saved");
     }
-    await applyShoppingProductChoice(target.ids, selection);
+    if (reference && selection) {
+      await applyShoppingProductReference(target.ids, parseShoppingProductReference(selection));
+    } else await applyShoppingProductChoice(target.ids, selection);
   }, [productPickerTarget, items, productPickerSessionKey, hasProductPickerAccess]);
 
   const clearProductChoice = useCallback(async (row: ConsolidatedItem) => {
@@ -1508,6 +1511,7 @@ export default function ShoppingListMasterView() {
             sessionKey={productPickerSessionKey}
             currentSelection={productPickerTarget.currentSelection}
             onCommit={commitProductChoice}
+            onCommitReference={reference => commitProductChoice(reference, true)}
           />
         )}
       </div>

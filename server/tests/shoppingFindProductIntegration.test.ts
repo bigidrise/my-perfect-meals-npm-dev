@@ -7,6 +7,10 @@ import { findProductDevelopment } from "../services/productDiscovery/findProduct
 import { analyzeProductByName } from "../services/ingredientScanService";
 import { normalizeProductEvidence } from "../services/productDiscovery/productEvidenceAdapters";
 import { shoppingRecommendationIdentityMatches } from "../services/productDiscovery/shoppingRecommendationIdentity";
+import { parseShoppingProductReference, parseShoppingProductSelection } from "../../shared/shoppingProductSelection";
+import { developmentItemPatch } from "../services/shopping-list/metadataPersistence";
+import { makeIngredientMetadata } from "../../shared/shoppingIngredientMetadata";
+import { writeFileSync } from "node:fs";
 
 jest.mock("../services/ingredientScanService", () => ({
   ...jest.requireActual("../services/ingredientScanService"),
@@ -17,6 +21,82 @@ const owner = "synthetic-shopping-member";
 const ingredient = { originalName: "olive oil", requirements: [] };
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+test("an actual unresolved-profile response offers distinct references, never verified selections", async () => {
+  const f = fixture({ avoided: ["quinoa"], ingredients: "Olive oil" });
+  const result = await f.run();
+  if (process.env.SHOPPING_REFERENCE_CAPTURE === "true") {
+    writeFileSync("generated-artifacts/smart-shopping-shared-cards/reference-service-response.json", JSON.stringify(result, null, 2));
+  }
+  expect(result.recommendationChecks).toHaveLength(3);
+  expect(result.recommendationNotice).toContain("unverified shopping references");
+  for (const check of result.recommendationChecks) {
+    expect(check.status).toBe("review_only");
+    expect(check.productKey).toBeUndefined();
+    expect(check.catalogProductKey).toBeDefined();
+    const reference = parseShoppingProductReference(check.reference);
+    expect(reference.product.productKey).toBe(check.catalogProductKey);
+    expect(reference.product.assessment.status).toBe("review_required");
+    expect(reference.product.assessment.unresolvedRequirements.join(" ")).toMatch(/quinoa/i);
+    expect(reference.product.assessment.unresolvedRequirements.join(" ")).toContain("not medical");
+    const match = result.catalogMatches.find(item => item.productKey === check.catalogProductKey)!;
+    expect(match.recommendationIdentityVerified).toBe(true);
+    expect(match.shoppingReference).toEqual(reference);
+    expect(match.shoppingSelection?.eligible).toBe(false);
+    expect(() => parseShoppingProductSelection(reference)).toThrow();
+    const snapshot = JSON.parse(reference.product.sourcePayloadJson!);
+    expect(snapshot.decision.status).toBe("needs_verification");
+    expect(snapshot.identity.variant).toBe(reference.product.variant);
+    // Use the real PATCH projection against a synthetic, existing row only.
+    const metadata = makeIngredientMetadata({ name: "olive oil", quantity: 3, unit: "tsp", recipeId: "synthetic-recipe" });
+    const before = clone(metadata);
+    const update = developmentItemPatch({
+      ingredientMetadata: { ...metadata, selectedProduct: reference.product },
+    }, { userId: owner, name: "olive oil", quantity: "3", unit: "tsp", ingredientMetadata: metadata });
+    expect(update.ingredientMetadata).toEqual({ ...before, selectedProduct: reference.product });
+    expect(update).not.toHaveProperty("quantity");
+    expect(update).not.toHaveProperty("unit");
+    expect(metadata).toEqual(before);
+  }
+  expect(f.recommend).toHaveBeenCalledTimes(1);
+});
+
+test("reference workflow excludes known conflicts, unconfirmed variants and stale identity", async () => {
+  const conflict = await fixture({ avoided: ["quinoa"], ingredients: "Olive oil, quinoa" }).run();
+  expect(conflict.recommendationChecks).toEqual([]);
+  expect(conflict.catalogMatches).toEqual([]);
+  const f = fixture({ avoided: ["quinoa"] });
+  f.records[0].variant = "Light Olive Oil 500ml";
+  f.records[1].identityObservedAt = "2001-01-01T00:00:00.000Z";
+  const result = await f.run();
+  expect(result.recommendationChecks.find(check => check.recommendationCategory.includes("Alpha"))?.reference).toBeUndefined();
+  expect(result.recommendationChecks.find(check => check.recommendationCategory.includes("Beta"))?.reference).toBeUndefined();
+  expect(result.recommendationChecks.find(check => check.recommendationCategory.includes("Gamma"))?.reference).toBeDefined();
+});
+
+test("reference persistence rejects warning removal, status upgrades and account/ingredient substitution", async () => {
+  const result = await fixture({ avoided: ["quinoa"] }).run();
+  const reference = parseShoppingProductReference(result.recommendationChecks[0].reference);
+  const metadata = makeIngredientMetadata({ name: "olive oil", quantity: 2, unit: "tbsp" });
+  const existing = { userId: owner, ingredientMetadata: metadata };
+  for (const mutate of [
+    (r: any) => { r.product.assessment.unresolvedRequirements = []; },
+    (r: any) => { r.product.assessment.status = "eligible_at_evaluation"; },
+    (r: any) => { r.product.variant = "Different variant"; },
+    (r: any) => { r.product.packageDescription = "Different package"; },
+    (r: any) => { r.product.assessment.subjectReference = "different-account"; },
+  ]) {
+    const invalid = clone(reference);
+    mutate(invalid);
+    expect(() => parseShoppingProductReference(invalid)).toThrow();
+    expect(() => developmentItemPatch({
+      ingredientMetadata: { ...metadata, selectedProduct: invalid.product },
+    }, existing)).toThrow();
+  }
+  expect(() => developmentItemPatch({ ingredientMetadata: { ...metadata, ingredient: {
+    ...metadata.ingredient, requirements: [{ value: "new constraint", origin: "explicit_request" }],
+  }, selectedProduct: reference.product } }, existing)).toThrow();
+});
 const suggestion = (brand: string) => ({
   category: `${brand} Olive Oil 500ml`, whyBetter: [`${brand} personalized explanation, not source evidence`],
   targetCriteria: "Check the current label and serving basis.",
@@ -118,7 +198,7 @@ test("recommendations and Add-style names never bypass unresolved profile policy
   expect(result.catalogMatches).toHaveLength(3);
   expect(result.catalogMatches.every(match => !match.shoppingSelection?.eligible)).toBe(true);
   expect(result.catalogMatches[0].shoppingCaution).toContain("Reviewed checks aren't available");
-  expect(result.recommendationNotice).toContain("could not be fully verified");
+  expect(result.recommendationNotice).toContain("suitability is not cleared");
   expect(result.recommendations).toEqual(analysis().betterAlternatives);
   expect(result.recommendationChecks.every(check => check.status === "review_only" &&
     check.productKey === undefined)).toBe(true);

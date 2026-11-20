@@ -9,13 +9,14 @@ import {
 import { developmentShoppingGroups, mergeDevelopmentShoppingMetadata } from "@shared/developmentShoppingMerge";
 import type { ShoppingListItem, ShoppingListStore, UniversalIngredient } from "./shoppingListStore";
 import {
-  canonicalShoppingIngredient, parseShoppingProductSelection, shoppingIngredientSignature,
-  type ShoppingProductSelection,
+  canonicalShoppingIngredient, parseShoppingProductSelection, parseShoppingProductReference, shoppingIngredientSignature,
+  type ShoppingProductSelection, type ShoppingProductReference,
 } from "@shared/shoppingProductSelection";
 
 type State = ShoppingListStore & {
   ownerId: string; lastSyncError: string | null;
   chooseProduct: (ids: string[], selection: ShoppingProductSelection | null) => Promise<void>;
+  chooseReference: (ids: string[], reference: ShoppingProductReference) => Promise<void>;
 };
 const owner = () => typeof localStorage === "undefined" ? "guest" : localStorage.getItem("userId") || "guest";
 const cacheKey = (id: string) => `shopping-list-storage:development:${encodeURIComponent(id)}`;
@@ -164,11 +165,10 @@ export function createDevelopmentShoppingListStore(request: typeof apiRequest = 
         save(prior.id);
       }
     }
-    return {
-      ownerId: owner(), lastSyncError: null, items: [], isHydrating: false, _clearGen: 0,
-      chooseProduct: (ids, input) => {
+    function persistChoice(ids: string[], input: ShoppingProductSelection | null, reference = false) {
         const accountId = account();
-        const selection = input === null ? null : parseShoppingProductSelection(input);
+        const selection = reference ? parseShoppingProductReference(input)
+          : input === null ? null : parseShoppingProductSelection(input);
         const uniqueIds = [...new Set(ids)];
         const result = queue.then(async () => {
           const assertOwner = () => {
@@ -240,7 +240,11 @@ export function createDevelopmentShoppingListStore(request: typeof apiRequest = 
         // Keep later shopping operations usable; the caller still receives rejection.
         queue = result.catch(() => {});
         return result;
-      },
+    }
+    return {
+      ownerId: owner(), lastSyncError: null, items: [], isHydrating: false, _clearGen: 0,
+      chooseProduct: (ids, input) => persistChoice(ids, input),
+      chooseReference: (ids, input) => persistChoice(ids, input, true),
       addItem: add,
       addItems: items => items.forEach(add),
       hydrate: async () => {

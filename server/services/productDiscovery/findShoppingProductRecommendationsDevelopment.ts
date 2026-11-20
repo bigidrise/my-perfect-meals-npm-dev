@@ -55,7 +55,8 @@ export async function findShoppingProductRecommendationsDevelopment(
       ...(match.shoppingSelection?.eligible === false && match.shoppingSelection.reason
         ? { shoppingCaution: match.shoppingSelection.reason } : {}),
     };
-  }).sort((a, b) => Number(b.shoppingSelection?.eligible === true) - Number(a.shoppingSelection?.eligible === true))
+  }).sort((a, b) => (Number(b.shoppingSelection?.eligible === true) * 2 + Number(!!b.shoppingReference)) -
+    (Number(a.shoppingSelection?.eligible === true) * 2 + Number(!!a.shoppingReference)))
     .slice(0, 3);
   const excluded = new Set(result.excludedRecommendationLeads ?? []);
   const visibleRecommendations = recommendations.filter(alt => !excluded.has(alt.category.trim()));
@@ -71,6 +72,7 @@ export async function findShoppingProductRecommendationsDevelopment(
     return {
       recommendationCategory: category, status: "review_only",
       ...(exactMatches[0] ? { catalogProductKey: exactMatches[0].productKey } : {}),
+      ...(exactMatches[0]?.shoppingReference ? { reference: exactMatches[0].shoppingReference } : {}),
       reason: category.length > 80
         ? "The recommendation exceeds the exact-product lookup limit. Its identity and suitability have not been verified."
         : !result.catalogSearchAvailable
@@ -96,7 +98,9 @@ export async function findShoppingProductRecommendationsDevelopment(
     recommendationNotice: recommendations.length && !catalogMatches.some(match => match.shoppingSelection?.eligible)
       ? result.excludedReasons.length && !catalogMatches.length
         ? "Catalog products were excluded for a known conflict with your food requirements. No eligible replacement was verified; your ingredient and saved choice are unchanged."
-        : "Personalized recommendations were found, but their exact products or required checks could not be fully verified. Your ingredient and saved choice are unchanged."
+        : catalogMatches.some(match => match.shoppingReference)
+          ? "These exact products can be saved as unverified shopping references only. Their suitability is not cleared; all unresolved warnings remain. Your recipe quantities stay unchanged."
+          : "Personalized recommendations were found, but their exact products or required checks could not be fully verified. Your ingredient and saved choice are unchanged."
       : !recommendations.length ? "Find a Product could not identify supported branded recommendations for this ingredient." : "",
     lookupTiming: timing,
   };

@@ -14,6 +14,8 @@ import { shoppingSelectionBridge } from "./shoppingSelectionBridge";
 import { shoppingCatalogPresentation, shoppingCatalogTip } from "./shoppingCatalogGuidance";
 import { shoppingEvidenceAdapter, type ShoppingStageTimer } from "./shoppingEvidenceAdapter";
 import { shoppingRecommendationIdentityMatches } from "./shoppingRecommendationIdentity";
+import { shoppingReferenceBridge } from "./shoppingReferenceBridge";
+import type { ShoppingProductReference } from "../../../shared/shoppingProductSelection";
 
 export interface DevelopmentProductMatch {
   shoppingSelection?: ShoppingCatalogDecision;
@@ -43,6 +45,7 @@ export interface DevelopmentProductMatch {
   recommendationIdentityVerified?: boolean;
   variant?: string;
   packageSize?: string;
+  shoppingReference?: ShoppingProductReference;
 }
 
 export class ProductSubjectContextUnavailableError extends Error {
@@ -452,10 +455,17 @@ export async function findProductDevelopment(
       shoppingRecommendationIdentityMatches(lead, item.candidate))) && shoppingSelectionBridge(
     item.candidate, item.decision, evaluated.subject!, evaluated.unresolved, shoppingIngredient!,
   ).eligible;
+  const isReferenceable = (item: EvaluatedProduct) =>
+    !!shoppingIngredient && !!options.recommendationLeads?.some(lead =>
+      shoppingRecommendationIdentityMatches(lead, item.candidate)) &&
+    !!shoppingReferenceBridge(item.candidate, item.decision, evaluated.subject!, shoppingIngredient,
+      shoppingSelectionBridge(item.candidate, item.decision, evaluated.subject!,
+        evaluated.unresolved, shoppingIngredient).reason || "Product verification is incomplete.");
   const presentable = options.recommendationLeads && shoppingIngredient
     ? [
       ...selectDistinctProducts(presentationCandidates.filter(isSelectable), evaluated.subject, evaluated.unresolved),
-      ...selectDistinctProducts(presentationCandidates.filter(item => !isSelectable(item)), evaluated.subject, evaluated.unresolved),
+      ...selectDistinctProducts(presentationCandidates.filter(item => !isSelectable(item) && isReferenceable(item)), evaluated.subject, evaluated.unresolved),
+      ...selectDistinctProducts(presentationCandidates.filter(item => !isSelectable(item) && !isReferenceable(item)), evaluated.subject, evaluated.unresolved),
     ].slice(0, 3)
     : selectDistinctProducts(presentationCandidates, evaluated.subject, evaluated.unresolved);
   const unresolvedHard = evaluated.unresolved.filter((issue) => issue.classification !== "support_context");
@@ -483,6 +493,12 @@ export async function findProductDevelopment(
         recommendationLead, recommendationIdentityVerified,
         variant: candidate.identity.variant, packageSize: candidate.identity.packageSize,
       } : {}),
+      ...(shoppingIngredient && shoppingSelection && !shoppingSelection.eligible && recommendationIdentityVerified
+        ? (() => {
+          const reference = shoppingReferenceBridge(candidate, decision, evaluated.subject!,
+            shoppingIngredient, shoppingSelection.reason || "Product verification is incomplete.");
+          return reference ? { shoppingReference: reference } : {};
+        })() : {}),
       name: candidate.identity.name,
       brand: candidate.identity.brand,
       barcode: candidate.identity.barcode ?? null,

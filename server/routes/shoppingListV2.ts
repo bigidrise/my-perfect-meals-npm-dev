@@ -175,6 +175,10 @@ shoppingRouter.patch("/:id", requireAuth, async (req: any, res: any) => {
       return res.status(404).json({ error: "Item not found" });
     }
 
+    if (!shoppingMetadataDevelopment() &&
+      req.body?.ingredientMetadata?.selectedProduct?.selectionKind === "unverified_shopping_reference") {
+      return res.status(403).json({ error: "Unverified shopping references are Development-only" });
+    }
     if (shoppingMetadataDevelopment()) updates = developmentItemPatch(req.body, existing);
     else if (existing.ingredientMetadata?.selectedProduct?.source?.source === "Product Scan by-name guidance") {
       // Quantity/check edits cannot replace the original ingredient or its

@@ -8,7 +8,8 @@ import { post } from "@/lib/api";
 import ShoppingProductPicker from "@/components/shopping/ShoppingProductPicker";
 import SmartShoppingProductChoice from "@/components/shopping/SmartShoppingProductChoice";
 import { BetterAlternativesSection } from "@/components/biometrics/IngredientIntelligenceSheet";
-import type { ShoppingIngredientRequest, ShoppingProductSelection } from "@shared/shoppingProductSelection";
+import { parseShoppingProductReference } from "@shared/shoppingProductSelection";
+import type { ShoppingIngredientRequest, ShoppingProductReference, ShoppingProductSelection } from "@shared/shoppingProductSelection";
 
 jest.mock("@/lib/api", () => ({ post: jest.fn() }));
 jest.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: { id: "offline-shopping-user" } }) }));
@@ -69,6 +70,83 @@ const review = {
   shoppingCaution: "Compatibility with your requirements isn't confirmed. Check the current label.",
   shoppingSelection: { eligible: false, reason: "needs_review" },
 };
+
+function makeShoppingReference(
+  productKey = "synthetic-reference-oil",
+  ingredientRequest: ShoppingIngredientRequest = { originalName: "olive oil", requirements: [] },
+  decisionStatus: "needs_verification" | "rejected" = "needs_verification",
+): ShoppingProductReference {
+  const identity = {
+    match: "exact_variant",
+    key: productKey,
+    name: "Olive Oil",
+    brand: "Synthetic Alpha",
+    variant: "Cold-pressed",
+    provenance: { source: "Synthetic catalog", sourceRecordId: "reference-record" },
+  };
+  return parseShoppingProductReference({
+    ingredient: ingredientRequest,
+    product: {
+      ...selection.product,
+      selectionKind: "unverified_shopping_reference",
+      productKey,
+      name: "Olive Oil",
+      brand: "Synthetic Alpha",
+      variant: "Cold-pressed",
+      packageDescription: "500 mL glass bottle",
+      upc: "12345678",
+      source: { source: "Synthetic catalog", sourceRecordId: "reference-record" },
+      sourcePayloadJson: JSON.stringify({
+        identity: { ...identity, barcode: "12345678", packageSize: "500 mL glass bottle" },
+        decision: {
+          status: decisionStatus,
+          productKey,
+          subjectId: "member-a",
+          contextFingerprint: "profile-a",
+          reasons: decisionStatus === "rejected" ? [{ code: "hard_conflict" }] : [],
+        },
+      }),
+      assessment: {
+        status: "review_required",
+        unresolvedRequirements: ["Current ingredient label not reviewed", "Dietary context unresolved"],
+        reasons: ["Reference is not an eligibility decision"],
+        subjectReference: "member-a",
+        contextReference: "profile-a",
+        evaluatedAt: "2026-10-21",
+        policyVersion: "synthetic-only",
+      },
+    },
+  });
+}
+
+function referenceResponse(options: {
+  reference?: ShoppingProductReference;
+  catalogReference?: ShoppingProductReference;
+  identityVerified?: boolean;
+} = {}) {
+  const response: any = sharedResponse("olive oil");
+  const reference = options.reference ?? makeShoppingReference();
+  response.recommendations = response.recommendations.slice(0, 1);
+  response.catalogMatches = [{
+    ...response.catalogMatches[0],
+    productKey: reference.product.productKey,
+    name: reference.product.name,
+    brand: reference.product.brand!,
+    variant: reference.product.variant,
+    recommendationIdentityVerified: options.identityVerified ?? true,
+    recommendationLead: response.recommendations[0].category,
+    shoppingReference: options.catalogReference ?? reference,
+    shoppingSelection: { eligible: false, reason: "reference_only" },
+  }];
+  response.recommendationChecks = [{
+    recommendationCategory: response.recommendations[0].category,
+    status: "review_only",
+    catalogProductKey: reference.product.productKey,
+    reason: "Label review remains unresolved.",
+    reference,
+  }];
+  return response;
+}
 
 function renderPicker(props: Partial<React.ComponentProps<typeof ShoppingProductPicker>> = {}) {
   const onOpenChange = jest.fn();
@@ -168,6 +246,69 @@ test("review-only cards preserve original explanations and the exact unresolved 
   expect(screen.queryByRole("button", { name: /Choose/ })).not.toBeInTheDocument();
   expect(onCommit).not.toHaveBeenCalled();
 });
+
+test("an exact unverified reference requires confirmation, retains warnings, and can be cancelled", async () => {
+  const response = referenceResponse();
+  const onCommitReference = jest.fn().mockResolvedValue(undefined);
+  (post as jest.Mock).mockResolvedValue(response);
+  renderPicker({ open: true, ingredient: { originalName: "olive oil", requirements: [] }, onCommitReference });
+
+  fireEvent.click(await screen.findByRole("button", { name: "Use as shopping reference" }));
+  expect(onCommitReference).not.toHaveBeenCalled();
+  expect(screen.getByText("This records shopping intent only. It is not medical or restricted-diet clearance.")).toBeInTheDocument();
+  expect(screen.getByText("Current ingredient label not reviewed")).toBeInTheDocument();
+  expect(screen.getByText("Dietary context unresolved")).toBeInTheDocument();
+  expect(screen.getByText(/Cold-pressed.*500 mL glass bottle/)).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "Cancel shopping reference" }));
+  expect(onCommitReference).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Use as shopping reference" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm shopping reference" }));
+  await waitFor(() => expect(onCommitReference).toHaveBeenCalledTimes(1));
+  expect(onCommitReference).toHaveBeenCalledWith(response.recommendationChecks[0].reference);
+  expect(onCommitReference.mock.calls[0][0].product.selectionKind).toBe("unverified_shopping_reference");
+  expect(onCommitReference.mock.calls[0][0].product.assessment.status).toBe("review_required");
+});
+
+test.each(["different exact product", "known conflict", "unverified catalog identity"])(
+  "reference action fails closed for %s",
+  async defect => {
+    const reference = makeShoppingReference();
+    let response: any;
+    if (defect === "different exact product") {
+      response = referenceResponse({ reference, catalogReference: makeShoppingReference("different-product") });
+    } else if (defect === "known conflict") {
+      const conflicted = {
+        ...reference,
+        product: {
+          ...reference.product,
+          sourcePayloadJson: JSON.stringify({
+            identity: {
+              match: "exact_variant", key: reference.product.productKey, name: reference.product.name,
+              brand: reference.product.brand, variant: reference.product.variant,
+              provenance: { source: "Synthetic catalog", sourceRecordId: "reference-record" },
+              barcode: reference.product.upc,
+            },
+            decision: {
+              status: "rejected", productKey: reference.product.productKey,
+              subjectId: "member-a", contextFingerprint: "profile-a",
+              reasons: [{ code: "hard_conflict" }],
+            },
+          }),
+        },
+      } as ShoppingProductReference;
+      response = referenceResponse({ reference: conflicted, catalogReference: conflicted });
+    } else {
+      response = referenceResponse({ reference, identityVerified: false });
+    }
+    (post as jest.Mock).mockResolvedValue(response);
+    const onCommitReference = jest.fn();
+    renderPicker({ open: true, ingredient: { originalName: "olive oil", requirements: [] }, onCommitReference });
+    expect(await screen.findByText(/Review only —/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Use as shopping reference" })).not.toBeInTheDocument();
+    expect(onCommitReference).not.toHaveBeenCalled();
+  },
+);
 
 test.each(["missing key", "cross-linked brand", "wrong ingredient", "hidden", "unverified evidence", "missing selection", "unverified variant"])(
   "shared cards fail closed for %s despite a claimed eligible recommendation",
@@ -580,6 +721,33 @@ test("Change starts a fresh explicit picker action and Clear waits for the save"
   expect(onChoose).toHaveBeenCalledTimes(1);
   fireEvent.click(screen.getByRole("button", { name: "Clear" }));
   await waitFor(() => expect(onClear).toHaveBeenCalledTimes(1));
+});
+
+test("saved unverified reference is distinct, shows variant/package and every unresolved warning", () => {
+  const reference = makeShoppingReference();
+  const onChoose = jest.fn();
+  const onClear = jest.fn().mockResolvedValue(undefined);
+  render(<SmartShoppingProductChoice
+    item={{ name: "olive oil", ingredientMetadata: {
+      ingredient: { originalName: "olive oil" },
+      selectedProduct: reference.product,
+    } } as any}
+    enabled
+    hasAccess
+    onChoose={onChoose}
+    onUpgrade={jest.fn()}
+    onClear={onClear}
+  />);
+  expect(screen.getByText("Shopping reference — Unverified")).toBeInTheDocument();
+  expect(screen.getByText(/Cold-pressed.*500 mL glass bottle/)).toBeInTheDocument();
+  expect(screen.getByText("Unresolved: Current ingredient label not reviewed")).toBeInTheDocument();
+  expect(screen.getByText("Unresolved: Dietary context unresolved")).toBeInTheDocument();
+  expect(screen.getByText("Not medical or restricted-diet clearance.")).toBeInTheDocument();
+  expect(screen.queryByText("Saved with review required")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Change" }));
+  expect(onChoose).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+  expect(onClear).toHaveBeenCalledTimes(1);
 });
 
 test("a profile change invalidates an open response without launching another lookup", async () => {

@@ -39,6 +39,15 @@ function trustedForIdentity(
     isCurrent(provenance, at, maxAgeDays);
 }
 
+/** Identity is independent of dietary clearance, including when policy resolution stops early. */
+export function productIdentityMatchesPolicy(candidate: ProductCandidate, evaluatedAt: string, maxAgeDays: number): boolean {
+  const identity = candidate.identity;
+  return !!identity.key.trim() && !!identity.name.trim() && !!identity.brand.trim() &&
+    !!identity.variant.trim() && identity.match === "exact_variant" &&
+    (!identity.barcode || identity.provenance.barcode === identity.barcode) &&
+    trustedForIdentity(identity.provenance, identity.key, Date.parse(evaluatedAt), maxAgeDays);
+}
+
 /** Exact evidence snapshot binding; an assessment for an earlier label cannot be replayed. */
 export function productCandidateSignature(candidate: ProductCandidate): string {
   return createHash("sha256").update(JSON.stringify({
@@ -158,10 +167,7 @@ export function evaluateProductCandidate(
   }
 
   const identity = candidate.identity;
-  if (!key.trim() || !identity.name.trim() || !identity.brand.trim() ||
-      !identity.variant.trim() || identity.match !== "exact_variant" ||
-      (identity.barcode && identity.provenance.barcode !== identity.barcode) ||
-      !trustedForIdentity(identity.provenance, key, at, context.identityMaxAgeDays)) {
+  if (!productIdentityMatchesPolicy(candidate, context.evaluatedAt, context.identityMaxAgeDays)) {
     return makeDecision(context, key, "needs_verification", [{
       code: "identity_unverified", detail: "Exact, current product and variant identity is unavailable.",
     }]);

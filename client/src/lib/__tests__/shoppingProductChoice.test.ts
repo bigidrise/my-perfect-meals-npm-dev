@@ -2,6 +2,7 @@
 import { createDevelopmentShoppingListStore } from "../../stores/developmentShoppingListStore";
 import { makeIngredientMetadata } from "@shared/shoppingIngredientMetadata";
 import type { ShoppingProductSelection } from "@shared/shoppingProductSelection";
+import { parseShoppingProductReference, parseShoppingProductSelection } from "@shared/shoppingProductSelection";
 import { buildConsolidatedItems } from "../shoppingConsolidation";
 import { applyShoppingProductChoice } from "../shoppingProductChoice";
 import { useShoppingListStore } from "../../stores/shoppingListStore";
@@ -25,6 +26,19 @@ const product = (key = "synthetic-a"): ShoppingProductSelection => ({
       policyVersion: "synthetic-only", evaluatedAt: "2026-10-21" },
   },
 });
+function reference(key = "synthetic-reference") {
+  const choice = clone(product(key));
+  choice.product.selectionKind = "unverified_shopping_reference";
+  choice.product.assessment.status = "review_required";
+  choice.product.assessment.unresolvedRequirements = ["Synthetic avoidance verification unresolved", "Not medical or restricted-diet clearance"];
+  choice.product.sourcePayloadJson = JSON.stringify({
+    identity: { key, match: "exact_variant", name: choice.product.name, brand: choice.product.brand,
+      variant: choice.product.variant, provenance: choice.product.source },
+    decision: { status: "needs_verification", productKey: key, subjectId: "synthetic-owner",
+      contextFingerprint: "synthetic-context", reasons: [] },
+  });
+  return parseShoppingProductReference(choice);
+}
 function fixture() {
   let rows = [1, 2].map(n => ({
     id: `server-${n}`, userId: "synthetic-owner", name: "Pasta sauce", quantity: String(n),
@@ -47,6 +61,44 @@ function fixture() {
     loseEvidence: () => { dropEvidence = true; } };
 }
 beforeEach(() => { localStorage.clear(); localStorage.setItem("userId", "synthetic-owner"); });
+
+test("a separate reference action persists, reloads, changes and clears existing consolidated rows without changing recipe amounts", async () => {
+  const f = fixture();
+  const before = f.rows();
+  await f.store.getState().hydrate();
+  const ids = f.store.getState().items.map(item => item.id);
+  const first = reference();
+  await f.store.getState().chooseReference(ids, first);
+  expect(f.store.getState().items.every(item => item.ingredientMetadata?.selectedProduct?.selectionKind === "unverified_shopping_reference")).toBe(true);
+  expect(() => parseShoppingProductSelection(first)).toThrow();
+  const reloaded = createDevelopmentShoppingListStore(f.api);
+  await reloaded.getState().hydrate();
+  expect(reloaded.getState().items.every(item => item.ingredientMetadata?.selectedProduct?.assessment.status === "review_required")).toBe(true);
+  await reloaded.getState().chooseReference(ids, reference("synthetic-reference-other"));
+  expect(f.rows().every((row: any) => row.ingredientMetadata.selectedProduct.productKey === "synthetic-reference-other")).toBe(true);
+  await reloaded.getState().chooseProduct(ids, null);
+  expect(f.rows().map((row: any) => ({ ...row, ingredientMetadata: {
+    ...row.ingredientMetadata, selectedProduct: undefined,
+  } }))).toEqual(before.map((row: any) => ({ ...row, ingredientMetadata: {
+    ...row.ingredientMetadata, selectedProduct: undefined,
+  } })));
+  expect(f.api.mock.calls.filter(([, init]) => init?.method === "PATCH")).toHaveLength(6);
+  expect(f.api.mock.calls.some(([, init]) => init?.method === "POST")).toBe(false);
+});
+
+test("verified action cannot accept a reference; wrong account and ingredient references never write", async () => {
+  const f = fixture();
+  await f.store.getState().hydrate();
+  const ids = f.store.getState().items.map(item => item.id);
+  expect(() => f.store.getState().chooseProduct(ids, reference())).toThrow();
+  expect(() => f.store.getState().chooseReference(ids, null as any)).toThrow();
+  const wrongIngredient = reference();
+  wrongIngredient.ingredient.originalName = "milk";
+  await expect(f.store.getState().chooseReference(ids, wrongIngredient)).rejects.toThrow();
+  localStorage.setItem("userId", "another-owner");
+  await expect(f.store.getState().chooseReference(ids, reference())).rejects.toThrow();
+  expect(f.api.mock.calls.some(([, init]) => init?.method === "PATCH")).toBe(false);
+});
 
 test("the UI helper awaits the SAME Development store used by the list, not a separate singleton", async () => {
   const f = fixture(); await f.store.getState().hydrate();

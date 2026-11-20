@@ -145,6 +145,7 @@ interface ProductAdviceResult {
     recommendationIdentityVerified?: boolean;
     variant?: string;
     packageSize?: string;
+    shoppingReference?: import("@shared/shoppingProductSelection").ShoppingProductReference;
     shoppingSelection?: ShoppingCatalogDecision;
     shoppingDisplay?: "selectable" | "label_review" | "hidden";
     shoppingCaution?: string;

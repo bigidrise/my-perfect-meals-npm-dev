@@ -1,5 +1,60 @@
 # Smart Shopping: Find a Product integration
 
+## Current permission: unverified shopping references
+
+The founder approved a separate Development-only shopping-reference workflow.
+A reference records the customer's intended exact product, **not** medical,
+dietary or restricted-diet clearance. The older view-only descriptions below
+document the verified-selection phase; they do not prohibit the new distinct
+reference action.
+
+- Eligible products retain **Choose for My List** and the unchanged verified
+  parser. Review-needed exact products may instead offer **Use as shopping
+  reference**, followed by explicit confirmation and every unresolved warning.
+- A reference requires independently bound exact recommendation/catalog
+  identity, trusted current source identity and matching account/ingredient.
+  Unconfirmed variants, stale identity and known conflicts remain excluded from
+  the reference action. Missing avoidance verification stays unresolved.
+- References persist with `selectionKind: unverified_shopping_reference` and
+  `assessment.status: review_required`; they cannot pass the verified parser.
+  Source snapshots and unresolved warnings remain attached. The saved row says
+  **Shopping reference — Unverified**, with Change/Clear and its review warnings.
+- Both actions use the existing row's metadata PATCH path. No new row, quantity,
+  recipe contribution, library save, migration or lookup is created by choosing.
+  Grocery Coach's existing Add/Save actions remain unchanged. Its shared heading
+  retains its default badge; Shopping uses the neutral **Shopping options**.
+- The Production recommendation entry point remains disabled and the Production
+  PATCH route explicitly rejects the new reference payload.
+
+Offline verification passed **395 regression tests across 11 suites**, plus the
+new Production rejection test using the actual route handler with synthetic
+storage. Tests compose the real unresolved-profile service response, both
+parsers, metadata projection and list store; preserve identity/warnings through
+save, reload, Change and Clear; and reject conflicts, variant/account/ingredient
+substitution, warning removal and attempted eligibility upgrades.
+
+No live paid-provider calls or real-account writes were authorized or performed.
+An offline fixture does not prove any particular real recommendation has an
+exact source identity; missing identities remain nonselectable by design.
+
+The final isolated browser attempt recorded **34 passed / 4 failed assertions**.
+It confirmed the actual parent/store flow with the server-composed unresolved
+response: three reference actions, explicit confirm/cancel, unchanged saved source
+payload, reload, Change, Clear, exactly three metadata PATCHes to the same row,
+unchanged quantities/contributions and zero Shopping creation POSTs.
+The four failures count advisor lookup POSTs as writes or require below-fold
+recommendation actions to be in the viewport alongside the active confirmation.
+Confirm/Cancel were 44px and hit-testable at 320/1440px; the narrow screenshot
+shows both visible after scrolling. This is **not a fully green browser suite**;
+raw failures and their post-run classification are preserved. Two earlier
+fixture-only attempts stopped on mismatched synthetic identity; no account
+guards were relaxed and the service payload was not rewritten.
+
+The main preview was restarted and its served picker/parent modules independently
+confirmed to contain the reference action and save callback. Strict safety types
+passed, including the new shared contracts. The release type gate remains blocked
+by the same pre-existing 109-diagnostic fingerprint; no baseline was changed.
+
 ## Scope and authorization
 
 Development integration and offline verification only. No Production deployment,

@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { post } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { PickerModal } from "@/components/ui/universal-modal";
-import type { ShoppingIngredientRequest, ShoppingProductSelection } from "@shared/shoppingProductSelection";
-import { parseShoppingProductSelection, shoppingIngredientSignature } from "@shared/shoppingProductSelection";
+import type { ShoppingIngredientRequest, ShoppingProductReference, ShoppingProductSelection } from "@shared/shoppingProductSelection";
+import { parseShoppingProductReference, parseShoppingProductSelection, shoppingIngredientSignature } from "@shared/shoppingProductSelection";
 import type { ShoppingRecommendationVerification } from "@shared/shoppingRecommendationVerification";
 import type { BetterAlternative } from "@/lib/photoIngredientCapture";
 import { BetterAlternativesSection } from "@/components/biometrics/IngredientIntelligenceSheet";
@@ -18,10 +18,21 @@ interface Props {
   sessionKey: string;
   currentSelection: ShoppingProductSelection | null;
   onCommit: (selection: ShoppingProductSelection | null) => Promise<void>;
+  onCommitReference?: (reference: ShoppingProductReference) => Promise<void>;
+}
+
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record).filter(key => record[key] !== undefined).sort()
+      .map(key => `${JSON.stringify(key)}:${stableJson(record[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "undefined";
 }
 
 export default function ShoppingProductPicker({
-  open, onOpenChange, ingredient, quantityLabel, sessionKey, currentSelection, onCommit,
+  open, onOpenChange, ingredient, quantityLabel, sessionKey, currentSelection, onCommit, onCommitReference,
 }: Props) {
   const [matches, setMatches] = useState<CatalogProductMatch[]>([]);
   const [allCatalogMatches, setAllCatalogMatches] = useState<CatalogProductMatch[]>([]);
@@ -34,6 +45,7 @@ export default function ShoppingProductPicker({
   const [catalogUnavailable, setCatalogUnavailable] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [pendingReferenceCategory, setPendingReferenceCategory] = useState<string | null>(null);
   const [error, setError] = useState("");
   const generation = useRef(0);
   const rowKey = `${ingredient.originalName}|${JSON.stringify(ingredient.requirements)}`;
@@ -82,6 +94,7 @@ export default function ShoppingProductPicker({
     setCatalogUnavailable(false);
     setError("");
     setSaving(false);
+    setPendingReferenceCategory(null);
     if (!open) {
       setLoading(false);
       return;
@@ -204,6 +217,25 @@ export default function ShoppingProductPicker({
     }
   }
 
+  async function commitReference(reference: ShoppingProductReference) {
+    if (saving || !onCommitReference) return;
+    setSaving(true);
+    setError("");
+    const commitGeneration = generation.current;
+    try {
+      await onCommitReference(reference);
+      if (open && generation.current === commitGeneration) {
+        generation.current += 1;
+        onOpenChange(false);
+      }
+    } catch {
+      if (generation.current === commitGeneration) setError("Could not confirm the complete shopping reference save. Some source rows may already have saved; refresh before retrying.");
+    } finally {
+      setSaving(false);
+      setPendingReferenceCategory(null);
+    }
+  }
+
   function renderRecommendationAction(alternative: BetterAlternative) {
     const category = typeof alternative.category === "string" ? alternative.category.trim() : "";
     const check = recommendationChecks.find(item => item.recommendationCategory.trim() === category);
@@ -211,6 +243,26 @@ export default function ShoppingProductPicker({
     const match = referenceKey ? allCatalogMatches.find(item => item.productKey === referenceKey &&
       "recommendationLead" in item && item.recommendationLead === category &&
       item.shoppingDisplay !== "hidden") : undefined;
+    let shoppingReference: ShoppingProductReference | null = null;
+    if (!catalogUnavailable && onCommitReference && category && check?.status === "review_only" &&
+      check.catalogProductKey && check.reference && match &&
+      match.productKey === check.catalogProductKey &&
+      "recommendationLead" in match &&
+      match.recommendationLead === category &&
+      match.recommendationIdentityVerified === true &&
+      match.shoppingReference) {
+      try {
+        const fromCheck = parseShoppingProductReference(check.reference);
+        const fromCatalog = parseShoppingProductReference(match.shoppingReference);
+        if (fromCheck.product.productKey === match.productKey &&
+          fromCatalog.product.productKey === match.productKey &&
+          shoppingIngredientSignature(fromCheck.ingredient) === shoppingIngredientSignature(ingredient) &&
+          shoppingIngredientSignature(fromCatalog.ingredient) === shoppingIngredientSignature(ingredient) &&
+          stableJson(fromCheck) === stableJson(fromCatalog)) {
+          shoppingReference = fromCheck;
+        }
+      } catch { /* invalid or mismatched intent stays review-only */ }
+    }
     let verifiedSelection: ShoppingProductSelection | null = null;
     if (!catalogUnavailable && check?.status === "eligible" && check.productKey && match &&
       "recommendationLead" in match && match.recommendationLead === category &&
@@ -251,7 +303,38 @@ export default function ShoppingProductPicker({
           disabled={saving}
           onClick={() => void commit(verifiedSelection)}
           className="shopping-recommendation-action min-h-11 w-full whitespace-normal bg-orange-600 text-white hover:bg-orange-500"
-        >Choose for My List</Button> : <p className="rounded-lg border border-amber-200/15 bg-amber-100/[0.05] px-3 py-2 text-xs leading-relaxed text-amber-50/80">
+        >Choose for My List</Button> : shoppingReference ? <div className="space-y-2">
+          {pendingReferenceCategory === category ? <>
+            <div className="rounded-lg border border-amber-200/25 bg-amber-100/[0.07] p-3 text-xs leading-relaxed text-amber-50/90">
+              <p className="font-semibold">Shopping reference — Unverified</p>
+              <p className="mt-1">This records shopping intent only. It is not medical or restricted-diet clearance.</p>
+              <p className="mt-2 font-medium">Unresolved review items</p>
+              <ul className="mt-1 list-disc space-y-1 pl-5">
+                {shoppingReference.product.assessment.unresolvedRequirements.map((warning, index) =>
+                  <li key={`${index}-${warning}`}>{warning}</li>)}
+              </ul>
+              <p className="mt-2">Product: {shoppingReference.product.brand} {shoppingReference.product.name}
+                {shoppingReference.product.variant ? ` · ${shoppingReference.product.variant}` : ""}
+                {shoppingReference.product.packageDescription
+                  ? ` · ${shoppingReference.product.packageDescription}`
+                  : shoppingReference.product.retailQuantity !== undefined
+                    ? ` · ${shoppingReference.product.retailQuantity}${shoppingReference.product.servingDescription ? ` ${shoppingReference.product.servingDescription}` : ""}`
+                    : ""}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button type="button" disabled={saving} onClick={() => setPendingReferenceCategory(null)}
+                className="min-h-11 flex-1 border border-white/20 bg-transparent text-white hover:bg-white/10">Cancel shopping reference</Button>
+              <Button type="button" disabled={saving} onClick={() => void commitReference(shoppingReference)}
+                className="min-h-11 flex-1 whitespace-normal bg-amber-700 text-white hover:bg-amber-600">
+                {saving ? "Saving reference…" : "Confirm shopping reference"}
+              </Button>
+            </div>
+          </> : <Button type="button" disabled={saving} onClick={() => setPendingReferenceCategory(category)}
+            className="min-h-11 w-full whitespace-normal border border-amber-200/30 bg-amber-100/[0.07] text-amber-50 hover:bg-amber-100/[0.12]">
+            Use as shopping reference
+          </Button>}
+        </div> : <p className="rounded-lg border border-amber-200/15 bg-amber-100/[0.05] px-3 py-2 text-xs leading-relaxed text-amber-50/80">
           Review only — {catalogUnavailable
             ? "The product catalog is temporarily unavailable. No exact product can be selected."
             : check?.status === "review_only" && check.reason
@@ -294,6 +377,7 @@ export default function ShoppingProductPicker({
             source="grocery-coach"
             showEvidenceNote={false}
             renderAction={renderRecommendationAction}
+          badgeLabel="Shopping options"
           />
           {recommendations.length === 0 && <p className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-relaxed text-white/75">{recommendationNotice || "No personalized product recommendations are available. You can keep this ingredient generic."}</p>}
         </>}

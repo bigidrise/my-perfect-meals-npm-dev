@@ -7,4 +7,6 @@ export interface ShoppingRecommendationVerification {
   productKey?: string;
   /** Reviewable source record only; this field never grants selection eligibility. */
   catalogProductKey?: string;
+  /** Explicit intent-only workflow. Never interpreted as an eligible decision. */
+  reference?: import("./shoppingProductSelection").ShoppingProductReference;
 }
