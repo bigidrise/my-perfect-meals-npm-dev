@@ -85,6 +85,11 @@ export function BeverageProtocolFailurePanel({
           <p className="text-sm text-emerald-100/90">
             {t("beverageSafety.description")}
           </p>
+          {failure.message && (
+            <p className="text-xs text-emerald-100/75 leading-relaxed">
+              {failure.message}
+            </p>
+          )}
         </div>
       </div>
 
@@ -131,6 +136,7 @@ export function BeverageProtocolFailurePanel({
               </p>
               <p className="mt-2 text-xs text-white/60">
                 {alternative.ingredients
+                  .slice(0, 4)
                   .map((ingredient) =>
                     ingredient.displayText ||
                     [ingredient.amount, ingredient.unit, ingredient.name || ingredient.item]
@@ -140,17 +146,9 @@ export function BeverageProtocolFailurePanel({
                   .filter(Boolean)
                   .join(" · ")}
               </p>
-              {alternative.instructions && (
-                <p className="mt-2 whitespace-pre-line text-sm text-white/75">
-                  {Array.isArray(alternative.instructions)
-                    ? alternative.instructions.join("\n")
-                    : alternative.instructions}
-                </p>
-              )}
               <button
                 type="button"
                 onClick={() => onUseAlternative(alternative)}
-                disabled={isRetrying}
                 className="mt-3 w-full rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-500"
               >
                 {t("beverageSafety.useOption")}

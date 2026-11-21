@@ -29,7 +29,6 @@ const glp1Failure: BeverageProtocolFailure = {
       ],
       nutrition: { calories: 110, carbs: 2, protein: 0, fat: 0 },
       reasoning: "Uses tequila, citrus, and club soda to keep the original highball direction with lighter macros.",
-      instructions: ["Build over ice.", "Stir and serve."],
     },
   ],
 };
@@ -54,8 +53,6 @@ describe("BeverageProtocolFailurePanel", () => {
       screen.getByText("GLP-1-Friendly Citrus Tequila Highball"),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Something went wrong creating your drink/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/Build over ice/)).toBeInTheDocument();
-    expect(onUseAlternative).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: "Use This Option" }));
     expect(onUseAlternative).toHaveBeenCalledWith(glp1Failure.alternatives[0]);

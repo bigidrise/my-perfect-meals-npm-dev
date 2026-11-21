@@ -148,8 +148,6 @@
     "withChef": "Con el Chef"
   },
   "beverageSafety": {
-    "selected": "Bebida más adecuada seleccionada",
-    "selectedDescription": "{{name}} está lista para ti.",
     "titleWithProtocol": "Esta bebida no se ajusta a tu configuración nutricional actual de {{protocol}}.",
     "title": "Esta bebida no se ajusta a tu configuración nutricional actual.",
     "description": "Uno o más ingredientes u objetivos nutricionales entran en conflicto con tu plan actual. Tus medidas de seguridad evitaron que mostremos una bebida que no te conviene.",

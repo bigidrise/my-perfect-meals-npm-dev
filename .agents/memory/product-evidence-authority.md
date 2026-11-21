@@ -7,7 +7,13 @@ description: Authority boundary for internal packaged-product discovery before c
 
 **Why:** The founder explicitly clarified that the goal is shared recommendation safety across grocery features, not just Shopping warning cleanup. Cardiac soy-sauce advice should use existing medical guidance and actual sodium evidence; shrimp allergens and dietary conflicts must be excluded everywhere.
 
-**How to apply:** Investigate and plan reusable corrections before changing safety logic. Preserve ordinary shopping intent separately from suitability, reassess relevant profile changes, and never invent clinical thresholds. Beverage Creator and Recipe Maker are separate; finish the scoped grocery work before moving to Spanish localization.
+**How to apply:** Investigate and report the smallest reusable corrections before changing safety logic. Preserve ordinary shopping intent separately from suitability, reassess relevant profile changes, and never invent clinical thresholds.
+
+**Standing development scope:** "Our only active development priority is completing and verifying the My Perfect Meals Shopping List functionality." Cover Grocery Coach, Find Product, Product Scan and Shopping List Product Options. Recommendations should help the client using their current dietary preferences, allergies, foods to avoid, medical needs, lab-work needs and protocols. Do not work on Spanish localization, Beverage Creator, Recipe Maker or other queued tasks. Keep unfinished Beverage work preserved separately. Development only; no commits, pushes, merges or deployments without explicit approval. Do not automatically start another task when this work finishes.
+
+**Why:** The user explicitly limited active work to the complete grocery recommendation and Shopping List workflow.
+
+**How to apply:** Keep verification and corrections within that workflow. Reuse applicable existing customer/physician guidance rather than rebuilding the clinical system or inventing new limits. Useful qualified recommendations are distinct from unsupported compatibility claims; known conflicts remain rejected.
 
 **Rule:** Treat subject resolution, reviewed product-rule policy, and exact source evidence as separate gates. A condition name, support toggle, legacy provider prompt, or evidence template cannot itself create an executable clinical packaged-product restriction. An exact barcode record observed now establishes source identity, not current formulation; never transfer its observation date to its ingredient or nutrition facts. Unknown fact freshness and rule-specific thresholds remain unresolved rather than receiving convenience defaults. Product Scan's by-name or scanned-label verdict is not a catalog eligibility decision.
 
