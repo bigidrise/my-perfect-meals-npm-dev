@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "include": [
+    "server/services/dessertChoiceEvidence.ts",
     "shared/shoppingProductSelection.ts",
     "shared/shoppingIngredientMetadata.ts",
     "server/services/billingSafeguards/**/*.ts",

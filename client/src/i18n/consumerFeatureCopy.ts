@@ -6,6 +6,14 @@ import { biometricsClinicalSpanish } from "./biometricsClinicalCopy";
 
 /** Ordinary display copy only. Never translate saved records, unknown API errors or safety evidence here. */
 export const consumerFeatureSpanish: Record<string, string> = {
+  "Review product identity and label evidence": "Revisar la identidad del producto y la información de la etiqueta",
+  "Catalog candidate only — not confirmed as the exact recommended variant.": "Solo es una opción del catálogo; no se ha confirmado que sea la variante exacta recomendada.",
+  "Choose for My List": "Elegir para mi lista",
+  "Shopping reference — Unverified": "Referencia de compra sin verificar",
+  "Unresolved review items": "Aspectos pendientes de revisión",
+  "Cancel shopping reference": "Cancelar referencia de compra",
+  "Saved with review required": "Guardado con revisión pendiente",
+  "Why Find a Product suggested it · knowledge-based guidance": "Por qué Buscar un producto lo sugirió · orientación basada en conocimientos",
   "Studio access could not be verified. Please refresh and try again.": "No se pudo verificar el acceso a Studio. Actualiza la página e inténtalo de nuevo.",
   "Studio access is not authorized or ready. Recognizing a workspace does not grant patient access.": "El acceso a Studio no está autorizado o no está listo. Reconocer un espacio de trabajo no concede acceso a pacientes.",
   "Pro feature": "Función Pro",
@@ -1196,4 +1204,17 @@ export const consumerFeatureSpanish: Record<string, string> = {
   "Use My Perfect Meals more consistently when making food decisions.": "Usa My Perfect Meals con más constancia al tomar decisiones sobre tu alimentación.",
   "Keep building on your consistent nutrition habits.": "Sigue reforzando tus hábitos de alimentación constantes.",
   "Messages": "Mensajes",
+  "Dessert choices": "Opciones de postres",
+  "Choose your dessert": "Elige tu postre",
+  "Choose your drink": "Elige tu bebida",
+  "Compare your options, then select a dessert to see its full recipe and actions.": "Compara las opciones y elige un postre para ver la receta completa y las acciones disponibles.",
+  "Compare your options, then select a drink to see its full recipe and actions.": "Compara las opciones y elige una bebida para ver la receta completa y las acciones disponibles.",
+  "Dessert Choices Ready": "Tus opciones de postres están listas",
+  "Choose from {{count}} dessert recipe.": "Elige entre {{count}} receta de postre.",
+  "Choose from {{count}} dessert recipes.": "Elige entre {{count}} recetas de postres.",
+  "Clear dessert choices": "Borrar las opciones de postres",
+  "Dessert identity could not be verified.": "No se pudo verificar la identidad del postre.",
+  "The dessert must include ingredients and complete preparation instructions.": "El postre debe incluir los ingredientes y las instrucciones completas de preparación.",
+  "The final dessert did not pass recipe safety and identity checks.": "El postre final no superó las comprobaciones de seguridad e identidad de la receta.",
+  "No distinct dessert passed the recipe checks within this request's generation budget.": "Ningún postre distinto superó las comprobaciones de la receta dentro del límite de generación de esta solicitud.",
 };

@@ -9,6 +9,7 @@ import type { BetterAlternative } from "@/lib/photoIngredientCapture";
 import { BetterAlternativesSection } from "@/components/biometrics/IngredientIntelligenceSheet";
 import type { CatalogProductMatch } from "./GroceryStoreCoachSheet";
 import ProductCatalogChoices from "./ProductCatalogChoices";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 interface Props {
   open: boolean;
@@ -34,6 +35,7 @@ function stableJson(value: unknown): string {
 export default function ShoppingProductPicker({
   open, onOpenChange, ingredient, quantityLabel, sessionKey, currentSelection, onCommit, onCommitReference,
 }: Props) {
+  const { t } = useConsumerCopy();
   const [matches, setMatches] = useState<CatalogProductMatch[]>([]);
   const [allCatalogMatches, setAllCatalogMatches] = useState<CatalogProductMatch[]>([]);
   const [hasSelectable, setHasSelectable] = useState(false);
@@ -286,8 +288,8 @@ export default function ShoppingProductPicker({
     return (
       <div className="mt-2 space-y-2">
         {match && <details className="rounded-lg border border-white/10 bg-black/15 p-2.5 text-xs text-white/75">
-          <summary className="min-h-11 cursor-pointer py-3 font-semibold text-orange-100">Review product identity and label evidence</summary>
-          {match.recommendationIdentityVerified !== true && <p className="mb-2 text-amber-100">Catalog candidate only — not confirmed as the exact recommended variant.</p>}
+          <summary className="min-h-11 cursor-pointer py-3 font-semibold text-orange-100">{t("Review product identity and label evidence")}</summary>
+          {match.recommendationIdentityVerified !== true && <p className="mb-2 text-amber-100">{t("Catalog candidate only — not confirmed as the exact recommended variant.")}</p>}
           <p className="font-semibold text-white">{match.name}{match.brand ? ` · ${match.brand}` : ""}</p>
           {match.variant && <p className="mt-1">Variant: {match.variant}</p>}
           {match.packageSize && <p className="mt-1">Package: {match.packageSize}</p>}
@@ -303,12 +305,12 @@ export default function ShoppingProductPicker({
           disabled={saving}
           onClick={() => void commit(verifiedSelection)}
           className="shopping-recommendation-action min-h-11 w-full whitespace-normal bg-orange-600 text-white hover:bg-orange-500"
-        >Choose for My List</Button> : shoppingReference ? <div className="space-y-2">
+        >{t("Choose for My List")}</Button> : shoppingReference ? <div className="space-y-2">
           {pendingReferenceCategory === category ? <>
             <div className="rounded-lg border border-amber-200/25 bg-amber-100/[0.07] p-3 text-xs leading-relaxed text-amber-50/90">
-              <p className="font-semibold">Shopping reference — Unverified</p>
+              <p className="font-semibold">{t("Shopping reference — Unverified")}</p>
               <p className="mt-1">This records shopping intent only. It is not medical or restricted-diet clearance.</p>
-              <p className="mt-2 font-medium">Unresolved review items</p>
+              <p className="mt-2 font-medium">{t("Unresolved review items")}</p>
               <ul className="mt-1 list-disc space-y-1 pl-5">
                 {shoppingReference.product.assessment.unresolvedRequirements.map((warning, index) =>
                   <li key={`${index}-${warning}`}>{warning}</li>)}
@@ -324,7 +326,7 @@ export default function ShoppingProductPicker({
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button type="button" disabled={saving} onClick={() => setPendingReferenceCategory(null)}
-                className="min-h-11 flex-1 border border-white/20 bg-transparent text-white hover:bg-white/10">Cancel shopping reference</Button>
+                className="min-h-11 flex-1 border border-white/20 bg-transparent text-white hover:bg-white/10">{t("Cancel shopping reference")}</Button>
               <Button type="button" disabled={saving} onClick={() => void commitReference(shoppingReference)}
                 className="min-h-11 flex-1 whitespace-normal bg-amber-700 text-white hover:bg-amber-600">
                 {saving ? "Saving reference…" : "Confirm shopping reference"}

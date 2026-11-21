@@ -70,6 +70,7 @@
     "client/src/components/shopping/GroceryCoachMacroTiles.tsx": 2,
     "client/src/components/shopping/MealIngredientBrands.tsx": 2,
     "client/src/components/shopping/ProductCatalogChoices.tsx": 3,
+    "client/src/components/shopping/ProductRecommendationExplanation.tsx": 0,
     "client/src/components/shopping/SavedGroceryEvidenceUpdate.tsx": 5,
     "client/src/components/shopping/ShoppingProductPicker.tsx": 8,
     "client/src/components/shopping/SmartShoppingProductChoice.tsx": 2,
