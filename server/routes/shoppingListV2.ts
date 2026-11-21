@@ -150,7 +150,8 @@ shoppingRouter.get("/", requireAuth, async (req: any, res: any) => {
     });
 
     res.json({
-      items,
+      items: await (await import("../services/productDiscovery/productProfileAssessment"))
+        .currentShoppingAssessments(userId!, items),
       ...(shoppingProductOptionsServerEnabled() ? { shoppingMetadataVersion: 1, ownerUserId: userId } : {}),
     });
   } catch (error: any) {
@@ -225,7 +226,10 @@ shoppingRouter.patch("/:id", requireAuth, async (req: any, res: any) => {
       with: { sources: true },
     });
 
-    res.json({ item: updated });
+    if (!updated) return res.status(409).json({ error: "This shopping item changed. Please reload your list." });
+    const [currentItem] = await (await import("../services/productDiscovery/productProfileAssessment"))
+      .currentShoppingAssessments(userId!, [updated]);
+    res.json({ item: currentItem });
   } catch (error: any) {
     if (metadataInputFailure(error, res)) return;
     console.error("Error updating shopping list item:", error);

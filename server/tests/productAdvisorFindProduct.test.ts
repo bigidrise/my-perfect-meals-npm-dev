@@ -78,6 +78,57 @@ const SAUCE_RESULT: CartRecommendationResult = {
   profileUsed: ["Cardiac Protocol"],
 };
 
+test.each(["profile", "catalog"])("Development Coach distinguishes %s outages without inventing recommendations", async kind => {
+  const environment = process.env.NODE_ENV;
+  const verification = await import("../services/productDiscovery/developmentGroceryVerification");
+  const spy = jest.spyOn(verification, "verifiedGroceryCatalog");
+  if (kind === "profile") spy.mockRejectedValue(Object.assign(new Error("unavailable"), {
+    name: "ProductSubjectContextUnavailableError",
+  }));
+  else spy.mockResolvedValue({ profileUsed: ["Resolved profile"], catalogSearchAvailable: false } as any);
+  const provider = advisorResult(SAUCE_RESULT);
+  try {
+    process.env.NODE_ENV = "development";
+    const failure = await createProductAdvisorEngineForTest(provider, async () => baseCtx())
+      .buildCartRecommendations("test-user", ["Marinara Sauce"]).catch(error => error);
+    expect(failure).toBeInstanceOf(kind === "profile" ? ClinicalContextUnavailableError : ProductIngredientVerificationRequiredError);
+    expect(failure.message).toMatch(kind === "profile" ? /profile could not be confirmed/i : /catalog is temporarily unavailable/i);
+    if (kind === "catalog") expect(failure.retryable).toBe(true);
+    expect(provider.getCartRecommendations).not.toHaveBeenCalled();
+  } finally {
+    process.env.NODE_ENV = environment;
+    spy.mockRestore();
+  }
+});
+
+test.each([false, true])("Development Coach uses the shared exact catalog instead of model brands; eligible=%s", async eligible => {
+  const environment = process.env.NODE_ENV;
+  const verification = await import("../services/productDiscovery/developmentGroceryVerification");
+  const spy = jest.spyOn(verification, "verifiedGroceryCatalog").mockResolvedValue({
+    profileUsed: ["Current resolved profile"], catalogSearchAvailable: true,
+    products: [{ productKey: "synthetic-exact" }],
+    alternatives: [{ category: "Exact Catalog Sauce", productKey: "synthetic-exact",
+      whyBetter: ["Catalog ingredients: tomatoes"], targetCriteria: eligible ? "Passed current checks" : "Compatibility not confirmed",
+      evidenceStatus: eligible ? "eligible" : "needs_verification" }],
+  } as any);
+  const provider = advisorResult(SAUCE_RESULT);
+  try {
+    process.env.NODE_ENV = "development";
+    const result = await createProductAdvisorEngineForTest(provider, async () => baseCtx())
+      .buildCartRecommendations("test-user", ["Marinara Sauce"]);
+    expect(spy).toHaveBeenCalledWith("test-user", "Marinara Sauce");
+    expect(provider.getCartRecommendations).not.toHaveBeenCalled();
+    expect(result.advice[0].recommended).toEqual([expect.objectContaining({
+      brand: "Exact Catalog Sauce", evidenceStatus: eligible ? "verified" : "unverified",
+      catalogProduct: { productKey: "synthetic-exact" },
+    })]);
+    expect(result.advice[0].usualPick).toBeNull();
+  } finally {
+    process.env.NODE_ENV = environment;
+    spy.mockRestore();
+  }
+});
+
 // ── 1. Fail-closed clinical guard ────────────────────────────────────────────
 
 describe("ProductAdvisorEngine clinical fail-closed guard", () => {

@@ -7,6 +7,7 @@ import type { ShoppingIngredientMetadata } from "../../../shared/shoppingIngredi
 import type { ProductSubjectSnapshot } from "./subjectAuthority";
 import { DEVELOPMENT_CATALOG_IDENTITY_POLICY } from "./ruleEvidenceRegistry";
 import { shoppingRejectionExplanation, type ShoppingUnresolvedRequirement } from "./shoppingRejectionExplanation";
+import { productProfileReference } from "./productProfileAssessment";
 
 /**
  * Projection only: never awards eligibility or installs product rules.
@@ -48,6 +49,8 @@ export function shoppingSelectionBridge(
           evaluatedAt: decision.evaluatedAt,
           policyVersion: DEVELOPMENT_CATALOG_IDENTITY_POLICY.version,
           subjectReference: decision.subjectId, contextReference: decision.contextFingerprint,
+          ...(process.env.NODE_ENV === "development" && !process.env.REPLIT_DEPLOYMENT &&
+            subject.protocolStateReference ? { profileContextReference: productProfileReference(subject) } : {}),
         },
       },
     });

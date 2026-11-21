@@ -77,6 +77,8 @@ function recommendationStatus(
   unresolved: readonly { id: string; classification: string }[],
 ): DevelopmentProductMatch["recommendationStatus"] {
   const { candidate, decision } = item;
+  if (process.env.NODE_ENV === "development" && !process.env.REPLIT_DEPLOYMENT &&
+      decision.status !== "eligible") return "review";
   const identity = candidate.identity;
   const source = identity.provenance;
   const observed = Date.parse(source.observedAt);

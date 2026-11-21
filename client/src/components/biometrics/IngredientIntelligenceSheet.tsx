@@ -272,7 +272,8 @@ export function BetterAlternativesSection({
   const [addedIndex, setAddedIndex] = useState<number | null>(null);
   if (!alternatives || alternatives.length === 0) return null;
 
-  const headingText = verdictLevel === 'buy'
+  const unverifiedCatalog = alternatives.some(alternative => alternative.evidenceStatus === "needs_verification");
+  const headingText = unverifiedCatalog ? "Catalog Product Options" : verdictLevel === 'buy'
     ? (branded ? `🏆 ${t('ingredientSheet.alternatives.alsoWorthKnowing')}` : `🏆 ${t('ingredientSheet.alternatives.evenBetter')}`)
     : `🛒 ${t('ingredientSheet.alternatives.betterOptions')}`;
 
@@ -287,9 +288,9 @@ export function BetterAlternativesSection({
     <div className="mb-5">
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm font-bold text-white/80">{headingText}</p>
-        {verdictLevel !== 'buy' && (
+        {(verdictLevel !== 'buy' || unverifiedCatalog) && (
           <span className="text-[10px] font-semibold text-orange-400 bg-orange-500/15 border border-orange-500/25 rounded-full px-2 py-0.5 uppercase tracking-wide">
-            {badgeLabel ?? t('ingredientSheet.alternatives.profileMatched')}
+            {unverifiedCatalog ? "Product details not fully verified." : badgeLabel ?? t('ingredientSheet.alternatives.profileMatched')}
           </span>
         )}
       </div>

@@ -57,6 +57,8 @@ export interface BetterAlternative {
   category: string;
   whyBetter: string[];
   targetCriteria: string;
+  evidenceStatus?: "eligible" | "needs_verification";
+  productKey?: string;
 }
 
 export interface IngredientScanResult {
@@ -132,6 +134,28 @@ function enforceWholeFoodProductVerdict(
 // ─── Analysis profile ────────────────────────────────────────────────────────
 // Human-readable list of what data points were used in this scan. Shown in the
 // UI so users understand why their result is personalised to them specifically.
+
+async function verifyScanInDevelopment(userId: string, result: IngredientScanResult) {
+  if (process.env.NODE_ENV !== "development" || process.env.REPLIT_DEPLOYMENT) return result;
+  const { verifyDevelopmentScanResult } = await import("./productDiscovery/developmentGroceryVerification");
+  let envelope: UserProtocolEnvelope | null = null;
+  try { envelope = await loadUserProtocolEnvelope(userId); } catch { /* explicit unknown below */ }
+  return verifyDevelopmentScanResult(userId, result, envelope);
+}
+
+export async function analyzeProductByName(...args: Parameters<typeof analyzeProductByNameUnverified>) {
+  return verifyScanInDevelopment(args[1], await analyzeProductByNameUnverified(...args));
+}
+
+export async function analyzeFullProduct(...args: Parameters<typeof analyzeFullProductUnverified>) {
+  return verifyScanInDevelopment(args[2], await analyzeFullProductUnverified(...args));
+}
+
+export async function analyzeIngredientContent(...args: Parameters<typeof analyzeIngredientContentUnverified>) {
+  const result = await analyzeIngredientContentUnverified(...args);
+  // Companion scanning has a different nutrition subject and is not grocery work.
+  return args[2] ? result : verifyScanInDevelopment(args[0], result);
+}
 
 export function buildAnalysisProfile(envelope: UserProtocolEnvelope): string[] {
   const items: string[] = [];
@@ -814,7 +838,7 @@ function looksLikeProductName(text: string): boolean {
   return commaCount <= 2;
 }
 
-export async function analyzeIngredientContent(
+async function analyzeIngredientContentUnverified(
   userId: string,
   input: { imageDataUrl?: string; rawText?: string },
   companionContext?: string,
@@ -847,7 +871,9 @@ export async function analyzeIngredientContent(
     // If the text looks like a product name (not an ingredient list), route to the
     // product intelligence engine which can name real brands and cite specific values.
     if (!isCompanionScan && looksLikeProductName(trimmed)) {
-      return analyzeProductByName(trimmed, userId);
+      // The public label wrapper performs the final Development verification.
+      // Keep this internal fallback unwrapped to avoid a second catalog search.
+      return analyzeProductByNameUnverified(trimmed, userId);
     }
     extractedText = trimmed;
   } else if (input.imageDataUrl) {
@@ -1009,7 +1035,7 @@ Analyze how this product aligns with this specific user's health profile.`;
 // Called when user taps "Analyze This Product" after front-label detection.
 // Uses AI's training knowledge of the product — not a live label scan.
 
-export async function analyzeProductByName(
+async function analyzeProductByNameUnverified(
   productName: string,
   userId: string,
   options: { findNewOptions?: boolean; ingredient?: ShoppingIngredientRequest; memoryStore?: GroceryChoiceStore | null } = {},
@@ -1146,7 +1172,7 @@ Assess this product or shopping-category request against this user's health prof
 // Cross-references product knowledge with actual verified ingredient data for
 // the highest-confidence analysis. Returns analysisMethod: 'full_product_advisor'.
 
-export async function analyzeFullProduct(
+async function analyzeFullProductUnverified(
   productName: string,
   ingredients: string,
   userId: string,

@@ -12,6 +12,8 @@ import { parseShoppingProductReference, parseShoppingProductSelection } from "..
 import { developmentItemPatch } from "../services/shopping-list/metadataPersistence";
 import { makeIngredientMetadata } from "../../shared/shoppingIngredientMetadata";
 import { writeFileSync } from "node:fs";
+import { verifiedGroceryCatalog } from "../services/productDiscovery/developmentGroceryVerification";
+import { catalogShoppingOptionsDevelopment } from "../services/productDiscovery/catalogShoppingOptionsDevelopment";
 
 jest.mock("../services/ingredientScanService", () => ({
   buildAnalysisProfile: jest.fn(() => []),
@@ -197,12 +199,21 @@ describe("catalog-first Development shopping options", () => {
         const snapshot = JSON.parse(reference.product.sourcePayloadJson!);
         expect(snapshot.decision.status).toBe("needs_verification");
         expect(snapshot.decision.reasons).toContainEqual({
-          code: "context_unavailable", detail: "Current subject requirements could not be resolved.",
+          code: "policy_unavailable", detail: "Applicable product verification rules are unavailable or incomplete.",
         });
         const warnings = reference.product.assessment.unresolvedRequirements.join(" ");
         for (const value of [...diet, ...avoided]) expect(warnings).toContain(value);
         expect(() => parseShoppingProductSelection(reference)).toThrow();
       }
+      const shared = await verifiedGroceryCatalog(owner, ingredient.originalName,
+        (userId, request) => catalogShoppingOptionsDevelopment(userId, request, {
+          sources: f.sources, adapter: f.adapter,
+        }));
+      expect(shared.products.map(product => product.productKey)).toEqual(
+        result.catalogMatches.map(product => product.productKey));
+      expect(shared.alternatives).toHaveLength(conflict ? 0 : 3);
+      expect(shared.alternatives.every(option => option.evidenceStatus === "needs_verification")).toBe(true);
+      expect(shared.alternatives.every(option => !option.targetCriteria.includes("Passed"))).toBe(true);
     },
   );
 

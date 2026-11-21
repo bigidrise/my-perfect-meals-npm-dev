@@ -22,6 +22,9 @@ import { shoppingProductActionsDevelopmentEnabled } from "@/lib/shoppingProductA
 import type { ShoppingListItem } from "@/stores/shoppingListStore";
 import { buildConsolidatedItems } from "@/lib/shoppingConsolidation";
 import { getRetailQuantity } from "@/lib/retailIntelligence";
+import { formatQuantity } from "@/lib/formatQuantity";
+import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
+import { useTranslation } from "react-i18next";
 import "./GroceryExportModal.css";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -40,6 +43,8 @@ export default function GroceryExportModal({
   onClose,
 }: GroceryExportModalProps) {
   const { t } = useConsumerCopy();
+  const { t: shoppingT } = useTranslation("shoppingTransfer");
+  const measurementSystem = useMeasurementSystem();
   const [activeRetailerId, setActiveRetailerId] =
     useState<GroceryRetailerId>(defaultRetailerId);
   const [opened, setOpened] = useState<Set<string>>(new Set());
@@ -148,6 +153,10 @@ export default function GroceryExportModal({
 
               // Retail quantity: human shopping language (e.g. "1 lb", "1 bag")
               const qty = getRetailQuantity(item);
+              const needed = shoppingProductActionsDevelopmentEnabled
+                ? item.requiredAmounts.map(amount =>
+                    formatQuantity(amount.quantity, amount.unit, measurementSystem)).join(" + ")
+                : "";
 
               return (
                 <a
@@ -189,9 +198,15 @@ export default function GroceryExportModal({
                         searching: &ldquo;{searchName}&rdquo;
                       </div>
                     )}
+                    {needed && (
+                      <div className="text-orange-400/70 text-xs mt-0.5 font-medium">
+                        {shoppingT("quantityNeeded", { quantity: needed })}
+                      </div>
+                    )}
                     {qty && (
                       <div className="text-orange-400/70 text-xs mt-0.5 font-medium">
-                        {qty}
+                        {shoppingProductActionsDevelopmentEnabled
+                          ? shoppingT("quantityBuy", { quantity: qty }) : qty}
                       </div>
                     )}
                   </div>

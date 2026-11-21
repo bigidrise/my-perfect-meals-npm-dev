@@ -765,10 +765,10 @@ router.post("/product-advisor", async (req, res) => {
     return res.json(result);
   } catch (err: any) {
     if (err instanceof ProductIngredientVerificationRequiredError) {
-      return res.status(422).json({
-        code: "PRODUCT_INGREDIENTS_UNVERIFIED",
+      return res.status(err.retryable ? 503 : 422).json({
+        code: err.retryable ? "PRODUCT_CATALOG_UNAVAILABLE" : "PRODUCT_INGREDIENTS_UNVERIFIED",
         error: err.message,
-        retryable: false,
+        retryable: err.retryable,
       });
     }
     if (err instanceof ClinicalContextUnavailableError) {

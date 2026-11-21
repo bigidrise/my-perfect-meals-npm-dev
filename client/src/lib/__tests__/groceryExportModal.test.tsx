@@ -1,6 +1,8 @@
 /** @jest-environment jsdom */
 import React from "react";
-import { fireEvent, render, screen, cleanup } from "@testing-library/react";
+import { fireEvent, render as renderComponent, screen, cleanup } from "@testing-library/react";
+import { createInstance } from "i18next";
+import { I18nextProvider } from "react-i18next";
 import "@testing-library/jest-dom";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -11,6 +13,17 @@ import * as actionsGate from "@/lib/shoppingProductActionsGate";
 import type { ShoppingListItem } from "@/stores/shoppingListStore";
 
 jest.mock("@/components/shopping/GroceryExportModal.css", () => ({}));
+jest.unmock("react-i18next");
+
+const i18n = createInstance();
+beforeAll(async () => {
+  await i18n.init({
+    lng: "en", fallbackLng: "en", interpolation: { escapeValue: false },
+    resources: { en: { shoppingTransfer: require("../../i18n/locales/en.json").shoppingTransfer } },
+  });
+});
+const render = (element: React.ReactElement) =>
+  renderComponent(<I18nextProvider i18n={i18n}>{element}</I18nextProvider>);
 
 const items: ShoppingListItem[] = Array.from({ length: 24 }, (_, i) => ({
   id: `synthetic-${i}`,
@@ -43,6 +56,7 @@ test.each(["eligible_at_evaluation", "review_required"])(
       fireEvent.click(screen.getByRole("button", { name: retailer.name }));
       const link = screen.getByRole("link", { name: /Kirkland Signature Extra Virgin Olive Oil/ });
       expect(link).not.toHaveTextContent("Organic Cold Pressed");
+      expect(link).toHaveTextContent("Needed: 2 tbsp");
       expect(link).toHaveAttribute("href", retailer.buildItemUrl("Kirkland Signature Extra Virgin Olive Oil Organic Cold Pressed", { preserveProductIdentity: true }));
       const decodedQuery = [...new URL(link.getAttribute("href")!).searchParams.values()].join(" ");
       expect(decodedQuery).toContain("Kirkland Signature Extra Virgin Olive Oil Organic Cold Pressed");
@@ -69,6 +83,7 @@ test("Production preserves the original retailer query behavior", () => {
     render(<GroceryExportModal items={[chosen]} onClose={jest.fn()} />);
     expect(screen.getByRole("link")).toHaveAttribute("href", GROCERY_RETAILERS[0].buildItemUrl(chosen.name));
     expect(screen.queryByText("Synthetic Do not activate")).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Needed:/)).not.toBeInTheDocument();
   } finally { (actionsGate as any).shoppingProductActionsDevelopmentEnabled = true; }
 });
 

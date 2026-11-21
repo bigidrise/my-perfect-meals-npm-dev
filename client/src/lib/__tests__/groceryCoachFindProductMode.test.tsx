@@ -67,6 +67,19 @@ import { render, screen, waitFor, fireEvent, act, within } from '@testing-librar
 import '@testing-library/jest-dom';
 import { post, get } from '@/lib/api';
 import GroceryStoreCoachSheet from '@/components/shopping/GroceryStoreCoachSheet';
+import { BetterAlternativesSection } from '@/components/biometrics/IngredientIntelligenceSheet';
+
+test("catalog alternatives with unknown evidence never inherit the Profile-Matched badge or a better-than-buy heading", () => {
+  render(<BetterAlternativesSection alternatives={[{
+    category: "Synthetic Catalog Product", whyBetter: ["Catalog ingredients: tomatoes"],
+    targetCriteria: "Compatibility is not confirmed.", evidenceStatus: "needs_verification",
+  }]} query="tomato sauce" educationalFooter="Synthetic fixture" verdictLevel="buy"
+    renderAction={() => null} />);
+  expect(screen.getByText("Catalog Product Options")).toBeInTheDocument();
+  expect(screen.getByText("Product details not fully verified.")).toBeInTheDocument();
+  expect(screen.queryByText("ingredientSheet.alternatives.profileMatched")).not.toBeInTheDocument();
+  expect(screen.queryByText("ingredientSheet.alternatives.evenBetter")).not.toBeInTheDocument();
+});
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
