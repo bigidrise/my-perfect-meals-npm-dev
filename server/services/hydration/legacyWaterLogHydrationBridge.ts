@@ -21,11 +21,15 @@ const LEGACY_TIMEZONE = "UTC";
 export type LegacyWaterLogRow = Pick<
   WaterLog,
   "id" | "userId" | "amountMl" | "unit" | "intakeTime" | "createdAt"
->;
+> & Partial<Pick<WaterLog, "beverageClass">>;
 
 export type LegacyWaterLogProvenance = Readonly<{
+  legacySource: "water_logs";
   legacyWaterLogId: string;
   rawOriginalUnit: string;
+  rawBeverageClass: string | null;
+  originalAmountAvailable: false;
+  legacyActorUserId: null;
   originalAmountInterpretation:
     | "exact_ml"
     | "reconstructed_from_normalized_ml"
@@ -86,6 +90,12 @@ export class LegacyWaterLogHydrationBridgeError extends Error {
 }
 
 function asValidDate(value: Date | string, field: string): Date {
+  if (!(value instanceof Date) && (typeof value !== "string" || !value.trim())) {
+    throw new LegacyWaterLogHydrationBridgeError(
+      "INVALID_LEGACY_RECORD",
+      `Legacy water log contains a missing ${field}`,
+    );
+  }
   const date = value instanceof Date ? new Date(value.getTime()) : new Date(value);
   if (Number.isNaN(date.getTime())) {
     throw new LegacyWaterLogHydrationBridgeError(
@@ -165,12 +175,26 @@ function hashLegacyProjection(input: Record<string, unknown>): string {
     .digest("hex");
 }
 
+// UUID v5 in the standard URL namespace. This is a read-only projection
+// identity, not a new stored record or an invitation to persist a second copy.
+function legacyProjectionId(ownerId: string, recordId: string): string {
+  const namespace = Buffer.from("6ba7b8119dad11d180b400c04fd430c8", "hex");
+  const bytes = crypto.createHash("sha1")
+    .update(namespace)
+    .update(JSON.stringify(["water_logs", ownerId, recordId]))
+    .digest().subarray(0, 16);
+  bytes[6] = (bytes[6] & 0x0f) | 0x50;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = bytes.toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 export function mapLegacyWaterLogToHydrationEvent(
   row: LegacyWaterLogRow,
 ): LegacyHydrationIntakeProjection {
   if (
-    !row.id ||
-    !row.userId ||
+    typeof row.id !== "string" || !row.id.trim() ||
+    typeof row.userId !== "string" || !row.userId.trim() ||
     !Number.isSafeInteger(row.amountMl) ||
     row.amountMl <= 0 ||
     typeof row.unit !== "string"
@@ -184,9 +208,21 @@ export function mapLegacyWaterLogToHydrationEvent(
   const occurredAt = asValidDate(row.intakeTime, "intake timestamp");
   const enteredAt = asValidDate(row.createdAt, "creation timestamp");
   const interpreted = interpretLegacyUnit(row.amountMl, row.unit);
+  // The protected logger supports sparkling without declaring its composition.
+  // Preserve that evidence, but never infer plain water or nutrients from it.
+  const beverageClass: HydrationIntakeEvent["beverageClass"] =
+    row.beverageClass == null ? "water" :
+    (["water", "tea", "coffee", "milk", "juice", "other"] as const)
+      .find((value) => value === row.beverageClass) ?? "unknown";
   const provenance: LegacyWaterLogProvenance = {
+    legacySource: "water_logs",
     legacyWaterLogId: row.id,
     rawOriginalUnit: row.unit,
+    rawBeverageClass: row.beverageClass ?? null,
+    // The legacy logger stores only rounded normalized mL, not the original
+    // amount or actor. Reconstructed display values are not original evidence.
+    originalAmountAvailable: false,
+    legacyActorUserId: null,
     originalAmountInterpretation: interpreted.interpretation,
     occurredTimezoneInterpretation: "legacy_timestamp_interpreted_as_utc",
     enteredByInterpretation: "legacy_actor_unavailable_subject_used",
@@ -199,11 +235,13 @@ export function mapLegacyWaterLogToHydrationEvent(
     originalUnit: interpreted.originalUnit,
     source: "legacy_manual",
     sourceEventId: row.id,
+    beverageClass,
+    enteredAt: enteredAt.toISOString(),
     provenance,
   });
 
   return {
-    id: row.id,
+    id: legacyProjectionId(row.userId, row.id),
     subjectUserId: row.userId,
     occurredAt: occurredAt.toISOString(),
     occurredTimezone: LEGACY_TIMEZONE,
@@ -211,10 +249,10 @@ export function mapLegacyWaterLogToHydrationEvent(
     volumeMl: row.amountMl,
     originalAmount: interpreted.originalAmount,
     originalUnit: interpreted.originalUnit,
-    beverageClass: "water",
+    beverageClass,
     source: "legacy_manual",
     sourceEventId: row.id,
-    idempotencyKey: row.id,
+    idempotencyKey: legacyProjectionId(row.userId, row.id),
     payloadHash,
     enteredAt: enteredAt.toISOString(),
     enteredByUserId: row.userId,
@@ -354,7 +392,7 @@ export class LegacyWaterLogHydrationBridge {
         "Hydration delegated-access verification failed",
       );
     }
-    if (!hasAccess) {
+    if (hasAccess !== true) {
       throw new LegacyWaterLogHydrationBridgeError(
         "ACCESS_DENIED",
         "Not authorized to access this client's hydration history",
@@ -396,6 +434,12 @@ export class LegacyWaterLogHydrationBridge {
       limit: parsed.limit + 1,
       ...(cursor ? { cursor } : {}),
     });
+    if (rows.some((row) => row.userId !== subjectUserId)) {
+      throw new LegacyWaterLogHydrationBridgeError(
+        "ACCESS_DENIED",
+        "Hydration source returned a record outside the authorized subject",
+      );
+    }
     const hasMore = rows.length > parsed.limit;
     const pageRows = rows.slice(0, parsed.limit);
     const items = pageRows.map(mapLegacyWaterLogToHydrationEvent);
