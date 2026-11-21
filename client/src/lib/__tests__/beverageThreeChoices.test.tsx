@@ -106,6 +106,10 @@ for (const path of [
 ]) {
   jest.doMock(path, () => ({ __esModule: true, default: () => null }));
 }
+jest.doMock("@/components/ui/TrashButton", () => ({
+  __esModule: true, default: ({ ariaLabel, onClick }: any) =>
+    <button aria-label={ariaLabel} onClick={onClick}>Remove recipe</button>,
+}));
 jest.mock("@/components/SafetyGuardToggle", () => ({ SafetyGuardToggle: () => null }));
 jest.mock("@/components/GlucoseGuardToggle", () => ({ GlucoseGuardToggle: () => null }));
 jest.mock("@/components/FlavorToggle", () => ({ FlavorToggle: () => null }));
@@ -139,6 +143,7 @@ function loadPage(name: string) {
 
 const BeverageCreator = loadPage("BeverageCreator");
 const AthleteBeverageCreator = loadPage("AthleteBeverageCreator");
+const DessertCreator = loadPage("CravingDessertCreator");
 
 function drink(index: number) {
   return {
@@ -242,6 +247,8 @@ describe.each([
   test("late translations cannot overwrite another choice or another account's selected recipe", async () => {
     const view = await generate(Page);
     fireEvent.click(screen.getByRole("button", { name: "Choose Drink 1" }));
+    // Translation now lives in the shared action bar's More section.
+    fireEvent.click(screen.getByRole("button", { name: /^(more|More)$/ }));
     fireEvent.click(screen.getByRole("button", { name: "Translate selected" }));
     const translateFirst = mockTranslationCallbacks[0];
     fireEvent.click(screen.getByRole("button", { name: "Choose Drink 2" }));
@@ -251,6 +258,7 @@ describe.each([
     fireEvent.click(screen.getByRole("button", { name: "Save selected" }));
     expect(mockActions).toHaveBeenLastCalledWith("save", choices[1]);
 
+    fireEvent.click(screen.getByRole("button", { name: /^(more|More)$/ }));
     fireEvent.click(screen.getByRole("button", { name: "Translate selected" }));
     const translateSecond = mockTranslationCallbacks[1];
     const otherChoices = choices.map((choice) => ({ ...choice, id: `${choice.id}-other`, name: `Other ${choice.name}` }));
@@ -300,4 +308,181 @@ test("a late image response cannot attach the previous choice's image to the sel
   expect(screen.getByTestId("selected-image")).toHaveAttribute("src", choices[1].imageUrl);
   fireEvent.click(screen.getByRole("button", { name: "Save selected" }));
   expect(mockActions).toHaveBeenLastCalledWith("save", choices[1]);
+});
+
+// Same real comparison component and hook, now exercised through Dessert's
+// actual page and handlers. Network, auth and save destinations are fixtures.
+const dessertChoices = choices.map((choice, index) => ({
+  ...choice, id: `dessert-choice-${index}`, name: `Chocolate cake ${index + 1}`,
+  category: "cake", servings: 12, servingSize: "Whole 9-inch round · 2 layers · 12 slices",
+  instructions: `Bake cake ${index + 1} at 350 F for 30 minutes. Cool and slice into 12 pieces.`,
+  nutrition: { calories: 1200, protein: 60, carbs: 120, fat: 60, starchyCarbs: 30 },
+  perServingNutrition: { calories: 100, protein: 5, carbs: 10, fat: 5, starchyCarbs: 2.5 },
+  recipeIngredientQuantities: choice.ingredients,
+}));
+function respondWithDesserts(override: any = {}) {
+  mockFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({
+    choices: dessertChoices, requestedChoiceCount: 3, ...override,
+  }) });
+}
+async function generateDesserts() {
+  const view = render(<DessertCreator />);
+  fireEvent.change(screen.getAllByRole("textbox")[0], { target: { value: "A whole chocolate cake with two layers" } });
+  const cakeOption = screen.getByRole("option", { name: "Cake" });
+  fireEvent.change(cakeOption.closest("select")!, { target: { value: "cake" } });
+  const yieldOption = screen.getByRole("option", { name: "Whole 9-inch round · 2 layers · 12 slices" });
+  fireEvent.change(yieldOption.closest("select")!, { target: { value: "cake-9-2-12" } });
+  fireEvent.click(screen.getByRole("button", { name: "Create My Dessert" }));
+  await screen.findByRole("region", { name: "Dessert choices" });
+  return view;
+}
+describe("Dessert Creator uses the shared selection and restoration implementation", () => {
+  test("requests three whole cakes and sends each selected recipe to its existing actions", async () => {
+    respondWithDesserts();
+    await generateDesserts();
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.choiceCount).toBe(3);
+    expect(body.servingSize).toBe("cake-9-2-12");
+    expect(screen.getAllByTestId("dessert-choice-card")).toHaveLength(3);
+    expect(screen.queryByTestId("selected-image")).not.toBeInTheDocument();
+    for (const choice of dessertChoices) {
+      fireEvent.click(screen.getByRole("button", { name: `Choose ${choice.name}` }));
+      expect(screen.getByTestId("selected-image")).toHaveAttribute("src", choice.imageUrl);
+      expect(screen.getByText(new RegExp(`Bake cake ${dessertChoices.indexOf(choice) + 1} at 350 F`))).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Save selected" }));
+      fireEvent.click(screen.getByRole("button", { name: "Add/log selected" }));
+      fireEvent.click(screen.getByRole("button", { name: "Shop selected" }));
+      fireEvent.click(screen.getByRole("button", { name: "Share selected" }));
+      expect(mockActions).toHaveBeenCalledWith("save", choice);
+      expect(mockActions).toHaveBeenCalledWith("add/log", choice);
+      expect(mockActions).toHaveBeenCalledWith("shopping", expect.objectContaining({
+        source: "Dessert Creator", ingredients: [{ name: choice.ingredients[0].name, qty: choice.ingredients[0].amount, unit: "cup" }],
+      }));
+      expect(mockActions).toHaveBeenCalledWith("share", expect.objectContaining({
+        name: choice.name, nutrition: choice.nutrition, instructions: choice.instructions,
+      }));
+      expect(screen.getAllByTestId("dessert-choice-card")).toHaveLength(3);
+    }
+  });
+  test("shows a partial explanation and retains selected choices through failed regeneration", async () => {
+    respondWithDesserts({ choices: dessertChoices.slice(0, 2), choiceNotice: "Only 2 distinct desserts passed the recipe checks." });
+    await generateDesserts();
+    expect(screen.getByRole("status")).toHaveTextContent("Only 2 distinct desserts");
+    fireEvent.click(screen.getByRole("button", { name: "Choose Chocolate cake 2" }));
+    mockFetch.mockResolvedValue({ ok: false, status: 422, json: async () => ({ code: "HUMAN_FOOD_FINAL_VALIDATION_FAILED" }) });
+    fireEvent.click(screen.getByRole("button", { name: "Create My Dessert" }));
+    await screen.findByRole("alert");
+    expect(screen.getAllByTestId("dessert-choice-card")).toHaveLength(2);
+    expect(screen.getByTestId("selected-image")).toHaveAttribute("src", dessertChoices[1].imageUrl);
+  });
+  test("restores batch, selected recipe and full yield on refresh and isolates account switches", async () => {
+    respondWithDesserts();
+    const view = await generateDesserts();
+    fireEvent.click(screen.getByRole("button", { name: "Choose Chocolate cake 2" }));
+    await waitFor(() => expect(JSON.parse(localStorage.getItem("mpm_dessert_choices:beverage-test-account")!).selectedId).toBe(dessertChoices[1].id));
+    view.unmount();
+    const restored = render(<DessertCreator />);
+    expect(screen.getAllByTestId("dessert-choice-card")).toHaveLength(3);
+    expect(screen.getByTestId("selected-image")).toHaveAttribute("src", dessertChoices[1].imageUrl);
+    mockUser = { id: "other-dessert-account", dietaryRestrictions: [] };
+    restored.rerender(<DessertCreator />);
+    expect(screen.queryByRole("region", { name: "Dessert choices" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("selected-image")).not.toBeInTheDocument();
+    expect(localStorage.getItem("mpm_dessert_choices:other-dessert-account")).toBeNull();
+    mockUser = { id: "beverage-test-account", dietaryRestrictions: [] };
+    restored.rerender(<DessertCreator />);
+    expect(screen.getByTestId("selected-image")).toHaveAttribute("src", dessertChoices[1].imageUrl);
+    fireEvent.click(screen.getByRole("button", { name: "Clear dessert choices" }));
+    expect(screen.queryByRole("region", { name: "Dessert choices" })).not.toBeInTheDocument();
+    expect(localStorage.getItem("mpm_dessert_choices:beverage-test-account")).toBeNull();
+    expect(localStorage.getItem("mpm_dessert_creator_result:beverage-test-account")).toBeNull();
+  });
+  test("reads account-owned legacy single recipes without attaching an unowned global recipe", () => {
+    localStorage.setItem("mpm_dessert_creator_result", JSON.stringify(dessertChoices[0]));
+    const view = render(<DessertCreator />);
+    expect(screen.queryByTestId("selected-image")).not.toBeInTheDocument();
+    view.unmount();
+    localStorage.setItem("mpm_dessert_creator_result:beverage-test-account", JSON.stringify(dessertChoices[1]));
+    render(<DessertCreator />);
+    expect(screen.getByTestId("selected-image")).toHaveAttribute("src", dessertChoices[1].imageUrl);
+    fireEvent.click(screen.getByRole("button", { name: "Save selected" }));
+    expect(mockActions).toHaveBeenLastCalledWith("save", dessertChoices[1]);
+  });
+  test("late translations and images cannot overwrite a different selected dessert or account", async () => {
+    let finishImage!: (response: any) => void;
+    mockFetch.mockImplementation((path: string) => path === "/api/meals/generate-image"
+      ? new Promise(resolve => { finishImage = resolve; })
+      : Promise.resolve({ ok: true, status: 200, json: async () => ({
+        choices: [{ ...dessertChoices[0], imageUrl: null }, dessertChoices[1], dessertChoices[2]],
+      }) }));
+    const view = await generateDesserts();
+    fireEvent.click(screen.getByRole("button", { name: "Choose Chocolate cake 1" }));
+    fireEvent.click(screen.getByRole("button", { name: /^(more|More)$/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Translate selected" }));
+    const translate = mockTranslationCallbacks[0];
+    await waitFor(() => expect(finishImage).toBeDefined());
+    fireEvent.click(screen.getByRole("button", { name: "Choose Chocolate cake 2" }));
+    await act(async () => {
+      translate({ name: "Wrong dessert" });
+      finishImage({ json: async () => ({ imageUrl: "/wrong-dessert-image.jpg" }) });
+    });
+    expect(screen.getByTestId("selected-image")).toHaveAttribute("src", dessertChoices[1].imageUrl);
+    fireEvent.click(screen.getByRole("button", { name: "Save selected" }));
+    expect(mockActions).toHaveBeenLastCalledWith("save", dessertChoices[1]);
+    mockUser = { id: "other-dessert-account", dietaryRestrictions: [] };
+    view.rerender(<DessertCreator />);
+    await act(async () => translate({ name: "Wrong account" }));
+    expect(screen.queryByTestId("selected-image")).not.toBeInTheDocument();
+    expect(localStorage.getItem("mpm_dessert_creator_result:other-dessert-account")).toBeNull();
+  });
+  test("ignores a generation response that arrives after switching accounts", async () => {
+    let finishGeneration!: (value: any) => void;
+    mockFetch.mockImplementation(() => new Promise(resolve => { finishGeneration = resolve; }));
+    const view = render(<DessertCreator />);
+    fireEvent.change(screen.getAllByRole("textbox")[0], { target: { value: "A chocolate cake" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create My Dessert" }));
+    await waitFor(() => expect(finishGeneration).toBeDefined());
+    mockUser = { id: "other-dessert-account", dietaryRestrictions: [] };
+    view.rerender(<DessertCreator />);
+    await act(async () => finishGeneration({ ok: true, status: 200, json: async () => ({ choices: dessertChoices }) }));
+    expect(screen.queryByRole("region", { name: "Dessert choices" })).not.toBeInTheDocument();
+    expect(localStorage.getItem("mpm_dessert_choices:other-dessert-account")).toBeNull();
+  });
+  test("deletes only the selected dessert and preserves the other choices on refresh", async () => {
+    respondWithDesserts();
+    const view = await generateDesserts();
+    fireEvent.click(screen.getByRole("button", { name: "Choose Chocolate cake 2" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove dessert" }));
+    expect(screen.getAllByTestId("dessert-choice-card")).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: "Choose Chocolate cake 2" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("selected-image")).not.toBeInTheDocument();
+    view.unmount();
+    render(<DessertCreator />);
+    expect(screen.getAllByTestId("dessert-choice-card")).toHaveLength(2);
+  });
+  test("persists translation edits only into the selected recipe while preserving batch nutrition", async () => {
+    respondWithDesserts();
+    const view = await generateDesserts();
+    fireEvent.click(screen.getByRole("button", { name: "Choose Chocolate cake 1" }));
+    fireEvent.click(screen.getByRole("button", { name: /^(more|More)$/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Translate selected" }));
+    await act(async () => mockTranslationCallbacks[0]({ name: "Pastel de chocolate", instructions: "Hornear el pastel completo.", ingredients: dessertChoices[0].ingredients }));
+    fireEvent.click(screen.getByRole("button", { name: "Save selected" }));
+    expect(mockActions).toHaveBeenLastCalledWith("save", expect.objectContaining({
+      id: dessertChoices[0].id, name: "Pastel de chocolate", servings: 12,
+      nutrition: dessertChoices[0].nutrition, perServingNutrition: dessertChoices[0].perServingNutrition,
+    }));
+    view.unmount();
+    render(<DessertCreator />);
+    expect(screen.getAllByRole("heading", { level: 3, name: "Pastel de chocolate" })).toHaveLength(2);
+    expect(screen.getAllByTestId("dessert-choice-card")).toHaveLength(3);
+  });
+  test("a malformed or empty new batch cannot erase previously usable choices", async () => {
+    respondWithDesserts();
+    await generateDesserts();
+    mockFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ choices: [] }) });
+    fireEvent.click(screen.getByRole("button", { name: "Create My Dessert" }));
+    await screen.findByRole("alert");
+    expect(screen.getAllByTestId("dessert-choice-card")).toHaveLength(3);
+  });
 });

@@ -9,6 +9,12 @@ import { validateHumanFoodCandidate } from "../services/humanFoodContext/finalVa
 import type { HumanFoodContext } from "../../shared/humanFoodContext";
 import { readFileSync } from "fs";
 
+// These are pure policy fixtures. The final validator imports current GLP-1
+// authority transitively; it must never initialize the application's database.
+jest.mock("../db", () => ({
+  db: new Proxy({}, { get: () => () => { throw new Error("Unexpected database access in offline GLP-1 policy test"); } }),
+}));
+
 function targets(fatMaxG = 12, mealType: "snack" | "dinner" = "snack", partialBaseline = false) {
   return resolveGLP1MealTargets({
     dailyCalorieTarget: partialBaseline ? undefined : 1800,

@@ -67,12 +67,12 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
-import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
 import { dessertRecipeServings, dessertFavoritePayload, dessertFailureCopy } from "@/lib/dessertResult";
 import { dessertYieldOptions, LEGACY_DESSERT_YIELDS } from "@shared/dessertYields";
+import RecipeChoiceCards, { useRecipeChoices, readRecipeChoiceResponse } from "@/components/beverage/BeverageChoiceCards";
 
 const DESSERT_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -192,18 +192,16 @@ export default function DessertCreator() {
   const [instructionsExpanded, setInstructionsExpanded] = useState(false);
   const [showRecipeTotalNutrition, setShowRecipeTotalNutrition] = useState(false);
   const [activeStep, setActiveStep] = useState<number | null>(null);
-  const [generatedDessert, setGeneratedDessert] = useState<any | null>(() => {
-    try {
-      const saved = localStorage.getItem("mpm_dessert_creator_result");
-      if (!saved) return null;
-      const parsed = JSON.parse(saved);
-      // Strip server-computed diet fields — they can go stale if user settings change
-      const { dietClassification: _dc, complianceSection: _cs, ...rest } = parsed;
-      return rest;
-    } catch {
-      return null;
-    }
-  });
+  const [selectedDessert, setGeneratedDessert] = useState<any | null>(null);
+  const {
+    choices: dessertChoices, choiceNotice, selectedRecipe: generatedDessert,
+    replaceChoices, clearChoices, removeChoice,
+  } = useRecipeChoices("dessert", userId, selectedDessert, setGeneratedDessert,
+    userId ? `mpm_dessert_creator_result:${userId}` : undefined);
+  const activeAccount = useRef(userId);
+  const generationEpoch = useRef(0);
+  if (activeAccount.current !== userId) generationEpoch.current++;
+  activeAccount.current = userId;
 
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
@@ -211,6 +209,11 @@ export default function DessertCreator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [dessertImageLoading, setDessertImageLoading] = useState(false);
   const [generationFailure, setGenerationFailure] = useState<GenerationFailureState>(HIDDEN_FAILURE);
+  useEffect(() => {
+    setIsGenerating(false);
+    setDessertImageLoading(false);
+    setGenerationFailure(HIDDEN_FAILURE);
+  }, [userId]);
   // 🥗 Diet guard — hook-based precheck (mirrors StarchGuard)
   const {
     alert: dietAlert,
@@ -288,6 +291,7 @@ export default function DessertCreator() {
     if (!generatedDessert.name) return;
 
     setDessertImageLoading(true);
+    let cancelled = false;
     fetch(apiUrl("/api/meals/generate-image"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -299,16 +303,16 @@ export default function DessertCreator() {
       }),
     })
       .then(r => r.json())
-      .then(d => { if (d.imageUrl) setGeneratedDessert((prev: any) => prev ? { ...prev, imageUrl: d.imageUrl } : prev); })
+      .then(d => {
+        if (!cancelled && activeAccount.current === userId && d.imageUrl) {
+          setGeneratedDessert((prev: any) => prev?.id === generatedDessert.id
+            ? { ...prev, imageUrl: d.imageUrl } : prev);
+        }
+      })
       .catch(() => {})
-      .finally(() => setDessertImageLoading(false));
+      .finally(() => { if (!cancelled) setDessertImageLoading(false); });
+    return () => { cancelled = true; };
   }, [generatedDessert]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (generatedDessert) {
-      safeLocalStorageSet("mpm_dessert_creator_result", generatedDessert);
-    }
-  }, [generatedDessert]);
 
   // Image is now returned inline from the server — no client-side re-fetch needed.
 
@@ -356,6 +360,8 @@ export default function DessertCreator() {
     `${dessertCategory} ${flavorFamily} ${submittedSpecificDessert}`.trim();
 
   async function handleGenerateDessert(skipPreflight = false, overrideToken?: string, dietAdaptOverride = false) {
+    const requestEpoch = ++generationEpoch.current;
+    const isCurrentRequest = () => activeAccount.current === userId && generationEpoch.current === requestEpoch;
     const submittedDescription = await captureAuthoritativeTextValue(
       customDessertDescriptionRef.current,
       customDessertDescription,
@@ -365,6 +371,7 @@ export default function DessertCreator() {
       specificDessert,
       150,
     );
+    if (!isCurrentRequest()) return;
     if (submittedDescription !== customDessertDescription) setCustomDessertDescription(submittedDescription);
     if (submittedSpecificDessert !== specificDessert) setSpecificDessert(submittedSpecificDessert);
     const userDietOverride = continueAnywayRef.current;
@@ -399,6 +406,7 @@ export default function DessertCreator() {
       if (!isSafe) {
         return; // Banner will show automatically
       }
+      if (!isCurrentRequest()) return;
     }
 
     // 🥗 Diet Guard precheck — advisory, fires at generate time
@@ -430,6 +438,7 @@ export default function DessertCreator() {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
+          choiceCount: 3,
           dessertCategory,
           flavorFamily,
           specificDessert: submittedSpecificDessert,
@@ -470,6 +479,7 @@ export default function DessertCreator() {
       console.log("🍨 [DESSERT] API response received:", res.status);
 
       const data = await res.json().catch(() => null);
+      if (!isCurrentRequest()) return;
       responseStatus = res.status;
       responseData = data;
 
@@ -502,14 +512,14 @@ export default function DessertCreator() {
       }
 
       console.log("🍨 [DESSERT] Parsed response data:", data);
-      const meal = data.meal || data;
+      const choices = readRecipeChoiceResponse(data, "dessert");
 
       // 🥗 Scenario A: server already flagged diet adaptation — accept the dessert, show soft notice
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
-      if (data.dietAdapted) {
-        setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
+      if (choices.some((choice) => choice.dietAdapted)) {
+        setDietAdaptedNotice(choices.find((choice) => choice.dietAdapted)?.dietNotice || `Adapted for your ${userDiet} diet.`);
         clearDietAlert();
-      } else if (!skipPreflight && activeDiet && !mealMatchesDiet(userDiet, meal)) {
+      } else if (!skipPreflight && activeDiet && choices.some((choice) => !mealMatchesDiet(userDiet, choice))) {
         // 🥗 Scenario B fallback — only fires on initial generate, never on "let chef adapt" retry
         stopProgressTicker();
         setIsGenerating(false);
@@ -518,14 +528,15 @@ export default function DessertCreator() {
       }
 
       stopProgressTicker();
-      setGeneratedDessert(meal);
+      replaceChoices(data);
       setDessertImageLoading(false); // Image is returned inline from the server
 
       toast({
-        title: "✨ Dessert Created!",
-        description: `${meal.name} is ready for you.`,
+        title: "Dessert Choices Ready",
+        description: `Choose from ${choices.length} dessert recipe${choices.length === 1 ? "" : "s"}.`,
       });
     } catch (err: any) {
+      if (!isCurrentRequest()) return;
       console.error("🍨 [DESSERT] Generation error:", err);
       stopProgressTicker();
       const errorMsg = err?.message || String(err) || "";
@@ -539,7 +550,7 @@ export default function DessertCreator() {
         setGenerationFailure(dessertFailureCopy(responseStatus, responseData));
       }
     } finally {
-      setIsGenerating(false);
+      if (isCurrentRequest()) setIsGenerating(false);
     }
   }
 
@@ -962,7 +973,7 @@ export default function DessertCreator() {
                 onDecision={(decision) => {
                   if (decision === "pick_something_else") {
                     clearDietAlert();
-                    setGeneratedDessert(null);
+                    clearChoices();
                   } else if (decision === "let_chef_adapt") {
                     setDietDecision("let_chef_adapt");
                     clearDietAlert();
@@ -1031,7 +1042,7 @@ export default function DessertCreator() {
                     <MealGenerationProgress
                       active={isGenerating}
                       context="dessert"
-                      mode="single"
+                      mode="options"
                     />
                   )}
                 </div>
@@ -1056,6 +1067,24 @@ export default function DessertCreator() {
             </CardContent>
           </Card>
 
+          <RecipeChoiceCards
+            recipeKind="dessert"
+            choices={dessertChoices}
+            selectedId={generatedDessert?.id}
+            notice={choiceNotice}
+            disabled={isGenerating}
+            onSelect={(choice) => {
+              setGeneratedDessert(choice);
+              setShowRecipeTotalNutrition(false);
+              setInstructionsExpanded(false);
+            }}
+          />
+          {dessertChoices.length > 0 && (
+            <PillButton type="button" onClick={clearChoices} disabled={isGenerating}
+              className="mb-6 text-sm">
+              Clear dessert choices
+            </PillButton>
+          )}
           {generatedDessert && (
             <div className="space-y-6">
               <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl">
@@ -1075,8 +1104,7 @@ export default function DessertCreator() {
                       />
                       <button
                         onClick={() => {
-                          setGeneratedDessert(null);
-                          localStorage.removeItem("mpm_dessert_creator_result");
+                          clearChoices();
                         }}
                         className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
                       >
@@ -1207,8 +1235,7 @@ export default function DessertCreator() {
                         confirm={true}
                         confirmMessage="Remove this dessert?"
                         onClick={() => {
-                          setGeneratedDessert(null);
-                          localStorage.removeItem("mpm_dessert_creator_result");
+                          removeChoice(generatedDessert.id);
                         }}
                       />
                     </div>
@@ -1313,8 +1340,9 @@ export default function DessertCreator() {
                           ingredients: generatedDessert.ingredients,
                         }}
                         onTranslate={(translated) => {
+                          if (activeAccount.current !== userId) return;
                           setGeneratedDessert((prev: any) =>
-                            prev
+                            prev && prev.id === generatedDessert.id
                               ? {
                                   ...prev,
                                   name: translated.name,
