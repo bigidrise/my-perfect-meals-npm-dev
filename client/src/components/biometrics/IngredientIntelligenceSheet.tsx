@@ -248,6 +248,7 @@ export function BetterAlternativesSection({
   renderAction,
   badgeLabel,
   cardTestId,
+  highlightAvailability = false,
 }: {
   alternatives: BetterAlternative[];
   branded?: boolean;
@@ -264,6 +265,8 @@ export function BetterAlternativesSection({
   badgeLabel?: string;
   /** Stable identities for context-specific catalog cards; no change to scan actions. */
   cardTestId?: (alternative: BetterAlternative, index: number) => string;
+  /** Shopping-only contrast correction; other scan/Coach callers stay unchanged. */
+  highlightAvailability?: boolean;
 }) {
   const { t } = useTranslation();
   const [addedIndex, setAddedIndex] = useState<number | null>(null);
@@ -311,7 +314,7 @@ export function BetterAlternativesSection({
                 </button>
               )}
             </div>
-            <ProductRecommendationExplanation whyBetter={alt.whyBetter} targetCriteria={alt.targetCriteria} marker="📍 " />
+            <ProductRecommendationExplanation whyBetter={alt.whyBetter} targetCriteria={alt.targetCriteria} marker="📍 " highlightAvailability={highlightAvailability} />
             {renderAction
               ? renderAction(alt, i)
               : <RecommendedProductActions alternative={alt} query={query} educationalFooter={educationalFooter} source={source} subjectKind={subjectKind} />}

@@ -96,7 +96,8 @@ export async function findShoppingProductRecommendationsDevelopment(
     return {
       recommendationCategory: category, status: "review_only",
       ...(exactMatches[0] ? { catalogProductKey: exactMatches[0].productKey } : {}),
-      ...(exactMatches[0]?.shoppingReference ? { reference: exactMatches[0].shoppingReference } : {}),
+      ...(exactMatches[0]?.recommendationIdentityVerified && exactMatches[0]?.shoppingReference
+        ? { reference: exactMatches[0].shoppingReference } : {}),
       reason: category.length > 80
         ? "The recommendation exceeds the exact-product lookup limit. Its identity and suitability have not been verified."
         : !result.catalogSearchAvailable

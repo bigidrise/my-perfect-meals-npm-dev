@@ -19,10 +19,12 @@ export function existingCatalogReference(product: CatalogProductMatch, ingredien
 }
 
 /** Existing confirmed-reference contract, exposed on catalog fallback cards. */
-export default function ShoppingReferenceAction({ reference, disabled, onConfirm }: {
+export default function ShoppingReferenceAction({ reference, disabled, onConfirm, recommendation }: {
   reference: ShoppingProductReference;
   disabled: boolean;
   onConfirm: (reference: ShoppingProductReference) => Promise<void>;
+  /** Explicitly distinguish a related source listing from the AI suggestion. */
+  recommendation?: string;
 }) {
   const { t } = useConsumerCopy();
   const [confirming, setConfirming] = useState(false);
@@ -32,6 +34,10 @@ export default function ShoppingReferenceAction({ reference, disabled, onConfirm
   </Button>;
   return <div className="mt-2 space-y-2">
     <div className="rounded-lg border border-amber-200/25 bg-amber-100/[0.07] p-3 text-xs leading-relaxed text-amber-50/90">
+      {recommendation && <>
+        <p className="font-semibold">{t("Review the actual catalog product")}</p>
+        <p className="mb-2">{t("This listing is not a confirmed match for {{recommendation}}. Only the catalog product shown below will be chosen.", { recommendation })}</p>
+      </>}
       <p className="font-semibold">{t("Shopping reference — Unverified")}</p>
       <p className="mt-1">{t("This records shopping intent only. It is not medical or restricted-diet clearance.")}</p>
       <p className="mt-2 font-medium">{t("Unresolved review items")}</p>

@@ -1,5 +1,72 @@
 # Shopping Save and Choose — Development scope and evidence
 
+## Approved customer-facing correction
+
+The founder rejected the initial acceptance because actual recommendation cards
+still hid Choose when the suggested name did not bind exactly to a catalog
+package/variant, and the availability line remained too dark.
+
+The correction is limited to:
+
+- Expose the explicit **Choose Product** action in the recommendation renderer.
+  Existing verified choices keep the same persistence. Existing permitted
+  unverified choices keep confirmation and all warnings.
+- If a suggestion does not exactly match a source listing, do **not** relax the
+  recommendation-identity matcher or claim that the suggestion is verified.
+  In Development, the unchanged reference bridge may instead authorize an
+  explicit review of the independently identified **actual catalog product**.
+  The confirmation states that this is not a confirmed match for the suggested
+  name and shows the actual product/variant/package that would be chosen.
+  Known conflicts, invalid source identity and unavailable subject authority
+  still cannot create a reference. Production retains its prior behavior.
+- Without any authorized choice/reference, keep Choose visibly unavailable,
+  show the reason and point to the existing generic/Find new options paths.
+- Display the stored chosen identity as the primary Shopping row label in
+  Development, including checked rows, without rewriting the original
+  ingredient, edit values, amounts, recipe contributions or macro data.
+- Apply `#FACC15`, medium weight and a slightly larger matching location pin
+  only to Shopping recommendation availability. Keep the words, green
+  explanations, other card content and non-Shopping presentation unchanged.
+
+Correction verification uses the existing isolated app and synthetic account.
+The avocado fixture now deliberately omits variant/package in its suggestion,
+so it exercises the real previously missed review-only branch rather than
+manufacturing a perfect recommendation/catalog match. No new test runtime,
+customer-data access, paid provider or safety-status upgrade is authorized.
+
+### Correction evidence
+
+- **302 focused tests passed across nine suites**, including the actual
+  review-only renderer, cancelled/confirmed catalog review, missing/forged
+  identities, known conflicts, Production negatives, unchanged Save behavior,
+  default non-Shopping presentation, gold styling and retailer handoff.
+- A single isolated browser pass verified desktop 1365×900 and mobile 390×844:
+  both actions were visible on the actual rendered cards; Choose opened the
+  explicit not-a-confirmed-match review; cancellation did not write; confirmation
+  changed the primary row to `Chosen Foods 100% Pure Avocado Oil Original`;
+  reload retained it with all unverified warnings and `Needed: 2 tbsp`.
+- Desktop computed style measured the availability line and 14px pin at
+  `rgb(250, 204, 21)`; text weight was 500. The green explanation remained
+  `rgb(110, 231, 183)`. Mobile confirmed visual legibility and no horizontal overflow.
+- Actual Walmart, Instacart, Amazon Fresh and Kroger hrefs retained
+  `Chosen Foods 100% Pure Avocado Oil Original`, without retailer navigation.
+- A direct owner-filtered comparison of the verified isolated database against
+  the original fixture snapshot found every original name, quantity, unit and
+  recipe contribution unchanged after removing only `selectedProduct`.
+  The chosen avocado product remained `unverified_shopping_reference` /
+  `review_required`; the library retained exactly its one earlier bookmark.
+- Browser evidence: desktop picker `j1jqtt`, review `39wcwj`, restored row
+  `f0vzxg`; mobile picker `hkalox`, review `sck0rz`, restored row `340wbj`.
+  Browser network JSON was not inspected; server contract tests independently
+  assert the unconfirmed recommendation does not inherit a reference or
+  eligibility, while the actual source product is reviewed separately.
+- The main Development application was restarted with the correction and
+  returned HTTP 200. An unauthenticated preview capture reached its normal
+  sign-in screen; no customer account was used to inspect personalized results.
+- The final release type gate passed against the unchanged reviewed baseline
+  of 109 diagnostics. The sole added test-fixture typing error was corrected;
+  no baseline or gate was weakened.
+
 ## Approved scope
 
 Add independent product bookmarking and originating-ingredient selection to existing Shopping product cards. Keep recommendation generation, card presentation, shimmer/retry, quantities, recipe calculations, clinical governance and unrelated Product Scan/Coach flows unchanged. Preserve chosen brand, product name and variant through existing retailer searches. No GitHub push/merge, Production synchronization or publishing is authorized.

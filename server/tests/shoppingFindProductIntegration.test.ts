@@ -287,7 +287,26 @@ test("an otherwise eligible but different variant is review-only and retains its
   expect(record.variant).toBe("Light Olive Oil 500ml");
   expect(record.recommendationIdentityVerified).toBe(false);
   expect(record.shoppingSelection?.eligible).toBe(false);
+  const reference = parseShoppingProductReference(record.shoppingReference);
+  expect(reference.product.variant).toBe("Light Olive Oil 500ml");
+  expect(reference.product.assessment.status).toBe("review_required");
+  expect(reference.product.assessment.unresolvedRequirements.join(" ")).toContain("exact recommended product");
+  expect(alpha.reference).toBeUndefined();
   expect(result.recommendationChecks.filter(check => check.status === "eligible")).toHaveLength(2);
+});
+
+test("Production does not enable Development's explicit related-catalog reference review", async () => {
+  const previous = process.env.NODE_ENV;
+  process.env.NODE_ENV = "production";
+  try {
+    const f = fixture();
+    f.records[0].variant = "Light Olive Oil 500ml";
+    const result = await f.run();
+    const record = result.catalogMatches.find(match => match.brand === "Synthetic Alpha")!;
+    expect(record.recommendationIdentityVerified).toBe(false);
+    expect(record.shoppingSelection?.eligible).toBe(false);
+    expect(record.shoppingReference).toBeUndefined();
+  } finally { process.env.NODE_ENV = previous; }
 });
 
 test("near variants cannot exhaust the eligible-result target before exact variants are inspected", async () => {

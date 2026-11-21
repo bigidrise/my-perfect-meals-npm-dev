@@ -6,10 +6,10 @@ export async function offlineProductOptions(userId, input) {
     throw new Error("Offline product providers require the explicit isolated Development launcher.");
   }
   const avocado = /avocado/i.test(input.originalName);
-  const name = avocado ? "Avocado Oil" : "Olive Oil";
-  const variant = "Extra Virgin 500ml";
+  const name = avocado ? "100% Pure Avocado Oil" : "Olive Oil";
+  const variant = avocado ? "Original" : "Extra Virgin 500ml";
   const now = new Date().toISOString();
-  const records = ["Synthetic Alpha", "Kirkland Signature", "Synthetic Gamma"].map((brand, index) => ({
+  const records = [avocado ? "Chosen Foods" : "Synthetic Alpha", "Kirkland Signature", "Synthetic Gamma"].map((brand, index) => ({
     source: "usda_branded", sourceRecordId: `offline-shopping-${avocado ? "avocado" : "olive"}-${index}`,
     name, brand, variant, barcode: `00000001901${avocado ? "1" : "0"}${index}`, market: "United States",
     observedAt: null, identityObservedAt: now, retrievedAt: now,
@@ -32,11 +32,13 @@ export async function offlineProductOptions(userId, input) {
   console.log("[shopping-offline] Synthetic providers supplied; real profile, evidence and persistence gates remain active.");
   return {
     recommend: async () => ({
-      analysisMethod: "by_name", fallbackUsed: avocado,
+      analysisMethod: "by_name", fallbackUsed: false,
       betterAlternatives: records.map(record => ({
-        category: `${record.brand} ${name} ${variant}`, brand: record.brand, productName: `${name} ${variant}`,
+        // Real recommendations often omit package/variant words. Exercise that
+        // actual review-only renderer rather than manufacturing exact matches.
+        category: `${record.brand} ${name}${avocado ? "" : ` ${variant}`}`, brand: record.brand, productName: `${name}${avocado ? "" : ` ${variant}`}`,
         whyBetter: ["Synthetic product option for isolated workflow verification."],
-        targetCriteria: "Offline fixture — not a real catalog listing or medical verification.",
+        targetCriteria: "Available at synthetic test retailers. Offline fixture — not a real catalog listing or medical verification.",
       })),
       educationalFooter: "Offline fixture — check the current package label.", verdictLevel: "caution",
     }),

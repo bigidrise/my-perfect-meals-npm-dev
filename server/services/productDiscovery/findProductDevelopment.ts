@@ -494,7 +494,14 @@ export async function findProductDevelopment(
         recommendationLead, recommendationIdentityVerified,
         variant: candidate.identity.variant, packageSize: candidate.identity.packageSize,
       } : {}),
-      ...(shoppingIngredient && shoppingSelection && !shoppingSelection.eligible && recommendationIdentityVerified
+      // A recommendation mismatch never inherits eligibility. In Development,
+      // an independently identified catalog record may instead be reviewed as
+      // that actual record through the unchanged confirmed-reference bridge.
+      ...(shoppingIngredient && shoppingSelection && !shoppingSelection.eligible &&
+        (recommendationIdentityVerified || (
+          (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test") &&
+          !process.env.REPLIT_DEPLOYMENT
+        ))
         ? (() => {
           const reference = shoppingReferenceBridge(candidate, decision, evaluated.subject!,
             shoppingIngredient, shoppingSelection.reason || "Product verification is incomplete.");
