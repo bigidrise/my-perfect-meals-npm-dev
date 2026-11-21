@@ -1,3 +1,28 @@
+import { DESSERT_CHOICE_MESSAGES, type DessertChoiceMessage } from "@shared/dessertChoiceMessages";
+
+/** Only these exact, source-owned failures may select localized display copy.
+ * Unknown errors, customer content and clinical evidence are never translated.
+ * Nutrition-specific guidance and authentication errors retain their priority.
+ */
+export function dessertChoiceFailureMessage(status?: number, data?: any): DessertChoiceMessage | undefined {
+  if (status !== 409 && status !== 422) return undefined;
+  if (data?.code === "DISH_IDENTITY_FAILURE" && data.message === DESSERT_CHOICE_MESSAGES.identity)
+    return DESSERT_CHOICE_MESSAGES.identity;
+  const finalFailure = data?.code === "HUMAN_FOOD_FINAL_VALIDATION_FAILED";
+  if (finalFailure && data.message === DESSERT_CHOICE_MESSAGES.finalChecks)
+    return DESSERT_CHOICE_MESSAGES.finalChecks;
+  if (finalFailure && data.message === DESSERT_CHOICE_MESSAGES.budget)
+    return DESSERT_CHOICE_MESSAGES.budget;
+  if (!(finalFailure || data?.code === "HUMAN_FOOD_FINAL_REVIEW_REQUIRED") || !Array.isArray(data?.findings))
+    return undefined;
+  if (data.findings.some((finding: any) =>
+    ["final_nutrition_invalid", "final_serving_mismatch"].includes(finding?.code))) return undefined;
+  if (data.findings.some((finding: any) =>
+    finding?.code === "final_recipe_incomplete" && finding.message === DESSERT_CHOICE_MESSAGES.incomplete))
+    return DESSERT_CHOICE_MESSAGES.incomplete;
+  return undefined;
+}
+
 export function dessertRecipeServings(meal: any): number {
   // `servings` is the recipe's authoritative yield. totalSlices is descriptive
   // metadata and must never silently replace a server-provided serving count.

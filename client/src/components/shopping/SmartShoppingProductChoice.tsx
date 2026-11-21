@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ShoppingListItem } from "@/stores/shoppingListStore";
 import { catalogProductLabel, packagedProductEligibility } from "@/lib/groceryCoachPackagedIngredients";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 interface Props {
   item: ShoppingListItem;
@@ -13,6 +14,7 @@ interface Props {
 
 /** A secondary, historical retail choice; the recipe ingredient remains primary. */
 export default function SmartShoppingProductChoice({ item, enabled, hasAccess, onChoose, onUpgrade, onClear }: Props) {
+  const { t } = useConsumerCopy();
   const [clearing, setClearing] = useState(false);
   const [error, setError] = useState("");
   const coachChoice = item.ingredientMetadata?.selectedProduct?.source.source === "Product Scan by-name guidance";
@@ -43,7 +45,7 @@ export default function SmartShoppingProductChoice({ item, enabled, hasAccess, o
       {product ? (
         <div className="shopping-product-choice-details flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-orange-100/80">
           {isShoppingReference
-            ? <span className="shopping-product-choice-label font-semibold text-amber-100">Shopping reference — Unverified</span>
+            ? <span className="shopping-product-choice-label font-semibold text-amber-100">{t("Shopping reference — Unverified")}</span>
             : <span className="shopping-product-choice-label font-medium">{label}</span>}
           {isShoppingReference && <span className="text-orange-50/85">{label}
             {product.variant ? ` · ${product.variant}` : ""}
@@ -53,7 +55,7 @@ export default function SmartShoppingProductChoice({ item, enabled, hasAccess, o
                 ? ` · ${product.retailQuantity}${product.servingDescription ? ` ${product.servingDescription}` : ""}`
                 : ""}
           </span>}
-          {!isShoppingReference && product.assessment.status === "review_required" && <span className="text-amber-100/75">Saved with review required</span>}
+          {!isShoppingReference && product.assessment.status === "review_required" && <span className="text-amber-100/75">{t("Saved with review required")}</span>}
           {isShoppingReference && <>
             <span className="basis-full text-amber-100/75">Not medical or restricted-diet clearance.</span>
             {product.assessment.unresolvedRequirements.map((warning, index) =>

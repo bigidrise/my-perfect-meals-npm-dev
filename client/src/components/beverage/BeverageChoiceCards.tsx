@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 type BeverageChoice = {
   id: string;
@@ -13,26 +14,29 @@ type BeverageChoice = {
   [key: string]: any;
 };
 
-export function readBeverageChoiceResponse(data: any): BeverageChoice[] {
+export function readBeverageChoiceResponse(data: any, recipeKind = "beverage"): BeverageChoice[] {
   if (!Array.isArray(data?.choices) || !data.choices.length || data.choices.length > 3 ||
       data.choices.some((choice: any) => !choice || typeof choice.id !== "string" ||
         !choice.id || typeof choice.name !== "string" || !choice.name.trim() ||
         !Array.isArray(choice.ingredients) || !choice.ingredients.length) ||
       new Set(data.choices.map((choice: any) => choice.id)).size !== data.choices.length) {
-    throw new Error("The beverage choices could not be loaded. Please try again.");
+    throw new Error(`The ${recipeKind} choices could not be loaded. Please try again.`);
   }
   return data.choices;
 }
 
-// Working sets belong only to these beverage pages and the current account.
+// Shared working sets belong only to their Creator and the current account.
 // Selected recipes still use each page's existing detailed result/actions.
 export function useBeverageChoices(
-  creator: "beverage" | "athlete",
+  creator: "beverage" | "athlete" | "dessert",
   userId: string | undefined,
   selected: any,
   setSelected: Dispatch<SetStateAction<any>>,
+  legacyResultKey?: string,
 ) {
-  const storageKey = userId ? `mpm_${creator}_beverage_choices:${userId}` : null;
+  // Existing Beverage keys intentionally remain unchanged.
+  const storageKey = userId ? creator === "dessert"
+    ? `mpm_dessert_choices:${userId}` : `mpm_${creator}_beverage_choices:${userId}` : null;
   const load = (key: string | null) => {
     try {
       if (!key) return { owner: key, choices: [] as BeverageChoice[], notice: "", selectedId: null as string | null };
@@ -52,13 +56,25 @@ export function useBeverageChoices(
     ownerKey.current = storageKey;
     const restored = load(storageKey);
     setBatch(restored);
+    let legacySelected: any = null;
+    if (creator === "dessert" && storageKey && legacyResultKey) {
+      try { legacySelected = JSON.parse(localStorage.getItem(legacyResultKey) || "null"); }
+      catch { /* A malformed legacy cache is not a recipe. */ }
+      if (!legacySelected?.name || !Array.isArray(legacySelected.ingredients) ||
+          !legacySelected.ingredients.length) legacySelected = null;
+    }
     setSelected((previous: any) => {
       if (restored.choices.length) {
         return restored.choices.find((choice) => choice.id === restored.selectedId) ?? null;
       }
+      if (creator === "dessert") {
+        // Only account-owned legacy single results are restored. Never attach
+        // an old, unowned global cache to whichever account happens to sign in.
+        return legacySelected;
+      }
       return previous?.id?.startsWith("beverage-choice-") ? null : previous;
     });
-  }, [storageKey, setSelected]);
+  }, [storageKey, setSelected, creator, legacyResultKey]);
   useEffect(() => {
     if (!storageKey || batch.owner !== storageKey) return;
     if (batch.choices.length) {
@@ -78,6 +94,11 @@ export function useBeverageChoices(
         choice.id === selected.id ? selected : choice) };
     });
   }, [selected, batch.owner, storageKey]);
+  useEffect(() => {
+    if (!legacyResultKey || !storageKey || batch.owner !== storageKey) return;
+    if (selected) safeLocalStorageSet(legacyResultKey, selected);
+    else localStorage.removeItem(legacyResultKey);
+  }, [selected, legacyResultKey, storageKey, batch.owner]);
   const replaceChoices = (data: any) => {
     const choices = readBeverageChoiceResponse(data);
     if (ownerKey.current !== storageKey) return;
@@ -88,10 +109,18 @@ export function useBeverageChoices(
     setBatch({ owner: storageKey, choices: [], notice: "", selectedId: null });
     setSelected(null);
   };
+  const removeChoice = (id?: string) => {
+    if (ownerKey.current !== storageKey) return;
+    setBatch(previous => ({
+      ...previous, choices: previous.choices.filter(choice => choice.id !== id), selectedId: null,
+    }));
+    setSelected(null);
+  };
   return {
     choices: batch.owner === storageKey ? batch.choices : [],
     choiceNotice: batch.owner === storageKey ? batch.notice : "",
-    replaceChoices, clearChoices,
+    selectedRecipe: batch.owner === storageKey ? selected : null,
+    replaceChoices, clearChoices, removeChoice,
   };
 }
 
@@ -101,26 +130,31 @@ export default function BeverageChoiceCards({
   notice,
   disabled = false,
   onSelect,
+  recipeKind = "beverage",
 }: {
   choices: BeverageChoice[];
   selectedId?: string;
   notice?: string;
   disabled?: boolean;
   onSelect: (choice: BeverageChoice) => void;
+  recipeKind?: "beverage" | "dessert";
 }) {
+  const { t } = useConsumerCopy();
   if (!choices.length) return null;
   return (
-    <section aria-label="Beverage choices" className="space-y-3 mb-6">
+    <section aria-label={recipeKind === "dessert" ? t("Dessert choices") : "Beverage choices"} className="space-y-3 mb-6">
       <div>
-        <h2 className="text-xl font-semibold text-white">Choose your drink</h2>
+        <h2 className="text-xl font-semibold text-white">{recipeKind === "dessert" ? t("Choose your dessert") : t("Choose your drink")}</h2>
         <p className="text-sm text-white/70">
-          Compare your options, then select a drink to see its full recipe and actions.
+          {recipeKind === "dessert"
+            ? t("Compare your options, then select a dessert to see its full recipe and actions.")
+            : t("Compare your options, then select a drink to see its full recipe and actions.")}
         </p>
         {notice && <p role="status" className="mt-2 text-sm text-amber-200">{notice}</p>}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {choices.map((choice) => (
-          <article key={choice.id} data-testid="beverage-choice-card"
+          <article key={choice.id} data-testid={`${recipeKind}-choice-card`}
             className={`rounded-2xl border p-4 bg-black/40 ${selectedId === choice.id
               ? "border-lime-400" : "border-white/20"}`}>
             {choice.imageUrl && (
@@ -144,3 +178,8 @@ export default function BeverageChoiceCards({
     </section>
   );
 }
+
+// Generic entry points reuse the existing implementation, including its
+// restoration contract. Beverage callers need no changes.
+export const useRecipeChoices = useBeverageChoices;
+export const readRecipeChoiceResponse = readBeverageChoiceResponse;

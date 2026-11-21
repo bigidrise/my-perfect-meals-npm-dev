@@ -28,7 +28,7 @@ afterEach(cleanup);
 test("the existing A/A+/A++ preference actions work before sign-in and retain the saved device setting", async () => {
   render(<FontSizeProvider><ExistingPreferenceActions /></FontSizeProvider>);
   for (const [label, preference] of [["A+", "large"], ["A++", "xl"], ["A", "standard"]]) {
-    fireEvent.click(screen.getByRole("button", { name: label, exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: label }));
     await waitFor(() => expect(document.documentElement.classList.contains(`font-size-${preference}`)).toBe(true));
     expect(localStorage.getItem("mpm_font_size_preference")).toBe(preference);
     expect(screen.getByLabelText("Selected text size").textContent).toBe(preference);
@@ -39,7 +39,7 @@ test("the existing A/A+/A++ preference actions work before sign-in and retain th
 
 test("a saved local preference is not overwritten by the account default on entry screens", async () => {
   const { rerender } = render(<FontSizeProvider><ExistingPreferenceActions /></FontSizeProvider>);
-  fireEvent.click(screen.getByRole("button", { name: "A+", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "A+" }));
   mockUser = { id: "synthetic-font-member", fontSizePreference: "standard" };
   rerender(<FontSizeProvider><ExistingPreferenceActions /></FontSizeProvider>);
   await waitFor(() => expect(screen.getByLabelText("Selected text size").textContent).toBe("large"));
