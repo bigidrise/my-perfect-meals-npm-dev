@@ -1,5 +1,10 @@
 # Dessert Creator three-choice Development review
 
+For the later investigation and correction of the release type-check mismatch,
+see [the release type-check review](dessert-three-choice-release-type-review.md).
+The verification and authorization statements below describe the original
+Development implementation, before that separately authorized investigation.
+
 ## Implementation
 
 - Dessert retains its pastry-generation prompt, cake styles and tiers, pan and
