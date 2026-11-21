@@ -7,6 +7,10 @@ import { buildConsolidatedItems } from "../shoppingConsolidation";
 import { applyShoppingProductChoice } from "../shoppingProductChoice";
 import { useShoppingListStore } from "../../stores/shoppingListStore";
 
+jest.mock("@/lib/shoppingProductOptionsGate", () => ({
+  shoppingProductOptionsEnabled: true,
+}));
+
 jest.mock("@/lib/apiRequest", () => ({ apiRequest: jest.fn(() => { throw new Error("Live requests forbidden"); }) }));
 jest.mock("@/lib/shoppingMetadataGate", () => ({ shoppingMetadataEnabled: true }));
 jest.mock("@/stores/shoppingListStore", () => ({ useShoppingListStore: { getState: jest.fn() } }));

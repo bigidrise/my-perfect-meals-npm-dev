@@ -272,9 +272,9 @@ describe("Development routes use synthetic database only", () => {
     const js = ts.transpileModule(`async function fixture(){${block};return insertedItems}`, {
       compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
     }).outputText;
-    const run = new Function("db", "shoppingListItems", "and", "eq", "userId", "items", "scope", "strategy", "multiplier", "sourceBuilder",
+    const run = new Function("db", "shoppingListItems", "and", "eq", "userId", "items", "scope", "strategy", "multiplier", "sourceBuilder", "coachMetadata",
       `${js};return fixture()`);
-    const rows = await run(mockDatabase, shoppingListItems, ops.and, ops.eq, "synthetic-a", [{ name: "Bread", quantity: 1, ingredientMetadata: m }], { type: "adhoc", key: "inbox" }, "replace_scope", 1, "fixture");
+    const rows = await run(mockDatabase, shoppingListItems, ops.and, ops.eq, "synthetic-a", [{ name: "Bread", quantity: 1, ingredientMetadata: m }], { type: "adhoc", key: "inbox" }, "replace_scope", 1, "fixture", [undefined]);
     expect(rows).toHaveLength(1);
     expect(rows[0].ingredientMetadata).toBeUndefined();
     expect(state.rows[0].ingredientMetadata).toBeUndefined();

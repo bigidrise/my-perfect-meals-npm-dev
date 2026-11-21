@@ -261,7 +261,7 @@ function serverPatch(serverId: string, quantity: number, unit: string) {
   }).catch(() => {});
 }
 
-export const useShoppingListStore: UseBoundStore<StoreApi<ShoppingListStore>> = shoppingMetadataEnabled ? createDevelopmentShoppingListStore() : create<ShoppingListStore>()(
+export const useShoppingListStore: UseBoundStore<StoreApi<ShoppingListStore>> = import.meta.env.DEV ? createDevelopmentShoppingListStore() : create<ShoppingListStore>()(
   persist(
     (set, get) => ({
       items: [],
