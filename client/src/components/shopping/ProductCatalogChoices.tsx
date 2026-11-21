@@ -1,6 +1,7 @@
 import { catalogProductLabel } from "@/lib/groceryCoachPackagedIngredients";
 import type { CatalogProductMatch } from "./GroceryStoreCoachSheet";
 import { ProductRecommendationExplanation } from "./ProductRecommendationExplanation";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 interface Props {
   products: CatalogProductMatch[];
@@ -13,6 +14,7 @@ interface Props {
 
 /** Shared catalog cards; compact Smart Grocery distinguishes view-only leads from selections. */
 export default function ProductCatalogChoices({ products, selectedLabel, onSelect, shoppingOnly = false, compactShopping = false, disabled = false }: Props) {
+  const { t } = useConsumerCopy();
   const visible = compactShopping
     ? products.filter(product => {
       const display = product.shoppingDisplay;
@@ -49,7 +51,7 @@ export default function ProductCatalogChoices({ products, selectedLabel, onSelec
                 </span>
               </div>
               {product.recommendationExplanation && <div className="mt-2">
-                <p className="mb-1 text-[10px] text-white/45">Why Find a Product suggested it · knowledge-based guidance</p>
+                <p className="mb-1 text-[10px] text-white/45">{t("Why Find a Product suggested it · knowledge-based guidance")}</p>
                 <ProductRecommendationExplanation {...product.recommendationExplanation} />
               </div>}
               <p className="mt-2 text-xs leading-relaxed text-white/65">{caution}</p>

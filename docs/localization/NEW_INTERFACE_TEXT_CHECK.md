@@ -36,6 +36,14 @@ Unavailable, invalid, pre-adoption or unrelated bases fail closed. Fetch the
 necessary history; do not reset adoption to hide findings. Changing adoption is
 a reviewable policy change, not routine maintenance or translation progress.
 
+Pull-request CI supplies the exact `github.event.pull_request.base.sha` through
+`I18N_PR_BASE_SHA` to Phase 0, which forwards it to the existing `--base` option.
+A missing/malformed PR target or conflicting explicit base fails closed; it never
+falls back to adoption or HEAD. Full history and the guard's adoption/ancestry
+checks remain required. Non-PR runs without an explicit base continue using the
+unchanged adoption snapshot. Every other Phase 0 gate remains independently
+required regardless of this comparison scope.
+
 Matching is a **per-owner multiset of semantic findings**, not a total string
 count or line-number baseline. Removing one unrelated English sentence does not
 offset adding another. Adding an extra occurrence still fails. Mere line

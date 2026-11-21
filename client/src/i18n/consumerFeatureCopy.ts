@@ -6,6 +6,14 @@ import { biometricsClinicalSpanish } from "./biometricsClinicalCopy";
 
 /** Ordinary display copy only. Never translate saved records, unknown API errors or safety evidence here. */
 export const consumerFeatureSpanish: Record<string, string> = {
+  "Review product identity and label evidence": "Revisar la identidad del producto y la información de la etiqueta",
+  "Catalog candidate only — not confirmed as the exact recommended variant.": "Solo es una opción del catálogo; no se ha confirmado que sea la variante exacta recomendada.",
+  "Choose for My List": "Elegir para mi lista",
+  "Shopping reference — Unverified": "Referencia de compra sin verificar",
+  "Unresolved review items": "Aspectos pendientes de revisión",
+  "Cancel shopping reference": "Cancelar referencia de compra",
+  "Saved with review required": "Guardado con revisión pendiente",
+  "Why Find a Product suggested it · knowledge-based guidance": "Por qué Buscar un producto lo sugirió · orientación basada en conocimientos",
   "Studio access could not be verified. Please refresh and try again.": "No se pudo verificar el acceso a Studio. Actualiza la página e inténtalo de nuevo.",
   "Studio access is not authorized or ready. Recognizing a workspace does not grant patient access.": "El acceso a Studio no está autorizado o no está listo. Reconocer un espacio de trabajo no concede acceso a pacientes.",
   "Pro feature": "Función Pro",
