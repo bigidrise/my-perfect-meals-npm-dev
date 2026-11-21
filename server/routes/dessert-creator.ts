@@ -34,6 +34,7 @@ import { randomUUID } from "node:crypto";
 import { fillFinalCreateDishChoices } from "../services/createDish/finalChoices";
 import { dessertChoiceSignature } from "../services/dessertChoiceEvidence";
 import { hasCulinaryEvidence } from "../services/craving/recipeEvidence";
+import { DESSERT_CHOICE_MESSAGES } from "@shared/dessertChoiceMessages";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -546,7 +547,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
         console.log(`[DESSERT] Dish identity validated; requestId=${(req as any).id ?? "unavailable"}`);
       } catch (e) {
         console.warn(`[DESSERT] DISH_IDENTITY_VALIDATION_FAILED; requestId=${(req as any).id ?? "unavailable"}`);
-        return failure(422, { code: "DISH_IDENTITY_FAILURE", message: "Dessert identity could not be verified.", retryable: true });
+        return failure(422, { code: "DISH_IDENTITY_FAILURE", message: DESSERT_CHOICE_MESSAGES.identity, retryable: true });
       }
     }
 
@@ -706,7 +707,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
           ...result.findings,
           ...(!recipeComplete ? [{
             dimension: "dish_identity" as const, outcome: "repairable" as const,
-            code: "final_recipe_incomplete", message: "The dessert must include ingredients and complete preparation instructions.",
+            code: "final_recipe_incomplete", message: DESSERT_CHOICE_MESSAGES.incomplete,
             assurance: "structured_evidence" as const, repairHint: "Return the complete baking or preparation instructions for the entire requested dessert yield.",
           }] : []),
           ...(!finiteNutrition || !scalingMatches ? [{
@@ -793,7 +794,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
     });
     if (!finalProtocol.passed || (_dessertIsNamed &&
         validateDishIdentity(dessertIdentifier, meal, _dessertDishDirective).catastrophicDeviation)) {
-      return failure(422, { code: "HUMAN_FOOD_FINAL_VALIDATION_FAILED", message: "The final dessert did not pass recipe safety and identity checks.", retryable: true });
+      return failure(422, { code: "HUMAN_FOOD_FINAL_VALIDATION_FAILED", message: DESSERT_CHOICE_MESSAGES.finalChecks, retryable: true });
     }
     const ingredientNames = meal.ingredients.map((row: any) => String(row.name ?? row.item ?? "").toLowerCase());
     // Preserve the existing legacy badge adapter. These display badges are
@@ -874,7 +875,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
     if (!choices.length) {
       const rejected = firstFailure ?? failure(422, {
         code: "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
-        message: "No distinct dessert passed the recipe checks within this request's generation budget.",
+        message: DESSERT_CHOICE_MESSAGES.budget,
         retryable: true,
       });
       return res.status(rejected.status).json(rejected.body);

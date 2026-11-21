@@ -6,6 +6,7 @@ import "@testing-library/jest-dom";
 const mockActions = jest.fn();
 const mockToast = jest.fn();
 let mockUser = { id: "beverage-test-account", dietaryRestrictions: [] };
+let mockLanguage = "en";
 const mockFetch = jest.fn();
 const mockCheckStarch = jest.fn();
 const mockTranslationCallbacks: Array<(translated: any) => void> = [];
@@ -15,7 +16,20 @@ jest.mock("@/contexts/PageTitleContext", () => ({ usePageTitle: jest.fn() }));
 jest.mock("@/hooks/useIsDesktop", () => ({ useIsDesktop: () => false }));
 jest.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 jest.mock("wouter", () => ({ useLocation: () => ["/", jest.fn()] }));
-jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+jest.mock("react-i18next", () => {
+  const instance = jest.requireActual("i18next").createInstance();
+  const { consumerEnglish, consumerSpanish } = jest.requireActual("@/i18n/consumerJourney");
+  instance.init({
+    initImmediate: false, fallbackLng: "en", interpolation: { escapeValue: false },
+    resources: {
+      en: { consumerJourney: consumerEnglish },
+      es: { consumerJourney: consumerSpanish },
+    },
+  });
+  return { useTranslation: (namespace = "translation") => ({
+    t: instance.getFixedT(mockLanguage, namespace), i18n: instance,
+  }) };
+});
 jest.mock("@/lib/resolveApiBase", () => ({ apiUrl: (path: string) => path }));
 jest.mock("@/lib/auth", () => ({ getAuthHeaders: () => ({}) }));
 jest.mock("@/lib/subscriptionCheck", () => ({ isProOrAbove: () => true }));
@@ -157,6 +171,7 @@ function drink(index: number) {
 const choices = [drink(1), drink(2), drink(3)];
 
 beforeEach(() => {
+  mockLanguage = "en";
   localStorage.clear();
   mockUser = { id: "beverage-test-account", dietaryRestrictions: [] };
   mockFetch.mockReset();
@@ -333,10 +348,58 @@ async function generateDesserts() {
   const yieldOption = screen.getByRole("option", { name: "Whole 9-inch round · 2 layers · 12 slices" });
   fireEvent.change(yieldOption.closest("select")!, { target: { value: "cake-9-2-12" } });
   fireEvent.click(screen.getByRole("button", { name: "Create My Dessert" }));
-  await screen.findByRole("region", { name: "Dessert choices" });
+  await screen.findByRole("region", { name: mockLanguage === "es" ? "Opciones de postres" : "Dessert choices" });
   return view;
 }
 describe("Dessert Creator uses the shared selection and restoration implementation", () => {
+  test.each([1, 2, 3])("localizes %i choices in Spanish without translating recipe data or changing actions", async (count) => {
+    mockLanguage = "es";
+    respondWithDesserts({ choices: dessertChoices.slice(0, count) });
+    const view = await generateDesserts();
+    expect(screen.getByRole("heading", { name: "Elige tu postre" })).toBeInTheDocument();
+    expect(screen.getByText("Compara las opciones y elige un postre para ver la receta completa y las acciones disponibles.")).toBeInTheDocument();
+    expect(mockToast).toHaveBeenCalledWith({
+      title: "Tus opciones de postres están listas",
+      description: count === 1 ? "Elige entre 1 receta de postre." : `Elige entre ${count} recetas de postres.`,
+    });
+    const chosen = dessertChoices[count - 1];
+    fireEvent.click(screen.getByRole("button", { name: `Choose ${chosen.name}` }));
+    expect(screen.getByTestId("selected-image")).toHaveAttribute("src", chosen.imageUrl);
+    fireEvent.click(screen.getByRole("button", { name: "Save selected" }));
+    expect(mockActions).toHaveBeenLastCalledWith("save", chosen);
+    expect(chosen.servings).toBe(12);
+    expect(chosen.perServingNutrition.calories).toBe(chosen.nutrition.calories / 12);
+    mockLanguage = "en";
+    view.rerender(<DessertCreator />);
+    expect(screen.getByRole("region", { name: "Dessert choices" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Choose your dessert" })).toBeInTheDocument();
+    mockLanguage = "es";
+    view.rerender(<DessertCreator />);
+    fireEvent.click(screen.getByRole("button", { name: "Borrar las opciones de postres" }));
+    expect(screen.queryAllByTestId("dessert-choice-card")).toHaveLength(0);
+  });
+  test.each([
+    [{ code: "DISH_IDENTITY_FAILURE", message: "Dessert identity could not be verified." },
+      "No se pudo verificar la identidad del postre."],
+    [{ code: "HUMAN_FOOD_FINAL_VALIDATION_FAILED", findings: [{
+      code: "final_recipe_incomplete", message: "The dessert must include ingredients and complete preparation instructions.",
+    }] }, "El postre debe incluir los ingredientes y las instrucciones completas de preparación."],
+    [{ code: "HUMAN_FOOD_FINAL_VALIDATION_FAILED", message: "The final dessert did not pass recipe safety and identity checks." },
+      "El postre final no superó las comprobaciones de seguridad e identidad de la receta."],
+    [{ code: "HUMAN_FOOD_FINAL_VALIDATION_FAILED", message: "No distinct dessert passed the recipe checks within this request's generation budget." },
+      "Ningún postre distinto superó las comprobaciones de la receta dentro del límite de generación de esta solicitud."],
+  ])("localizes a known Dessert failure without releasing a rejected recipe %#", async (data, expected) => {
+    mockLanguage = "es";
+    const original = JSON.stringify(data);
+    mockFetch.mockResolvedValue({ ok: false, status: 422, json: async () => data });
+    render(<DessertCreator />);
+    fireEvent.change(screen.getAllByRole("textbox")[0], { target: { value: "A chocolate cake" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create My Dessert" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(expected as string);
+    expect(screen.queryAllByTestId("dessert-choice-card")).toHaveLength(0);
+    expect(mockActions).not.toHaveBeenCalled();
+    expect(JSON.stringify(data)).toBe(original);
+  });
   test("requests three whole cakes and sends each selected recipe to its existing actions", async () => {
     respondWithDesserts();
     await generateDesserts();

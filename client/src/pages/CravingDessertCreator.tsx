@@ -70,9 +70,11 @@ import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
-import { dessertRecipeServings, dessertFavoritePayload, dessertFailureCopy } from "@/lib/dessertResult";
+import { dessertRecipeServings, dessertFavoritePayload, dessertFailureCopy, dessertChoiceFailureMessage } from "@/lib/dessertResult";
 import { dessertYieldOptions, LEGACY_DESSERT_YIELDS } from "@shared/dessertYields";
 import RecipeChoiceCards, { useRecipeChoices, readRecipeChoiceResponse } from "@/components/beverage/BeverageChoiceCards";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { DESSERT_CHOICE_MESSAGES, type DessertChoiceMessage } from "@shared/dessertChoiceMessages";
 
 const DESSERT_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -169,6 +171,13 @@ export default function DessertCreator() {
   const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
   const { toast } = useToast();
+  const { t } = useConsumerCopy();
+  const localizedChoiceFailures: Record<DessertChoiceMessage, string> = {
+    [DESSERT_CHOICE_MESSAGES.identity]: t("Dessert identity could not be verified."),
+    [DESSERT_CHOICE_MESSAGES.incomplete]: t("The dessert must include ingredients and complete preparation instructions."),
+    [DESSERT_CHOICE_MESSAGES.finalChecks]: t("The final dessert did not pass recipe safety and identity checks."),
+    [DESSERT_CHOICE_MESSAGES.budget]: t("No distinct dessert passed the recipe checks within this request's generation budget."),
+  };
   const quickTour = useQuickTour("craving-desserts");
   // Get actual user ID from auth context for medical safety
   const { user } = useAuth();
@@ -532,8 +541,10 @@ export default function DessertCreator() {
       setDessertImageLoading(false); // Image is returned inline from the server
 
       toast({
-        title: "Dessert Choices Ready",
-        description: `Choose from ${choices.length} dessert recipe${choices.length === 1 ? "" : "s"}.`,
+        title: t("Dessert Choices Ready"),
+        description: choices.length === 1
+          ? t("Choose from {{count}} dessert recipe.", { count: choices.length })
+          : t("Choose from {{count}} dessert recipes.", { count: choices.length }),
       });
     } catch (err: any) {
       if (!isCurrentRequest()) return;
@@ -547,7 +558,12 @@ export default function DessertCreator() {
           variant: "warning",
         });
       } else {
-        setGenerationFailure(dessertFailureCopy(responseStatus, responseData));
+        const failureCopy = dessertFailureCopy(responseStatus, responseData);
+        const ownedMessage = dessertChoiceFailureMessage(responseStatus, responseData);
+        setGenerationFailure({
+          ...failureCopy,
+          message: ownedMessage ? localizedChoiceFailures[ownedMessage] : failureCopy.message,
+        });
       }
     } finally {
       if (isCurrentRequest()) setIsGenerating(false);
@@ -1082,7 +1098,7 @@ export default function DessertCreator() {
           {dessertChoices.length > 0 && (
             <PillButton type="button" onClick={clearChoices} disabled={isGenerating}
               className="mb-6 text-sm">
-              Clear dessert choices
+              {t("Clear dessert choices")}
             </PillButton>
           )}
           {generatedDessert && (

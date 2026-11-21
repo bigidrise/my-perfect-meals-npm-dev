@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 type BeverageChoice = {
   id: string;
@@ -138,13 +139,16 @@ export default function BeverageChoiceCards({
   onSelect: (choice: BeverageChoice) => void;
   recipeKind?: "beverage" | "dessert";
 }) {
+  const { t } = useConsumerCopy();
   if (!choices.length) return null;
   return (
-    <section aria-label={recipeKind === "dessert" ? "Dessert choices" : "Beverage choices"} className="space-y-3 mb-6">
+    <section aria-label={recipeKind === "dessert" ? t("Dessert choices") : "Beverage choices"} className="space-y-3 mb-6">
       <div>
-        <h2 className="text-xl font-semibold text-white">Choose your {recipeKind === "dessert" ? "dessert" : "drink"}</h2>
+        <h2 className="text-xl font-semibold text-white">{recipeKind === "dessert" ? t("Choose your dessert") : t("Choose your drink")}</h2>
         <p className="text-sm text-white/70">
-          Compare your options, then select a {recipeKind === "dessert" ? "dessert" : "drink"} to see its full recipe and actions.
+          {recipeKind === "dessert"
+            ? t("Compare your options, then select a dessert to see its full recipe and actions.")
+            : t("Compare your options, then select a drink to see its full recipe and actions.")}
         </p>
         {notice && <p role="status" className="mt-2 text-sm text-amber-200">{notice}</p>}
       </div>
