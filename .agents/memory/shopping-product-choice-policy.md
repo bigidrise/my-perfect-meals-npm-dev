@@ -13,4 +13,10 @@ An exact named product with unspecified package details is different from an unr
 
 **Why:** The founder's actual avocado-oil option led to a buffalo-sauce catalog record.
 
-**How to apply:** Require reliable identity binding to the displayed brand/product. Missing verification never becomes clinical clearance. A product that cannot be reliably identified remains unavailable rather than receiving an invented identity or a different catalog product. The one-click request does not authorize bypassing safety or identity checks.
+**How to apply:** Require reliable identity binding to the displayed brand/product. Missing verification never becomes clinical clearance. Exclude unidentifiable or conflicting products from the selectable options rather than filling three cards with disabled choices. Show only the supported one or two when three cannot be found. The one-click request does not authorize bypassing safety or identity checks.
+
+Development Shopping Product Options should start with real catalog-backed products, not AI-generated brand suggestions that may have no selectable identity. Comparison explanations must be grounded in the actual record; do not imply anti-inflammatory, hormonal or clinical suitability from unsourced marketing text.
+
+**Why:** The founder rejected three branded recommendations with unusable Choose buttons and specifically asked to fix their catalog connection, not merely recolor or unlock buttons.
+
+**How to apply:** Search beyond irrelevant or incomplete early hits within a bounded budget. Keep identity verification, allergy/diet/clinical restrictions and source provenance intact. A successful synthetic browser test alone does not establish real catalog coverage; distinguish it from public-catalog checks using a synthetic profile.

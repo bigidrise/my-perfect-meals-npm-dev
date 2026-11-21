@@ -16,6 +16,7 @@ import { shoppingEvidenceAdapter, type ShoppingStageTimer } from "./shoppingEvid
 import { shoppingRecommendationIdentityMatches } from "./shoppingRecommendationIdentity";
 import { shoppingReferenceBridge } from "./shoppingReferenceBridge";
 import { shoppingRecommendationNamesProduct } from "../../../shared/shoppingRecommendationName";
+import { shoppingCatalogPreservesIntent } from "./shoppingCatalogIntent";
 import type { ShoppingProductReference } from "../../../shared/shoppingProductSelection";
 
 export interface DevelopmentProductMatch {
@@ -293,6 +294,8 @@ export async function findProductDevelopment(
     shoppingIngredient?: ShoppingIngredientRequest;
     /** Server-owned Find a Product leads; never accepted as package evidence. */
     recommendationLeads?: readonly string[];
+    /** Development Shopping only: source-backed cards, not AI-name matching. */
+    catalogFirstShopping?: boolean;
     onStageTiming?: ShoppingStageTimer;
   } = {},
 ): Promise<{
@@ -363,15 +366,18 @@ export async function findProductDevelopment(
     throw new Error("Shopping recommendation leads must be bounded and preserve the original ingredient.");
   }
   const intent = makeIntent(initial);
+  const catalogFirstShopping = options.catalogFirstShopping === true &&
+    (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test") &&
+    !process.env.REPLIT_DEPLOYMENT && !!shoppingIngredient;
   const adapters = options.adapter
     ? [options.adapter, ...(options.fallbackAdapter ? [options.fallbackAdapter] : [])]
     : [
-      createOpenFoodFactsSearchAdapter(fetch, options.recommendationLeads ? 1 : intent.searchCategories.length === 1 ? 4 : 1,
+      createOpenFoodFactsSearchAdapter(fetch, options.recommendationLeads ? 1 : catalogFirstShopping ? 2 : intent.searchCategories.length === 1 ? 4 : 1,
         options.recommendationLeads ? 3 : 8),
       createUsdaBrandedAdapter(),
     ];
-  const transports = options.recommendationLeads
-    ? adapters.map(adapter => shoppingEvidenceAdapter(adapter, options.onStageTiming)) : [];
+  const transports = options.recommendationLeads || catalogFirstShopping
+    ? adapters.map(adapter => shoppingEvidenceAdapter(adapter, options.onStageTiming, catalogFirstShopping ? 8 : 3)) : [];
   const excludedRecommendationLeads = new Set<string>();
   const evaluated = await discoverProductCandidates({
     subject: {
@@ -389,7 +395,10 @@ export async function findProductDevelopment(
     maxCandidates: options.recommendationLeads ? 18 : 40, maxPages: 6,
     targetCount: options.recommendationLeads ? 3 : 9,
     maxEvaluatedCandidates: options.recommendationLeads ? 18 : 24,
-    acceptCandidate: options.recommendationLeads
+    acceptCandidate: catalogFirstShopping
+      ? candidate => intent.searchCategories.some(category =>
+        shoppingCatalogPreservesIntent(category.category, candidate.identity))
+      : options.recommendationLeads
       ? candidate => options.recommendationLeads!.some(lead => shoppingRecommendationMatches(lead, candidate))
       : undefined,
     onSubjectResolved: milliseconds => options.onStageTiming?.("profile", milliseconds),
@@ -460,13 +469,13 @@ export async function findProductDevelopment(
     item.candidate, item.decision, evaluated.subject!, evaluated.unresolved, shoppingIngredient!,
   ).eligible;
   const isReferenceable = (item: EvaluatedProduct) =>
-    !!shoppingIngredient && !!options.recommendationLeads?.some(lead =>
+    !!shoppingIngredient && (catalogFirstShopping || !!options.recommendationLeads?.some(lead =>
       shoppingRecommendationIdentityMatches(lead, item.candidate) ||
-      (namedReferenceDevelopment && shoppingRecommendationNamesProduct(lead, item.candidate.identity))) &&
+      (namedReferenceDevelopment && shoppingRecommendationNamesProduct(lead, item.candidate.identity)))) &&
     !!shoppingReferenceBridge(item.candidate, item.decision, evaluated.subject!, shoppingIngredient,
       shoppingSelectionBridge(item.candidate, item.decision, evaluated.subject!,
         evaluated.unresolved, shoppingIngredient).reason || "Product verification is incomplete.");
-  const presentable = options.recommendationLeads && shoppingIngredient
+  const presentable = (options.recommendationLeads || catalogFirstShopping) && shoppingIngredient
     ? [
       ...selectDistinctProducts(presentationCandidates.filter(isSelectable), evaluated.subject, evaluated.unresolved),
       ...selectDistinctProducts(presentationCandidates.filter(item => !isSelectable(item) && isReferenceable(item)), evaluated.subject, evaluated.unresolved),
@@ -504,7 +513,7 @@ export async function findProductDevelopment(
       // record with the SAME product name can supply a reference in Development;
       // a related sauce or mayonnaise must never replace the displayed oil.
       ...(shoppingIngredient && shoppingSelection && !shoppingSelection.eligible &&
-        (recommendationIdentityVerified || (
+        (catalogFirstShopping || recommendationIdentityVerified || (
           namedReferenceDevelopment && !!recommendationLead &&
           shoppingRecommendationNamesProduct(recommendationLead, candidate.identity)
         ))

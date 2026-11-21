@@ -2,6 +2,11 @@
 
 ## Current approved experience: one-click shopping intent
 
+The later [catalog-first correction](shopping-catalog-first-development.md)
+fixes the upstream issue that still displayed AI suggestions without selectable
+catalog identities. Its source-backed options supersede the earlier disabled-card
+presentation described in this historical verification record.
+
 This supersedes the earlier confirmation/review experience documented below.
 
 - A matching, identifiable product is chosen with **one click**. There is no

@@ -6,18 +6,21 @@ export async function offlineProductOptions(userId, input) {
     throw new Error("Offline product providers require the explicit isolated Development launcher.");
   }
   const avocado = /avocado/i.test(input.originalName);
-  const name = avocado ? "100% Pure Avocado Oil" : "Olive Oil";
+  const kind = avocado ? "avocado" : /tomato sauce/i.test(input.originalName) ? "tomato" :
+    /oatmeal/i.test(input.originalName) ? "oatmeal" : /yogurt/i.test(input.originalName) ? "yogurt" :
+      /seasoning/i.test(input.originalName) ? "seasoning" : /canned beans/i.test(input.originalName) ? "beans" : "olive";
+  const name = avocado ? "100% Pure Avocado Oil" : kind === "olive" ? "Olive Oil" : input.originalName;
   const variant = avocado ? "Original" : "Extra Virgin 500ml";
   const now = new Date().toISOString();
   const brands = avocado ? ["Chosen Foods", "Primal Kitchen", "La Tourangelle"] : ["Synthetic Alpha", "Kirkland Signature", "Synthetic Gamma"];
   const records = brands.map((brand, index) => ({
-    source: "usda_branded", sourceRecordId: `offline-shopping-${avocado ? "avocado" : "olive"}-${index}`,
+    source: "usda_branded", sourceRecordId: `offline-shopping-${kind}-${index}`,
     name: avocado && index === 1 ? "Hot Buffalo Sauce Made With Avocado Oil" : avocado && index === 2 ? "Avocado Oil" : name,
-    brand, variant, barcode: `00000001901${avocado ? "1" : "0"}${index}`, market: "United States",
+    brand, variant, barcode: `00000001901${["olive", "avocado", "tomato", "oatmeal", "yogurt", "seasoning", "beans"].indexOf(kind)}${index}`, market: "United States",
     observedAt: null, identityObservedAt: now, retrievedAt: now,
     exactVariantMatch: true, servingDescription: "14g", packageSize: "500ml",
     facts: [
-      { kind: "ingredients", originalStatement: avocado ? "Avocado oil" : "Olive oil", completeness: "unknown" },
+      { kind: "ingredients", originalStatement: `Synthetic offline fixture only: ${avocado ? "Avocado oil" : name}`, completeness: "unknown" },
       { kind: "nutrition", target: "fat_g_per_100g", originalStatement: "Fat 100 g per 100g",
         completeness: "unknown", nutritionMeasurement: { value: 100, unit: "g", basis: "per_100g" } },
     ],

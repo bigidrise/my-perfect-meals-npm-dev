@@ -28,16 +28,18 @@ try {
     onboardingCompletedAt: new Date(), dailyCalorieTarget: 2000, dailyProteinTarget: 100,
     dailyCarbsTarget: 250, dailyFatTarget: 67,
   }).onConflictDoNothing();
-  for (const [index, name] of ["olive oil", "avocado oil", "low sodium olive oil", "fresh chopped onion"].entries()) {
+  const names = ["olive oil", "avocado oil", "low sodium olive oil", "fresh chopped onion",
+    "tomato sauce", "oatmeal", "yogurt", "seasoning blend", "canned beans"];
+  for (const [index, name] of names.entries()) {
     const metadata = makeIngredientMetadata({ name, quantity: 2, unit: "tbsp", recipeId: `offline-recipe-${index}` });
     await db.insert(shoppingListItems).values({
-      id: `00000000-0000-4000-8000-00000000190${index + 2}`, userId, name, quantity: "2", unit: "tbsp",
+      id: `00000000-0000-4000-8000-${String(1902 + index).padStart(12, "0")}`, userId, name, quantity: "2", unit: "tbsp",
       category: "Pantry", sourceMeals: ["Offline acceptance recipe"], ingredientMetadata: metadata,
       scopeType: "adhoc", scopeKey: "inbox", sourceBuilder: "manual",
     }).onConflictDoNothing();
   }
   await client.query("COMMIT");
-  console.log("Seeded one synthetic account and four recipe-linked rows in the verified isolated database only.");
+  console.log("Seeded one synthetic account and recipe-linked category fixtures in the verified isolated database only.");
 } catch (error) {
   await client.query("ROLLBACK");
   throw error;

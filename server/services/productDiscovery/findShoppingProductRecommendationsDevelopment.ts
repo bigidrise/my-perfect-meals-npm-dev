@@ -4,6 +4,7 @@ import { findProductDevelopment } from "./findProductDevelopment";
 import type { ShoppingLookupStage } from "./shoppingEvidenceAdapter";
 import type { ShoppingRecommendationVerification } from "../../../shared/shoppingRecommendationVerification";
 import { boundedProductNames, developmentGroceryChoiceStore, groceryChoiceKey } from "../groceryChoiceMemory";
+import { catalogShoppingOptionsDevelopment } from "./catalogShoppingOptionsDevelopment";
 
 /**
  * Compose existing Find a Product suggestions with existing Shopping evidence
@@ -21,6 +22,9 @@ export async function findShoppingProductRecommendationsDevelopment(
   // Released Shopping Product Options uses this same governed pipeline in every
   // runtime. The historical function name does not imply a release restriction.
   const ingredient = canonicalShoppingIngredient(input);
+  if (process.env.NODE_ENV === "development" && !process.env.REPLIT_DEPLOYMENT) {
+    return catalogShoppingOptionsDevelopment(userId, ingredient, options.discoveryOptions);
+  }
   const started = performance.now();
   const recommend = options.recommend ?? (async (name, owner) =>
     (await import("../ingredientScanService")).analyzeProductByName(name, owner, {

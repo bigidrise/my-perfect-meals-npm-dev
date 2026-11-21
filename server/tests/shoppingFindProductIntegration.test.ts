@@ -148,6 +148,102 @@ function fixture(options: { avoided?: string[]; ingredients?: string; missing?: 
     run: (input = ingredient) => lookup(owner, input, { recommend, discoveryOptions: { sources, adapter } }) };
 }
 
+describe("catalog-first Development shopping options", () => {
+  let originalEnvironment: string | undefined;
+  beforeEach(() => { originalEnvironment = process.env.NODE_ENV; process.env.NODE_ENV = "development"; });
+  afterEach(() => { process.env.NODE_ENV = originalEnvironment; });
+
+  test.each(["avocado oil", "tomato sauce", "oatmeal", "yogurt", "seasoning blend", "canned beans"])(
+    "%s uses actual catalog identities, not invented AI names or health claims",
+    async originalName => {
+      const f = fixture();
+      for (const record of f.records) {
+        record.name = originalName;
+        record.variant = `${originalName} 500g`;
+        record.facts[0].originalStatement = originalName;
+      }
+      f.recommend.mockResolvedValue(analysis([{
+        category: "Invented AI product with no catalog identity",
+        whyBetter: ["Supports anti-inflammatory and hormone-supportive goals"],
+        targetCriteria: "Available everywhere",
+      }]));
+      const result = await f.run({ originalName, requirements: [] });
+      expect(f.recommend).not.toHaveBeenCalled();
+      expect(result.recommendations).toHaveLength(3);
+      expect(result.recommendationChecks).toHaveLength(3);
+      expect(JSON.stringify(result)).not.toMatch(/hormone-supportive|Available everywhere|Invented AI/);
+      for (const match of result.catalogMatches) {
+        expect(match.name).toBe(originalName);
+        expect(result.recommendations.some(alt => alt.category === match.recommendationLead)).toBe(true);
+        const check = result.recommendationChecks.find(item => item.catalogProductKey === match.productKey)!;
+        const selected = check.status === "eligible"
+          ? parseShoppingProductSelection(match.shoppingSelection!.selection!)
+          : parseShoppingProductReference(check.reference);
+        expect(selected.ingredient.originalName).toBe(originalName);
+        expect(selected.product.name).toBe(originalName);
+        expect(selected.product.source.sourceRecordId).toBe(match.sourceRecordId);
+      }
+      expect(f.adapter.search).toHaveBeenCalledWith(expect.objectContaining({
+        searchCategories: [expect.objectContaining({ category: originalName })],
+      }), null, 8);
+    },
+  );
+
+  test("searches beyond unrelated buffalo sauce and an unverified identity for real avocado oils", async () => {
+    const f = fixture();
+    f.records.forEach(record => { record.name = "Avocado Oil"; record.variant = "Original 500ml"; });
+    f.records[0].name = "Hot Buffalo Sauce Made With Avocado Oil";
+    f.records[1].exactVariantMatch = false;
+    const extra = clone(f.records[2]);
+    extra.sourceRecordId = "actual-fourth-record"; extra.brand = "Another Catalog Brand"; extra.barcode = "0123456789018";
+    f.records.push(extra);
+    const result = await f.run({ originalName: "avocado oil", requirements: [] });
+    expect(result.recommendations).toHaveLength(2);
+    expect(result.recommendations.map(alt => alt.category)).toEqual(expect.arrayContaining([
+      "Synthetic Gamma Avocado Oil", "Another Catalog Brand Avocado Oil",
+    ]));
+    expect(JSON.stringify(result.recommendations)).not.toMatch(/Buffalo|Synthetic Alpha|Synthetic Beta/);
+    expect(result.recommendationChecks.every(check => check.status === "eligible" || !!check.reference)).toBe(true);
+  });
+
+  test("known conflicts, stale identity and missing facts never fill the three options", async () => {
+    const conflict = await fixture({ avoided: ["quinoa"], ingredients: "Olive oil, quinoa" }).run();
+    expect(conflict.recommendations).toEqual([]);
+    const f = fixture({ avoided: ["quinoa"] });
+    f.records[0].identityObservedAt = "2001-01-01T00:00:00Z";
+    f.records[1].facts = [];
+    const result = await f.run();
+    expect(result.recommendations).toHaveLength(1);
+    const reference = parseShoppingProductReference(result.recommendationChecks[0].reference);
+    expect(reference.product.brand).toBe("Synthetic Gamma");
+    expect(reference.product.assessment.status).toBe("review_required");
+    expect(reference.product.assessment.unresolvedRequirements.join(" ")).toMatch(/quinoa/i);
+  });
+
+  test("catalog outage returns zero options without AI or fabricated identities", async () => {
+    const f = fixture();
+    (f.adapter.search as jest.Mock).mockRejectedValue(new Error("offline"));
+    const result = await f.run();
+    expect(result.catalogSearchAvailable).toBe(false);
+    expect(result.recommendations).toEqual([]);
+    expect(result.recommendationChecks).toEqual([]);
+    expect(f.recommend).not.toHaveBeenCalled();
+  });
+
+  test("a deployment keeps the original recommendation pipeline", async () => {
+    const previous = process.env.REPLIT_DEPLOYMENT;
+    process.env.REPLIT_DEPLOYMENT = "1";
+    try {
+      const f = fixture();
+      await f.run();
+      expect(f.recommend).toHaveBeenCalledTimes(1);
+    } finally {
+      if (previous === undefined) delete process.env.REPLIT_DEPLOYMENT;
+      else process.env.REPLIT_DEPLOYMENT = previous;
+    }
+  });
+});
+
 test("reuses one by-name recommendation, source evidence and the existing selection bridge", async () => {
   const f = fixture({ readDelay: 15 });
   const before = clone(f.records);
