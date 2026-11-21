@@ -167,6 +167,10 @@ beverageCreatorRouter.post("/", async (req, res) => {
     // Only the two beverage pages explicitly opt in. All other callers keep
     // the existing response shape, retry policy, and single-result behavior.
     const threeChoiceMode = req.body?.choiceCount === 3;
+    // Only the regular Beverage Creator opts in; Athlete and older callers
+    // retain their existing batch behavior. Production never activates this.
+    const offerBatchAlternatives = shouldOfferBeverageAlternatives(process.env.NODE_ENV) &&
+      req.body?.offerSafeguardAlternatives === true;
     const userId = getAuthUserId(req);
     const {
       beverageCategory,
@@ -919,6 +923,12 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
             !candidate.name.trim() ||
             !Array.isArray(candidate.ingredients) ||
             candidate.ingredients.length === 0 ||
+            !candidate.ingredients.every((ingredient: any) =>
+              ingredient && typeof (ingredient.name ?? ingredient.item) === "string") ||
+            !(typeof candidate.instructions === "string"
+              ? candidate.instructions.trim()
+              : Array.isArray(candidate.instructions) && candidate.instructions.length > 0 &&
+                candidate.instructions.every((step: unknown) => typeof step === "string" && step.trim())) ||
             typeof candidate.reasoning !== "string" ||
             !candidate.reasoning.trim() ||
             isSolidFood(candidate)
@@ -934,6 +944,11 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
               : undefined,
           });
           if (!candidateScan.passed) continue;
+          if (rejection.rejectionKind === "alcohol_forbidden" &&
+              containsAlcoholContent(candidate)) continue;
+          if (!validateCreatorHumanFoodResult(
+            "beverage_creator", candidate, humanFoodContext,
+          ).valid) continue;
 
           if (activeRestrictions.includes("keto") && !userDietOverride) {
             const candidateCarbs = Number(candidate.nutrition?.carbs ?? 0);
@@ -998,6 +1013,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
             imageUrl: null,
           };
           if (validateFinalBeverageCandidate(finalAlternative).outcome !== "pass") continue;
+          if (!isDistinctBeverageChoice(finalAlternative, alternatives)) continue;
           alternatives.push(finalAlternative);
           if (alternatives.length === 2) break;
         }
@@ -1116,7 +1132,14 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
             message: failedScan.message,
             retryable: true,
             rejectionKind: getBeverageRejectionKind(
-              containsAlcoholContent(meal)
+              // Alcohol present in a drink is not proof it caused rejection.
+              // Use the failed scanner's findings, including instructions.
+              [...((failedScan as any).violations ?? []),
+                ...((failedScan as any).instructionViolations ?? [])].some((finding: any) =>
+                containsAlcoholContent({ name: typeof finding === "string"
+                  ? finding : String(finding?.term ?? finding?.message ?? "") }),
+              ) || validateBeverageOutput(meal, beverageEnvelope, beverageContext.builder)
+                .violations.some((violation) => violation.isAlcohol)
                 ? [{ isAlcohol: true }]
                 : undefined,
               "protocol",
@@ -1217,6 +1240,10 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
           message: finalRejection.message,
           ...(finalRejection.violations && { violations: finalRejection.violations }),
           retryable: true,
+          ...(offerBatchAlternatives && {
+            rejectionKind: finalRejection.rejectionKind,
+            protocolName: finalRejection.protocolName,
+          }),
         } };
       }
       const alternatives = await generateValidatedAlternatives(finalRejection);
@@ -1309,6 +1336,10 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
             message: finalGlp1Rejection.message,
             violations: finalGlp1Rejection.violations,
             retryable: true,
+            ...(offerBatchAlternatives && {
+              rejectionKind: finalGlp1Rejection.rejectionKind,
+              protocolName: finalGlp1Rejection.protocolName,
+            }),
           } };
         }
         const alternatives = await generateValidatedAlternatives(finalGlp1Rejection);
@@ -1497,7 +1528,10 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
           candidate = { status: 500, body: { error: "Failed to create beverage" } };
         }
         if (candidate.status !== 200) {
-          firstFailure ??= candidate;
+          const safeguard = (body: any) => body?.retryable === true &&
+            ["PROTOCOL_VIOLATION", "CLINICAL_VIOLATION"].includes(body?.error);
+          if (!firstFailure || (offerBatchAlternatives &&
+              safeguard(candidate.body) && !safeguard(firstFailure.body))) firstFailure = candidate;
           continue;
         }
         if (!isDistinctBeverageChoice(candidate.body, choices)) continue;
@@ -1527,6 +1561,11 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
             message: "No beverage passed universal final validation.",
             retryable: false,
           } };
+    }
+    if (threeChoiceMode && offerBatchAlternatives && response.status !== 200 &&
+        response.body?.retryable === true &&
+        ["PROTOCOL_VIOLATION", "CLINICAL_VIOLATION"].includes(response.body?.error)) {
+      response.body.alternatives = await generateValidatedAlternatives(response.body);
     }
     if (response.status === 200) {
       await humanFoodRequestScope.completeAuthorization();

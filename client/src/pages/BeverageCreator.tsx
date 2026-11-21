@@ -200,6 +200,7 @@ export default function BeverageCreator() {
   const [beverageImageLoading, setBeverageImageLoading] = useState(false);
   const [generationFailure, setGenerationFailure] = useState<GenerationFailureState>(HIDDEN_FAILURE);
   const [protocolFailure, setProtocolFailure] = useState<BeverageProtocolFailure | null>(null);
+  useEffect(() => { setProtocolFailure(null); }, [user?.id]);
 
   const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [pendingGeneration, setPendingGeneration] = useState(false);
@@ -446,6 +447,7 @@ export default function BeverageCreator() {
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
           choiceCount: 3,
+          ...(import.meta.env.DEV ? { offerSafeguardAlternatives: true } : {}),
           beverageCategory,
           flavorFamily,
           specificDrink,
@@ -919,8 +921,8 @@ export default function BeverageCreator() {
                     setGeneratedBeverage(alternative);
                     setBeverageImageLoading(false);
                     toast({
-                      title: "✨ Better-Fit Drink Selected!",
-                      description: `${alternative.name} is ready for you.`,
+                      title: tc("beverageSafety.selected"),
+                      description: tc("beverageSafety.selectedDescription", { name: alternative.name }),
                     });
                   }}
                 />

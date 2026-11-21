@@ -114,6 +114,9 @@ Create up to two DIFFERENT complete beverage alternatives in this exact JSON sha
       "ingredients": [{ "name": "", "amount": "", "unit": "" }],
       "instructions": "",
       "nutrition": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 },
+      "perServingNutrition": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0, "starchyCarbs": 0 },
+      "servings": 1,
+      "category": "",
       "servingSize": "",
       "reasoning": ""
     }
@@ -126,5 +129,6 @@ PRESERVE THE USER'S ORIGINAL INTENT AS FAR AS THE SAFEGUARDS ALLOW:
 - Keep the flavor family, requested spirit or named drink identity, occasion, serving intent, and cultural direction whenever doing so is safe.
 - ${alcoholInstruction}
 - The alternatives must be real, complete drinks with realistic nutrition and concise reasoning that names the relevant ingredients, substitutions, exclusions, or preparation choices.
+- Retain the original prompt's exact category, servings and servingSize contract. Include numeric starchyCarbs in nutrition as well as perServingNutrition; total nutrition must equal per-serving nutrition multiplied by servings.
 - Return JSON only. Do not include the rejected drink or any explanation outside the JSON object.`;
 }

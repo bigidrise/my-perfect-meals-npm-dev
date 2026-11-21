@@ -148,6 +148,8 @@
     "whyThisWorksForYou": "Why This Works For You"
   },
   "beverageSafety": {
+    "selected": "Better-Fit Drink Selected",
+    "selectedDescription": "{{name}} is ready for you.",
     "titleWithProtocol": "This drink doesn't fit your current {{protocol}} nutrition settings.",
     "title": "This drink doesn't fit your current nutrition settings.",
     "description": "One or more ingredients or nutrition targets conflict with your current plan. Your safeguards kept us from showing a drink that doesn't fit.",

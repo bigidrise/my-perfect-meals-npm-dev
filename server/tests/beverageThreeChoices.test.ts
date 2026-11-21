@@ -4,6 +4,7 @@ import request from "supertest";
 const mockOpenAICreate = jest.fn();
 const mockChoiceResponses: any[] = [];
 let mockDefaultResponse: any;
+let mockAlternativeResponse: any;
 let mockRepairResponse: any;
 let mockScanOverride: ((candidate: any) => boolean | undefined) | undefined;
 let mockLiquidValidation: ((candidate: any) => boolean) | undefined;
@@ -239,6 +240,7 @@ function servingsFromPrompt(prompt: string): { count: number; label: string } {
 
 function mockResponseForPrompt(prompt: string) {
   mockCapturedPrompts.push(prompt);
+  if (prompt.includes("SAFE ALTERNATIVE MODE:")) return { alternatives: mockAlternativeResponse ?? [] };
   if (prompt.includes("Repair this rejected beverage")) {
     const { count, label } = servingsFromPrompt(prompt);
     if (typeof mockRepairResponse === "function") return mockRepairResponse(prompt, count, label);
@@ -275,6 +277,7 @@ beforeEach(() => {
   mockChoiceResponses.splice(0);
   mockCapturedPrompts.splice(0);
   mockDefaultResponse = undefined;
+  mockAlternativeResponse = undefined;
   mockRepairResponse = undefined;
   mockScanOverride = undefined;
   mockLiquidValidation = undefined;
@@ -788,5 +791,109 @@ describe("beverage creator three-choice route", () => {
     expect(response.status).toBe(400);
     expect(response.body.error).toBe("LIQUID_NUTRITION_CONFLICT");
     expect(validateLiquidNutritionOutput).toHaveBeenCalled();
+  });
+});
+
+describe("Development regular Beverage Creator safeguard alternatives", () => {
+  const originalEnvironment = process.env.NODE_ENV;
+  beforeEach(() => {
+    process.env.NODE_ENV = "development";
+    mockDefaultResponse = makeCandidate("Rejected drink", ["lime juice"]);
+    mockScanOverride = (candidate) => candidate.name !== "Rejected drink";
+    mockAlternativeResponse = [
+      makeCandidate("Citrus Cooler", ["lime juice", "mint"]),
+      makeCandidate("Berry Tea", ["cranberry juice", "tea"]),
+    ];
+  });
+  afterEach(() => { process.env.NODE_ENV = originalEnvironment; });
+  const optIn = { choiceCount: 3, offerSafeguardAlternatives: true };
+
+  test("offers at most two complete validated alternatives after all three slots fail, without applying them", async () => {
+    const response = await postBeverage(optIn);
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe("PROTOCOL_VIOLATION");
+    expect(response.body.alternatives.map((item: any) => item.name)).toEqual(["Citrus Cooler", "Berry Tea"]);
+    expect(response.body.choices).toBeUndefined();
+    expect(response.body.name).toBeUndefined();
+    expect(mockValidateCreatorHumanFoodResult.mock.calls.some(([, item]) => item.name === "Citrus Cooler")).toBe(true);
+    expect(mockValidateHumanFoodCandidate.mock.calls.some(([item]) => item.name === "Berry Tea")).toBe(true);
+    expect(mockScopeRelease).toHaveBeenCalledTimes(1);
+    expect(mockCapturedPrompts.filter((prompt) => prompt.includes("SAFE ALTERNATIVE MODE:"))).toHaveLength(1);
+  });
+
+  test.each(["production", "test"])("never activates alternatives in %s, even with a forged opt-in", async (environment) => {
+    process.env.NODE_ENV = environment;
+    const response = await postBeverage(optIn);
+    expect(response.body.alternatives).toBeUndefined();
+    expect(response.body.rejectionKind).toBeUndefined();
+  });
+
+  test("retains the Athlete and legacy three-choice rejection shape without the regular-page opt-in", async () => {
+    const response = await postBeverage({ choiceCount: 3 });
+    expect(response.body.alternatives).toBeUndefined();
+    expect(response.body.rejectionKind).toBeUndefined();
+  });
+
+  test("filters missing instructions, incomplete nutrition and failed Human Food checks", async () => {
+    mockAlternativeResponse = [
+      { ...makeCandidate("Incomplete", ["lime juice"]), instructions: "" },
+      { ...makeCandidate("No serving evidence", ["mint"]), perServingNutrition: undefined },
+      makeCandidate("Human Food conflict", ["cranberry"]),
+    ];
+    mockValidateCreatorHumanFoodResult.mockReturnValue({ valid: false, violations: ["dietary conflict"] });
+    const response = await postBeverage(optIn);
+    expect(response.body.alternatives).toEqual([]);
+    expect(response.body.retryable).toBe(true);
+  });
+
+  test("does not expose a failed final validator or liquid-nutrition conflict", async () => {
+    mockAlternativeResponse = [
+      { ...makeCandidate("Final rejection", ["mint"]), needsFinalRepair: true },
+      makeCandidate("Liquid conflict", ["cranberry"]),
+    ];
+    mockLiquidValidation = (candidate) => candidate.name !== "Liquid conflict";
+    const response = await postBeverage(optIn);
+    expect(response.body.alternatives).toEqual([]);
+  });
+
+  test("enforces alcohol-free alternatives even when an alcohol instruction escapes another scanner", async () => {
+    mockAlternativeResponse = [
+      makeCandidate("Hidden spirit", ["lime juice"], 1, "1 drink", "Add rum."),
+      makeCandidate("Berry Tea", ["cranberry", "tea"]),
+    ];
+    const response = await postBeverage(optIn);
+    expect(response.body.rejectionKind).toBe("alcohol_forbidden");
+    expect(response.body.alternatives.map((item: any) => item.name)).toEqual(["Berry Tea"]);
+  });
+
+  test("a nutrition-only scanner failure does not prohibit alcohol just because the drink contains it", async () => {
+    mockDefaultResponse = makeCandidate("Rejected drink", ["tequila", "lime"]);
+    mockScanGeneratedOutput.mockImplementation((candidate: any) => ({
+      passed: candidate.name !== "Rejected drink",
+      message: "Carbohydrate limit exceeded.",
+      violations: candidate.name === "Rejected drink" ? [{ term: "syrup" }] : [],
+      instructionViolations: [],
+    }));
+    mockAlternativeResponse = [makeCandidate("Lighter highball", ["tequila", "soda water"])];
+    const response = await postBeverage(optIn);
+    expect(response.body.rejectionKind).not.toBe("alcohol_forbidden");
+    expect(response.body.alternatives).toHaveLength(1);
+    expect(mockCapturedPrompts.find((prompt) => prompt.includes("SAFE ALTERNATIVE MODE:")))
+      .toContain("Alcohol is not automatically prohibited");
+  });
+
+  test("retains a structured safeguard rejection if a separate candidate had a technical failure", async () => {
+    mockChoiceResponses.push(() => { throw new Error("provider unavailable"); });
+    const response = await postBeverage(optIn);
+    expect(response.body.error).toBe("PROTOCOL_VIOLATION");
+    expect(response.body.alternatives).toHaveLength(2);
+  });
+
+  test("never converts an exclusively technical failure into a safeguard offer", async () => {
+    mockOpenAICreate.mockRejectedValue(new Error("network unavailable"));
+    const response = await postBeverage(optIn);
+    expect(response.status).toBe(500);
+    expect(response.body.error).toBe("Failed to create beverage");
+    expect(response.body.alternatives).toBeUndefined();
   });
 });
