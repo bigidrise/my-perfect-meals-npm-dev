@@ -2,6 +2,28 @@
 
 **Decision: pending. No clinician approval is recorded or inferred.**
 
+## Final release approval status — 2026-11-21 UTC
+
+The documented evidence package and PR #481 review/comment records were checked
+for qualified, exact-text decisions. No qualifying approval was found for any
+of the six items. Technical release-preparation authorization is not clinical
+sign-off. No reviewer identity, qualification, evidence or approval date has
+been supplied for an approved decision, so none is recorded.
+
+| Item | Exact-text approval | Reviewer / qualifications / approval evidence / date |
+| --- | --- | --- |
+| 1. GlucoseGuard scope | Missing | Not supplied |
+| 2. GlucoseGuard operation | Missing | Not supplied |
+| 3. Starch Guard distinction and coexistence | Missing | Not supplied |
+| 4. Care-team review banner | Missing | Not supplied |
+| 5. Legacy GLP-1 setting title | Missing | Not supplied |
+| 6. Legacy GLP-1 setting explanation | Missing | Not supplied |
+
+**Release status: BLOCKED.** Keep the PR in draft and the clinical gate active.
+An authorized workspace preview import does not approve a GitHub Production
+merge or publication. The six exact explanations, evidence requirements and
+reviewer-return instructions below remain unchanged.
+
 This is a source-based review handoff, not clinical certification or an
 end-to-end verification. Preserve all six explanations unchanged until a
 qualified reviewer approves the exact text or requests revisions. Approval to
