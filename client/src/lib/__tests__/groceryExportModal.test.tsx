@@ -41,13 +41,16 @@ test.each(["eligible_at_evaluation", "review_required"])(
     render(<GroceryExportModal items={[chosen, { ...items[1], name: "fresh chopped onion" }]} onClose={jest.fn()} />);
     for (const retailer of GROCERY_RETAILERS) {
       fireEvent.click(screen.getByRole("button", { name: retailer.name }));
-      const link = screen.getByRole("link", { name: /Kirkland Signature Extra Virgin Olive Oil Organic Cold Pressed/ });
+      const link = screen.getByRole("link", { name: /Kirkland Signature Extra Virgin Olive Oil/ });
+      expect(link).not.toHaveTextContent("Organic Cold Pressed");
       expect(link).toHaveAttribute("href", retailer.buildItemUrl("Kirkland Signature Extra Virgin Olive Oil Organic Cold Pressed", { preserveProductIdentity: true }));
       const decodedQuery = [...new URL(link.getAttribute("href")!).searchParams.values()].join(" ");
       expect(decodedQuery).toContain("Kirkland Signature Extra Virgin Olive Oil Organic Cold Pressed");
       expect(screen.getByRole("link", { name: /fresh chopped onion/ })).toHaveAttribute("href", retailer.buildItemUrl("fresh chopped onion"));
     }
-    if (status === "review_required") expect(screen.getByText("Label review remains required")).toBeInTheDocument();
+    expect(screen.queryByText("Label review remains required")).not.toBeInTheDocument();
+    expect(screen.queryByText("Shopping reference — Unverified")).not.toBeInTheDocument();
+    expect(screen.queryByText(/searching:/)).not.toBeInTheDocument();
     expect(JSON.stringify(chosen)).toBe(before);
   },
 );

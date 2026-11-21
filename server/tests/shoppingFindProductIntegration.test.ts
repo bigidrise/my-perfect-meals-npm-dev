@@ -1,6 +1,6 @@
 import { findShoppingProductRecommendationsDevelopment as lookup } from
   "../services/productDiscovery/findShoppingProductRecommendationsDevelopment";
-import type { ProductSubjectSources } from "../services/productDiscovery/subjectAuthority";
+import { resolveProductSubjectAuthority, type ProductSubjectSources } from "../services/productDiscovery/subjectAuthority";
 import type { ProductEvidenceAdapter, SourceProductRecord } from "../services/productDiscovery/productEvidenceAdapters";
 import type { IngredientScanResult } from "../services/ingredientScanService";
 import { findProductDevelopment } from "../services/productDiscovery/findProductDevelopment";
@@ -152,6 +152,59 @@ describe("catalog-first Development shopping options", () => {
   let originalEnvironment: string | undefined;
   beforeEach(() => { originalEnvironment = process.env.NODE_ENV; process.env.NODE_ENV = "development"; });
   afterEach(() => { process.env.NODE_ENV = originalEnvironment; });
+
+  test.each<[string, string[], string[], string[], string[], string, boolean]>([
+    ["pescatarian and quinoa avoidance, plain oil", ["pescatarian"], ["quinoa"], [], [], "Olive oil", false],
+    ["pescatarian known meat conflict", ["pescatarian"], [], [], [], "Beef fat", true],
+    ["quinoa avoidance conflict", [], ["quinoa"], [], [], "Olive oil, quinoa", true],
+    ["vegan plain oil", ["vegan"], [], [], [], "Olive oil", false],
+    ["vegan dairy conflict", ["vegan"], [], [], [], "Olive oil, milk", true],
+    ["vegetarian plain oil", ["vegetarian"], [], [], [], "Olive oil", false],
+    ["vegetarian meat conflict", ["vegetarian"], [], [], [], "Olive oil, beef", true],
+    ["peanut allergy conflict", [], [], ["peanut"], [], "Olive oil, peanuts", true],
+    ["milk allergy conflict", [], [], ["milk"], [], "Olive oil, milk", true],
+    ["unresolved clinical product authority", [], [], [], ["cardiac"], "Olive oil", false],
+  ])("investigation: %s preserves loaded restrictions without inventing compatibility",
+    async (_label, diet, avoided, allergies, hard, ingredients, conflict) => {
+      const f = fixture({ ingredients });
+      (f.sources.resolveFoodContext as jest.Mock).mockResolvedValue({
+        actorUserId: owner, subjectUserId: owner, status: "resolved", internalFingerprint: "synthetic-investigation",
+        diet: { stored: diet, source: "profile" },
+        safety: { allergies, avoidedFoods: avoided, dislikedFoods: [], glp1MealAuthorityActive: false },
+        nutrition: null, gaps: [],
+      });
+      (f.sources.loadEnvelope as jest.Mock).mockResolvedValue({
+        userId: owner, dietaryIdentity: diet, allergies, medicalHardLimits: hard,
+        medicalOptimization: [], preferences: [], providerInterventions: [],
+      });
+      const subject = await resolveProductSubjectAuthority({
+        actorUserId: owner, subjectUserId: owner, subjectKind: "account",
+        dateISO: new Date().toISOString().slice(0, 10),
+      }, f.sources);
+      expect(subject.status).toBe("resolved");
+      expect(subject.issues).toEqual([]);
+      expect(subject.dietaryIdentity).toEqual(diet);
+      expect(subject.explicitAvoidances).toEqual(avoided);
+      expect(subject.allergies).toEqual(allergies);
+      const result = await f.run();
+      if (conflict) {
+        expect(result.catalogMatches).toEqual([]);
+        expect(result.recommendations).toEqual([]);
+      } else {
+        expect(result.recommendations).toHaveLength(3);
+        const reference = parseShoppingProductReference(result.recommendationChecks[0].reference);
+        expect(reference.product.assessment.status).toBe("review_required");
+        const snapshot = JSON.parse(reference.product.sourcePayloadJson!);
+        expect(snapshot.decision.status).toBe("needs_verification");
+        expect(snapshot.decision.reasons).toContainEqual({
+          code: "context_unavailable", detail: "Current subject requirements could not be resolved.",
+        });
+        const warnings = reference.product.assessment.unresolvedRequirements.join(" ");
+        for (const value of [...diet, ...avoided]) expect(warnings).toContain(value);
+        expect(() => parseShoppingProductSelection(reference)).toThrow();
+      }
+    },
+  );
 
   test.each(["avocado oil", "tomato sauce", "oatmeal", "yogurt", "seasoning blend", "canned beans"])(
     "%s uses actual catalog identities, not invented AI names or health claims",

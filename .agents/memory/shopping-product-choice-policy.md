@@ -3,7 +3,7 @@ name: Shopping product choice policy
 description: Founder-approved one-click product intent, compact list presentation and identity/safety separation.
 ---
 
-Choosing an identifiable product is a one-click grocery-shopping action, not medical approval. The founder wants only the chosen brand/product name, normal needed quantity and normal shopping controls on the list. Keep Change/Clear available. Do not put identity expansions, second confirmations, unresolved assessment paragraphs or historical-choice messages in the normal shopping flow.
+Choosing an identifiable product is a one-click grocery-shopping action, not medical approval. The founder wants only the chosen brand/product name, normal needed quantity and normal shopping controls on the list and in Shop Online. Keep Change/Clear available. Do not put identity expansions, second confirmations, unresolved assessment paragraphs or historical-choice messages in the normal shopping flow.
 
 **Why:** The founder explicitly rejected the multi-step reference workflow and verbose shopping rows as unnecessary complexity.
 
