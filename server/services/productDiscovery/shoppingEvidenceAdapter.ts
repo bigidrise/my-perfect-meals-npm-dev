@@ -7,7 +7,8 @@ export type ShoppingStageTimer = (stage: ShoppingLookupStage, milliseconds: numb
  * Request-local transport optimization only. Never changes source records,
  * eligibility, or identity checks. At most two exact reads run concurrently.
  */
-export function shoppingEvidenceAdapter(adapter: ProductEvidenceAdapter, timer?: ShoppingStageTimer) {
+export function shoppingEvidenceAdapter(adapter: ProductEvidenceAdapter, timer?: ShoppingStageTimer, pageLimit = 3) {
+  if (!Number.isInteger(pageLimit) || pageLimit < 1 || pageLimit > 25) throw new Error("Invalid shopping source page limit.");
   type ReadResult = { record: Awaited<ReturnType<ProductEvidenceAdapter["read"]>> } | { error: unknown };
   const reads = new Map<string, Promise<ReadResult>>();
   let references: Awaited<ReturnType<ProductEvidenceAdapter["search"]>>["references"] = [];
@@ -26,8 +27,8 @@ export function shoppingEvidenceAdapter(adapter: ProductEvidenceAdapter, timer?:
   const wrapped: ProductEvidenceAdapter = {
     source: adapter.source,
     async search(intent, cursor, limit) {
-      const page = await timed("catalogSearch", () => adapter.search(intent, cursor, Math.min(limit, 3)));
-      references = page.references.slice(0, Math.min(limit, 3));
+      const page = await timed("catalogSearch", () => adapter.search(intent, cursor, Math.min(limit, pageLimit)));
+      references = page.references.slice(0, Math.min(limit, pageLimit));
       next = 0;
       return { ...page, references };
     },

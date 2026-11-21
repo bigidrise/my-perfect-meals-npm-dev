@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ShoppingListItem } from "@/stores/shoppingListStore";
 import { catalogProductLabel, packagedProductEligibility } from "@/lib/groceryCoachPackagedIngredients";
 import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { shoppingProductActionsDevelopmentEnabled } from "@/lib/shoppingProductActionsGate";
 
 interface Props {
   item: ShoppingListItem;
@@ -39,6 +40,14 @@ export default function SmartShoppingProductChoice({ item, enabled, hasAccess, o
     if (hasAccess) onChoose();
     else onUpgrade();
   }
+
+  if (shoppingProductActionsDevelopmentEnabled && product) return <div className="shopping-product-choice mt-1">
+    <div className="flex items-center gap-2 text-xs">
+      {enabled && <button type="button" onClick={beginChoose} className="shopping-product-choice-action rounded-md border border-white/15 px-2 py-1 text-white/80">Change</button>}
+      {enabled && <button type="button" disabled={clearing} onClick={() => void clearChoice()} className="shopping-product-choice-action rounded-md border border-white/15 px-2 py-1 text-white/80">{clearing ? "Clearing…" : "Clear"}</button>}
+    </div>
+    {error && <p role="alert" className="mt-1 text-xs text-red-200">{error}</p>}
+  </div>;
 
   return (
     <div className="shopping-product-choice mt-1">

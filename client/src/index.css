@@ -1424,6 +1424,26 @@ button, a, [role="button"], .interactive {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
 }
 
+/* Functional lookup feedback, independent of the decorative pulse overrides. */
+.shopping-options-skeleton {
+  position: relative;
+  overflow: hidden;
+}
+.shopping-options-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, .16) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: shopping-options-shimmer 1.6s ease-in-out infinite;
+}
+@keyframes shopping-options-shimmer {
+  to { transform: translateX(100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shopping-options-skeleton::after { animation: none; transform: none; opacity: .35; }
+}
+
 /* ── flash-border (aiButtonPulse) ── */
 /* Freeze at a static mid-glow — no movement */
 .flash-border {

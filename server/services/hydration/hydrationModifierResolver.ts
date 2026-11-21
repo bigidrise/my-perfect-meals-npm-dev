@@ -120,6 +120,7 @@ function isRestriction(modifier: HydrationModifierInput): boolean {
   return (
     modifier.effect === "limits" ||
     modifier.effect === "blocks" ||
+    modifier.hardStop === true ||
     modifier.authority === "emergency_safety" ||
     modifier.authority === "organ_safety" ||
     modifier.modifierType.endsWith("_restriction") ||
@@ -133,6 +134,7 @@ function affectsSameScope(
 ): boolean {
   return (
     modifier.metric === other.metric ||
+    modifier.metric === "general" ||
     other.metric === "general" ||
     Boolean(
       modifier.conflictGroup &&
@@ -267,7 +269,8 @@ export function createHydrationModifierResolver() {
           (restriction) =>
             affectsSameScope(modifier, restriction) &&
             (modifier.effect !== "context_only" || isPots(modifier)) &&
-            (authorityRank(restriction) > authorityRank(modifier) ||
+            (restriction.hardStop ||
+              authorityRank(restriction) >= authorityRank(modifier) ||
               isPots(modifier)),
         );
         const higherPriorityClaims = normalized.filter(

@@ -129,7 +129,10 @@ test.each(["coach-first", "meal-first"])("compatible %s contributions merge, sav
   expect(row.ingredientMetadata?.contributions.find(c => c.recipeId === "coach-card")?.quantity).toBe("1/2");
   render(<SmartShoppingProductChoice item={row} enabled hasAccess onChoose={jest.fn()}
     onClear={jest.fn()} onUpgrade={jest.fn()} />);
-  expect(screen.getByText("Synthetic Brand Tomato Sauce")).toBeInTheDocument();
+  // The parent list row owns the selected title; this compact component owns
+  // only its controls. Do not restore the removed duplicate name to pass a test.
+  expect(row.ingredientMetadata?.selectedProduct?.name).toBe(product.name);
+  expect(screen.queryByText("Synthetic Brand Tomato Sauce")).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "See Product Options" })).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Change" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Clear" })).toBeInTheDocument();

@@ -1,19 +1,22 @@
 import { findShoppingProductRecommendationsDevelopment as lookup } from
   "../services/productDiscovery/findShoppingProductRecommendationsDevelopment";
-import type { ProductSubjectSources } from "../services/productDiscovery/subjectAuthority";
+import { resolveProductSubjectAuthority, type ProductSubjectSources } from "../services/productDiscovery/subjectAuthority";
 import type { ProductEvidenceAdapter, SourceProductRecord } from "../services/productDiscovery/productEvidenceAdapters";
 import type { IngredientScanResult } from "../services/ingredientScanService";
 import { findProductDevelopment } from "../services/productDiscovery/findProductDevelopment";
 import { analyzeProductByName } from "../services/ingredientScanService";
 import { normalizeProductEvidence } from "../services/productDiscovery/productEvidenceAdapters";
 import { shoppingRecommendationIdentityMatches } from "../services/productDiscovery/shoppingRecommendationIdentity";
+import { shoppingRecommendationNamesProduct } from "../../shared/shoppingRecommendationName";
 import { parseShoppingProductReference, parseShoppingProductSelection } from "../../shared/shoppingProductSelection";
 import { developmentItemPatch } from "../services/shopping-list/metadataPersistence";
 import { makeIngredientMetadata } from "../../shared/shoppingIngredientMetadata";
 import { writeFileSync } from "node:fs";
+import { verifiedGroceryCatalog } from "../services/productDiscovery/developmentGroceryVerification";
+import { catalogShoppingOptionsDevelopment } from "../services/productDiscovery/catalogShoppingOptionsDevelopment";
 
 jest.mock("../services/ingredientScanService", () => ({
-  ...jest.requireActual("../services/ingredientScanService"),
+  buildAnalysisProfile: jest.fn(() => []),
   analyzeProductByName: jest.fn(),
 }));
 
@@ -52,10 +55,11 @@ test("an actual unresolved-profile response offers distinct references, never ve
     const before = clone(metadata);
     const update = developmentItemPatch({
       ingredientMetadata: { ...metadata, selectedProduct: reference.product },
-    }, { userId: owner, name: "olive oil", quantity: "3", unit: "tsp", ingredientMetadata: metadata });
+    }, { userId: owner, name: "olive oil", quantity: "3", unit: "tsp", checked: true, ingredientMetadata: metadata });
     expect(update.ingredientMetadata).toEqual({ ...before, selectedProduct: reference.product });
     expect(update).not.toHaveProperty("quantity");
     expect(update).not.toHaveProperty("unit");
+    expect(update).not.toHaveProperty("checked");
     expect(metadata).toEqual(before);
   }
   expect(f.recommend).toHaveBeenCalledTimes(1);
@@ -146,6 +150,164 @@ function fixture(options: { avoided?: string[]; ingredients?: string; missing?: 
     run: (input = ingredient) => lookup(owner, input, { recommend, discoveryOptions: { sources, adapter } }) };
 }
 
+describe("catalog-first Development shopping options", () => {
+  let originalEnvironment: string | undefined;
+  beforeEach(() => { originalEnvironment = process.env.NODE_ENV; process.env.NODE_ENV = "development"; });
+  afterEach(() => { process.env.NODE_ENV = originalEnvironment; });
+
+  test.each<[string, string[], string[], string[], string[], string, boolean]>([
+    ["pescatarian and quinoa avoidance, plain oil", ["pescatarian"], ["quinoa"], [], [], "Olive oil", false],
+    ["pescatarian known meat conflict", ["pescatarian"], [], [], [], "Beef fat", true],
+    ["quinoa avoidance conflict", [], ["quinoa"], [], [], "Olive oil, quinoa", true],
+    ["vegan plain oil", ["vegan"], [], [], [], "Olive oil", false],
+    ["vegan dairy conflict", ["vegan"], [], [], [], "Olive oil, milk", true],
+    ["vegetarian plain oil", ["vegetarian"], [], [], [], "Olive oil", false],
+    ["vegetarian meat conflict", ["vegetarian"], [], [], [], "Olive oil, beef", true],
+    ["peanut allergy conflict", [], [], ["peanut"], [], "Olive oil, peanuts", true],
+    ["milk allergy conflict", [], [], ["milk"], [], "Olive oil, milk", true],
+    ["unresolved clinical product authority", [], [], [], ["cardiac"], "Olive oil", false],
+  ])("investigation: %s preserves loaded restrictions without inventing compatibility",
+    async (_label, diet, avoided, allergies, hard, ingredients, conflict) => {
+      const f = fixture({ ingredients });
+      (f.sources.resolveFoodContext as jest.Mock).mockResolvedValue({
+        actorUserId: owner, subjectUserId: owner, status: "resolved", internalFingerprint: "synthetic-investigation",
+        diet: { stored: diet, source: "profile" },
+        safety: { allergies, avoidedFoods: avoided, dislikedFoods: [], glp1MealAuthorityActive: false },
+        nutrition: null, gaps: [],
+      });
+      (f.sources.loadEnvelope as jest.Mock).mockResolvedValue({
+        userId: owner, dietaryIdentity: diet, allergies, medicalHardLimits: hard,
+        medicalOptimization: [], preferences: [], providerInterventions: [],
+      });
+      const subject = await resolveProductSubjectAuthority({
+        actorUserId: owner, subjectUserId: owner, subjectKind: "account",
+        dateISO: new Date().toISOString().slice(0, 10),
+      }, f.sources);
+      expect(subject.status).toBe("resolved");
+      expect(subject.issues).toEqual([]);
+      expect(subject.dietaryIdentity).toEqual(diet);
+      expect(subject.explicitAvoidances).toEqual(avoided);
+      expect(subject.allergies).toEqual(allergies);
+      const result = await f.run();
+      if (conflict) {
+        expect(result.catalogMatches).toEqual([]);
+        expect(result.recommendations).toEqual([]);
+      } else {
+        expect(result.recommendations).toHaveLength(3);
+        const reference = parseShoppingProductReference(result.recommendationChecks[0].reference);
+        expect(reference.product.assessment.status).toBe("review_required");
+        const snapshot = JSON.parse(reference.product.sourcePayloadJson!);
+        expect(snapshot.decision.status).toBe("needs_verification");
+        expect(snapshot.decision.reasons).toContainEqual({
+          code: "policy_unavailable", detail: "Applicable product verification rules are unavailable or incomplete.",
+        });
+        const warnings = reference.product.assessment.unresolvedRequirements.join(" ");
+        for (const value of [...diet, ...avoided]) expect(warnings).toContain(value);
+        expect(() => parseShoppingProductSelection(reference)).toThrow();
+      }
+      const shared = await verifiedGroceryCatalog(owner, ingredient.originalName,
+        (userId, request) => catalogShoppingOptionsDevelopment(userId, request, {
+          sources: f.sources, adapter: f.adapter,
+        }));
+      expect(shared.products.map(product => product.productKey)).toEqual(
+        result.catalogMatches.map(product => product.productKey));
+      expect(shared.alternatives).toHaveLength(conflict ? 0 : 3);
+      expect(shared.alternatives.every(option => option.evidenceStatus === "needs_verification")).toBe(true);
+      expect(shared.alternatives.every(option => !option.targetCriteria.includes("Passed"))).toBe(true);
+    },
+  );
+
+  test.each(["avocado oil", "tomato sauce", "oatmeal", "yogurt", "seasoning blend", "canned beans"])(
+    "%s uses actual catalog identities, not invented AI names or health claims",
+    async originalName => {
+      const f = fixture();
+      for (const record of f.records) {
+        record.name = originalName;
+        record.variant = `${originalName} 500g`;
+        record.facts[0].originalStatement = originalName;
+      }
+      f.recommend.mockResolvedValue(analysis([{
+        category: "Invented AI product with no catalog identity",
+        whyBetter: ["Supports anti-inflammatory and hormone-supportive goals"],
+        targetCriteria: "Available everywhere",
+      }]));
+      const result = await f.run({ originalName, requirements: [] });
+      expect(f.recommend).not.toHaveBeenCalled();
+      expect(result.recommendations).toHaveLength(3);
+      expect(result.recommendationChecks).toHaveLength(3);
+      expect(JSON.stringify(result)).not.toMatch(/hormone-supportive|Available everywhere|Invented AI/);
+      for (const match of result.catalogMatches) {
+        expect(match.name).toBe(originalName);
+        expect(result.recommendations.some(alt => alt.category === match.recommendationLead)).toBe(true);
+        const check = result.recommendationChecks.find(item => item.catalogProductKey === match.productKey)!;
+        const selected = check.status === "eligible"
+          ? parseShoppingProductSelection(match.shoppingSelection!.selection!)
+          : parseShoppingProductReference(check.reference);
+        expect(selected.ingredient.originalName).toBe(originalName);
+        expect(selected.product.name).toBe(originalName);
+        expect(selected.product.source.sourceRecordId).toBe(match.sourceRecordId);
+      }
+      expect(f.adapter.search).toHaveBeenCalledWith(expect.objectContaining({
+        searchCategories: [expect.objectContaining({ category: originalName })],
+      }), null, 8);
+    },
+  );
+
+  test("searches beyond unrelated buffalo sauce and an unverified identity for real avocado oils", async () => {
+    const f = fixture();
+    f.records.forEach(record => { record.name = "Avocado Oil"; record.variant = "Original 500ml"; });
+    f.records[0].name = "Hot Buffalo Sauce Made With Avocado Oil";
+    f.records[1].exactVariantMatch = false;
+    const extra = clone(f.records[2]);
+    extra.sourceRecordId = "actual-fourth-record"; extra.brand = "Another Catalog Brand"; extra.barcode = "0123456789018";
+    f.records.push(extra);
+    const result = await f.run({ originalName: "avocado oil", requirements: [] });
+    expect(result.recommendations).toHaveLength(2);
+    expect(result.recommendations.map(alt => alt.category)).toEqual(expect.arrayContaining([
+      "Synthetic Gamma Avocado Oil", "Another Catalog Brand Avocado Oil",
+    ]));
+    expect(JSON.stringify(result.recommendations)).not.toMatch(/Buffalo|Synthetic Alpha|Synthetic Beta/);
+    expect(result.recommendationChecks.every(check => check.status === "eligible" || !!check.reference)).toBe(true);
+  });
+
+  test("known conflicts, stale identity and missing facts never fill the three options", async () => {
+    const conflict = await fixture({ avoided: ["quinoa"], ingredients: "Olive oil, quinoa" }).run();
+    expect(conflict.recommendations).toEqual([]);
+    const f = fixture({ avoided: ["quinoa"] });
+    f.records[0].identityObservedAt = "2001-01-01T00:00:00Z";
+    f.records[1].facts = [];
+    const result = await f.run();
+    expect(result.recommendations).toHaveLength(1);
+    const reference = parseShoppingProductReference(result.recommendationChecks[0].reference);
+    expect(reference.product.brand).toBe("Synthetic Gamma");
+    expect(reference.product.assessment.status).toBe("review_required");
+    expect(reference.product.assessment.unresolvedRequirements.join(" ")).toMatch(/quinoa/i);
+  });
+
+  test("catalog outage returns zero options without AI or fabricated identities", async () => {
+    const f = fixture();
+    (f.adapter.search as jest.Mock).mockRejectedValue(new Error("offline"));
+    const result = await f.run();
+    expect(result.catalogSearchAvailable).toBe(false);
+    expect(result.recommendations).toEqual([]);
+    expect(result.recommendationChecks).toEqual([]);
+    expect(f.recommend).not.toHaveBeenCalled();
+  });
+
+  test("a deployment keeps the original recommendation pipeline", async () => {
+    const previous = process.env.REPLIT_DEPLOYMENT;
+    process.env.REPLIT_DEPLOYMENT = "1";
+    try {
+      const f = fixture();
+      await f.run();
+      expect(f.recommend).toHaveBeenCalledTimes(1);
+    } finally {
+      if (previous === undefined) delete process.env.REPLIT_DEPLOYMENT;
+      else process.env.REPLIT_DEPLOYMENT = previous;
+    }
+  });
+});
+
 test("reuses one by-name recommendation, source evidence and the existing selection bridge", async () => {
   const f = fixture({ readDelay: 15 });
   const before = clone(f.records);
@@ -185,7 +347,9 @@ test("the default Shopping path calls the existing Find a Product service with t
     discoveryOptions: { sources: f.sources, adapter: f.adapter },
   });
   expect(analyzeProductByName).toHaveBeenCalledTimes(1);
-  expect(analyzeProductByName).toHaveBeenCalledWith(ingredient.originalName, owner);
+  expect(analyzeProductByName).toHaveBeenCalledWith(ingredient.originalName, owner, {
+    ingredient, findNewOptions: undefined,
+  });
   expect(f.recommend).not.toHaveBeenCalled();
   expect(result.catalogMatches).toHaveLength(3);
   expect(result.catalogMatches.every(match => match.shoppingSelection?.eligible)).toBe(true);
@@ -285,7 +449,50 @@ test("an otherwise eligible but different variant is review-only and retains its
   expect(record.variant).toBe("Light Olive Oil 500ml");
   expect(record.recommendationIdentityVerified).toBe(false);
   expect(record.shoppingSelection?.eligible).toBe(false);
+  expect(record.shoppingReference).toBeUndefined();
+  expect(alpha.reference).toBeUndefined();
   expect(result.recommendationChecks.filter(check => check.status === "eligible")).toHaveLength(2);
+});
+
+test("Production does not enable Development's explicit related-catalog reference review", async () => {
+  const previous = process.env.NODE_ENV;
+  process.env.NODE_ENV = "production";
+  try {
+    const f = fixture();
+    f.records[0].variant = "Light Olive Oil 500ml";
+    const result = await f.run();
+    const record = result.catalogMatches.find(match => match.brand === "Synthetic Alpha")!;
+    expect(record.recommendationIdentityVerified).toBe(false);
+    expect(record.shoppingSelection?.eligible).toBe(false);
+    expect(record.shoppingReference).toBeUndefined();
+  } finally { process.env.NODE_ENV = previous; }
+});
+
+test("a named product may be an unverified shopping reference without pretending a package-size match is verified", async () => {
+  const f = fixture();
+  (f.recommend as jest.Mock).mockImplementation(async () => ({
+    ...analysis(), betterAlternatives: analysis().betterAlternatives!.map(alt => ({
+      ...alt, category: alt.category.replace(" 500ml", ""),
+    })),
+  }));
+  const result = await f.run();
+  expect(result.recommendationChecks).toHaveLength(3);
+  for (const check of result.recommendationChecks) {
+    expect(check.status).toBe("review_only");
+    expect(check.productKey).toBeUndefined();
+    const reference = parseShoppingProductReference(check.reference);
+    expect(reference.product.assessment.status).toBe("review_required");
+    expect(shoppingRecommendationNamesProduct(check.recommendationCategory, reference.product)).toBe(true);
+  }
+});
+
+test.each<[string, string, boolean]>([
+  ["Primal Kitchen Avocado Oil", "Avocado Oil", true],
+  ["Primal Kitchen Avocado Oil", "Hot Buffalo Sauce Made With Avocado Oil", false],
+  ["Primal Kitchen Avocado Oil", "Avocado Oil Mayonnaise", false],
+  ["Primal Kitchen Avocado Oil", "Extra Virgin Olive Oil", false],
+])("shopping name binding keeps %s separate from %s", (suggestion, name, expected) => {
+  expect(shoppingRecommendationNamesProduct(suggestion, { brand: "Primal Kitchen", name, variant: "Original" })).toBe(expected);
 });
 
 test("near variants cannot exhaust the eligible-result target before exact variants are inspected", async () => {
@@ -374,19 +581,31 @@ test.each(["missing_facts", "unverified_identity"])(
   },
 );
 
-test("a failed recommendation stops before catalog requests rather than silently changing engines", async () => {
+test("a failed explanation uses governed catalog evidence without claiming a personalized recommendation", async () => {
   const f = fixture();
   f.recommend.mockResolvedValueOnce({ ...analysis(), fallbackUsed: true });
-  await expect(f.run()).rejects.toThrow("temporarily unavailable");
-  expect(f.adapter.search).not.toHaveBeenCalled();
+  const result = await f.run();
+  expect(f.adapter.search).toHaveBeenCalled();
+  expect(result).not.toHaveProperty("recommendations");
+  expect(result.recommendationNotice).toMatch(/explanations are temporarily unavailable/);
+  expect(result.catalogMatches.length).toBeGreaterThan(0);
+  expect(f.sources.resolveFoodContext).toHaveBeenCalledTimes(2);
 });
 
-test("empty or duplicate recommendations do not trigger excessive generic searches", async () => {
+test("catalog fallback still rejects known ingredient conflicts", async () => {
+  const f = fixture({ avoided: ["quinoa"], ingredients: "Olive oil, quinoa" });
+  f.recommend.mockResolvedValueOnce({ ...analysis(), fallbackUsed: true });
+  const result = await f.run();
+  expect(result.catalogMatches).toEqual([]);
+  expect(result).not.toHaveProperty("recommendations");
+});
+
+test("empty recommendations use bounded governed discovery while duplicate leads are deduplicated", async () => {
   const f = fixture();
   f.recommend.mockResolvedValueOnce(analysis([]));
   const result = await f.run();
-  expect(result.recommendationCount).toBe(0);
-  expect(f.adapter.search).not.toHaveBeenCalled();
+  expect(result).not.toHaveProperty("recommendations");
+  expect(f.adapter.search).toHaveBeenCalled();
   f.recommend.mockResolvedValueOnce(analysis(Array(10).fill(suggestion("Synthetic Alpha"))));
   const deduplicated = await f.run();
   expect(deduplicated.recommendationCount).toBe(1);

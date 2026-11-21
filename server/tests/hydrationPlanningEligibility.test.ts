@@ -397,6 +397,138 @@ describe("Hydration Planning Eligibility Gate", () => {
     assertNonnumericResult(result);
   });
 
+  it("deduplicates identical event replays and rejects conflicting event or source identities", () => {
+    expect(snapshot({ events: [event(), event()] })).toEqual(snapshot());
+    expect(() => snapshot({
+      events: [event(), event({ payloadHash: "different-payload" })],
+    })).toThrow(expect.objectContaining({ code: "INVALID_INPUT" }));
+    expect(() => snapshot({
+      events: [event(), event({ id: "second-event-same-source" })],
+    })).toThrow(expect.objectContaining({ code: "INVALID_INPUT" }));
+  });
+
+  it.each([
+    { payloadHash: "" },
+    { occurredAt: "not-a-timestamp" },
+    { enteredAt: "not-a-timestamp" },
+    { occurredTimezone: "Not/A_Timezone" },
+    { localDate: "2026-02-30" },
+    { sourceEventId: "" },
+  ])("rejects incomplete canonical event evidence %j", (overrides) => {
+    expect(() => snapshot({ events: [event(overrides)] })).toThrow(
+      expect.objectContaining({ code: "INVALID_INPUT" }),
+    );
+  });
+
+  it("scopes canonical events by the requested local day, not their legacy UTC date", () => {
+    const lateLocalEvent = event({
+      occurredAt: "2026-08-28T03:30:00.000Z",
+      localDate: "2026-08-28",
+    });
+    expect(snapshot({ events: [lateLocalEvent] }).eventIds).toEqual(["event-1"]);
+    expect(() => snapshot({
+      events: [event({ occurredAt: "2026-08-28T06:30:00.000Z" })],
+    })).toThrow(expect.objectContaining({ code: "INVALID_INPUT" }));
+    expect(() => snapshot({ timezone: "Not/A_Timezone" })).toThrow(
+      expect.objectContaining({ code: "INVALID_INPUT" }),
+    );
+  });
+
+  it("reflects removed events without creating a competing intake ledger", () => {
+    const before = snapshot();
+    const after = snapshot({ events: [] });
+    expect(after.snapshotHash).not.toBe(before.snapshotHash);
+    expect(after.eventIds).toEqual([]);
+    const result = evaluateHydrationPlanningEligibility(baseInput({ intake: after }));
+    expect(result.outcome).toBe("PLAN_ELIGIBLE");
+    expect(result.provenance.intakeEventIds).toEqual([]);
+    expect(result).toEqual(evaluateHydrationPlanningEligibility(baseInput({ intake: after })));
+    assertNonnumericResult(result);
+  });
+
+  it.each(["withheld", "expired"] as const)(
+    "reviews otherwise valid %s registry claims instead of ignoring them",
+    (status) => {
+      const modifier = registeredModifier("metabolic_endocrine.diabetes", { status });
+      const result = evaluateHydrationPlanningEligibility(baseInput({ modifiers: [modifier] }));
+      expect(result.outcome).toBe("NEEDS_REVIEW");
+      expect(result.reasons).toContainEqual(expect.objectContaining({
+        code: "REGISTRY_CLAIM_INACTIVE",
+        inputIds: [modifier.id],
+        sourceIds: [`${modifier.source}:${modifier.sourceId}`],
+        detailCodes: [status],
+      }));
+      expect(result.provenance.resolverInputIds).toEqual([modifier.id]);
+      expect(result.provenance.resolverSourceIds).toEqual([`${modifier.source}:${modifier.sourceId}`]);
+      assertNonnumericResult(result);
+    },
+  );
+
+  it("returns deterministic review reasons for reordered invalid claims including malformed IDs", () => {
+    const modifiers = [
+      { id: "unknown-z", status: "active" },
+      { id: "unknown-a", status: "expired" },
+      { id: "" },
+      { id: "x".repeat(201) },
+    ];
+    const forward = evaluateHydrationPlanningEligibility(baseInput({ modifiers }));
+    expect(forward).toEqual(evaluateHydrationPlanningEligibility(
+      baseInput({ modifiers: [...modifiers].reverse() }),
+    ));
+    expect(forward.outcome).toBe("NEEDS_REVIEW");
+    assertNonnumericResult(forward);
+  });
+
+  it("returns structured review at the full supported invalid-claim batch size", () => {
+    const modifiers = Array.from({ length: 500 }, (_, index) => ({ id: `invalid-${index}` }));
+    const result = evaluateHydrationPlanningEligibility(baseInput({ modifiers }));
+    expect(result.outcome).toBe("NEEDS_REVIEW");
+    expect(result.reasons.filter((reason) => reason.code === "REGISTRY_CLAIM_INVALID")).toHaveLength(500);
+    expect(result.reasons.some((reason) => reason.code === "RESOLVER_REVIEW_REQUIRED")).toBe(true);
+    assertNonnumericResult(result);
+  });
+
+  it("requires a delegated authorization reference and preserves allowed delegated scope", () => {
+    const access = {
+      authenticatedUserId: "verified-professional",
+      subjectUserId: SUBJECT_ID,
+      mode: "delegated" as const,
+      authorizationStatus: "allowed" as const,
+    };
+    expect(evaluateHydrationPlanningEligibility(baseInput({ access })).outcome).toBe("NEEDS_REVIEW");
+    const result = evaluateHydrationPlanningEligibility(baseInput({
+      access: { ...access, authorizationReference: "verified-current-relationship" },
+    }));
+    expect(result.outcome).toBe("PLAN_ELIGIBLE");
+    expect(result.subjectUserId).toBe(SUBJECT_ID);
+    assertNonnumericResult(result);
+  });
+
+  it("preserves the full source reference when a governed source ID is at its allowed limit", () => {
+    const modifier = registeredModifier("metabolic_endocrine.diabetes", {
+      sourceId: "s".repeat(200),
+    });
+    const result = evaluateHydrationPlanningEligibility(baseInput({ modifiers: [modifier] }));
+    expect(result.outcome).toBe("PLAN_ELIGIBLE");
+    expect(result.provenance.resolverSourceIds).toEqual([`condition:${"s".repeat(200)}`]);
+    assertNonnumericResult(result);
+  });
+
+  it("reuses general-scope POTS conflict detection from the shared resolver", () => {
+    const modifiers = [
+      registeredModifier("dysautonomia.pots", { metric: "general" }),
+      registeredModifier("cardiovascular.clinician_fluid_restriction", {
+        source: "clinician_directive", authority: "clinician", effect: "limits", metric: "fluid",
+      }),
+    ];
+    const result = evaluateHydrationPlanningEligibility(baseInput({ modifiers }));
+    expect(result).toEqual(evaluateHydrationPlanningEligibility(
+      baseInput({ modifiers: [...modifiers].reverse() }),
+    ));
+    expect(result).toMatchObject({ outcome: "NEEDS_REVIEW", resolverStatus: "needs_review" });
+    assertNonnumericResult(result);
+  });
+
   it("turns resolver validation failures into NEEDS_REVIEW instead of fallback eligibility", () => {
     const result = evaluateHydrationPlanningEligibility(
       baseInput({

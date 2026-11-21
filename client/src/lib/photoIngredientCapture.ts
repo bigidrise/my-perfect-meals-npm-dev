@@ -32,6 +32,8 @@ export interface BetterAlternative {
   brand?: string;
   whyBetter: string[];
   targetCriteria: string;
+  evidenceStatus?: "eligible" | "needs_verification";
+  productKey?: string;
 }
 
 export interface IngredientScanResult {

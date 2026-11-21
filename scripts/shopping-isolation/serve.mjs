@@ -22,7 +22,10 @@ try {
 console.log("[shopping-isolation] Verified local cluster, founder database and Shopping schema. Shared DB is not a fallback.");
 const child = spawn(process.execPath, [
   "--import", new URL("./guard.mjs", import.meta.url).href,
-  "--import", "tsx", "server/devBootstrap.ts",
+  "--import", "tsx",
+  ...(process.argv.includes("--offline-product-fixtures")
+    ? ["--import", new URL("./offline-product-options-register.mjs", import.meta.url).href] : []),
+  "server/devBootstrap.ts",
 ], {
   stdio: "inherit",
   env: isolatedEnvironment({
@@ -34,6 +37,7 @@ const child = spawn(process.execPath, [
     SKIP_DEVELOPMENT_ACCOUNT_MAINTENANCE: "true",
     IMAGE_DEVELOPMENT_ACTIVATION: "approved-flare",
     MEAL_SHOPPING_TRANSFERS_ENABLED: "true",
+    ...(process.argv.includes("--offline-product-fixtures") ? { SHOPPING_OFFLINE_PRODUCT_FIXTURES: "true" } : {}),
   }),
 });
 for (const signal of ["SIGTERM", "SIGINT"]) process.on(signal, () => child.kill(signal));

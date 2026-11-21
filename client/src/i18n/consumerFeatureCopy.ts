@@ -6,6 +6,20 @@ import { biometricsClinicalSpanish } from "./biometricsClinicalCopy";
 
 /** Ordinary display copy only. Never translate saved records, unknown API errors or safety evidence here. */
 export const consumerFeatureSpanish: Record<string, string> = {
+  "Save Product": "Guardar producto",
+  "Product details not fully verified.": "Los detalles del producto no están completamente verificados.",
+  "This product could not be reliably identified. Choose another option or keep the ingredient generic.": "No se pudo identificar este producto de forma fiable. Elige otra opción o conserva el ingrediente genérico.",
+  "Review the actual catalog product": "Revisa el producto real del catálogo",
+  "This listing is not a confirmed match for {{recommendation}}. Only the catalog product shown below will be chosen.": "No se ha confirmado que esta ficha corresponda a {{recommendation}}. Solo se elegirá el producto del catálogo que se muestra a continuación.",
+  "Keep this ingredient generic or use Find new options below.": "Conserva este ingrediente genérico o usa Buscar nuevas opciones abajo.",
+  "Choose Product": "Elegir producto",
+  "Confirm shopping reference": "Confirmar referencia de compra",
+  "Finding your product options…": "Buscando tus opciones de productos…",
+  "Loading product options": "Cargando opciones de productos",
+  "Finding personalized options and checking existing catalog evidence…": "Buscando opciones personalizadas y revisando la información disponible del catálogo…",
+  "Find new options": "Buscar nuevas opciones",
+  "We couldn’t load product options. Your ingredient and saved choice are unchanged. Try again or keep it generic.": "No pudimos cargar las opciones de productos. Tu ingrediente y tu elección guardada no han cambiado. Vuelve a intentarlo o conserva el ingrediente genérico.",
+  "Your item was added, but your usual choice could not be remembered.": "Se añadió el artículo, pero no se pudo recordar tu elección habitual.",
   "Review product identity and label evidence": "Revisar la identidad del producto y la información de la etiqueta",
   "Catalog candidate only — not confirmed as the exact recommended variant.": "Solo es una opción del catálogo; no se ha confirmado que sea la variante exacta recomendada.",
   "Choose for My List": "Elegir para mi lista",

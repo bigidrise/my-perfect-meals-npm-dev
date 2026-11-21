@@ -11,8 +11,18 @@ const mockState = {
   blockedIds: new Set<string>(),
   revalidationCalls: 0,
   revalidationFails: false,
+  rememberedChoices: [] as Array<unknown[]>,
+  failRemember: false,
 };
 
+jest.mock("../services/groceryChoiceMemoryStore", () => ({
+  createGroceryChoiceMemoryStore: () => ({
+    prefer: jest.fn(async (...args: unknown[]) => {
+      if (mockState.failRemember) throw new Error("synthetic memory failure");
+      mockState.rememberedChoices.push(args);
+    }),
+  }),
+}));
 function asyncRows(rows: Array<Record<string, any>>) {
   const result: any = Promise.resolve(rows);
   result.limit = async (limit: number) => rows.slice(0, limit);
@@ -132,11 +142,15 @@ jest.mock("../db", () => {
         mockState.transactionCalls++;
         const listSnapshot = mockState.listRows.map((row) => ({ ...row }));
         const insertedSnapshot = [...mockState.insertedListRows];
+        const savedSnapshot = mockState.savedRows.map(row => ({ ...row }));
+        const savedInsertedSnapshot = [...mockState.insertedSavedRows];
         try {
           return await callback(executor);
         } catch (error) {
           mockState.listRows = listSnapshot;
           mockState.insertedListRows = insertedSnapshot;
+          mockState.savedRows = savedSnapshot;
+          mockState.insertedSavedRows = savedInsertedSnapshot;
           throw error;
         }
       }),
@@ -187,9 +201,28 @@ beforeEach(() => {
   mockState.blockedIds = new Set();
   mockState.revalidationCalls = 0;
   mockState.revalidationFails = false;
+  mockState.rememberedChoices = [];
+  mockState.failRemember = false;
 });
 
 describe("Saved Groceries routes", () => {
+  test("Development explicit recommendation saves remember the choice atomically, not on library reads", async () => {
+    const prior = process.env.NODE_ENV;
+    process.env.NODE_ENV = "development";
+    try {
+      const payload = { productName: "Synthetic Marinara", brand: "Synthetic Brand", category: "tomato sauce",
+        source: "grocery-coach", userId: "other-owner",
+        productMeta: { analysisMethod: "by_name", subjectKind: "human" } };
+      expect((await request(buildApp()).post("/api/saved-groceries").send(payload)).status).toBe(201);
+      expect(mockState.rememberedChoices).toEqual([[USER_ID, expect.any(String), "tomato sauce", "Synthetic Brand Synthetic Marinara"]]);
+      await request(buildApp()).get("/api/saved-groceries");
+      expect(mockState.rememberedChoices).toHaveLength(1);
+      mockState.failRemember = true;
+      const failed = await request(buildApp()).post("/api/saved-groceries").send({ ...payload, productName: "Different Sauce" });
+      expect(failed.status).toBe(500);
+      expect(mockState.savedRows).toHaveLength(1);
+    } finally { process.env.NODE_ENV = prior; }
+  });
   test("Grocery Coach save/list/reopen roundtrip retains identity, analysis and owner without caller-controlled ownership", async () => {
     const app = buildApp();
     const snapshot = {

@@ -247,6 +247,8 @@ export function BetterAlternativesSection({
   showEvidenceNote = true,
   renderAction,
   badgeLabel,
+  cardTestId,
+  highlightAvailability = false,
 }: {
   alternatives: BetterAlternative[];
   branded?: boolean;
@@ -261,12 +263,17 @@ export function BetterAlternativesSection({
   renderAction?: (alternative: BetterAlternative, index: number) => ReactNode;
   /** Adapter-specific neutral heading; default Coach presentation stays unchanged. */
   badgeLabel?: string;
+  /** Stable identities for context-specific catalog cards; no change to scan actions. */
+  cardTestId?: (alternative: BetterAlternative, index: number) => string;
+  /** Shopping-only contrast correction; other scan/Coach callers stay unchanged. */
+  highlightAvailability?: boolean;
 }) {
   const { t } = useTranslation();
   const [addedIndex, setAddedIndex] = useState<number | null>(null);
   if (!alternatives || alternatives.length === 0) return null;
 
-  const headingText = verdictLevel === 'buy'
+  const unverifiedCatalog = alternatives.some(alternative => alternative.evidenceStatus === "needs_verification");
+  const headingText = unverifiedCatalog ? "Catalog Product Options" : verdictLevel === 'buy'
     ? (branded ? `🏆 ${t('ingredientSheet.alternatives.alsoWorthKnowing')}` : `🏆 ${t('ingredientSheet.alternatives.evenBetter')}`)
     : `🛒 ${t('ingredientSheet.alternatives.betterOptions')}`;
 
@@ -281,15 +288,15 @@ export function BetterAlternativesSection({
     <div className="mb-5">
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm font-bold text-white/80">{headingText}</p>
-        {verdictLevel !== 'buy' && (
+        {(verdictLevel !== 'buy' || unverifiedCatalog) && (
           <span className="text-[10px] font-semibold text-orange-400 bg-orange-500/15 border border-orange-500/25 rounded-full px-2 py-0.5 uppercase tracking-wide">
-            {badgeLabel ?? t('ingredientSheet.alternatives.profileMatched')}
+            {unverifiedCatalog ? "Product details not fully verified." : badgeLabel ?? t('ingredientSheet.alternatives.profileMatched')}
           </span>
         )}
       </div>
       <div className="space-y-2.5">
         {alternatives.map((alt, i) => (
-          <div key={recommendationProductKey(recommendationIdentity(alt))} className="rounded-xl border border-orange-500/25 bg-orange-500/8 p-3.5">
+          <article key={cardTestId?.(alt, i) ?? recommendationProductKey(recommendationIdentity(alt))} data-testid={cardTestId?.(alt, i)} className="rounded-xl border border-orange-500/25 bg-orange-500/8 p-3.5">
             <div className="flex items-start justify-between gap-2 mb-2">
               <p className="text-sm font-semibold text-white flex-1">{groceryProductLabel(recommendationIdentity(alt))}</p>
               {!renderAction && onAddToList && (
@@ -308,11 +315,11 @@ export function BetterAlternativesSection({
                 </button>
               )}
             </div>
-            <ProductRecommendationExplanation whyBetter={alt.whyBetter} targetCriteria={alt.targetCriteria} marker="📍 " />
+            <ProductRecommendationExplanation whyBetter={alt.whyBetter} targetCriteria={alt.targetCriteria} marker="📍 " highlightAvailability={highlightAvailability} />
             {renderAction
               ? renderAction(alt, i)
               : <RecommendedProductActions alternative={alt} query={query} educationalFooter={educationalFooter} source={source} subjectKind={subjectKind} />}
-          </div>
+          </article>
         ))}
       </div>
       {showEvidenceNote && <p className="text-[10px] text-white/20 mt-2 pl-1">

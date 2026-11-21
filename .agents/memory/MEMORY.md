@@ -59,6 +59,7 @@
 - [Professional glucose access](professional-glucose-access.md) — raw glucose requires verified clinical identity, exact active care relationship, org isolation, and current consent.
 - [Saved grocery evidence governance](saved-grocery-evidence-governance.md) — permanent favorites stay evidence-ranked and fail closed against the current profile.
 - [Smart Grocery persistence boundary](smart-grocery-persistence-boundary.md) — minimal existing-catalog picker is Development-only; older Production replacements lose metadata; live writes require isolation.
+- [Shopping product choice policy](shopping-product-choice-policy.md) — one-click intent and name-only rows; preserve internal evidence and hard blocks; never substitute sauce for oil.
 - [Auth security-state issuance](auth-security-state-issuance.md) — credential issuance must compare the security version verified before password or MFA acceptance.
 - [Signup email and username identity](signup-email-username-identity.md) — matching email prefixes never link accounts; username collisions must not block distinct emails.
 - [Consumer signup first-run order](consumer-signup-first-run.md) — regular signup leads into onboarding and personal meal setup, not trial feature exploration.
@@ -123,6 +124,7 @@
 - [Professional erasure policy](professional-erasure-policy.md) — minimize personal lifecycle data; reviewer erasure preserves other applications; no six-year retention assumption.
 - [Professional credential clearance](professional-credential-clearance.md) — bind genuine MFA-reviewed evidence to current identity; activation, pilots and demos remain separate.
 - [Grocery Coach workflow](grocery-coach-meal-card-workflow.md) — automatic Favorites/card continuity and Development-only, user-initiated packaged-product discovery.
+- [Development scope protection](development-scope-regression-protection.md) — define scope before implementation; discuss changes to existing behavior and verify the customer journey.
 - [Focused Jest execution](focused-jest-execution.md) — use isolated test transpilation and a separate type gate to avoid loading the entire project twice.
 - [Studio loading release boundary](studio-loading-release-boundary.md) — loading corrections are Development-only; permission caching and restart/release need separate approval.
 - [Recipe carbohydrate categories](recipe-carb-category-boundary.md) — preserve explicit source estimates; dietary fiber and unknown carbohydrate remain distinct.

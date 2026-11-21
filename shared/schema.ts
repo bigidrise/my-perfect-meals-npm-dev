@@ -2122,6 +2122,18 @@ export const userSavedGroceryItems = pgTable("user_saved_grocery_items", {
 export type UserSavedGroceryItem = typeof userSavedGroceryItems.$inferSelect;
 export type NewUserSavedGroceryItem = typeof userSavedGroceryItems.$inferInsert;
 
+// Names express shopping intent only. Never store or reuse a suitability verdict here.
+export const userGroceryChoiceMemory = pgTable("user_grocery_choice_memory", {
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  ingredientKey: varchar("ingredient_key", { length: 64 }).notNull(),
+  query: text("query").notNull(),
+  shownNames: jsonb("shown_names").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  preferredName: text("preferred_name"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, table => ({
+  ownerIngredient: uniqueIndex("user_grocery_choice_memory_owner_ingredient").on(table.userId, table.ingredientKey),
+}));
+
 export { userDocumentAcceptance } from "../server/db/schema/legal";
 export { bugReports, bugReportStatusEnum, bugReportAcknowledgements } from "../server/db/schema/bugReports";
 export type {

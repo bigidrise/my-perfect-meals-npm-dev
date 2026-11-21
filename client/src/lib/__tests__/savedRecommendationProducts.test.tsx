@@ -53,6 +53,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { get, post } from "@/lib/api";
 import { BetterAlternativesSection, IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
 import RecommendedProductActions from "@/components/shopping/RecommendedProductActions";
+import ShoppingProductPicker from "@/components/shopping/ShoppingProductPicker";
 import SavedGroceriesSheet, { buildResultFromSavedItem } from "@/components/shopping/SavedGroceriesSheet";
 import {
   groceryProductLabel, recommendationIdentity, recommendationProductKey,
@@ -84,6 +85,66 @@ function saveButton(index = 1) {
   return screen.getByRole("button", { name: `Save to Groceries: ${alternatives[index].category}` });
 }
 
+const shoppingCatalogProduct = {
+  productKey: "offline-catalog-oil", name: "Extra Virgin Olive Oil", brand: "Kirkland Signature",
+  variant: "Organic Cold Pressed", barcode: "000111222333",
+  ingredients: "Olive oil", serving: "1 tbsp", catalogDate: null,
+  source: "Open Food Facts", sourceRecordId: "offline-record", evidenceStatus: "needs_verification",
+  recommendationStatus: "review", verificationMessage: "Check the current label.",
+  needsProfileReview: true, policyUnresolved: false, research: [], nutrition: [], allergenInformation: [],
+  shoppingDisplay: "label_review", shoppingCaution: "Current label review is required.",
+} as const;
+
+test("Shopping saves exact UPC, variant and supporting facts without selecting the ingredient or granting clearance", async () => {
+  const onCommit = jest.fn().mockResolvedValue(undefined);
+  (post as jest.Mock).mockResolvedValue({ catalogSearchAvailable: true, catalogMatches: [shoppingCatalogProduct] });
+  const input = { originalName: "olive oil", requirements: [] };
+  const before = JSON.stringify(input);
+  render(wrap(<ShoppingProductPicker open onOpenChange={jest.fn()} ingredient={input}
+    quantityLabel="2 tbsp" sessionKey="fixture-a:profile" currentSelection={null} onCommit={onCommit} />));
+  const button = await screen.findByRole("button", { name: /Save Product: Kirkland Signature Extra Virgin Olive Oil Organic Cold Pressed/ });
+  fireEvent.click(button);
+  await waitFor(() => expect(rows["fixture-a"]).toHaveLength(1));
+  const saved = rows["fixture-a"][0];
+  expect(saved.productKey).toBe("upc::000111222333");
+  expect(saved.brand).toBe(shoppingCatalogProduct.brand);
+  expect(saved.productName).toContain(shoppingCatalogProduct.variant);
+  expect(saved.productMeta).toMatchObject({
+    catalogSource: "Open Food Facts", sourceRecordId: "offline-record",
+    variant: "Organic Cold Pressed", ingredients: ["Olive oil"], evidenceStatus: "unverified",
+  });
+  expect(onCommit).not.toHaveBeenCalled();
+  expect(JSON.stringify(input)).toBe(before);
+  expect(screen.getByText(/Original amount: 2 tbsp/)).toBeInTheDocument();
+  expect(button).toHaveAttribute("aria-pressed", "true");
+});
+
+test("Shopping Choose uses the exact row selection without creating a Saved Groceries bookmark", async () => {
+  const choice = {
+    ingredient: { originalName: "olive oil", requirements: [] },
+    product: {
+      productKey: "offline-eligible", name: "Olive Oil", brand: "Synthetic Choice", variant: "Original",
+      source: { source: "Synthetic", sourceRecordId: "eligible-record" },
+      evidence: [{ kind: "ingredients", statement: "Olives", provenance: { source: "Synthetic" } },
+        { kind: "nutrition", statement: "Synthetic nutrition", provenance: { source: "Synthetic" } }],
+      assessment: { status: "eligible_at_evaluation", unresolvedRequirements: [], reasons: [],
+        subjectReference: "fixture-a", contextReference: "profile", evaluatedAt: "2026-11-21", policyVersion: "offline" },
+    },
+  };
+  const onCommit = jest.fn().mockResolvedValue(undefined);
+  (post as jest.Mock).mockResolvedValue({ catalogMatches: [{
+    ...shoppingCatalogProduct, ...choice.product, productKey: choice.product.productKey,
+    evidenceStatus: "eligible", shoppingDisplay: "selectable",
+    shoppingSelection: { eligible: true, selection: choice },
+  }] });
+  render(wrap(<ShoppingProductPicker open onOpenChange={jest.fn()} ingredient={choice.ingredient}
+    quantityLabel="2 tbsp" sessionKey="fixture-a:profile" currentSelection={null} onCommit={onCommit} />));
+  fireEvent.click(await screen.findByRole("button", { name: "Choose this option" }));
+  await waitFor(() => expect(onCommit).toHaveBeenCalledWith(choice));
+  expect(rows["fixture-a"]).toHaveLength(0);
+  expect(writes).toHaveLength(0);
+});
+
 beforeEach(() => {
   mockAnalysisLanguage = "en";
   queryClient.clear(); owner = "fixture-a"; rows = { "fixture-a": [], "fixture-b": [] }; writes = []; added = [];
@@ -107,7 +168,7 @@ beforeEach(() => {
       return { item: updated };
     }
     const row = { ...payload, id: `saved-${owner}-${rows[owner].length}`, userId: owner,
-      productKey: computeProductKey(null, payload.brand, payload.productName),
+      productKey: computeProductKey(payload.barcode, payload.brand, payload.productName),
       compliance: { status: "approved" } };
     rows[owner].push(row);
     return { item: row, created: true };

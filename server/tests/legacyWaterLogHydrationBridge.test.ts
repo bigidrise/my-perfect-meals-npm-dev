@@ -8,6 +8,15 @@ import {
   mapLegacyWaterLogToHydrationEvent,
 } from "../services/hydration/legacyWaterLogHydrationBridge";
 
+// These are projection tests: importing the service must not initialize the
+// application database or invoke live professional relationship checks.
+jest.mock("../db", () => ({ db: {} }));
+jest.mock("../services/procareAccessService", () => ({
+  verifyPhysicianClientAccess: jest.fn(() => {
+    throw new Error("Unexpected live authorization dependency");
+  }),
+}));
+
 const OWNER_ID = "legacy-water-owner";
 const OTHER_ID = "legacy-water-other";
 const PROFESSIONAL_ID = "legacy-water-professional";
@@ -76,7 +85,7 @@ describe("legacy water-log Hydration bridge", () => {
 
     expect(first).toEqual(replay);
     expect(first).toMatchObject({
-      id: row.id,
+      id: first.id,
       subjectUserId: OWNER_ID,
       occurredAt: "2026-08-21T18:30:00.000Z",
       occurredTimezone: "UTC",
@@ -87,7 +96,7 @@ describe("legacy water-log Hydration bridge", () => {
       beverageClass: "water",
       source: "legacy_manual",
       sourceEventId: row.id,
-      idempotencyKey: row.id,
+      idempotencyKey: first.id,
       enteredAt: "2026-08-21T18:31:00.000Z",
       enteredByUserId: OWNER_ID,
       provenance: {
@@ -100,6 +109,8 @@ describe("legacy water-log Hydration bridge", () => {
       },
     });
     expect(first.payloadHash).toHaveLength(64);
+    expect(first.id).toMatch(/^[0-9a-f-]{14}5[0-9a-f-]{21}$/);
+    expect(first.id).not.toBe(row.id);
     expect(first).not.toHaveProperty("targetMl");
     expect(first).not.toHaveProperty("minimumMl");
     expect(first).not.toHaveProperty("maximumMl");
@@ -227,7 +238,7 @@ describe("legacy water-log Hydration bridge", () => {
     });
     expect(corrected.items).toHaveLength(1);
     expect(corrected.items[0]).toMatchObject({
-      id,
+      id: original.items[0].id,
       sourceEventId: id,
       volumeMl: 500,
       originalAmount: 500,
@@ -260,7 +271,7 @@ describe("legacy water-log Hydration bridge", () => {
       { authenticatedUserId: OWNER_ID },
       { limit: 2 },
     );
-    expect(first.items.map((event) => event.id)).toEqual([
+    expect(first.items.map((event) => event.sourceEventId)).toEqual([
       "00000000-0000-4000-8000-000000000110",
       "00000000-0000-4000-8000-000000000109",
     ]);
@@ -270,7 +281,7 @@ describe("legacy water-log Hydration bridge", () => {
       { authenticatedUserId: OWNER_ID },
       { limit: 2, cursor: first.nextCursor },
     );
-    expect(second.items.map((event) => event.id)).toEqual([
+    expect(second.items.map((event) => event.sourceEventId)).toEqual([
       "00000000-0000-4000-8000-000000000108",
     ]);
     expect(second.nextCursor).toBeUndefined();
@@ -281,5 +292,84 @@ describe("legacy water-log Hydration bridge", () => {
         { cursor: first.nextCursor },
       ),
     ).rejects.toMatchObject({ code: "INVALID_CURSOR" });
+  });
+
+  it("qualifies identity by both owner and legacy record without changing source evidence", () => {
+    const row = waterRow("same-source-id");
+    const first = mapLegacyWaterLogToHydrationEvent(row);
+    const other = mapLegacyWaterLogToHydrationEvent({ ...row, userId: OTHER_ID });
+    expect(first.id).not.toBe(other.id);
+    expect(first.idempotencyKey).not.toBe(other.idempotencyKey);
+    expect(other.sourceEventId).toBe(row.id);
+    expect(first.provenance).toMatchObject({
+      legacySource: "water_logs",
+      originalAmountAvailable: false,
+      legacyActorUserId: null,
+    });
+  });
+
+  it.each(["tea", "coffee", "milk", "juice", "other", "water"])(
+    "preserves a declared %s class without fabricating nutrient evidence",
+    (beverageClass) => {
+      const event = mapLegacyWaterLogToHydrationEvent(waterRow("drink", { beverageClass }));
+      expect(event.beverageClass).toBe(beverageClass);
+      expect(event.provenance.rawBeverageClass).toBe(beverageClass);
+      expect(event).not.toHaveProperty("declaredNutrients");
+    },
+  );
+
+  it.each(["sparkling", "unsupported"])("retains unsupported beverage evidence %s as unknown", (beverageClass) => {
+    const event = mapLegacyWaterLogToHydrationEvent(waterRow("drink", { beverageClass }));
+    expect(event.beverageClass).toBe("unknown");
+    expect(event.provenance.rawBeverageClass).toBe(beverageClass);
+  });
+
+  it.each([
+    { userId: " " }, { id: " " }, { amountMl: 0 }, { amountMl: -1 },
+    { amountMl: 1.5 }, { amountMl: NaN },
+    { createdAt: null }, { intakeTime: null },
+    { createdAt: new Date(NaN) }, { intakeTime: new Date(NaN) },
+  ])("rejects invalid legacy evidence rather than inventing facts: %p", (overrides) => {
+    expect(() => mapLegacyWaterLogToHydrationEvent(waterRow("invalid", overrides as any)))
+      .toThrow(expect.objectContaining({ code: "INVALID_LEGACY_RECORD" }));
+  });
+
+  it("fails closed for unauthenticated reads without consulting storage", async () => {
+    const store = new MemoryLegacyWaterLogStore();
+    const bridge = new LegacyWaterLogHydrationBridge(store, jest.fn());
+    await expect(bridge.listEvents({ authenticatedUserId: "" }))
+      .rejects.toMatchObject({ code: "AUTHENTICATION_REQUIRED" });
+    expect(store.queries).toHaveLength(0);
+  });
+
+  it("rejects mismatched owners returned by storage instead of exposing them", async () => {
+    const store: LegacyWaterLogStore = {
+      listRows: jest.fn().mockResolvedValue([waterRow("wrong-owner", { userId: OTHER_ID })]),
+    };
+    const bridge = new LegacyWaterLogHydrationBridge(store, jest.fn());
+    await expect(bridge.listEvents({ authenticatedUserId: OWNER_ID }))
+      .rejects.toMatchObject({ code: "ACCESS_DENIED" });
+  });
+
+  it("rechecks delegation on each read and rejects revoked or ambiguous access", async () => {
+    const store = new MemoryLegacyWaterLogStore();
+    const verify = jest.fn().mockResolvedValueOnce(true).mockResolvedValueOnce(false)
+      .mockResolvedValueOnce("unverified");
+    const bridge = new LegacyWaterLogHydrationBridge(store, verify);
+    const context = { authenticatedUserId: PROFESSIONAL_ID, requestedClientId: CLIENT_ID };
+    await bridge.listEvents(context);
+    await expect(bridge.listEvents(context)).rejects.toMatchObject({ code: "ACCESS_DENIED" });
+    await expect(bridge.listEvents(context)).rejects.toMatchObject({ code: "ACCESS_DENIED" });
+    expect(store.queries).toHaveLength(1);
+  });
+
+  it("fingerprints creation-time and beverage corrections without changing the event identity", () => {
+    const row = waterRow("correction");
+    const original = mapLegacyWaterLogToHydrationEvent(row);
+    for (const patch of [{ beverageClass: "coffee" }, { createdAt: new Date("2026-08-21T19:00:00Z") }]) {
+      const corrected = mapLegacyWaterLogToHydrationEvent({ ...row, ...patch });
+      expect(corrected.id).toBe(original.id);
+      expect(corrected.payloadHash).not.toBe(original.payloadHash);
+    }
   });
 });
