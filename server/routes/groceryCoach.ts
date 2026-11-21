@@ -680,9 +680,11 @@ router.post("/product-advisor", async (req, res) => {
       return res.status(400).json({ error: "ingredients array is required" });
     }
 
-    // Only the Find a Product tab in Development uses catalog discovery.
-    // Smart Cart, Replace, Product Scan, and Production retain their paths.
-    if (process.env.NODE_ENV === "development" && req.body.mode === "find_product") {
+    // Shopping Product Options is released in every runtime. The unrelated
+    // generic Find a Product tab keeps its existing Development-only behavior.
+    // Original ingredient validation and all evidence checks remain mandatory.
+    if (req.body.mode === "find_product" &&
+        (process.env.NODE_ENV === "development" || req.body.shoppingIngredient !== undefined)) {
       if (ingredients.length !== 1 || typeof ingredients[0] !== "string" ||
           !ingredients[0].trim() || ingredients[0].trim().length > 80) {
         return res.status(400).json({ error: "Enter one product category (up to 80 characters)." });

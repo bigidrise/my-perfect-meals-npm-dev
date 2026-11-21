@@ -4,6 +4,7 @@ jest.mock("../middleware/requireAuth", () => ({
 }));
 jest.mock("../utils/getAuthUserId", () => ({ getAuthUserId: (req: any) => req.fixtureUser }));
 jest.mock("../services/shopping-list/metadataPersistence", () => ({
+  ...jest.requireActual("../services/shopping-list/metadataPersistence"),
   shoppingMetadataDevelopment: () => false,
   developmentShoppingPost: () => { throw new Error("Development persistence must remain off"); },
   metadataInputFailure: (error: any, res: any) => {

@@ -1,12 +1,8 @@
 /**
- * Explicit release gate for structured shopping product selections.
- *
- * Development remains enabled.
- * Production requires an independently approved server-side flag.
- *
+ * Released structured shopping product selections are available in all runtimes.
+ * Legacy opt-in configuration must not disable the matching persistence API.
  * This does not enable unrelated Development shopping-list behavior.
  */
 export function shoppingProductOptionsServerEnabled(): boolean {
-  return process.env.NODE_ENV === "development" ||
-    process.env.SHOPPING_PRODUCT_OPTIONS_ENABLED === "true";
+  return true;
 }

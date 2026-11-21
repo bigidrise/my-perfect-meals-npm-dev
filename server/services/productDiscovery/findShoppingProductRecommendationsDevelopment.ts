@@ -16,9 +16,8 @@ export async function findShoppingProductRecommendationsDevelopment(
     discoveryOptions?: Pick<NonNullable<Parameters<typeof findProductDevelopment>[2]>, "sources" | "adapter" | "fallbackAdapter">;
   } = {},
 ) {
-  if (process.env.NODE_ENV !== "development" && process.env.NODE_ENV !== "test") {
-    throw new Error("Shopping recommendation integration is Development-only.");
-  }
+  // Released Shopping Product Options uses this same governed pipeline in every
+  // runtime. The historical function name does not imply a release restriction.
   const ingredient = canonicalShoppingIngredient(input);
   const started = performance.now();
   const recommend = options.recommend ?? (async (name, owner) =>

@@ -432,13 +432,29 @@ test("an oversized recommended name stays review-only without truncation or an e
   expect(f.adapter.search).not.toHaveBeenCalled();
 });
 
-test("Production refuses the integration before recommendation generation", async () => {
+test("Production runs the same governed Shopping recommendations without opt-in flags", async () => {
   const previous = process.env.NODE_ENV;
   const f = fixture();
   process.env.NODE_ENV = "production";
   try {
-    await expect(f.run()).rejects.toThrow("Development-only");
-    expect(f.recommend).not.toHaveBeenCalled();
+    const result = await f.run();
+    expect(f.recommend).toHaveBeenCalledTimes(1);
+    expect(result.catalogMatches).toHaveLength(3);
+    expect(result.recommendationChecks).toHaveLength(3);
+    // Existing verification determines selection status, not the environment.
+    for (const match of result.catalogMatches) {
+      expect(match.shoppingSelection).toBeDefined();
+    }
+  } finally { process.env.NODE_ENV = previous; }
+});
+
+test("Production still refuses unrelated generic Development catalog discovery", async () => {
+  const previous = process.env.NODE_ENV;
+  process.env.NODE_ENV = "production";
+  try {
+    await expect(findProductDevelopment(owner, "olive oil")).rejects.toThrow(
+      "Development product discovery is not available in Production",
+    );
   } finally { process.env.NODE_ENV = previous; }
 });
 
