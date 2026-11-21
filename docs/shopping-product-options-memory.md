@@ -7,6 +7,7 @@
 - Closing the picker or changing its account/profile/ingredient identity invalidates pending responses. A new identity cannot silently launch another lookup while the previous modal closes.
 - The by-name provider request now receives its abort signal and has one bounded 20-second attempt. Errors are classified as provider unavailable, invalid response or unsupported medical claim without logging request/response contents.
 - Shopping falls back from failed or empty personalized explanations to the existing governed catalog discovery, not to invented products or relaxed validation. Remembered names can seed this search; catalog identity, current subject authority and existing selection/reference checks still apply.
+- Shopping catalog fallback uses the same recommendation-card renderer as Product Scan. It does not expose raw ingredient/nutrient/source/serving records. Existing explanations retain the shared green pills; missing explanations do not generate invented benefits or store availability. Label-review reasons remain visible and review-only cards remain non-selectable.
 
 ## Persistence and preference authority
 

@@ -247,6 +247,7 @@ export function BetterAlternativesSection({
   showEvidenceNote = true,
   renderAction,
   badgeLabel,
+  cardTestId,
 }: {
   alternatives: BetterAlternative[];
   branded?: boolean;
@@ -261,6 +262,8 @@ export function BetterAlternativesSection({
   renderAction?: (alternative: BetterAlternative, index: number) => ReactNode;
   /** Adapter-specific neutral heading; default Coach presentation stays unchanged. */
   badgeLabel?: string;
+  /** Stable identities for context-specific catalog cards; no change to scan actions. */
+  cardTestId?: (alternative: BetterAlternative, index: number) => string;
 }) {
   const { t } = useTranslation();
   const [addedIndex, setAddedIndex] = useState<number | null>(null);
@@ -289,7 +292,7 @@ export function BetterAlternativesSection({
       </div>
       <div className="space-y-2.5">
         {alternatives.map((alt, i) => (
-          <div key={recommendationProductKey(recommendationIdentity(alt))} className="rounded-xl border border-orange-500/25 bg-orange-500/8 p-3.5">
+          <article key={cardTestId?.(alt, i) ?? recommendationProductKey(recommendationIdentity(alt))} data-testid={cardTestId?.(alt, i)} className="rounded-xl border border-orange-500/25 bg-orange-500/8 p-3.5">
             <div className="flex items-start justify-between gap-2 mb-2">
               <p className="text-sm font-semibold text-white flex-1">{groceryProductLabel(recommendationIdentity(alt))}</p>
               {!renderAction && onAddToList && (
@@ -312,7 +315,7 @@ export function BetterAlternativesSection({
             {renderAction
               ? renderAction(alt, i)
               : <RecommendedProductActions alternative={alt} query={query} educationalFooter={educationalFooter} source={source} subjectKind={subjectKind} />}
-          </div>
+          </article>
         ))}
       </div>
       {showEvidenceNote && <p className="text-[10px] text-white/20 mt-2 pl-1">

@@ -864,3 +864,49 @@ test("review-only display cannot acquire a button even when the underlying paylo
   expect(screen.getByText(/verification is incomplete/)).toBeInTheDocument();
   expect(onCommit).not.toHaveBeenCalled();
 });
+
+test("catalog fallback reuses Product Scan cards without exposing raw catalog facts or inventing benefits", async () => {
+  (post as jest.Mock).mockResolvedValue({
+    catalogMatches: [{
+      ...review,
+      ingredients: "RAW INGREDIENT RECORD",
+      serving: "1/4 second spray",
+      nutrition: [{ source: "OFF", statement: "fat: 93.333333333333 g per 100g (OFF record)" }],
+      allergenInformation: [{ source: "OFF", statement: "RAW ALLERGEN RECORD" }],
+    }, supported],
+  });
+  const { onCommit } = renderPicker({ open: true });
+  const fallbackCard = await screen.findByTestId("catalog-choice-milk-review");
+  const scan = render(<BetterAlternativesSection
+    alternatives={[{ category: "Scanner comparison product", whyBetter: [], targetCriteria: "" }]}
+    branded query="plain milk" educationalFooter="" renderAction={() => null}
+  />);
+  expect(fallbackCard.className).toBe(scan.container.querySelector("article")!.className);
+  expect(within(fallbackCard).getByText("Other Unverified Milk")).toBeInTheDocument();
+  expect(within(fallbackCard).getByText(review.shoppingCaution)).toBeInTheDocument();
+  expect(within(fallbackCard).queryByRole("button")).not.toBeInTheDocument();
+  expect(within(fallbackCard).queryByText("✓")).not.toBeInTheDocument();
+  expect(screen.queryByText(/RAW INGREDIENT|RAW ALLERGEN|OFF record|Catalog serving|second spray/)).not.toBeInTheDocument();
+  expect(within(fallbackCard).queryByText(/profile.matched|Selectable/i)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Choose this option" }));
+  await waitFor(() => expect(onCommit).toHaveBeenCalledWith(selection));
+  expect(post).toHaveBeenCalledTimes(1);
+});
+
+test("catalog fallback preserves supplied recommendation reasons in Product Scan's green pills", async () => {
+  (post as jest.Mock).mockResolvedValue({
+    catalogMatches: [{
+      ...supported,
+      recommendationExplanation: {
+        whyBetter: ["Existing supported recommendation reason"],
+        targetCriteria: "Existing availability guidance",
+      },
+    }],
+  });
+  renderPicker({ open: true });
+  const card = await screen.findByTestId("catalog-choice-milk-a");
+  const reason = within(card).getByText("Existing supported recommendation reason");
+  expect(reason.closest("span.inline-flex")).toHaveClass("text-emerald-300", "rounded-full");
+  expect(within(card).getByText(/Existing availability guidance/)).toBeInTheDocument();
+  expect(within(card).queryByText(/Ingredients:|Catalog serving:/)).not.toBeInTheDocument();
+});
