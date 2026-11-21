@@ -1,6 +1,7 @@
 import { catalogProductLabel } from "@/lib/groceryCoachPackagedIngredients";
 import type { CatalogProductMatch } from "./GroceryStoreCoachSheet";
 import { BetterAlternativesSection } from "@/components/biometrics/IngredientIntelligenceSheet";
+import type { ReactNode } from "react";
 
 interface Props {
   products: CatalogProductMatch[];
@@ -9,10 +10,11 @@ interface Props {
   shoppingOnly?: boolean;
   compactShopping?: boolean;
   disabled?: boolean;
+  renderAdditionalActions?: (product: CatalogProductMatch) => ReactNode;
 }
 
 /** Shared catalog cards; compact Smart Grocery distinguishes view-only leads from selections. */
-export default function ProductCatalogChoices({ products, selectedLabel, onSelect, shoppingOnly = false, compactShopping = false, disabled = false }: Props) {
+export default function ProductCatalogChoices({ products, selectedLabel, onSelect, shoppingOnly = false, compactShopping = false, disabled = false, renderAdditionalActions }: Props) {
   const visible = compactShopping
     ? products.filter(product => {
       const display = product.shoppingDisplay;
@@ -54,6 +56,7 @@ export default function ProductCatalogChoices({ products, selectedLabel, onSelec
             onClick={() => onSelect(product)}>
             {selectedLabel === catalogProductLabel(product) ? "Selected for shopping" : "Choose this option"}
           </button>}
+          {renderAdditionalActions?.(product)}
         </div>;
       }}
     />;

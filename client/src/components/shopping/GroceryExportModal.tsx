@@ -14,7 +14,10 @@ import {
   GROCERY_RETAILERS,
   GroceryRetailerId,
   normalizeForRetailerSearch,
+  retailerSearchName,
 } from "@/lib/groceryRetailers";
+import { shoppingRetailerIdentity } from "@/lib/shoppingRetailerIdentity";
+import { shoppingProductActionsDevelopmentEnabled } from "@/lib/shoppingProductActionsGate";
 import type { ShoppingListItem } from "@/stores/shoppingListStore";
 import { buildConsolidatedItems } from "@/lib/shoppingConsolidation";
 import { getRetailQuantity } from "@/lib/retailIntelligence";
@@ -133,9 +136,12 @@ export default function GroceryExportModal({
             </div>
           ) : (
             consolidated.map((item) => {
-              const url = activeRetailer.buildItemUrl(item.name);
+              const selected = shoppingProductActionsDevelopmentEnabled ? item.ingredientMetadata?.selectedProduct : undefined;
+              const productName = selected ? shoppingRetailerIdentity(selected) : item.name;
+              const searchOptions = selected ? { preserveProductIdentity: true } : undefined;
+              const url = activeRetailer.buildItemUrl(productName, searchOptions);
               const wasOpened = opened.has(item.id);
-              const searchName = normalizeForRetailerSearch(item.name);
+              const searchName = selected ? retailerSearchName(productName, searchOptions) : normalizeForRetailerSearch(item.name);
 
               // Retail quantity: human shopping language (e.g. "1 lb", "1 bag")
               const qty = getRetailQuantity(item);
@@ -173,13 +179,19 @@ export default function GroceryExportModal({
                         wasOpened ? "text-white/50" : "text-white"
                       }`}
                     >
-                      {item.name}
+                      {productName}
                     </div>
-                    {searchName !== item.name.toLowerCase().trim() && (
+                    {!selected && searchName !== item.name.toLowerCase().trim() && (
                       <div className="text-white/35 text-[10px] mt-0.5 truncate">
                         searching: &ldquo;{searchName}&rdquo;
                       </div>
                     )}
+                    {selected?.selectionKind === "unverified_shopping_reference" && <div className="mt-1 text-xs text-amber-200">
+                      {t("Shopping reference — Unverified")}
+                      <ul className="list-disc pl-4">
+                        {selected.assessment.unresolvedRequirements.map((warning, index) => <li key={index}>{warning}</li>)}
+                      </ul>
+                    </div>}
                     {qty && (
                       <div className="text-orange-400/70 text-xs mt-0.5 font-medium">
                         {qty}

@@ -6,6 +6,9 @@ import { biometricsClinicalSpanish } from "./biometricsClinicalCopy";
 
 /** Ordinary display copy only. Never translate saved records, unknown API errors or safety evidence here. */
 export const consumerFeatureSpanish: Record<string, string> = {
+  "Save Product": "Guardar producto",
+  "Choose Product": "Elegir producto",
+  "Confirm shopping reference": "Confirmar referencia de compra",
   "Finding your product options…": "Buscando tus opciones de productos…",
   "Loading product options": "Cargando opciones de productos",
   "Finding personalized options and checking existing catalog evidence…": "Buscando opciones personalizadas y revisando la información disponible del catálogo…",

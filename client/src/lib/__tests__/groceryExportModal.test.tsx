@@ -7,6 +7,7 @@ import path from "node:path";
 import postcss from "postcss";
 import GroceryExportModal from "@/components/shopping/GroceryExportModal";
 import { GROCERY_RETAILERS } from "@/lib/groceryRetailers";
+import * as actionsGate from "@/lib/shoppingProductActionsGate";
 import type { ShoppingListItem } from "@/stores/shoppingListStore";
 
 jest.mock("@/components/shopping/GroceryExportModal.css", () => ({}));
@@ -23,6 +24,50 @@ const items: ShoppingListItem[] = Array.from({ length: 24 }, (_, i) => ({
 }));
 
 afterEach(cleanup);
+
+test.each(["eligible_at_evaluation", "review_required"])(
+  "explicit %s product identity reaches every retailer without changing recipe amounts",
+  status => {
+    const chosen: any = {
+      ...items[0], id: "chosen-oil", name: "olive oil", quantity: 2, unit: "tbsp",
+      ingredientMetadata: { version: 1, ingredient: { originalName: "olive oil", requirements: [] }, sources: [],
+        selectedProduct: {
+          productKey: "offline-oil", name: "Extra Virgin Olive Oil", brand: "Kirkland Signature",
+          variant: "Organic Cold Pressed", selectionKind: status === "review_required" ? "unverified_shopping_reference" : undefined,
+          assessment: { status, unresolvedRequirements: status === "review_required" ? ["Label review remains required"] : [] },
+        } },
+    };
+    const before = JSON.stringify(chosen);
+    render(<GroceryExportModal items={[chosen, { ...items[1], name: "fresh chopped onion" }]} onClose={jest.fn()} />);
+    for (const retailer of GROCERY_RETAILERS) {
+      fireEvent.click(screen.getByRole("button", { name: retailer.name }));
+      const link = screen.getByRole("link", { name: /Kirkland Signature Extra Virgin Olive Oil Organic Cold Pressed/ });
+      expect(link).toHaveAttribute("href", retailer.buildItemUrl("Kirkland Signature Extra Virgin Olive Oil Organic Cold Pressed", { preserveProductIdentity: true }));
+      const decodedQuery = [...new URL(link.getAttribute("href")!).searchParams.values()].join(" ");
+      expect(decodedQuery).toContain("Kirkland Signature Extra Virgin Olive Oil Organic Cold Pressed");
+      expect(screen.getByRole("link", { name: /fresh chopped onion/ })).toHaveAttribute("href", retailer.buildItemUrl("fresh chopped onion"));
+    }
+    if (status === "review_required") expect(screen.getByText("Label review remains required")).toBeInTheDocument();
+    expect(JSON.stringify(chosen)).toBe(before);
+  },
+);
+
+test("generic cleanup still strips preparation and store-brand prefixes exactly as before", () => {
+  expect(GROCERY_RETAILERS[0].buildItemUrl("Kirkland Signature fresh chopped onion"))
+    .toBe("https://www.walmart.com/search?q=onion");
+});
+
+test("Production preserves the original retailer query behavior", () => {
+  (actionsGate as any).shoppingProductActionsDevelopmentEnabled = false;
+  try {
+    const chosen: any = { ...items[0], name: "fresh chopped onion", ingredientMetadata: {
+      selectedProduct: { name: "Do not activate", brand: "Synthetic" },
+    } };
+    render(<GroceryExportModal items={[chosen]} onClose={jest.fn()} />);
+    expect(screen.getByRole("link")).toHaveAttribute("href", GROCERY_RETAILERS[0].buildItemUrl(chosen.name));
+    expect(screen.queryByText("Synthetic Do not activate")).not.toBeInTheDocument();
+  } finally { (actionsGate as any).shoppingProductActionsDevelopmentEnabled = true; }
+});
 
 test("all grocery rows remain present with unchanged names, quantities and retailer links", () => {
   const before = JSON.stringify(items);

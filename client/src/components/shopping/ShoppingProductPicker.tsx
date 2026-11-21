@@ -10,6 +10,9 @@ import { BetterAlternativesSection } from "@/components/biometrics/IngredientInt
 import type { CatalogProductMatch } from "./GroceryStoreCoachSheet";
 import ProductCatalogChoices from "./ProductCatalogChoices";
 import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import RecommendedProductActions from "./RecommendedProductActions";
+import ShoppingReferenceAction, { existingCatalogReference } from "./ShoppingReferenceAction";
+import { shoppingProductActionsDevelopmentEnabled } from "@/lib/shoppingProductActionsGate";
 
 interface Props {
   open: boolean;
@@ -356,6 +359,16 @@ export default function ShoppingProductPicker({
               ? check.reason
               : "A matching exact-product selection could not be verified for this ingredient."}
         </p>}
+        {shoppingProductActionsDevelopmentEnabled && <RecommendedProductActions
+          alternative={alternative}
+          query={ingredient.originalName}
+          educationalFooter={recommendationContext?.educationalFooter ?? ""}
+          source="grocery-coach"
+          label={t("Save Product")}
+          contextKey={identity}
+          disabled={saving}
+          catalogProduct={match?.recommendationIdentityVerified === true ? match : undefined}
+        />}
       </div>
     );
   }
@@ -411,6 +424,20 @@ export default function ShoppingProductPicker({
             products={matches}
             compactShopping
             disabled={saving}
+            renderAdditionalActions={shoppingProductActionsDevelopmentEnabled ? product => {
+              const reference = !catalogUnavailable && onCommitReference ? existingCatalogReference(product, ingredient) : null;
+              return <>
+                {reference && <ShoppingReferenceAction key={`${identity}:${product.productKey}`} reference={reference}
+                  disabled={saving} onConfirm={commitReference} />}
+                <RecommendedProductActions
+                  alternative={{ category: product.name, productName: product.name, brand: product.brand,
+                    whyBetter: product.recommendationExplanation?.whyBetter ?? [],
+                    targetCriteria: product.recommendationExplanation?.targetCriteria ?? "" }}
+                  query={ingredient.originalName} educationalFooter={product.shoppingCaution || product.verificationMessage || ""}
+                  source="grocery-coach" catalogProduct={product} label={t("Save Product")} contextKey={identity} disabled={saving}
+                />
+              </>;
+            } : undefined}
             onSelect={(product) => {
               if (product.shoppingDisplay === "label_review") return;
               const selection = product.shoppingSelection?.selection;
