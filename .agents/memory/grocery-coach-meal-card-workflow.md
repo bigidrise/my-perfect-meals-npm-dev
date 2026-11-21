@@ -17,6 +17,14 @@ Build a Meal and Find a Product share sourced catalog discovery, but ordinary in
 
 **How to apply:** Preserve the original ingredient amount, unit, servings, and meal/card workflow. Display evidence and unresolved review needs with each choice, keep lookup errors local, and retain exact product identity and review qualifications when carrying a choice into shopping.
 
+## Shopping options presentation
+
+Shopping product options must look like Product Scan's compact recommendation output, not a catalog dump of ingredients, carbohydrate/fat figures, source statements or catalog serving sizes. Preserve that presentation during loading, retry and remembered-choice work.
+
+**Why:** The founder explicitly corrected a regression that exposed raw catalog cards instead of the existing Product Scan-style product options.
+
+**How to apply:** Reuse the existing Product Scan recommendation presentation across Shopping result paths. Keep evidence checks authoritative behind the presentation, and communicate necessary review warnings without treating missing evidence as approval or inventing recommendation benefits.
+
 ## Smart Grocery List foundation approval boundary
 
 The user approved Development-only shopping-list foundation work: preserve original ingredient qualifications and recipe quantities, persist optional structured product choices, and prevent incompatible qualifiers or different selected products from merging. Preserve generic shopping behavior and account isolation.
