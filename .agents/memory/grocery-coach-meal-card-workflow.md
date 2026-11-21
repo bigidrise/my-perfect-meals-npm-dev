@@ -25,6 +25,14 @@ Shopping product options must look like Product Scan's compact recommendation ou
 
 **How to apply:** Reuse the existing Product Scan recommendation presentation across Shopping result paths. Keep evidence checks authoritative behind the presentation, and communicate necessary review warnings without treating missing evidence as approval or inventing recommendation benefits.
 
+## Shopping product actions
+
+Shopping product options need two distinct explicit actions: save the product to the Saved Groceries library reached from the top of the Shopping List, and choose the product to populate the current generic shopping ingredient with the person's product choice.
+
+**Why:** The founder clarified that showing three product names without either action does not deliver the planned shopping workflow.
+
+**How to apply:** Diagnose and verify library bookmarking separately from shopping-row selection. Shared card appearance alone is not proof that either action is connected; preserve the established evidence and review distinctions.
+
 ## Smart Grocery List foundation approval boundary
 
 The user approved Development-only shopping-list foundation work: preserve original ingredient qualifications and recipe quantities, persist optional structured product choices, and prevent incompatible qualifiers or different selected products from merging. Preserve generic shopping behavior and account isolation.
