@@ -1629,3 +1629,17 @@ mtime_ms = 1795143042245
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/6063837e-b6ca-4cc2-abef-a0a43c08c85e/9329c04a-468d-455b-9da2-072e1d413540"
 storage_version_token = "1795143422257063"
 content_type = "image/png"
+
+[[outputs]]
+id = "Kcm2-cD1wQL2mgOs6rVDp"
+uri = "file://docs/dessert-three-choice-production-readiness.md"
+type = "text"
+title = "Dessert Creator Production readiness report"
+description = "Verified results, six exact clinical blockers, preserved Production fixes, and the approval-gated deployment procedure."
+logical_id = "2233e1ae-ac5a-4657-bfd3-59f73ef85ef7"
+content_hash = "sha256:f355b523b4466e1d75030e6892bc1ec692c0b5303dd06f91613df8ec5ec65578"
+size = 10306
+mtime_ms = 1795234987813
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:5b503fbf-1926-4592-8a37-99d9960f359a/2233e1ae-ac5a-4657-bfd3-59f73ef85ef7/fa70ccc1-f225-46c8-8d81-ef937343ad92"
+storage_version_token = "1795235002885165"
+content_type = "text/markdown"
