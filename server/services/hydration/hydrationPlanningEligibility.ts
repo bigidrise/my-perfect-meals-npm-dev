@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
+import { z } from "zod";
 import {
+  hydrationDateSchema,
   hydrationCanonicalIntakeSnapshotSchema,
   hydrationPlanningEligibilityInputSchema,
   hydrationPlanningEligibilityResultSchema,
@@ -10,6 +12,7 @@ import {
   assertHydrationModifierMatchesRegistry,
 } from "@shared/hydration/modifierRegistry";
 import {
+  HYDRATION_EVENT_SOURCES,
   HYDRATION_PLANNING_ELIGIBILITY_VERSION,
   type HydrationCanonicalIntakeSnapshot,
   type HydrationIntakeEvent,
@@ -33,6 +36,27 @@ type SnapshotEvent = Pick<
   | "occurredAt"
   | "enteredAt"
 >;
+
+const evidenceString = z.string().trim().min(1).max(200);
+const evidenceTimezone = evidenceString.refine((value) => {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}, "Invalid Hydration evidence timezone");
+const snapshotEventSchema = z.object({
+  id: evidenceString,
+  subjectUserId: evidenceString,
+  localDate: hydrationDateSchema,
+  occurredTimezone: evidenceTimezone,
+  source: z.enum(HYDRATION_EVENT_SOURCES),
+  sourceEventId: evidenceString.optional(),
+  payloadHash: z.string().trim().min(1).max(256),
+  occurredAt: z.string().datetime({ offset: true }),
+  enteredAt: z.string().datetime({ offset: true }),
+});
 
 export type CreateHydrationCanonicalIntakeSnapshotInput = Readonly<{
   subjectUserId: string;
@@ -95,7 +119,42 @@ export function createHydrationCanonicalIntakeSnapshot(
       "Canonical Hydration intake snapshot contains a cross-subject event",
     );
   }
-  const records = [...input.events]
+  const recordsById = new Map<string, z.output<typeof snapshotEventSchema>>();
+  const sourceIdentities = new Set<string>();
+  try {
+    if (input.events.length > 10_000) throw new Error("Canonical Hydration snapshot exceeds the event limit");
+    evidenceTimezone.parse(input.timezone);
+    hydrationDateSchema.parse(input.localDate);
+    for (const event of input.events) {
+      const record = snapshotEventSchema.parse(event);
+      const dateParts = new Intl.DateTimeFormat("en-US", {
+        timeZone: input.timezone, year: "numeric", month: "2-digit", day: "2-digit",
+      }).formatToParts(new Date(record.occurredAt));
+      const parts = Object.fromEntries(dateParts.map((part) => [part.type, part.value]));
+      if (`${parts.year}-${parts.month}-${parts.day}` !== input.localDate) {
+        throw new Error("Canonical Hydration event is outside the requested local day");
+      }
+      const prior = recordsById.get(record.id);
+      if (prior) {
+        if (hashCanonical(prior) !== hashCanonical(record)) {
+          throw new Error("Conflicting canonical Hydration event identity");
+        }
+        continue;
+      }
+      const sourceIdentity = JSON.stringify([record.source, record.sourceEventId ?? record.id]);
+      if (sourceIdentities.has(sourceIdentity)) {
+        throw new Error("Duplicate canonical Hydration source identity");
+      }
+      sourceIdentities.add(sourceIdentity);
+      recordsById.set(record.id, record);
+    }
+  } catch (error) {
+    throw new HydrationPlanningEligibilityError(
+      "INVALID_INPUT",
+      error instanceof Error ? error.message : "Invalid canonical Hydration evidence",
+    );
+  }
+  const records = [...recordsById.values()]
     .map((event) => ({
       id: event.id,
       subjectUserId: event.subjectUserId,
@@ -341,6 +400,9 @@ function intakeReasons(
       ),
     );
   }
+  if (!evidenceTimezone.safeParse(input.timezone).success) {
+    reasons.push(createReason("INTAKE_SNAPSHOT_INVALID", "review", "intake", eventIds, sourceRecordIds));
+  }
   if (!input.dataQuality.provenanceComplete) {
     reasons.push(
       createReason(
@@ -390,14 +452,20 @@ function registryReasons(
     const inputId =
       rawModifier &&
       typeof rawModifier === "object" &&
-      typeof (rawModifier as { id?: unknown }).id === "string"
-        ? [(rawModifier as { id: string }).id]
+      evidenceString.safeParse((rawModifier as { id?: unknown }).id).success
+        ? [(rawModifier as { id: string }).id.trim()]
         : [];
     try {
       const modifier = hydrationModifierInputSchema.parse(
         rawModifier,
       ) as HydrationModifierInput;
       assertHydrationModifierMatchesRegistry(modifier);
+      if (modifier.status !== "active") {
+        reasons.push(createReason(
+          "REGISTRY_CLAIM_INACTIVE", "review", "registry", [modifier.id],
+          [`${modifier.source}:${modifier.sourceId}`], [modifier.status!],
+        ));
+      }
     } catch {
       reasons.push(
         createReason(
@@ -428,9 +496,9 @@ export function evaluateHydrationPlanningEligibility(
       (modifier): modifier is { id: string } =>
         Boolean(modifier) &&
         typeof modifier === "object" &&
-        typeof (modifier as { id?: unknown }).id === "string",
+        evidenceString.safeParse((modifier as { id?: unknown }).id).success,
     )
-    .map((modifier) => modifier.id);
+    .map((modifier) => modifier.id.trim());
   let resolution: HydrationResolvedPolicyState | undefined;
 
   try {
@@ -462,7 +530,13 @@ export function evaluateHydrationPlanningEligibility(
     );
   }
 
-  const resolverSourceIds = resolution?.provenance.sourceIds ?? [];
+  const suppliedSourceIds = parsed.modifiers.flatMap((raw) => {
+    const claim = hydrationModifierInputSchema.safeParse(raw);
+    return claim.success ? [`${claim.data.source}:${claim.data.sourceId}`] : [];
+  });
+  const resolverSourceIds = sortedUnique([
+    ...(resolution?.provenance.sourceIds ?? []), ...suppliedSourceIds,
+  ]);
   if (resolution) {
     if (resolution.numericPlanAllowed !== false) {
       reasons.push(
@@ -565,12 +639,16 @@ export function evaluateHydrationPlanningEligibility(
     intakeSnapshotHash: intake.snapshotHash,
     resolverStatus: resolution?.status ?? "unavailable",
     ...(resolution ? { resolverSnapshotHash: resolution.inputSnapshotHash } : {}),
-    reasons,
+    reasons: [...new Map(reasons.map((reason) => [JSON.stringify(canonicalize(reason)), reason])).entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([, reason]) => reason),
     provenance: {
       intakeEventIds: sortedUnique(intake.eventIds),
       intakeEventFingerprints: sortedUnique(intake.eventFingerprints),
       intakeSourceRecordIds: sortedUnique(intake.sourceRecordIds),
-      resolverInputIds: sortedUnique(resolution?.provenance.inputIds ?? resolverInputIds),
+      resolverInputIds: sortedUnique([
+        ...(resolution?.provenance.inputIds ?? []), ...resolverInputIds,
+      ]),
       resolverSourceIds: sortedUnique(resolverSourceIds),
       policyVersions: {
         eligibility: HYDRATION_PLANNING_ELIGIBILITY_VERSION,
