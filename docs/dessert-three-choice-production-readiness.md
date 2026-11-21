@@ -2,6 +2,33 @@
 
 Reviewed 2026-11-21 UTC (2026-11-20 America/Chicago).
 
+## Final authorized workspace handoff
+
+This section supersedes the earlier isolated-candidate and unpushed-patch status
+below. The owner subsequently authorized final technical preparation and pulling
+the release into this Production workspace for preview, without merging GitHub
+Production or publishing.
+
+- Pushed the approved Vite 6.4.6 correction and exact esbuild 0.25.12 pin to
+  PR #481 in `21c275009`, with an explicit six-row missing-approval status in
+  the existing clinical review package.
+- Checked the package and current GitHub PR review/comment records: no qualified
+  exact-text approval was found for any of the six items. Reviewer identity,
+  qualifications, approval evidence and date remain not supplied for every item.
+- Pulled and merged that release branch into the local Production workspace
+  only, preserving the existing local application corrections and Shopping
+  Product Options. A pre-import backup branch was retained.
+- Existing passing regression, localization-guard and TypeScript evidence
+  remains applicable to the unchanged application source. The workspace is
+  rebuilt for preview after import; the full build passed and the unchanged
+  safe-preview workflow completed initialization. All 21 changed source/check
+  files matched the previously verified integration candidate byte-for-byte.
+  No repeated diagnostic cycle was run. The screenshot reached the startup/auth
+  boundary; the signed-in UI was not visually verified.
+- **BLOCKED for GitHub Production merge and publication:** items 1–6 in the
+  clinical approval package still require qualified exact-text decisions and
+  the required clinical release gate must pass. PR #481 remains draft.
+
 ## Decision
 
 **PR #481 is not merge-ready. Production is technically compatible with the
