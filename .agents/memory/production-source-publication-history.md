@@ -15,10 +15,16 @@ Do not promise that ignoring generated build metadata alone will prevent diverge
 
 **How to apply:** A permanent correction must both keep builds from changing tracked source and isolate publication/checkpoint history from the source-mirror branch. The publication arrangement remains a recommendation until tested and approved; do not assume that automatic platform checkpoints can be disabled.
 
-## Approved Development promotion
+## Owner-controlled release standard
 
-Approved Development changes are intended for Production unless explicitly held back. Once the requested corrections are complete and the required release checks pass, finish the authorized GitHub promotion without another approval cycle.
+Commit and push verified, approved, Production-intended Development work to reviewable GitHub feature or release branches. Obtain explicit owner approval before merging into GitHub Production, deploying, publishing, or enabling Production feature flags.
 
-**Why:** The founder explicitly restated this standing deployment policy when approving targeted corrections before a Production merge.
+**Why:** The owner explicitly established this standard on 2026-11-20, replacing the earlier automatic-promotion instruction: “Build in Development, verify it, push approved work to GitHub, and let me control when it goes live.”
 
-**How to apply:** Preserve any explicit release hold, fix only the requested new regressions, and complete the already-approved merge. GitHub promotion does not itself authorize Production-shell work or publishing.
+**How to apply:** Preserve local work before reconciliation. Exclude unfinished experiments, secrets, temporary files, backup files and generated release noise from new release changes. Do not force-push, bypass branch protection or modify the separate Production workspace.
+
+Production-intended features must have appropriate automated regression coverage, a verified Production build, documented configuration and a reviewable GitHub release path. Do not add unconditional Development-only restrictions to such features; staged availability needs an independently configurable Production flag with its purpose explained. Security, authentication, entitlements, clinical safeguards and account isolation remain enforced in every environment.
+
+**Why:** The owner rejected Development-only dead ends and silent loss of completed functionality during deployment.
+
+**How to apply:** Distinguish genuinely unintended Development dependencies from explicit owner-approved Development-only holds. Preserve those holds and unrelated experiments until separately authorized; do not enable broader experimental flags just to release a narrow feature.

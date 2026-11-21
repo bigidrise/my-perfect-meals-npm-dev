@@ -149,7 +149,7 @@ test("unusable incomplete evidence is hidden, not promoted into a useful review 
   const result = await findProductDevelopment(request.actorUserId, ingredient.originalName, {
     sources: sources(), adapter: adapter(record({ facts: [record().facts[0]] })), shoppingIngredient: ingredient,
   });
-  expect(result.catalogMatches[0]).toMatchObject({ shoppingDisplay: "hidden", shoppingSelection: { eligible: false } });
+  expect(result.catalogMatches).toEqual([]);
 });
 
 test("catalog outage remains explicit while the already-resolved guidance supplies a tip", async () => {
