@@ -18,7 +18,7 @@ jest.mock("@/components/shopping/RecommendedProductActions", () => ({
   default: jest.fn(() => <button>Coach Save recommendation</button>),
 }));
 jest.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (key: string) => key === "common.cancel" ? "Cancel" : key }),
+  useTranslation: () => ({ t: (key: string) => key === "common.cancel" ? "Cancel" : key === "common.tryAgain" ? "Try again" : key }),
 }));
 jest.mock("@/components/ui/universal-modal", () => ({
   PickerModal: ({ open, title, description, children, footer }: any) => open
@@ -577,11 +577,36 @@ test.each([0, 1, 2, 3])("renders %i sourced options without filling missing slot
   });
   (post as jest.Mock).mockResolvedValue({ catalogMatches, catalogSearchAvailable: true });
   const { onCommit } = renderPicker({ open: true });
-  expect(screen.getByRole("dialog", { name: "Here are your product options." })).toBeInTheDocument();
+  expect(screen.getByRole("dialog", { name: "Finding your product options…" })).toBeInTheDocument();
   await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
   expect(screen.queryAllByRole("article")).toHaveLength(count);
   expect(screen.queryAllByRole("button", { name: "Choose this option" })).toHaveLength(count);
   expect(post).toHaveBeenCalledTimes(1);
+  expect(onCommit).not.toHaveBeenCalled();
+});
+
+test("loading has structured shimmer placeholders and retry works without closing the modal", async () => {
+  (post as jest.Mock).mockRejectedValueOnce({ status: 503 })
+    .mockResolvedValueOnce({ catalogMatches: [supported], catalogSearchAvailable: true });
+  const { container, onCommit, onOpenChange } = renderPicker({ open: true });
+  expect(screen.getByRole("status", { name: "Loading product options" })).toBeInTheDocument();
+  expect(container.querySelectorAll(".shopping-options-skeleton")).toHaveLength(2);
+  await screen.findByRole("alert");
+  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  await screen.findByTestId("catalog-choice-milk-a");
+  expect(post).toHaveBeenCalledTimes(2);
+  expect(onCommit).not.toHaveBeenCalled();
+  expect(onOpenChange).not.toHaveBeenCalled();
+});
+
+test("new options are explicit and never commit or erase the existing choice", async () => {
+  (post as jest.Mock).mockResolvedValue({ catalogMatches: [supported], catalogSearchAvailable: true });
+  const { onCommit } = renderPicker({ open: true, currentSelection: selection });
+  await screen.findByTestId("catalog-choice-milk-a");
+  fireEvent.click(screen.getByRole("button", { name: "Find new options" }));
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
+  expect(post).toHaveBeenLastCalledWith("/api/grocery-coach/product-advisor",
+    expect.objectContaining({ findNewOptions: true, shoppingIngredient: ingredient }));
   expect(onCommit).not.toHaveBeenCalled();
 });
 
@@ -801,7 +826,7 @@ test("a catalog outage is not a successful no-match and retains its resolved-pro
 test.each([
   [409, "couldn't confirm your current requirements"],
   [403, "isn't available for this account"],
-  [503, "couldn’t check product choices"],
+  [503, "couldn’t load product options"],
 ])("lookup error %s preserves the list and does not invent profile-specific guidance", async (status, message) => {
   (post as jest.Mock).mockRejectedValue({ status });
   const { onCommit } = renderPicker({ open: true, currentSelection: selection });

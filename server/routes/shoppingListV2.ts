@@ -196,12 +196,29 @@ shoppingRouter.patch("/:id", requireAuth, async (req: any, res: any) => {
       }
     }
 
-    await db.update(shoppingListItems)
+    const writeItem = async (database: typeof db) => { await database.update(shoppingListItems)
       .set(updates)
       .where(and(
         eq(shoppingListItems.id, id),
         eq(shoppingListItems.userId, userId)
-      ));
+      )); };
+    const selected = updates.ingredientMetadata?.selectedProduct;
+    if (process.env.NODE_ENV === "development" && selected &&
+        JSON.stringify(selected) !== JSON.stringify(existing.ingredientMetadata?.selectedProduct)) {
+      // Persist only an explicit, already-validated selection, atomically with
+      // the item change. A mere lookup or quantity edit is never a preference.
+      const { groceryChoiceKey } = await import("../services/groceryChoiceMemory");
+      const { createGroceryChoiceMemoryStore } = await import("../services/groceryChoiceMemoryStore");
+      await db.transaction(async tx => {
+        await writeItem(tx as unknown as typeof db);
+        const original = updates.ingredientMetadata.ingredient;
+        const name = selected.brand && !selected.name.toLowerCase().startsWith(selected.brand.toLowerCase())
+          ? `${selected.brand} ${selected.name}` : selected.name;
+        await createGroceryChoiceMemoryStore(tx).prefer(userId, groceryChoiceKey(original.originalName, original), original.originalName, name);
+      });
+    } else {
+      await writeItem(db);
+    }
 
     const updated = await db.query.shoppingListItems.findFirst({
       where: (items, { eq }) => eq(items.id, id),

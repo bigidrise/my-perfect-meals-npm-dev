@@ -842,7 +842,9 @@ router.post('/ingredient-scan-by-name', requireAuth, requireActiveAccess, async 
     }
     const userId = getAuthUserId(req);
     const { analyzeProductByName } = await import('../services/ingredientScanService');
-    const result = await analyzeProductByName(productName.trim(), String(userId));
+    const result = req.body.findNewOptions === true
+      ? await analyzeProductByName(productName.trim(), String(userId), { findNewOptions: true })
+      : await analyzeProductByName(productName.trim(), String(userId));
     return res.json({ ok: true, result });
   } catch (error: any) {
     console.error('Ingredient by-name scan error:', error);

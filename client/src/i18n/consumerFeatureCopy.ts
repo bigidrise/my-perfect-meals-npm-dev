@@ -6,6 +6,12 @@ import { biometricsClinicalSpanish } from "./biometricsClinicalCopy";
 
 /** Ordinary display copy only. Never translate saved records, unknown API errors or safety evidence here. */
 export const consumerFeatureSpanish: Record<string, string> = {
+  "Finding your product options…": "Buscando tus opciones de productos…",
+  "Loading product options": "Cargando opciones de productos",
+  "Finding personalized options and checking existing catalog evidence…": "Buscando opciones personalizadas y revisando la información disponible del catálogo…",
+  "Find new options": "Buscar nuevas opciones",
+  "We couldn’t load product options. Your ingredient and saved choice are unchanged. Try again or keep it generic.": "No pudimos cargar las opciones de productos. Tu ingrediente y tu elección guardada no han cambiado. Vuelve a intentarlo o conserva el ingrediente genérico.",
+  "Your item was added, but your usual choice could not be remembered.": "Se añadió el artículo, pero no se pudo recordar tu elección habitual.",
   "Review product identity and label evidence": "Revisar la identidad del producto y la información de la etiqueta",
   "Catalog candidate only — not confirmed as the exact recommended variant.": "Solo es una opción del catálogo; no se ha confirmado que sea la variante exacta recomendada.",
   "Choose for My List": "Elegir para mi lista",

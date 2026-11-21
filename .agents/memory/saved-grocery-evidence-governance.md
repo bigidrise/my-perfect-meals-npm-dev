@@ -31,6 +31,12 @@ The founder wants the system to remember previously offered product choices and 
 
 **How to apply:** Keep shown-option history distinct from explicit preference. Preserve the usual choice unless the person chooses otherwise or current requirements make it unsuitable; never treat historical preference as permanent safety approval or imply current price knowledge.
 
+Remembered shopping choices retain product **names as intent**, not cached clinical verdicts or copied label evidence. Reassess current requirements and only rank candidates that the current assessment returned; never reinsert a historical favorite that the current assessment omitted.
+
+**Why:** Stable brand preferences must not turn an old recommendation into permanent medical clearance, and automatically shown choices must remain separate from explicit bookmarks.
+
+**How to apply:** Share intent across product-advice entry points, keep current evidence and selection decisions authoritative, and preserve the preferred name during explicit alternative searches.
+
 For Find a Product, distinguish **missing verified product evidence** from a temporarily unavailable clinical resolver. Missing label evidence is a non-retryable limitation of brand-only advice; do not label it as a 503 outage or leak a raw HTTP response to the user.
 
 **Why:** Repeating a brand-only lookup cannot establish complete ingredients for a protected profile, and describing the deliberate safety block as a server failure encourages futile retries.

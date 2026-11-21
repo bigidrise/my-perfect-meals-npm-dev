@@ -13,6 +13,14 @@
  *     GLP-1, macro, and labeled saved-favorites blocks.
  */
 
+jest.mock("../db", () => ({ db: {} }));
+jest.mock("../services/groceryCoachContext", () => ({
+  buildGroceryCoachContext: jest.fn(async () => { throw new Error("Use the injected offline context"); }),
+}));
+jest.mock("../utils/openaiSafe", () => ({
+  openai: { chat: { completions: { create: jest.fn(async () => { throw new Error("Live provider forbidden"); }) } } },
+}));
+
 import {
   ProductAdvisorEngine,
   ClinicalContextUnavailableError,

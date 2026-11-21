@@ -49,6 +49,8 @@ export default function ShoppingProductPicker({
   const [saving, setSaving] = useState(false);
   const [pendingReferenceCategory, setPendingReferenceCategory] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [lookupAttempt, setLookupAttempt] = useState(0);
+  const [findNewOptions, setFindNewOptions] = useState(false);
   const generation = useRef(0);
   const rowKey = `${ingredient.originalName}|${JSON.stringify(ingredient.requirements)}`;
   const identity = `${sessionKey}|${rowKey}`;
@@ -99,6 +101,7 @@ export default function ShoppingProductPicker({
     setPendingReferenceCategory(null);
     if (!open) {
       setLoading(false);
+      setFindNewOptions(false);
       return;
     }
     if (ingredient.originalName.trim().length > 80) {
@@ -116,6 +119,7 @@ export default function ShoppingProductPicker({
         mode: "find_product",
         ingredients: [ingredient.originalName],
         shoppingIngredient: ingredient,
+        ...(findNewOptions ? { findNewOptions: true } : {}),
       });
     }).then(data => {
       if (generation.current !== requestGeneration) return;
@@ -187,12 +191,21 @@ export default function ShoppingProductPicker({
         ? "We couldn't confirm your current requirements. Keep this ingredient generic or try again later."
         : status === 401 || status === 403
           ? "Product lookup isn't available for this account. Your ingredient and saved choice are unchanged."
-          : "We couldn’t check product choices just now. Your ingredient and saved choice are unchanged. You can keep it generic or close and try again.");
+          : t("We couldn’t load product options. Your ingredient and saved choice are unchanged. Try again or keep it generic."));
     }).finally(() => {
       if (generation.current === requestGeneration) setLoading(false);
     });
     return () => { generation.current += 1; };
-  }, [open]);
+  }, [open, lookupAttempt]);
+
+  function retryLookup(fresh = false) {
+    // Invalidate pending responses synchronously, before React runs the effect.
+    generation.current += 1;
+    setError("");
+    setLoading(true);
+    setFindNewOptions(fresh);
+    setLookupAttempt(attempt => attempt + 1);
+  }
 
   const closeWithoutSaving = (nextOpen: boolean) => {
     if (!nextOpen) {
@@ -351,7 +364,7 @@ export default function ShoppingProductPicker({
     <PickerModal
       open={open}
       onOpenChange={closeWithoutSaving}
-      title="Here are your product options."
+      title={loading ? t("Finding your product options…") : "Here are your product options."}
       description={`${ingredient.originalName} · Original amount: ${quantityLabel}. Your ingredient and recipe quantities stay the same.`}
       className="shopping-product-picker border border-orange-200/15 bg-[#211c18] text-white"
       footer={<div className="shopping-picker-footer flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-between">
@@ -366,8 +379,18 @@ export default function ShoppingProductPicker({
         <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
           <p className="text-sm text-white/75">These are shopping references, not medical approval. Check the package label before you buy.</p>
         </div>
-        {loading && <div role="status" aria-label="Loading catalog choices" className="space-y-3">{[0, 1].map(i => <div key={i} className="h-28 animate-pulse rounded-xl border border-white/10 bg-white/[0.06]" />)}<p className="text-xs text-white/55">Finding personalized options and checking existing catalog evidence…</p></div>}
-        {error && <p role="alert" className="rounded-lg border border-red-200/20 bg-red-300/10 p-3 text-sm text-red-100">{error}</p>}
+        {loading && <div role="status" aria-live="polite" aria-label={t("Loading product options")} className="space-y-3">
+          {[0, 1].map(i => <div key={i} aria-hidden="true" className="shopping-options-skeleton rounded-xl border border-white/10 bg-white/[0.06] p-4">
+            <div className="mb-3 h-4 w-2/3 rounded bg-white/15" />
+            <div className="mb-2 h-3 w-full rounded bg-white/10" />
+            <div className="h-3 w-4/5 rounded bg-white/10" />
+          </div>)}
+          <p className="text-sm text-white/80">{t("Finding personalized options and checking existing catalog evidence…")}</p>
+        </div>}
+        {error && <div className="space-y-3">
+          <p role="alert" className="rounded-lg border border-red-200/20 bg-red-300/10 p-3 text-sm text-red-100">{error}</p>
+          <Button type="button" disabled={loading || saving} onClick={() => retryLookup()} className="min-h-11 bg-orange-700 text-white hover:bg-orange-600">{t("Try again")}</Button>
+        </div>}
         {!loading && !error && recommendations !== null && <>
           {catalogUnavailable && <p role="status" className="rounded-lg border border-amber-200/15 bg-amber-100/[0.05] p-3 text-sm text-amber-50/80">{recommendationNotice}</p>}
           <BetterAlternativesSection
@@ -401,6 +424,7 @@ export default function ShoppingProductPicker({
           </>}
         </>}
         {!loading && (recommendations !== null || !hasSelectable) && <p className="rounded-lg border border-orange-200/10 bg-orange-100/[0.04] px-3 py-2 text-xs leading-relaxed text-orange-50/75">{shoppingTip || "Product labels can vary; check the current package before choosing."}</p>}
+        {!loading && !error && <Button type="button" variant="outline" disabled={saving} onClick={() => retryLookup(true)} className="min-h-11 border-white/20 bg-transparent text-white hover:bg-white/10">{t("Find new options")}</Button>}
         {saving && <p role="status" className="text-xs text-white/60">Saving your choice…</p>}
       </div>
     </PickerModal>

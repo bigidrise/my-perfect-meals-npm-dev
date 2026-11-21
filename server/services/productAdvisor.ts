@@ -17,6 +17,7 @@ import type { GroceryCoachContext } from "./groceryCoachContext";
 import { appendWholeFoodStandardPrompt, evaluateWholeFoodCandidate } from "./wholeFoodStandard";
 import { scanGeneratedOutput } from "./protocolEnvelope";
 import { requiresVerifiedIngredientEvidence } from "./foodCompositionEvidence";
+import { developmentGroceryChoiceStore, groceryChoiceKey, groceryMemoryPrompt, orderRememberedChoices } from "./groceryChoiceMemory";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -530,7 +531,11 @@ export class ProductAdvisorEngine {
       );
     }
 
-    const protocolContext = buildProtocolContextString(ctx);
+    const memoryStore = await developmentGroceryChoiceStore();
+    const memories = new Map(await Promise.all(ingredients.map(async ingredient =>
+      [ingredient, memoryStore ? await memoryStore.read(userId, groceryChoiceKey(ingredient), ingredient) : null] as const)));
+    const protocolContext = buildProtocolContextString(ctx) + ingredients.map(ingredient =>
+      `\nIngredient: ${JSON.stringify(ingredient)}${groceryMemoryPrompt(memories.get(ingredient) ?? null)}`).join("");
 
     const raw = await this.provider.getCartRecommendations(ingredients, protocolContext, store);
     const hasProviderCandidates = raw.advice.some((item) => item.recommended.length > 0);
@@ -559,11 +564,15 @@ export class ProductAdvisorEngine {
         acceptedCount += 1;
         return true;
       });
-      return { ...item, recommended };
+      return { ...item, recommended: orderRememberedChoices(recommended, pick => pick.brand, memories.get(item.ingredient) ?? null) };
     });
 
     if (candidateCount > 0 && acceptedCount === 0) {
       throw new WholeFoodRecommendationUnavailableError();
+    }
+    if (memoryStore) {
+      await Promise.all(advice.map(item => memoryStore.observe(userId, groceryChoiceKey(item.ingredient), item.ingredient,
+        item.recommended.map(pick => pick.brand))));
     }
     return { ...sanitized, advice };
   }

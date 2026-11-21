@@ -3,6 +3,9 @@ import { loadUserProtocolEnvelope, UserProtocolEnvelope } from './protocolEnvelo
 import { scanTextForHighRiskIngredients } from './ingredientIntelligence';
 import { requiresVerifiedIngredientEvidence } from './foodCompositionEvidence';
 import { assertSupportedProductMedicalClaims } from './productMedicalClaimPolicy';
+import { classifyProductLookupFailure, type ProductLookupFailure } from './productLookupFailure';
+import { developmentGroceryChoiceStore, groceryChoiceKey, groceryMemoryPrompt, orderRememberedChoices, type GroceryChoiceStore } from "./groceryChoiceMemory";
+import type { ShoppingIngredientRequest } from "../../shared/shoppingProductSelection";
 import {
   appendWholeFoodStandardPrompt,
   evaluateWholeFoodCandidate,
@@ -76,6 +79,7 @@ export interface IngredientScanResult {
   highRiskFindings: HighRiskFlag[];
   ocrConfidenceLow: boolean;
   fallbackUsed: boolean;
+  failureReason?: ProductLookupFailure;
   productName: string;
   isFrontLabel: boolean;
   productNameMissing: boolean;
@@ -692,6 +696,10 @@ ${knowledgeOnly ? `YOUR JOB: Given a product name or shopping-category request a
 
 These are suggestions for further consideration, not verified label scans or medical clearance. Never assert that an allergen or restricted ingredient is absent without reliable label evidence. For allergies, Alpha-Gal, pregnancy, or other medical restrictions, explain the exact label details needing verification and, where applicable, advise not consuming until confirmed. Do not suggest known conflicting products. Missing verification alone need not prevent qualified suggestions.` : "YOUR JOB: Given a specific branded product name and a user's health profile, deliver a sharp, specific, personalized verdict — exactly as a knowledgeable dietitian friend would if you asked them at the grocery store."}
 
+MEDICAL AUTHORITY: A condition name, medication, hormone therapy, or mechanistic
+theory is not itself evidence of a food prohibition. Do not invent restrictions,
+nutrient thresholds or hormone effects. Use only applicable supplied rules.
+
 ═══ EXPERTISE RULES — FOLLOW THESE EXACTLY ═══
 
 ${knowledgeOnly ? `1. DISTINGUISH KNOWLEDGE FROM VERIFIED FACTS.
@@ -1004,6 +1012,7 @@ Analyze how this product aligns with this specific user's health profile.`;
 export async function analyzeProductByName(
   productName: string,
   userId: string,
+  options: { findNewOptions?: boolean; ingredient?: ShoppingIngredientRequest; memoryStore?: GroceryChoiceStore | null } = {},
 ): Promise<IngredientScanResult> {
   const envelope = await loadUserProtocolEnvelope(userId);
   if (!envelope || envelope.userId === 'guest') {
@@ -1013,6 +1022,9 @@ export async function analyzeProductByName(
     ? buildCompactProtocolContext(envelope)
     : 'No specific dietary or medical constraints on file.';
   const analysisProfile: string[] = envelope ? buildAnalysisProfile(envelope) : [];
+  const memoryStore = options.memoryStore === undefined ? await developmentGroceryChoiceStore() : options.memoryStore;
+  const memoryKey = groceryChoiceKey(productName, options.ingredient);
+  const remembered = memoryStore ? await memoryStore.read(userId, memoryKey, productName) : null;
 
   const userMessage = `USER HEALTH PROFILE:
 ${protocolContext}
@@ -1028,9 +1040,11 @@ Assess this product or shopping-category request against this user's health prof
   try {
     const alignment = await chatJson({
       system: appendWholeFoodStandardPrompt(BY_NAME_SYSTEM_PROMPT(true), { recommendationSurface: "ingredient_name_scan" }),
-      user: userMessage,
+      user: userMessage + groceryMemoryPrompt(remembered, options.findNewOptions),
       model: 'gpt-4o',
       temperature: 0.3,
+      timeoutMs: 20000,
+      maxRetries: 0,
     });
     if (typeof alignment?.overallSummary !== 'string' || !alignment.overallSummary.trim()) {
       throw new Error('Product analysis was empty.');
@@ -1047,11 +1061,16 @@ Assess this product or shopping-category request against this user's health prof
       }));
 
     const rawAlts = Array.isArray(alignment.betterAlternatives) ? alignment.betterAlternatives : [];
-    const betterAlternatives: BetterAlternative[] = rawAlts.map((a: any) => ({
+    const betterAlternatives: BetterAlternative[] = orderRememberedChoices(rawAlts.filter((a: unknown) =>
+      a && typeof a === "object").map((a: any) => ({
       category: typeof a.category === 'string' ? a.category : '',
       whyBetter: Array.isArray(a.whyBetter) ? a.whyBetter.filter((w: any) => typeof w === 'string') : [],
       targetCriteria: typeof a.targetCriteria === 'string' ? a.targetCriteria : '',
-    })).filter((a: BetterAlternative) => a.category);
+    })).filter((a: BetterAlternative) => a.category).slice(0, 3), (a: BetterAlternative) => a.category, remembered, options.findNewOptions);
+
+    if (memoryStore && betterAlternatives.length) {
+      await memoryStore.observe(userId, memoryKey, productName, betterAlternatives.map(item => item.category));
+    }
 
     const wholeFoodDecision = evaluateWholeFoodCandidate({
       name: productName,
@@ -1107,7 +1126,9 @@ Assess this product or shopping-category request against this user's health prof
         : [],
       wholeFoodDecision,
     };
-  } catch {
+  } catch (error: unknown) {
+    const failureReason = classifyProductLookupFailure(error);
+    console.warn("[ProductLookup]", { stage: "by_name", reason: failureReason });
     return {
       ...LOW_CONFIDENCE_RESULT,
       overallSummary: 'We encountered an issue analyzing this product by name. Please try again or scan the ingredients panel.',
@@ -1115,6 +1136,7 @@ Assess this product or shopping-category request against this user's health prof
       productNameMissing: false,
       analysisMethod: 'by_name',
       fallbackUsed: true,
+      failureReason,
     };
   }
 }

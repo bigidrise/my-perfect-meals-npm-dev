@@ -13,7 +13,7 @@ import { makeIngredientMetadata } from "../../shared/shoppingIngredientMetadata"
 import { writeFileSync } from "node:fs";
 
 jest.mock("../services/ingredientScanService", () => ({
-  ...jest.requireActual("../services/ingredientScanService"),
+  buildAnalysisProfile: jest.fn(() => []),
   analyzeProductByName: jest.fn(),
 }));
 
@@ -185,7 +185,9 @@ test("the default Shopping path calls the existing Find a Product service with t
     discoveryOptions: { sources: f.sources, adapter: f.adapter },
   });
   expect(analyzeProductByName).toHaveBeenCalledTimes(1);
-  expect(analyzeProductByName).toHaveBeenCalledWith(ingredient.originalName, owner);
+  expect(analyzeProductByName).toHaveBeenCalledWith(ingredient.originalName, owner, {
+    ingredient, findNewOptions: undefined,
+  });
   expect(f.recommend).not.toHaveBeenCalled();
   expect(result.catalogMatches).toHaveLength(3);
   expect(result.catalogMatches.every(match => match.shoppingSelection?.eligible)).toBe(true);
@@ -374,19 +376,31 @@ test.each(["missing_facts", "unverified_identity"])(
   },
 );
 
-test("a failed recommendation stops before catalog requests rather than silently changing engines", async () => {
+test("a failed explanation uses governed catalog evidence without claiming a personalized recommendation", async () => {
   const f = fixture();
   f.recommend.mockResolvedValueOnce({ ...analysis(), fallbackUsed: true });
-  await expect(f.run()).rejects.toThrow("temporarily unavailable");
-  expect(f.adapter.search).not.toHaveBeenCalled();
+  const result = await f.run();
+  expect(f.adapter.search).toHaveBeenCalled();
+  expect(result).not.toHaveProperty("recommendations");
+  expect(result.recommendationNotice).toMatch(/explanations are temporarily unavailable/);
+  expect(result.catalogMatches.length).toBeGreaterThan(0);
+  expect(f.sources.resolveFoodContext).toHaveBeenCalledTimes(2);
 });
 
-test("empty or duplicate recommendations do not trigger excessive generic searches", async () => {
+test("catalog fallback still rejects known ingredient conflicts", async () => {
+  const f = fixture({ avoided: ["quinoa"], ingredients: "Olive oil, quinoa" });
+  f.recommend.mockResolvedValueOnce({ ...analysis(), fallbackUsed: true });
+  const result = await f.run();
+  expect(result.catalogMatches).toEqual([]);
+  expect(result).not.toHaveProperty("recommendations");
+});
+
+test("empty recommendations use bounded governed discovery while duplicate leads are deduplicated", async () => {
   const f = fixture();
   f.recommend.mockResolvedValueOnce(analysis([]));
   const result = await f.run();
-  expect(result.recommendationCount).toBe(0);
-  expect(f.adapter.search).not.toHaveBeenCalled();
+  expect(result).not.toHaveProperty("recommendations");
+  expect(f.adapter.search).toHaveBeenCalled();
   f.recommend.mockResolvedValueOnce(analysis(Array(10).fill(suggestion("Synthetic Alpha"))));
   const deduplicated = await f.run();
   expect(deduplicated.recommendationCount).toBe(1);
