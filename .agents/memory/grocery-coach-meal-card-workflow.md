@@ -29,6 +29,8 @@ Shopping product options must look like Product Scan's compact recommendation ou
 
 Shopping product options need two distinct explicit actions: save the product to the Saved Groceries library reached from the top of the Shopping List, and choose the product to populate the current generic shopping ingredient with the person's product choice.
 
+Saving must not replace the shopping-list selection; choosing must not require saving first. Chosen identity must survive Online Shopping and retailer handoff through existing genuine links or retailer searches, without invented URLs or silent substitution.
+
 **Why:** The founder clarified that showing three product names without either action does not deliver the planned shopping workflow.
 
 **How to apply:** Diagnose and verify library bookmarking separately from shopping-row selection. Shared card appearance alone is not proof that either action is connected; preserve the established evidence and review distinctions.
