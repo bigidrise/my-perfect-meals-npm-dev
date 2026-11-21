@@ -15,6 +15,7 @@ import { shoppingCatalogPresentation, shoppingCatalogTip } from "./shoppingCatal
 import { shoppingEvidenceAdapter, type ShoppingStageTimer } from "./shoppingEvidenceAdapter";
 import { shoppingRecommendationIdentityMatches } from "./shoppingRecommendationIdentity";
 import { shoppingReferenceBridge } from "./shoppingReferenceBridge";
+import { shoppingRecommendationNamesProduct } from "../../../shared/shoppingRecommendationName";
 import type { ShoppingProductReference } from "../../../shared/shoppingProductSelection";
 
 export interface DevelopmentProductMatch {
@@ -451,6 +452,8 @@ export async function findProductDevelopment(
     const selection = shoppingSelectionBridge(candidate, decision, evaluated.subject!, evaluated.unresolved, shoppingIngredient);
     return shoppingCatalogPresentation(candidate, decision, selection, shoppingIngredient).shoppingDisplay !== "hidden";
   });
+  const namedReferenceDevelopment = (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test") &&
+    !process.env.REPLIT_DEPLOYMENT;
   const isSelectable = (item: EvaluatedProduct) =>
     (!options.recommendationLeads || options.recommendationLeads.some(lead =>
       shoppingRecommendationIdentityMatches(lead, item.candidate))) && shoppingSelectionBridge(
@@ -458,7 +461,8 @@ export async function findProductDevelopment(
   ).eligible;
   const isReferenceable = (item: EvaluatedProduct) =>
     !!shoppingIngredient && !!options.recommendationLeads?.some(lead =>
-      shoppingRecommendationIdentityMatches(lead, item.candidate)) &&
+      shoppingRecommendationIdentityMatches(lead, item.candidate) ||
+      (namedReferenceDevelopment && shoppingRecommendationNamesProduct(lead, item.candidate.identity))) &&
     !!shoppingReferenceBridge(item.candidate, item.decision, evaluated.subject!, shoppingIngredient,
       shoppingSelectionBridge(item.candidate, item.decision, evaluated.subject!,
         evaluated.unresolved, shoppingIngredient).reason || "Product verification is incomplete.");
@@ -478,6 +482,8 @@ export async function findProductDevelopment(
       : undefined;
     const recommendationLead = options.recommendationLeads?.find(lead =>
       shoppingRecommendationIdentityMatches(lead, candidate)) ??
+      (namedReferenceDevelopment ? options.recommendationLeads?.find(lead =>
+        shoppingRecommendationNamesProduct(lead, candidate.identity)) : undefined) ??
       options.recommendationLeads?.find(lead => shoppingRecommendationMatches(lead, candidate));
     const recommendationIdentityVerified = !!recommendationLead &&
       shoppingRecommendationIdentityMatches(recommendationLead, candidate);
@@ -494,13 +500,13 @@ export async function findProductDevelopment(
         recommendationLead, recommendationIdentityVerified,
         variant: candidate.identity.variant, packageSize: candidate.identity.packageSize,
       } : {}),
-      // A recommendation mismatch never inherits eligibility. In Development,
-      // an independently identified catalog record may instead be reviewed as
-      // that actual record through the unchanged confirmed-reference bridge.
+      // Shopping intent never inherits medical eligibility. Only a source
+      // record with the SAME product name can supply a reference in Development;
+      // a related sauce or mayonnaise must never replace the displayed oil.
       ...(shoppingIngredient && shoppingSelection && !shoppingSelection.eligible &&
         (recommendationIdentityVerified || (
-          (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test") &&
-          !process.env.REPLIT_DEPLOYMENT
+          namedReferenceDevelopment && !!recommendationLead &&
+          shoppingRecommendationNamesProduct(recommendationLead, candidate.identity)
         ))
         ? (() => {
           const reference = shoppingReferenceBridge(candidate, decision, evaluated.subject!,

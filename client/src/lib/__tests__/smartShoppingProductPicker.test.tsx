@@ -243,55 +243,62 @@ test("review-only cards preserve original explanations and the exact unresolved 
   }));
   (post as jest.Mock).mockResolvedValue(response);
   const { onCommit } = renderPicker({ open: true, ingredient: { originalName: "olive oil", requirements: [] } });
-  expect(await screen.findAllByText(/Review only — Current allergen statement is unavailable/)).toHaveLength(3);
+  expect(await screen.findAllByText("This product could not be reliably identified. Choose another option or keep the ingredient generic.")).toHaveLength(3);
   expect(screen.getByText("Original personalized Alpha explanation")).toBeInTheDocument();
   screen.getAllByRole("button", { name: "Choose Product" }).forEach(button => expect(button).toBeDisabled());
   expect(onCommit).not.toHaveBeenCalled();
 });
 
-test("an exact unverified reference requires confirmation, retains warnings, and can be cancelled", async () => {
+test("one click selects an identifiable unverified product and retains its assessment only in the payload", async () => {
   const response = referenceResponse();
   const onCommitReference = jest.fn().mockResolvedValue(undefined);
   (post as jest.Mock).mockResolvedValue(response);
   renderPicker({ open: true, ingredient: { originalName: "olive oil", requirements: [] }, onCommitReference });
 
   fireEvent.click(await screen.findByRole("button", { name: "Choose Product" }));
-  expect(onCommitReference).not.toHaveBeenCalled();
-  expect(screen.getByText("This records shopping intent only. It is not medical or restricted-diet clearance.")).toBeInTheDocument();
-  expect(screen.getByText("Current ingredient label not reviewed")).toBeInTheDocument();
-  expect(screen.getByText("Dietary context unresolved")).toBeInTheDocument();
-  expect(screen.getByText(/Cold-pressed.*500 mL glass bottle/)).toBeInTheDocument();
-
-  fireEvent.click(screen.getByRole("button", { name: "Cancel shopping reference" }));
-  expect(onCommitReference).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Choose Product" }));
-  fireEvent.click(screen.getByRole("button", { name: "Confirm shopping reference" }));
   await waitFor(() => expect(onCommitReference).toHaveBeenCalledTimes(1));
+  expect(screen.queryByRole("button", { name: "Confirm shopping reference" })).not.toBeInTheDocument();
+  expect(screen.queryByText("Review product identity and label evidence")).not.toBeInTheDocument();
   expect(onCommitReference).toHaveBeenCalledWith(response.recommendationChecks[0].reference);
   expect(onCommitReference.mock.calls[0][0].product.selectionKind).toBe("unverified_shopping_reference");
   expect(onCommitReference.mock.calls[0][0].product.assessment.status).toBe("review_required");
 });
 
-test("the real review-only recommendation branch exposes Choose and confirms only the visibly identified catalog product", async () => {
+test("an identifiable named product selects directly even when package verification is incomplete", async () => {
   const response = referenceResponse({ identityVerified: false });
-  delete response.recommendationChecks[0].reference;
   const reference: ShoppingProductReference = response.catalogMatches[0].shoppingReference;
   const onCommitReference = jest.fn().mockResolvedValue(undefined);
   (post as jest.Mock).mockResolvedValue(response);
   const { onCommit } = renderPicker({ open: true, ingredient: reference.ingredient, onCommitReference });
   fireEvent.click(await screen.findByRole("button", { name: "Choose Product" }));
-  expect(screen.getByText("Review the actual catalog product")).toBeInTheDocument();
-  expect(screen.getByText(/This listing is not a confirmed match/)).toBeInTheDocument();
-  expect(screen.getByText(/Synthetic Alpha Olive Oil · Cold-pressed/)).toBeInTheDocument();
-  reference.product.assessment.unresolvedRequirements.forEach(warning => expect(screen.getByText(warning)).toBeInTheDocument());
-  expect(onCommitReference).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Cancel shopping reference" }));
-  expect(onCommitReference).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Choose Product" }));
-  fireEvent.click(screen.getByRole("button", { name: "Confirm shopping reference" }));
   await waitFor(() => expect(onCommitReference).toHaveBeenCalledWith(reference));
+  expect(screen.getByText("Product details not fully verified.")).toBeInTheDocument();
+  expect(screen.queryByText("Review the actual catalog product")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Confirm shopping reference" })).not.toBeInTheDocument();
   expect(onCommit).not.toHaveBeenCalled();
   expect(reference.product.assessment.status).toBe("review_required");
+});
+
+test("Primal Kitchen Avocado Oil can never select a buffalo sauce catalog record", async () => {
+  const original = makeShoppingReference();
+  const snapshot = JSON.parse(original.product.sourcePayloadJson!);
+  snapshot.identity.brand = "Primal Kitchen";
+  snapshot.identity.name = "Hot Buffalo Sauce Made With Avocado Oil";
+  const reference: ShoppingProductReference = {
+    ...original, product: { ...original.product, brand: snapshot.identity.brand,
+      name: snapshot.identity.name, sourcePayloadJson: JSON.stringify(snapshot) },
+  };
+  const response = referenceResponse({ reference, identityVerified: false });
+  response.recommendations[0].category = "Primal Kitchen Avocado Oil";
+  response.recommendationChecks[0].recommendationCategory = "Primal Kitchen Avocado Oil";
+  response.catalogMatches[0].recommendationLead = "Primal Kitchen Avocado Oil";
+  const onCommitReference = jest.fn();
+  (post as jest.Mock).mockResolvedValue(response);
+  const { onCommit } = renderPicker({ open: true, ingredient: reference.ingredient, onCommitReference });
+  expect(await screen.findByRole("button", { name: "Choose Product" })).toBeDisabled();
+  expect(onCommitReference).not.toHaveBeenCalled();
+  expect(onCommit).not.toHaveBeenCalled();
+  expect(screen.queryByText(/Review the actual catalog product/)).not.toBeInTheDocument();
 });
 
 test("Shopping availability uses gold text and a larger matching pin without changing its wording or green reasons", async () => {
@@ -343,7 +350,7 @@ test.each(["different exact product", "known conflict", "unverified catalog iden
     (post as jest.Mock).mockResolvedValue(response);
     const onCommitReference = jest.fn();
     renderPicker({ open: true, ingredient: { originalName: "olive oil", requirements: [] }, onCommitReference });
-    expect(await screen.findByText(/Review only —/)).toBeInTheDocument();
+    expect(await screen.findByText("This product could not be reliably identified. Choose another option or keep the ingredient generic.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Choose Product" })).toBeDisabled();
     expect(onCommitReference).not.toHaveBeenCalled();
   },
@@ -365,14 +372,14 @@ test.each(["missing key", "cross-linked brand", "wrong ingredient", "hidden", "u
     if (defect === "unverified variant") record.recommendationIdentityVerified = false;
     (post as jest.Mock).mockResolvedValue(response);
     const { onCommit } = renderPicker({ open: true, ingredient: { originalName: "olive oil", requirements: [] } });
-    expect(await screen.findByText(/Review only — A matching exact-product selection could not be verified/)).toBeInTheDocument();
+    expect(await screen.findByText("This product could not be reliably identified. Choose another option or keep the ingredient generic.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Choose Product" })).toBeDisabled();
     expect(screen.queryByText(/Exact record passed/)).not.toBeInTheDocument();
     expect(onCommit).not.toHaveBeenCalled();
   },
 );
 
-test("review-only cards expose matching source identity and label evidence without a selection capability", async () => {
+test("unavailable cards retain source evidence internally without exposing an audit report or selection capability", async () => {
   const response = sharedResponse();
   response.recommendationChecks = response.recommendationChecks.map(check => ({
     ...check, status: "review_only", productKey: undefined as any,
@@ -381,12 +388,9 @@ test("review-only cards expose matching source identity and label evidence witho
   }));
   (post as jest.Mock).mockResolvedValue(response);
   const { onCommit } = renderPicker({ open: true, ingredient: { originalName: "olive oil", requirements: [] } });
-  const summaries = await screen.findAllByText("Review product identity and label evidence");
-  expect(summaries).toHaveLength(3);
-  fireEvent.click(summaries[0]);
-  expect(screen.getAllByText(/Catalog ingredient list: Olive oil/)).toHaveLength(3);
-  expect(screen.getAllByText(/Record: record-1/)).toHaveLength(3);
-  expect(screen.getAllByText(/Review only — Reviewed checks aren't available.*quinoa/)).toHaveLength(3);
+  expect(await screen.findAllByText("This product could not be reliably identified. Choose another option or keep the ingredient generic.")).toHaveLength(3);
+  expect(screen.queryByText("Review product identity and label evidence")).not.toBeInTheDocument();
+  expect(response.catalogMatches[0].ingredients).toBe("Olive oil");
   screen.getAllByRole("button", { name: "Choose Product" }).forEach(button => expect(button).toBeDisabled());
   expect(onCommit).not.toHaveBeenCalled();
 });
@@ -398,9 +402,9 @@ test("catalog outage keeps recommendations visible with unavailable Choose and a
   renderPicker({ open: true, ingredient: { originalName: "olive oil", requirements: [] } });
   expect(await screen.findByText("Synthetic Alpha Olive Oil")).toBeInTheDocument();
   expect(screen.getByText("Original personalized Gamma explanation")).toBeInTheDocument();
-  expect(screen.getAllByText(/Review only — The product catalog is temporarily unavailable/)).toHaveLength(3);
+  expect(screen.getAllByText("This product could not be reliably identified. Choose another option or keep the ingredient generic.")).toHaveLength(3);
   screen.getAllByRole("button", { name: "Choose Product" }).forEach(button => expect(button).toBeDisabled());
-  expect(screen.getAllByText("Keep this ingredient generic or use Find new options below.")).toHaveLength(3);
+  expect(screen.getByRole("button", { name: "Find new options" })).toBeInTheDocument();
 });
 
 beforeEach(() => {
@@ -804,11 +808,10 @@ test("saved unverified reference is distinct, shows variant/package and every un
     onUpgrade={jest.fn()}
     onClear={onClear}
   />);
-  expect(screen.getByText("Shopping reference — Unverified")).toBeInTheDocument();
-  expect(screen.getByText(/Cold-pressed.*500 mL glass bottle/)).toBeInTheDocument();
-  expect(screen.getByText("Unresolved: Current ingredient label not reviewed")).toBeInTheDocument();
-  expect(screen.getByText("Unresolved: Dietary context unresolved")).toBeInTheDocument();
-  expect(screen.getByText("Not medical or restricted-diet clearance.")).toBeInTheDocument();
+  expect(screen.queryByText("Shopping reference — Unverified")).not.toBeInTheDocument();
+  expect(screen.queryByText(/Unresolved:/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Historical shopping choice/)).not.toBeInTheDocument();
+  expect(reference.product.assessment.unresolvedRequirements).toContain("Current ingredient label not reviewed");
   expect(screen.queryByText("Saved with review required")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Change" }));
   expect(onChoose).toHaveBeenCalledTimes(1);
@@ -952,7 +955,7 @@ test("catalog fallback preserves supplied recommendation reasons in Product Scan
   expect(within(card).queryByText(/Ingredients:|Catalog serving:/)).not.toBeInTheDocument();
 });
 
-test("catalog references require confirmation and retain every warning without creating a verified selection", async () => {
+test("catalog references choose in one click and retain every stored warning without claiming verification", async () => {
   const reference = makeShoppingReference();
   (post as jest.Mock).mockResolvedValue({ catalogMatches: [{
     ...review, ...reference.product, productKey: reference.product.productKey,
@@ -962,13 +965,8 @@ test("catalog references require confirmation and retain every warning without c
   const onCommitReference = jest.fn().mockResolvedValue(undefined);
   const { onCommit } = renderPicker({ open: true, ingredient: reference.ingredient, onCommitReference });
   fireEvent.click(await screen.findByRole("button", { name: "Choose Product" }));
-  reference.product.assessment.unresolvedRequirements.forEach(warning => expect(screen.getByText(warning)).toBeInTheDocument());
-  expect(onCommitReference).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Cancel shopping reference" }));
-  expect(onCommitReference).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Choose Product" }));
-  fireEvent.click(screen.getByRole("button", { name: "Confirm shopping reference" }));
   await waitFor(() => expect(onCommitReference).toHaveBeenCalledWith(reference));
+  expect(screen.queryByRole("button", { name: "Confirm shopping reference" })).not.toBeInTheDocument();
   expect(onCommit).not.toHaveBeenCalled();
   expect(screen.getByRole("button", { name: "Save Product" })).toBeInTheDocument();
 });

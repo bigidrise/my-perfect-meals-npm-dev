@@ -13,6 +13,7 @@ import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import RecommendedProductActions from "./RecommendedProductActions";
 import ShoppingReferenceAction, { existingCatalogReference } from "./ShoppingReferenceAction";
 import { shoppingProductActionsDevelopmentEnabled } from "@/lib/shoppingProductActionsGate";
+import { shoppingRecommendationNamesProduct } from "@shared/shoppingRecommendationName";
 
 interface Props {
   open: boolean;
@@ -267,7 +268,8 @@ export default function ShoppingProductPicker({
       match.productKey === check.catalogProductKey &&
       "recommendationLead" in match &&
       match.recommendationLead === category &&
-      match.recommendationIdentityVerified === true &&
+      (match.recommendationIdentityVerified === true ||
+        (shoppingProductActionsDevelopmentEnabled && shoppingRecommendationNamesProduct(category, match))) &&
       match.shoppingReference) {
       try {
         const fromCheck = parseShoppingProductReference(check.reference);
@@ -301,12 +303,9 @@ export default function ShoppingProductPicker({
       ...(match.nutrition ?? []).map(item => ({ text: item.statement, source: item.source })),
       ...(match.allergenInformation ?? []).map(item => ({ text: item.statement, source: item.source })),
     ].filter(item => item.text && item.source).slice(0, 3) : [];
-    const catalogReference = shoppingProductActionsDevelopmentEnabled && !catalogUnavailable &&
-      onCommitReference && match?.recommendationIdentityVerified === false
-      ? existingCatalogReference(match, ingredient) : null;
     return (
       <div className="mt-2 space-y-2">
-        {match && <details className="rounded-lg border border-white/10 bg-black/15 p-2.5 text-xs text-white/75">
+        {match && !shoppingProductActionsDevelopmentEnabled && <details className="rounded-lg border border-white/10 bg-black/15 p-2.5 text-xs text-white/75">
           <summary className="min-h-11 cursor-pointer py-3 font-semibold text-orange-100">{t("Review product identity and label evidence")}</summary>
           {match.recommendationIdentityVerified !== true && <p className="mb-2 text-amber-100">{t("Catalog candidate only — not confirmed as the exact recommended variant.")}</p>}
           <p className="font-semibold text-white">{match.name}{match.brand ? ` · ${match.brand}` : ""}</p>
@@ -324,7 +323,11 @@ export default function ShoppingProductPicker({
           disabled={saving}
           onClick={() => void commit(verifiedSelection)}
           className="shopping-recommendation-action min-h-11 w-full whitespace-normal bg-orange-600 text-white hover:bg-orange-500"
-        >{t(shoppingProductActionsDevelopmentEnabled ? "Choose Product" : "Choose for My List")}</Button> : shoppingReference ? <div className="space-y-2">
+        >{t(shoppingProductActionsDevelopmentEnabled ? "Choose Product" : "Choose for My List")}</Button> : shoppingReference && shoppingProductActionsDevelopmentEnabled ? <div>
+          <p className="mb-2 text-xs text-white/75">{t("Product details not fully verified.")}</p>
+          <Button type="button" disabled={saving} onClick={() => void commitReference(shoppingReference)}
+            className="min-h-11 w-full whitespace-normal bg-orange-600 text-white hover:bg-orange-500">{t("Choose Product")}</Button>
+        </div> : shoppingReference ? <div className="space-y-2">
           {pendingReferenceCategory === category ? <>
             <div className="rounded-lg border border-amber-200/25 bg-amber-100/[0.07] p-3 text-xs leading-relaxed text-amber-50/90">
               <p className="font-semibold">{t("Shopping reference — Unverified")}</p>
@@ -355,22 +358,18 @@ export default function ShoppingProductPicker({
             className="min-h-11 w-full whitespace-normal border border-amber-200/30 bg-amber-100/[0.07] text-amber-50 hover:bg-amber-100/[0.12]">
             {shoppingProductActionsDevelopmentEnabled ? t("Choose Product") : "Use as shopping reference"}
           </Button>}
-        </div> : catalogReference ? <ShoppingReferenceAction
-          key={`${identity}:${catalogReference.product.productKey}`}
-          reference={catalogReference} recommendation={category} disabled={saving} onConfirm={commitReference}
-        /> : <div>
+        </div> : <div>
           {shoppingProductActionsDevelopmentEnabled && <Button type="button" disabled
             className="min-h-11 w-full whitespace-normal bg-orange-600 text-white"
             aria-describedby={`shopping-choice-unavailable-${recommendations?.indexOf(alternative) ?? 0}`}
           >{t("Choose Product")}</Button>}
           <p id={`shopping-choice-unavailable-${recommendations?.indexOf(alternative) ?? 0}`} className="mt-2 rounded-lg border border-amber-200/15 bg-amber-100/[0.05] px-3 py-2 text-xs leading-relaxed text-amber-50/80">
-          Review only — {catalogUnavailable
+          {shoppingProductActionsDevelopmentEnabled ? t("This product could not be reliably identified. Choose another option or keep the ingredient generic.") : <>Review only — {catalogUnavailable
             ? "The product catalog is temporarily unavailable. No exact product can be selected."
             : check?.status === "review_only" && check.reason
               ? check.reason
-              : "A matching exact-product selection could not be verified for this ingredient."}
+              : "A matching exact-product selection could not be verified for this ingredient."}</>}
           </p>
-          {shoppingProductActionsDevelopmentEnabled && <p className="mt-1 text-xs text-white/75">{t("Keep this ingredient generic or use Find new options below.")}</p>}
         </div>}
         {shoppingProductActionsDevelopmentEnabled && <RecommendedProductActions
           alternative={alternative}

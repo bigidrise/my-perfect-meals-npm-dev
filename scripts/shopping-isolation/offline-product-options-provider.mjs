@@ -9,9 +9,11 @@ export async function offlineProductOptions(userId, input) {
   const name = avocado ? "100% Pure Avocado Oil" : "Olive Oil";
   const variant = avocado ? "Original" : "Extra Virgin 500ml";
   const now = new Date().toISOString();
-  const records = [avocado ? "Chosen Foods" : "Synthetic Alpha", "Kirkland Signature", "Synthetic Gamma"].map((brand, index) => ({
+  const brands = avocado ? ["Chosen Foods", "Primal Kitchen", "La Tourangelle"] : ["Synthetic Alpha", "Kirkland Signature", "Synthetic Gamma"];
+  const records = brands.map((brand, index) => ({
     source: "usda_branded", sourceRecordId: `offline-shopping-${avocado ? "avocado" : "olive"}-${index}`,
-    name, brand, variant, barcode: `00000001901${avocado ? "1" : "0"}${index}`, market: "United States",
+    name: avocado && index === 1 ? "Hot Buffalo Sauce Made With Avocado Oil" : avocado && index === 2 ? "Avocado Oil" : name,
+    brand, variant, barcode: `00000001901${avocado ? "1" : "0"}${index}`, market: "United States",
     observedAt: null, identityObservedAt: now, retrievedAt: now,
     exactVariantMatch: true, servingDescription: "14g", packageSize: "500ml",
     facts: [
@@ -36,7 +38,8 @@ export async function offlineProductOptions(userId, input) {
       betterAlternatives: records.map(record => ({
         // Real recommendations often omit package/variant words. Exercise that
         // actual review-only renderer rather than manufacturing exact matches.
-        category: `${record.brand} ${name}${avocado ? "" : ` ${variant}`}`, brand: record.brand, productName: `${name}${avocado ? "" : ` ${variant}`}`,
+        category: `${record.brand} ${avocado && record.brand === "Primal Kitchen" ? "Avocado Oil" : record.name}${avocado ? "" : ` ${variant}`}`,
+        brand: record.brand, productName: `${avocado && record.brand === "Primal Kitchen" ? "Avocado Oil" : record.name}${avocado ? "" : ` ${variant}`}`,
         whyBetter: ["Synthetic product option for isolated workflow verification."],
         targetCriteria: "Available at synthetic test retailers. Offline fixture — not a real catalog listing or medical verification.",
       })),

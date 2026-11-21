@@ -7,6 +7,8 @@ import { biometricsClinicalSpanish } from "./biometricsClinicalCopy";
 /** Ordinary display copy only. Never translate saved records, unknown API errors or safety evidence here. */
 export const consumerFeatureSpanish: Record<string, string> = {
   "Save Product": "Guardar producto",
+  "Product details not fully verified.": "Los detalles del producto no están completamente verificados.",
+  "This product could not be reliably identified. Choose another option or keep the ingredient generic.": "No se pudo identificar este producto de forma fiable. Elige otra opción o conserva el ingrediente genérico.",
   "Review the actual catalog product": "Revisa el producto real del catálogo",
   "This listing is not a confirmed match for {{recommendation}}. Only the catalog product shown below will be chosen.": "No se ha confirmado que esta ficha corresponda a {{recommendation}}. Solo se elegirá el producto del catálogo que se muestra a continuación.",
   "Keep this ingredient generic or use Find new options below.": "Conserva este ingrediente genérico o usa Buscar nuevas opciones abajo.",

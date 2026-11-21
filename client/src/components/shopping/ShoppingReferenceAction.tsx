@@ -4,6 +4,7 @@ import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import type { ShoppingIngredientRequest, ShoppingProductReference } from "@shared/shoppingProductSelection";
 import { parseShoppingProductReference, shoppingIngredientSignature } from "@shared/shoppingProductSelection";
 import type { CatalogProductMatch } from "./GroceryStoreCoachSheet";
+import { shoppingProductActionsDevelopmentEnabled } from "@/lib/shoppingProductActionsGate";
 
 /** Validate the already-issued exact reference; never create one from a name. */
 export function existingCatalogReference(product: CatalogProductMatch, ingredient: ShoppingIngredientRequest): ShoppingProductReference | null {
@@ -28,6 +29,11 @@ export default function ShoppingReferenceAction({ reference, disabled, onConfirm
 }) {
   const { t } = useConsumerCopy();
   const [confirming, setConfirming] = useState(false);
+  if (shoppingProductActionsDevelopmentEnabled) return <div className="mt-2">
+    <p className="mb-2 text-xs text-white/75">{t("Product details not fully verified.")}</p>
+    <Button type="button" disabled={disabled} onClick={() => void onConfirm(reference)}
+      className="min-h-11 w-full whitespace-normal bg-orange-600 text-white hover:bg-orange-500">{t("Choose Product")}</Button>
+  </div>;
   if (!confirming) return <Button type="button" disabled={disabled} onClick={() => setConfirming(true)}
     className="mt-2 min-h-11 w-full whitespace-normal border border-amber-200/30 bg-amber-100/[0.07] text-amber-50 hover:bg-amber-100/[0.12]">
     {t("Choose Product")}

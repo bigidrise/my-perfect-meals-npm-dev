@@ -71,7 +71,7 @@ import { isProOrAbove } from "@/lib/subscriptionCheck";
 import ShoppingProductPicker from "@/components/shopping/ShoppingProductPicker";
 import SmartShoppingProductChoice from "@/components/shopping/SmartShoppingProductChoice";
 import { shoppingProductActionsDevelopmentEnabled } from "@/lib/shoppingProductActionsGate";
-import { shoppingRetailerIdentity } from "@/lib/shoppingRetailerIdentity";
+import { groceryProductLabel } from "@/lib/savedGroceryRecommendation";
 import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
 import { shoppingIngredientFor, applyShoppingProductChoice, applyShoppingProductReference } from "@/lib/shoppingProductChoice";
 import { parseShoppingProductReference } from "@shared/shoppingProductSelection";
@@ -1143,7 +1143,7 @@ export default function ShoppingListMasterView() {
                           <div className="shopping-item-content min-w-0 flex-1">
                             <div className={`shopping-item-name text-white ${item.isChecked ? "line-through" : ""}`}>
                               {shoppingProductActionsDevelopmentEnabled && item.ingredientMetadata?.selectedProduct
-                                ? shoppingRetailerIdentity(item.ingredientMetadata.selectedProduct) : item.name}
+                                ? groceryProductLabel({ productName: item.ingredientMetadata.selectedProduct.name, brand: item.ingredientMetadata.selectedProduct.brand }) : item.name}
                             </div>
                             <SmartShoppingProductChoice
                               item={item}
@@ -1232,7 +1232,7 @@ export default function ShoppingListMasterView() {
                               <div className="shopping-item-content min-w-0 flex-1">
                                 <div className="shopping-item-name text-white line-through">
                                   {shoppingProductActionsDevelopmentEnabled && item.ingredientMetadata?.selectedProduct
-                                    ? shoppingRetailerIdentity(item.ingredientMetadata.selectedProduct) : item.name}
+                                    ? groceryProductLabel({ productName: item.ingredientMetadata.selectedProduct.name, brand: item.ingredientMetadata.selectedProduct.brand }) : item.name}
                                 </div>
                                 <SmartShoppingProductChoice
                                   item={item}

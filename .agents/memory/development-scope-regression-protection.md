@@ -13,4 +13,4 @@ Shopping acceptance must cover ordinary incomplete recommendation-to-catalog ide
 
 **Why:** The founder rejected completion after real Product Options still lacked Choose Product despite a passing exact-match fixture journey.
 
-**How to apply:** Exercise the actual review-only renderer with recommendations that omit package/variant details. Do not relax source-identity or clinical rules to make the button work. Distinguish a suggested name from an explicitly reviewed source product, retain confirmation and uncertainty, and report genuinely unavailable choices plainly.
+**How to apply:** Exercise the actual review-only renderer with recommendations that omit package/variant details. Do not relax source-identity or clinical rules to make the button work. Follow the latest [Shopping product choice policy](shopping-product-choice-policy.md): one-click selection of the same identifiable product, internal uncertainty, compact list rows, and no unrelated catalog substitution.

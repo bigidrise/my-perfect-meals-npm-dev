@@ -7,6 +7,7 @@ import { findProductDevelopment } from "../services/productDiscovery/findProduct
 import { analyzeProductByName } from "../services/ingredientScanService";
 import { normalizeProductEvidence } from "../services/productDiscovery/productEvidenceAdapters";
 import { shoppingRecommendationIdentityMatches } from "../services/productDiscovery/shoppingRecommendationIdentity";
+import { shoppingRecommendationNamesProduct } from "../../shared/shoppingRecommendationName";
 import { parseShoppingProductReference, parseShoppingProductSelection } from "../../shared/shoppingProductSelection";
 import { developmentItemPatch } from "../services/shopping-list/metadataPersistence";
 import { makeIngredientMetadata } from "../../shared/shoppingIngredientMetadata";
@@ -52,10 +53,11 @@ test("an actual unresolved-profile response offers distinct references, never ve
     const before = clone(metadata);
     const update = developmentItemPatch({
       ingredientMetadata: { ...metadata, selectedProduct: reference.product },
-    }, { userId: owner, name: "olive oil", quantity: "3", unit: "tsp", ingredientMetadata: metadata });
+    }, { userId: owner, name: "olive oil", quantity: "3", unit: "tsp", checked: true, ingredientMetadata: metadata });
     expect(update.ingredientMetadata).toEqual({ ...before, selectedProduct: reference.product });
     expect(update).not.toHaveProperty("quantity");
     expect(update).not.toHaveProperty("unit");
+    expect(update).not.toHaveProperty("checked");
     expect(metadata).toEqual(before);
   }
   expect(f.recommend).toHaveBeenCalledTimes(1);
@@ -287,10 +289,7 @@ test("an otherwise eligible but different variant is review-only and retains its
   expect(record.variant).toBe("Light Olive Oil 500ml");
   expect(record.recommendationIdentityVerified).toBe(false);
   expect(record.shoppingSelection?.eligible).toBe(false);
-  const reference = parseShoppingProductReference(record.shoppingReference);
-  expect(reference.product.variant).toBe("Light Olive Oil 500ml");
-  expect(reference.product.assessment.status).toBe("review_required");
-  expect(reference.product.assessment.unresolvedRequirements.join(" ")).toContain("exact recommended product");
+  expect(record.shoppingReference).toBeUndefined();
   expect(alpha.reference).toBeUndefined();
   expect(result.recommendationChecks.filter(check => check.status === "eligible")).toHaveLength(2);
 });
@@ -307,6 +306,33 @@ test("Production does not enable Development's explicit related-catalog referenc
     expect(record.shoppingSelection?.eligible).toBe(false);
     expect(record.shoppingReference).toBeUndefined();
   } finally { process.env.NODE_ENV = previous; }
+});
+
+test("a named product may be an unverified shopping reference without pretending a package-size match is verified", async () => {
+  const f = fixture();
+  (f.recommend as jest.Mock).mockImplementation(async () => ({
+    ...analysis(), betterAlternatives: analysis().betterAlternatives!.map(alt => ({
+      ...alt, category: alt.category.replace(" 500ml", ""),
+    })),
+  }));
+  const result = await f.run();
+  expect(result.recommendationChecks).toHaveLength(3);
+  for (const check of result.recommendationChecks) {
+    expect(check.status).toBe("review_only");
+    expect(check.productKey).toBeUndefined();
+    const reference = parseShoppingProductReference(check.reference);
+    expect(reference.product.assessment.status).toBe("review_required");
+    expect(shoppingRecommendationNamesProduct(check.recommendationCategory, reference.product)).toBe(true);
+  }
+});
+
+test.each<[string, string, boolean]>([
+  ["Primal Kitchen Avocado Oil", "Avocado Oil", true],
+  ["Primal Kitchen Avocado Oil", "Hot Buffalo Sauce Made With Avocado Oil", false],
+  ["Primal Kitchen Avocado Oil", "Avocado Oil Mayonnaise", false],
+  ["Primal Kitchen Avocado Oil", "Extra Virgin Olive Oil", false],
+])("shopping name binding keeps %s separate from %s", (suggestion, name, expected) => {
+  expect(shoppingRecommendationNamesProduct(suggestion, { brand: "Primal Kitchen", name, variant: "Original" })).toBe(expected);
 });
 
 test("near variants cannot exhaust the eligible-result target before exact variants are inspected", async () => {
