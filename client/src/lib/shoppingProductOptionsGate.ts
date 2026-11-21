@@ -1,16 +1,7 @@
-import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
-
 /**
- * Product Options release gate.
- *
- * Independent of shoppingMetadataEnabled, which also controls
- * the shopping-list store implementation.
- *
- * Production remains disabled unless explicitly released.
+ * Released Product Options is available in every build.
+ * Legacy opt-in flags must not hide it after a GitHub pull or rebuild.
+ * Subscription checks, ingredient eligibility and safety checks remain separate.
+ * This does not enable the experimental metadata store or Grocery Coach catalog.
  */
-export const shoppingProductOptionsEnabled =
-  import.meta.env.DEV ||
-  (
-    import.meta.env.VITE_SHOPPING_PRODUCT_OPTIONS_ENABLED === "true" &&
-    groceryCoachCatalogEnabled
-  );
+export const shoppingProductOptionsEnabled = true;

@@ -12,7 +12,7 @@ export function shoppingIngredientFor(item: Pick<ShoppingListItem, "name" | "ing
   });
 }
 
-/** Only the Development UI calls this; no legacy API or library auto-save. */
+/** Explicit member choice in every build; no automatic product selection. */
 export function applyShoppingProductChoice(ids: string[], selection: ShoppingProductSelection | null) {
   const state = useShoppingListStore.getState() as ReturnType<typeof useShoppingListStore.getState> & {
     chooseProduct?: (ids: string[], selection: ShoppingProductSelection | null) => Promise<void>;

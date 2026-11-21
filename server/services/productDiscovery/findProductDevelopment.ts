@@ -307,7 +307,8 @@ export async function findProductDevelopment(
   profileUsed: string[];
   shoppingTip?: string;
 }> {
-  if (process.env.NODE_ENV !== "development" && process.env.NODE_ENV !== "test") {
+  if (process.env.NODE_ENV !== "development" && process.env.NODE_ENV !== "test" &&
+      !options.shoppingIngredient) {
     throw new Error("Development product discovery is not available in Production.");
   }
   const food = query.trim();

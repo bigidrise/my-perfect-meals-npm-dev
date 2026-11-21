@@ -34,7 +34,8 @@ for (const development of [false, true]) {
           const catalogGate = loadGate("client/src/lib/groceryCoachCatalogGate.ts", env);
           const productGate = loadGate("client/src/lib/shoppingProductOptionsGate.ts", env, catalogGate);
           const metadataGate = loadGate("client/src/lib/shoppingMetadataGate.ts", env);
-          expect(productGate.shoppingProductOptionsEnabled).toBe(development || (product && catalog));
+          expect(productGate.shoppingProductOptionsEnabled).toBe(true);
+          expect(catalogGate.groceryCoachCatalogEnabled).toBe(development || catalog);
           expect(metadataGate.shoppingMetadataEnabled).toBe(development || metadata);
         });
       }
@@ -42,11 +43,17 @@ for (const development of [false, true]) {
   }
 }
 
+test("Production without opt-in variables still includes Product Options", () => {
+  const gate = loadGate("client/src/lib/shoppingProductOptionsGate.ts", { DEV: false });
+  expect(gate.shoppingProductOptionsEnabled).toBe(true);
+});
+
 test.each([
-  ["production", undefined, false],
-  ["production", "false", false],
+  ["production", undefined, true],
+  ["production", "false", true],
   ["production", "true", true],
   ["development", undefined, true],
+  ["test", undefined, true],
 ])("server gate in %s with flag %s returns %s", (mode, flag, enabled) => {
   const source = readFileSync("server/services/shopping-list/productOptionsGate.ts", "utf8");
   const { code } = transformSync(source, { loader: "ts", format: "cjs" });
