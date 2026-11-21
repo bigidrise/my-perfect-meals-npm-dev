@@ -62,7 +62,7 @@ WORKTREE_DIR=""
 
 cleanup() {
   [ -f "$STAGED_TMP" ]   && rm -f "$STAGED_TMP"
-  [ -n "$WORKTREE_DIR" ] && git worktree remove --force "$WORKTREE_DIR" 2>/dev/null
+  [ -n "$WORKTREE_DIR" ] && env -u GIT_INDEX_FILE git worktree remove --force "$WORKTREE_DIR" 2>/dev/null
   [ -d "$WORKTREE_DIR" ] && rm -rf "$WORKTREE_DIR"
 }
 trap cleanup EXIT
@@ -108,7 +108,10 @@ fi
 # ── TypeScript check — isolated worktree with COMPLETE staged state ───────────
 # Step 1: create a detached worktree at HEAD (all tracked files, clean baseline).
 WORKTREE_DIR=$(mktemp -d /tmp/gcwt_XXXXXX)
-if ! git worktree add --detach "$WORKTREE_DIR" HEAD 2>/dev/null; then
+# Git exports the main checkout's (sometimes relative) index path to hooks.
+# A linked checkout has a .git file, so reusing .git/index there fails.
+# Keep that index for reading the staged diff, not for worktree operations.
+if ! env -u GIT_INDEX_FILE git worktree add --detach "$WORKTREE_DIR" HEAD 2>/dev/null; then
   echo "❌ [pre-commit] Could not create git worktree for TypeScript check — aborting."
   exit 1
 fi
@@ -117,7 +120,7 @@ fi
 # not just groceryCoach.ts.  This gives tsc the exact commit snapshot.
 # --binary: encodes binary hunks in base64 so git apply can handle image/font
 # files staged alongside groceryCoach.ts without failing.
-if ! git diff --cached --binary | git -C "$WORKTREE_DIR" apply --allow-empty 2>/dev/null; then
+if ! git diff --cached --binary | env -u GIT_INDEX_FILE git -C "$WORKTREE_DIR" apply --allow-empty 2>/dev/null; then
   echo "❌ [pre-commit] Could not apply staged diff to worktree — aborting."
   exit 1
 fi

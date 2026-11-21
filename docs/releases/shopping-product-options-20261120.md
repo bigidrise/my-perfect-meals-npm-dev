@@ -1,5 +1,38 @@
 # Shopping Product Options — verified Development release branch
 
+## Superseding owner-approved release correction
+
+Product Options is now released in every build and runtime. Its button, governed
+Shopping lookup and matching persistence no longer require opt-in variables.
+The former `VITE_SHOPPING_PRODUCT_OPTIONS_ENABLED` and
+`SHOPPING_PRODUCT_OPTIONS_ENABLED` variables no longer disable this feature,
+even if left set to `false`. The separate Grocery Coach catalog flag no longer
+controls Product Options.
+
+The broader metadata store and unrelated Grocery Coach catalog remain under
+their existing gates. Subscription access, authentication, account ownership,
+ingredient validation and product evidence/safety checks remain enforced.
+Generic Development-only discovery is not released by this correction.
+
+Pull this correction, rebuild the frontend and server, and restart the serving
+app. A published app needs the updated build published; pulling source cannot
+replace an already compiled or running older app. No flag setup is required.
+
+The configuration instructions below describe the earlier staged release and
+are superseded for Product Options by this correction.
+
+Correction verification:
+
+- Thirteen focused suites passed across the initial run and targeted fixture
+  corrections, covering the released button, subscription routing, governed
+  Production lookup, account-isolated persistence and original ingredient checks.
+- Production frontend build passed with both old client opt-in flags explicitly
+  `false` and the broader metadata flag also `false`.
+- Production server bundle passed.
+- Development restarted in its existing safe startup mode. The anonymous preview
+  loaded the sign-in page; no signed-in customer save journey is claimed.
+- All provider/database traffic was blocked during synthetic fixture tests.
+
 ## Scope and authorization
 
 Branch: `release/shopping-product-options-verified-20261120`
