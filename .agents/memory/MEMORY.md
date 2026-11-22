@@ -17,7 +17,7 @@
 - [Coaching engine contracts](coaching-engine-phase1.md) — coaching evidence and typed contracts are the shared foundation for its observers and UI.
 - [Coaching confidence doctrine](coaching-engine-confidence-doctrine.md) — legacy structured-renderer confidence controls, not the released Ask Chef primary conversation.
 - [Object storage verification](object-storage-architecture.md) — resolve current environment authority; no-write readiness does not attest upload durability.
-- [Canonical media assets](media-asset-architecture.md) — media lifecycle gates must protect every referencing surface before object deletion.
+- [Canonical media assets](media-asset-architecture.md) — all active image pathways preserve finalized assets; no restore-triggered generation; audit before repairs; protect references before deletion.
 - [Meal image references](meal-image-reference-index.md) — recipe fidelity, pediatric prepared-food expectations, production delivery, bounded recovery, and board media identity.
 - [Daily prescription hierarchy](daily-prescription-hierarchy.md) — one endpoint owns macro targets; clinical overlays are applied in documented order.
 - [Nutrition decision engine entry points](nde-food-entry-points.md) — all food intake surfaces must consult NDE before presenting results.
@@ -158,3 +158,4 @@
 - [Clinical protocol repair governance](clinical-protocol-repair-governance.md) — all 17 conditions; preserve existing indicators and physician restrictions without treating ordinary trainer enrollment as authority.
 - [Restaurant cuisine correction](restaurant-cuisine-fidelity-boundary.md) — Development-only pending review; saved guidance, explicit cuisine, restaurant evidence and display language stay separate.
 - [Measurement preference authority](measurement-preference-authority.md) — country-based Auto and manual units stay independent of language; display changes never rewrite canonical data or product evidence.
+- [From Scratch recipe package](from-scratch-recipe-package.md) — Recipe Maker entry opens staged preparation and one saved recipe; prove saving and retrieval before building the new workflow.

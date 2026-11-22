@@ -1,6 +1,7 @@
 /** Synthetic HTTP checks: no application database, provider or storage calls. */
 const mockAuth = { user: null as { id: string } | null };
 let mockRows: any[] = [];
+let mockAssets: any[] = [];
 const mockFinalize = jest.fn();
 const mockAuthority = jest.fn();
 const mockUpdate = jest.fn(() => { throw new Error("A foreign-bucket display repair must not update the shared Board"); });
@@ -16,9 +17,10 @@ jest.mock("../data/weekBoardsRepo", () => ({
 }));
 jest.mock("../db", () => ({
   db: {
-    select: () => ({ from: () => ({ where: async (condition: any) => {
+    select: () => ({ from: (table: any) => ({ where: (condition: any) => {
+      if (table === mockMediaAssets) return { limit: async () => mockAssets };
       const params = mockDialect.sqlToQuery(condition).params;
-      return mockRows.filter(row => row.userId === params[0] && row.weekStartISO === params[1]);
+      return Promise.resolve(mockRows.filter(row => row.userId === params[0] && row.weekStartISO === params[1]));
     } }) }),
     update: (...args: unknown[]) => mockUpdate(...args),
   },
@@ -40,6 +42,7 @@ jest.mock("../utils/carbClassifier", () => ({ enforceCarbs: (meal: any) => meal 
 import express from "express";
 import request from "supertest";
 import { PgDialect } from "drizzle-orm/pg-core";
+import { mediaAssets as mockMediaAssets } from "../db/schema/mediaAssets";
 const mockDialect = new PgDialect();
 const foreign = "/public-objects/replit-objstore-production-fixture/meal-images/dinner.jpg";
 const local = "/public-objects/replit-objstore-development-fixture/meal-images/dinner.jpg";
@@ -54,6 +57,7 @@ beforeAll(async () => {
   (await import("../routes/weekBoard")).default(app);
 });
 beforeEach(() => {
+  mockAssets = [];
   mockAuth.user = { id: "owner-a" };
   mockRows = [{
     id: "board-a", userId: "owner-a", weekStartISO: target.weekStartISO,
@@ -76,12 +80,12 @@ test("a different authenticated owner cannot recover this Board or override owne
   expect((await request(app).post("/api/weekly-board/image-recovery").send({ ...target, userId: "owner-a" })).status).toBe(404);
   expect(mockFinalize).not.toHaveBeenCalled();
 });
-test("inactive-bucket recovery returns a local variant without changing canonical media or Favorites", async () => {
+test("inactive-bucket recovery never generates a substitute or changes canonical media or Favorites", async () => {
   const before = structuredClone(mockRows);
   const response = await request(app).post("/api/weekly-board/image-recovery").send(target);
   expect(response.status).toBe(200);
-  expect(response.body).toMatchObject({ status: "recovered", imageUrl: local });
-  expect(mockFinalize).toHaveBeenCalledTimes(1);
+  expect(response.body).toMatchObject({ status: "unavailable" });
+  expect(mockFinalize).not.toHaveBeenCalled();
   expect(mockUpdate).not.toHaveBeenCalled();
   expect(mockRows).toEqual(before);
 });
@@ -104,4 +108,15 @@ test("an already available stored image is reused without generation", async () 
   const response = await request(app).post("/api/weekly-board/image-recovery").send(target);
   expect(response.body).toEqual({ status: "retry", imageUrl: local });
   expect(mockFinalize).not.toHaveBeenCalled();
+});
+test("a missing thumbnail can use an existing variant of that exact asset without changing the Board", async () => {
+  const before = structuredClone(mockRows);
+  mockAssets = [{ thumbnailUrl: foreign, displayUrl: local, originalObjectKey: null }];
+  mockAuthority.mockResolvedValueOnce({ status: "missing", reason: "missing" })
+    .mockResolvedValueOnce({ status: "available", canonicalUrl: local });
+  const response = await request(app).post("/api/weekly-board/image-recovery").send(target);
+  expect(response.body).toEqual({ status: "recovered", imageUrl: local });
+  expect(mockFinalize).not.toHaveBeenCalled();
+  expect(mockUpdate).not.toHaveBeenCalled();
+  expect(mockRows).toEqual(before);
 });

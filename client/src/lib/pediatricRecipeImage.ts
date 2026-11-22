@@ -90,12 +90,10 @@ export function createPediatricImageRestorer() {
   ) => {
     let pending = requests.get(key);
     if (!pending) {
-      pending = resolvePediatricRecipeImage(input, stageKey, undefined, request).then(async result => {
-        if (result.recipe !== input.recipe) {
-          await save(result).catch(() => {});
-        }
-        return result;
-      });
+      // Restoration may retrieve an existing asset for this view, but may not
+      // regenerate, mark an attempt or resave a recipe as a page-load side effect.
+      pending = resolvePediatricRecipeImage(input, stageKey, undefined,
+        body => request({ ...body, generationIntent: "restore" }));
       requests.set(key, pending);
     }
     return pending;

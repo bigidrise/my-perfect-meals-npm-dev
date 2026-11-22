@@ -427,7 +427,10 @@ export default function RestaurantGuidePage() {
     })),
     [generatedMeals],
   );
-  const { imageMap: chefFlowImages, failedSet: chefFlowFailed } = useChefFlowImages(chefFlowMeals, "restaurant");
+  const [initialImageGeneration, setInitialImageGeneration] = useState(false);
+  const { imageMap: chefFlowImages, failedSet: chefFlowFailed } = useChefFlowImages(
+    chefFlowMeals, "restaurant", { initialGeneration: initialImageGeneration },
+  );
 
   const { toast } = useToast();
   const { user } = useAuth();
@@ -638,6 +641,7 @@ export default function RestaurantGuidePage() {
           .filter((k) => k.startsWith(LS_SLUG_PREFIX) && !currentKeys.has(k))
           .forEach((k) => localStorage.removeItem(k));
       } catch {}
+      setInitialImageGeneration(true);
       setGeneratedMeals(compliantRecs);
       if (CUISINE_FIDELITY) {
         setResultContext(data.restaurantInfo?.cuisineRequestContext || params.resultContext);

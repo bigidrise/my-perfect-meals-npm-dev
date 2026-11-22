@@ -44,6 +44,7 @@ export function AddOwnMealButton({ slot, onSave, onImageReady, variant = "icon",
       credentials: "include",
       headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify({
+        generationIntent: "initial",
         mealName: meal.name,
         mealType: slotToMealType(slot),
         ingredients: [],

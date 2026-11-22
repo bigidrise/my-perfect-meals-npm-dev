@@ -26,6 +26,7 @@ export function withImageDeliveryRetry(url: string, retry: number): string {
 
 function detectTypeFromName(name: string): ImageSourceType {
   const lower = name.toLowerCase();
+  if (/\b(?:shepherd[’']?s?|cottage|pot|fish|meat|chicken|turkey|steak)\s+pie\b/.test(lower)) return "meal";
   if (/smoothie|shake|juice|latte|coffee|tea|cocktail|mocktail|drink|beverage|lemonade|beer|wine|soda|protein.shake|matcha|espresso|frappe|cooler|spritzer|tonic|punch|agua.fresca|horchata|kombucha|infusion|elixir/.test(lower)) return "beverage";
   if (/cake|pie|cookie|brownie|pudding|ice.cream|cheesecake|tart|mousse|cupcake|donut|pastry|macaron|tiramisu|gelato|sorbet|sundae|fudge|truffle|crepe|parfait|cobbler|dessert/.test(lower)) return "dessert";
   if (/sushi|roll|nigiri|sashimi|maki|temaki|uramaki/.test(lower)) return "sushi";
@@ -291,7 +292,7 @@ export function MealImageSlot({
             }}
           />
           <div className="w-8 h-8 rounded-full border-2 border-orange-400 border-t-transparent animate-spin" />
-          <span className="text-orange-300 text-sm font-medium tracking-wide">Generating image…</span>
+          <span className="text-orange-300 text-sm font-medium tracking-wide">Loading image…</span>
         </div>
       </div>
     );

@@ -37,7 +37,9 @@ export function savedMealImageUrls(row: {
       displayUrl: row.assetDisplayUrl ?? null,
     };
   }
-  if (row.assetStatus === "failed" && row.assetProcessingError === "delivery_missing") {
+  if (row.assetStatus === "failed" &&
+      (row.assetProcessingError === "delivery_missing" ||
+       row.assetProcessingError === "Permanent Object Storage URL failed to load in client")) {
     const retryable = (url: string | null | undefined) =>
       url && isRecoverableObjectStorageUrl(url) ? url : null;
     return {

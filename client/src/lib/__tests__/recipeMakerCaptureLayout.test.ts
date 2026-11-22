@@ -7,16 +7,18 @@ const source = fs.readFileSync(
 );
 
 describe("Recipe Maker capture layout contract", () => {
-  it("puts the existing tutorial before the title and trash row in Development only", () => {
+  it("places Recipe Maker help above the title in Development and Production", () => {
     const topHelp = source.indexOf('data-testid="recipe-maker-top-help"');
     const header = source.indexOf('<DialogHeader className="mb-5 shrink-0">');
+
     expect(topHelp).toBeGreaterThan(0);
     expect(topHelp).toBeLessThan(header);
     expect(source.slice(topHelp, header)).toContain('featureKey="recipeMaker"');
     expect(source.slice(topHelp - 150, topHelp)).toContain(
-      'isDevelopmentRuntime && !isSmartScan && profileType === "human"',
+      '!isSmartScan && profileType === "human"',
     );
-    expect(source).toContain('!isDevelopmentRuntime && !isSmartScan && profileType === "human"');
+    expect(source).not.toContain("isDevelopmentRuntime");
+    expect(source.match(/featureKey="recipeMaker"/g)).toHaveLength(1);
   });
 
   it("uses three mobile columns with wrapping labels and matching button heights", () => {

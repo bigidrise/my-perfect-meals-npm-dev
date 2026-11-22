@@ -1,5 +1,6 @@
 import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE, retainPregnancySupport } from "@shared/pregnancyAvailability";
 import fs from "fs";
+import { readRecipePackage, savedMealFavoriteKey } from "../shared/recipePackage";
 import { buildCravingCategoryPrompt } from "../shared/cravingCategories";
 import { resolveCravingSelection } from "./services/craving/categorySelection";
 import { ConsumerOncologyError, saveConsumerSpecialtySupport, saveConsumerSpecialtyConditions } from "./services/consumerOncologySupport";
@@ -820,11 +821,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ ...decision, retryAfterMs: 1_000 });
       }
 
-      const candidates = [
+      // Historical Favorites saves sometimes wrapped a thumbnail in another
+      // asset record. Recover surviving variants only from records sharing this
+      // exact owned image URL, never by dish name or a similar recipe.
+      const sameImageAssets = await db.select({
+        thumbnailUrl: mediaAssetsTable.thumbnailUrl,
+        displayUrl: mediaAssetsTable.displayUrl,
+        originalObjectKey: mediaAssetsTable.originalObjectKey,
+      }).from(mediaAssetsTable).where(and(
+        eq(mediaAssetsTable.status, "ready"),
+        or(eq(mediaAssetsTable.thumbnailUrl, failedUrl), eq(mediaAssetsTable.displayUrl, failedUrl)),
+      )).limit(5);
+      const candidates = [...new Set([
         asset.thumbnailUrl,
         asset.displayUrl,
         publicObjectUrlForKey(failedUrl, asset.originalObjectKey),
-      ].filter((url): url is string => Boolean(url && url !== failedUrl));
+        ...sameImageAssets.flatMap(related => [
+          related.thumbnailUrl, related.displayUrl,
+          publicObjectUrlForKey(failedUrl, related.originalObjectKey),
+        ]),
+      ].filter((url): url is string => Boolean(url && url !== failedUrl)))];
 
       let alternate: { url: string; probe: DeliveryProbe } | null = null;
       for (const candidate of candidates) {
@@ -8244,11 +8260,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const { generateMealImageUnified } = await import("./services/mealImageGenerator");
       const sourceType = type === "beverage" ? "beverage" : "meal";
-      const imageUrl = await generateMealImageUnified(name, ingredients ?? [], sourceType);
-      if (imageUrl) {
+      let imageFailureCode: string | undefined;
+      const imageUrl = await generateMealImageUnified(name, ingredients ?? [], sourceType,
+        undefined, undefined, {
+          lookupOnly: req.body?.generationIntent !== "initial",
+          onFailure: code => { imageFailureCode = code; },
+        });
+      if (imageUrl && !imageFailureCode) {
         res.json({ imageUrl });
       } else {
-        res.status(500).json({ error: 'Failed to generate image' });
+        res.status(503).json({ imageUrl: null, imageFailureCode, error: 'The original image is unavailable. No replacement was generated.' });
       }
     } catch (error) {
       console.error('Image generation endpoint error:', error);
@@ -8278,6 +8299,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const ingredientNames = (ingredients as any[]).map((i: any) =>
         typeof i === "string" ? i : (i.name || i.item || "")
       ).filter(Boolean);
+      if (req.body?.generationIntent !== "initial") {
+        let imageFailureCode: string | undefined;
+        const imageUrl = await generateMealImageUnified(
+          mealName, ingredientNames, resolvedSourceType,
+          parsedPediatric?.success ? parsedPediatric.data : undefined, undefined,
+          { lookupOnly: true, onFailure: code => { imageFailureCode = code; } },
+        );
+        return res.json({
+          imageUrl: imageFailureCode ? null : imageUrl,
+          imageStatus: imageFailureCode ? "unavailable" : recipeImageStatus(imageUrl),
+          ...(imageFailureCode ? { imageFailureCode, message: "The original image could not be retrieved. No replacement was generated." } : {}),
+        });
+      }
       // This duplicate registration is retained for deployments that initialize
       // routes.ts without the shared meals router. Bind image recreation to the
       // authenticated user's server-resolved glucose context just as the shared
@@ -8315,13 +8349,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (glucoseFinding) {
         return res.status(422).json({ error: glucoseFinding.message, code: "GLUCOSE_PRODUCE_NOT_ALLOWED" });
       }
+      let imageFailureCode: string | undefined;
       const imageUrl = await generateMealImageUnified(
         mealName,
         ingredientNames,
         resolvedSourceType,
-        parsedPediatric?.success ? parsedPediatric.data : undefined
+        parsedPediatric?.success ? parsedPediatric.data : undefined,
+        undefined, { onFailure: code => { imageFailureCode = code; } },
       );
-      res.json({ imageUrl, imageStatus: recipeImageStatus(imageUrl) });
+      res.json({
+        imageUrl: imageFailureCode ? null : imageUrl,
+        imageStatus: imageFailureCode ? "unavailable" : recipeImageStatus(imageUrl),
+        ...(imageFailureCode ? { imageFailureCode } : {}),
+      });
     } catch (err: any) {
       console.error("❌ /api/meals/generate-image error:", err);
       res.status(500).json({ error: "Image generation failed" });
@@ -11107,14 +11147,18 @@ Provide a single exceptional meal recommendation in JSON format with the followi
 
   // ── Saved Meals / Favorites ──────────────────────────────────────
   const crypto = await import("crypto");
+  const developmentRecipePackages = process.env.NODE_ENV !== "production";
 
   function mealSignature(
     title: string,
     sourceType: string,
     macros?: { calories?: number; protein?: number; carbs?: number; fat?: number },
-    bglBucket?: string
+    bglBucket?: string,
+    packageId?: string,
   ): string {
-    const raw = `${title.trim().toLowerCase()}|${sourceType}|${macros?.calories ?? 0}|${macros?.protein ?? 0}|${macros?.carbs ?? 0}|${macros?.fat ?? 0}|${bglBucket ?? ""}`;
+    const identity = savedMealFavoriteKey(title, sourceType, packageId);
+    const raw = packageId ? identity
+      : `${identity}|${macros?.calories ?? 0}|${macros?.protein ?? 0}|${macros?.carbs ?? 0}|${macros?.fat ?? 0}|${bglBucket ?? ""}`;
     return crypto.createHash("sha256").update(raw).digest("hex").slice(0, 64);
   }
 
@@ -11137,7 +11181,8 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         (mealData?.builderType as string | undefined) === "diabetic";
 
       const macros = mealData.nutrition || { calories: mealData.calories, protein: mealData.protein, carbs: mealData.carbs, fat: mealData.fat };
-      const hash = mealSignature(title, sourceType || "unknown", macros, diabeticMemory?.bglBucket);
+      const packageId = developmentRecipePackages ? readRecipePackage(mealData)?.id : undefined;
+      const hash = mealSignature(title, sourceType || "unknown", macros, diabeticMemory?.bglBucket, packageId);
 
       const existing = await db.select().from(savedMealsTable).where(
         and(eq(savedMealsTable.userId, String(userId)), eq(savedMealsTable.signatureHash, hash))
@@ -11224,11 +11269,16 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     try {
       const userId = (req as AuthenticatedRequest).authUser.id;
 
-      const rows = await db.select({ title: savedMealsTable.title, sourceType: savedMealsTable.sourceType })
+      const rows = await db.select({
+        title: savedMealsTable.title, sourceType: savedMealsTable.sourceType,
+        recipePackageId: developmentRecipePackages
+          ? sql<string | null>`${savedMealsTable.mealData}->'recipePackage'->>'id'`
+          : sql<null>`NULL`,
+      })
         .from(savedMealsTable)
         .where(eq(savedMealsTable.userId, String(userId)));
 
-      res.json(rows.map(r => `${r.title.trim().toLowerCase()}|${r.sourceType}`));
+      res.json(rows.map(r => savedMealFavoriteKey(r.title, r.sourceType, r.recipePackageId ?? undefined)));
     } catch (error) {
       console.error("Error checking saved meals:", error);
       res.status(500).json({ error: "Failed to check saved meals" });

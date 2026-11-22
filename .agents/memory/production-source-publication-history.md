@@ -17,17 +17,21 @@ Do not promise that ignoring generated build metadata alone will prevent diverge
 
 ## Owner-controlled release standard
 
-Commit and push verified, approved, Production-intended Development work to reviewable GitHub feature or release branches. Obtain explicit owner approval before merging into GitHub Production, deploying, publishing, or enabling Production feature flags.
+Prepare verified, approved, Production-intended Development work for a reviewable GitHub release path. Do not push, merge, deploy, publish, or modify Production infrastructure without explicit founder approval.
 
 **Why:** The owner explicitly established this standard on 2026-11-20, replacing the earlier automatic-promotion instruction: “Build in Development, verify it, push approved work to GitHub, and let me control when it goes live.”
 
 **How to apply:** Preserve local work before reconciliation. Exclude unfinished experiments, secrets, temporary files, backup files and generated release noise from new release changes. Do not force-push, bypass branch protection or modify the separate Production workspace.
 
-Production-intended features must have appropriate automated regression coverage, a verified Production build, documented configuration and a reviewable GitHub release path. Do not add Development-only restrictions or default-off Production feature flags unless the owner explicitly requests them. The owner controls what gets merged into Production and what gets published. Security, authentication, entitlements, clinical safeguards and account isolation remain enforced in every environment.
+All approved My Perfect Meals features and interface improvements must function in both Development and Production. Development is where changes are made and tested, not a restriction on where approved functionality may run.
 
-**Why:** The owner rejected Development-only dead ends and silent loss of completed functionality during deployment, then repeated: “When we write code and we put something in, don't block it from production ever again. I will control what gets produced, what goes to production, and what gets published, not you.”
+Never wrap approved features, layouts, buttons, styling, or functionality in `isDevelopmentRuntime`, `import.meta.env.DEV`, `NODE_ENV === "development"`, or equivalent Development-only conditions unless the founder explicitly requests Development-only runtime behavior. Never introduce Production-off feature flags or environment restrictions for approved functionality without explicit authorization.
 
-**How to apply:** Distinguish genuinely unintended Development dependencies from explicit owner-approved Development-only holds. Preserve those holds and unrelated experiments until separately authorized; do not enable broader experimental flags just to release a narrow feature.
+Preserve existing security, clinical safety, credentials, infrastructure, and environment-specific service configurations, including authentication, entitlements and account isolation.
+
+**Why:** The founder explicitly made Production parity mandatory: “Development is where changes are made and tested. It is not a restriction on where those features may run.” Permission to modify only the Development workspace must never be confused with permission to restrict functionality to the Development runtime.
+
+**How to apply:** Before completing any task, verify that approved functionality is accessible under Production runtime conditions. Appropriate regression coverage, a verified Production build, documented configuration and a reviewable release path remain required. A feature working only in Development is not complete or release-ready; it must also pass Production-runtime verification. Report existing environment restrictions affecting the feature and resolve them when authorized. Preserve explicit founder-approved Development-only runtime holds and unrelated experiments until separately authorized; do not enable broader experimental flags just to release a narrow feature.
 
 ## Released Shopping Product Options
 

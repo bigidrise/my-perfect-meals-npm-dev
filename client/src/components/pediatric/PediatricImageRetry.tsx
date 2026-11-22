@@ -4,7 +4,7 @@ import type { PediatricImageGeneration } from "@shared/pediatricMealImage";
 
 export interface PediatricImageRetryResult {
   imageUrl: string | null;
-  imageGeneration: PediatricImageGeneration;
+  imageGeneration?: PediatricImageGeneration;
   imagePersisted: boolean;
 }
 
@@ -38,8 +38,7 @@ export function PediatricImageRetry({
       if (!mounted.current) return;
       onRecovered(result);
       if (!result.imagePersisted) {
-        setMessage(`No photograph was saved${result.imageGeneration.failureCode
-          ? ` (${result.imageGeneration.failureCode.replace(/_/g, " ")})` : ""}. Wait five minutes before another attempt.`);
+        setMessage("The original photograph is unavailable. Your recipe was preserved; no replacement was generated.");
         requestId.current = null;
       }
     } catch (error: any) {
@@ -54,11 +53,11 @@ export function PediatricImageRetry({
 
   return <div className="mt-3 space-y-2">
     <p className="text-xs text-white/60">
-      No generated photograph is saved. Retrying makes one image-generation attempt; your recipe stays unchanged.
+      Check whether the original stored photograph is available again. Your recipe stays unchanged; no new image is generated.
     </p>
     <button type="button" onClick={retry} disabled={busy}
       className="rounded-xl border border-emerald-400/40 px-4 py-2 text-sm font-medium text-emerald-200 transition-colors hover:bg-emerald-900/40 disabled:opacity-50">
-      {busy ? "Generating image…" : "Regenerate Image"}
+      {busy ? "Checking original…" : "Recover Original Image"}
     </button>
     <p role="status" aria-live="polite" className="text-xs text-amber-200">{message}</p>
   </div>;

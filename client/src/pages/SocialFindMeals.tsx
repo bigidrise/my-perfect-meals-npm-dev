@@ -317,10 +317,11 @@ export default function MealFinder() {
       })),
     [results],
   );
+  const [initialImageGeneration, setInitialImageGeneration] = useState(false);
   const { imageMap: chefFlowImages, failedSet: chefFlowFailed } = useChefFlowImages(
     chefFlowMeals,
     "restaurant",
-    { restaurantImageOptimization: true, ownerId: user?.id },
+    { restaurantImageOptimization: true, ownerId: user?.id, initialGeneration: initialImageGeneration },
   );
 
   const [progress, setProgress] = useState(0);
@@ -392,6 +393,7 @@ export default function MealFinder() {
       const newResults = params.acknowledgedAction
         ? rawResults
         : filterMealsByDiet(userDiet, rawResults, (r) => r);
+      setInitialImageGeneration(true);
       setResults(newResults);
 
       if (newResults.length === 0) {
