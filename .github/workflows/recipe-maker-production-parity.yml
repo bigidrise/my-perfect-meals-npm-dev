@@ -1,0 +1,35 @@
+name: Recipe Maker Production Parity
+
+on:
+  pull_request:
+    paths:
+      - "client/src/components/InspirationCaptureModal.tsx"
+      - "client/src/lib/__tests__/recipeMakerCaptureLayout.test.ts"
+      - ".github/workflows/recipe-maker-production-parity.yml"
+
+jobs:
+  recipe-maker-parity:
+    name: Verify Recipe Maker Production Parity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Configure public npm registry
+        run: |
+          sed -i 's|http://package-firewall.replit.local/npm/|https://registry.npmjs.org/|g' package-lock.json
+          npm config set registry https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm ci --no-audit --progress=false
+
+      - name: Verify Recipe Maker parity
+        run: npx jest client/src/lib/__tests__/recipeMakerCaptureLayout.test.ts --runInBand --no-coverage
