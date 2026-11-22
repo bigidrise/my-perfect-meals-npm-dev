@@ -150,7 +150,7 @@ mealImagesRouter.get('/meal-images/cache-stats', requireAuth, (req, res) => {
   try {
     const stats = getImageCacheStats();
     res.json({
-      success: results.every(image => !image.failureCode),
+      success: true,
       ...stats
     });
   } catch (error: any) {
