@@ -2,7 +2,7 @@ import { ReactNode, useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import DesktopHeader from "./DesktopHeader";
 import { useAuth } from "@/contexts/AuthContext";
-import ChefEmojiButton from "@/components/chef/ChefEmojiButton";
+import AskChefNavButton from "@/components/chef/AskChefNavButton";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import { DesktopLayoutProvider } from "@/contexts/DesktopLayoutContext";
 import {
@@ -141,15 +141,7 @@ export default function DesktopLayout({ children }: Props) {
           }`}
         >
           <div className="px-5 pt-5 pb-4">
-            <div
-              onClick={handleChefClick}
-              className="flex items-center justify-center gap-2 w-full pb-3 group cursor-pointer"
-            >
-              <ChefEmojiButton size={40} />
-              <span className="text-sm font-medium text-white/60 group-hover:text-orange-400 transition-colors">
-                {t("askChef")}
-              </span>
-            </div>
+            <AskChefNavButton onClick={handleChefClick} size={40} horizontal label={t("askChef")} />
             <div className="text-lg font-bold tracking-tight text-center">
               {t("appName")}
             </div>
