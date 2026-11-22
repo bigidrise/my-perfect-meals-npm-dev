@@ -1,5 +1,6 @@
 import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE, retainPregnancySupport } from "@shared/pregnancyAvailability";
 import fs from "fs";
+import { readRecipePackage, savedMealFavoriteKey } from "../shared/recipePackage";
 import { buildCravingCategoryPrompt } from "../shared/cravingCategories";
 import { resolveCravingSelection } from "./services/craving/categorySelection";
 import { ConsumerOncologyError, saveConsumerSpecialtySupport, saveConsumerSpecialtyConditions } from "./services/consumerOncologySupport";
@@ -11146,14 +11147,18 @@ Provide a single exceptional meal recommendation in JSON format with the followi
 
   // ── Saved Meals / Favorites ──────────────────────────────────────
   const crypto = await import("crypto");
+  const developmentRecipePackages = process.env.NODE_ENV !== "production";
 
   function mealSignature(
     title: string,
     sourceType: string,
     macros?: { calories?: number; protein?: number; carbs?: number; fat?: number },
-    bglBucket?: string
+    bglBucket?: string,
+    packageId?: string,
   ): string {
-    const raw = `${title.trim().toLowerCase()}|${sourceType}|${macros?.calories ?? 0}|${macros?.protein ?? 0}|${macros?.carbs ?? 0}|${macros?.fat ?? 0}|${bglBucket ?? ""}`;
+    const identity = savedMealFavoriteKey(title, sourceType, packageId);
+    const raw = packageId ? identity
+      : `${identity}|${macros?.calories ?? 0}|${macros?.protein ?? 0}|${macros?.carbs ?? 0}|${macros?.fat ?? 0}|${bglBucket ?? ""}`;
     return crypto.createHash("sha256").update(raw).digest("hex").slice(0, 64);
   }
 
@@ -11176,7 +11181,8 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         (mealData?.builderType as string | undefined) === "diabetic";
 
       const macros = mealData.nutrition || { calories: mealData.calories, protein: mealData.protein, carbs: mealData.carbs, fat: mealData.fat };
-      const hash = mealSignature(title, sourceType || "unknown", macros, diabeticMemory?.bglBucket);
+      const packageId = developmentRecipePackages ? readRecipePackage(mealData)?.id : undefined;
+      const hash = mealSignature(title, sourceType || "unknown", macros, diabeticMemory?.bglBucket, packageId);
 
       const existing = await db.select().from(savedMealsTable).where(
         and(eq(savedMealsTable.userId, String(userId)), eq(savedMealsTable.signatureHash, hash))
@@ -11263,11 +11269,16 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     try {
       const userId = (req as AuthenticatedRequest).authUser.id;
 
-      const rows = await db.select({ title: savedMealsTable.title, sourceType: savedMealsTable.sourceType })
+      const rows = await db.select({
+        title: savedMealsTable.title, sourceType: savedMealsTable.sourceType,
+        recipePackageId: developmentRecipePackages
+          ? sql<string | null>`${savedMealsTable.mealData}->'recipePackage'->>'id'`
+          : sql<null>`NULL`,
+      })
         .from(savedMealsTable)
         .where(eq(savedMealsTable.userId, String(userId)));
 
-      res.json(rows.map(r => `${r.title.trim().toLowerCase()}|${r.sourceType}`));
+      res.json(rows.map(r => savedMealFavoriteKey(r.title, r.sourceType, r.recipePackageId ?? undefined)));
     } catch (error) {
       console.error("Error checking saved meals:", error);
       res.status(500).json({ error: "Failed to check saved meals" });

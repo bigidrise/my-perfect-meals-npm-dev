@@ -26,6 +26,8 @@ import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
 import { groceryCoachPlanHandoff } from "@/lib/groceryCoachPlanHandoff";
 import TrashButton from "@/components/ui/TrashButton";
+import { readRecipePackage } from "@shared/recipePackage";
+import { recipePackagesEnabled } from "@/lib/recipePackageGate";
 
 interface Props {
   row: any;
@@ -40,6 +42,8 @@ interface Props {
   /** When true, the row auto-expands and scrolls into view (deep-link support) */
   isInitiallyExpanded?: boolean;
   initialExpanded?: boolean;
+  /** A package child is a recipe snapshot, not an independently saved row. */
+  embeddedMeal?: boolean;
 }
 
 export default function SavedMealRow({
@@ -50,6 +54,7 @@ export default function SavedMealRow({
   onAddToPlanSuccess,
   isInitiallyExpanded = false,
   initialExpanded = false,
+  embeddedMeal = false,
 }: Props) {
   const { t } = useTranslation();
   // Support both prop names for backward compatibility
@@ -59,18 +64,20 @@ export default function SavedMealRow({
 
   // Scroll the auto-expanded row into view after the first render
   useEffect(() => {
-    if (startExpanded && rowRef.current) {
+    if (startExpanded && !embeddedMeal && rowRef.current) {
       rowRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Translation layer — fires on first expand for non-English locales ──
+  const recipePackage = recipePackagesEnabled && !embeddedMeal ? readRecipePackage(row.mealData) : null;
   const { data: translation, isLoading: isTranslating } = useTranslatedMeal(
     row.id,
-    isExpanded
+    isExpanded && !embeddedMeal && !recipePackage
   );
 
   const d = row.mealData as any;
+  const canonicalInstructions = embeddedMeal ? d?.instructions || d?.cookingInstructions : d?.instructions;
   const perServingNutrition = mealMacroSnapshot(d);
   const developmentGrocery = groceryCoachCatalogEnabled && row.sourceType === "grocery-coach";
 
@@ -85,7 +92,7 @@ export default function SavedMealRow({
   const displayDescription  = translation?.translatedDescription ?? d?.description;
   const displayInstructions = translation?.translatedInstructions
     ? translation.translatedInstructions
-    : d?.instructions;
+    : canonicalInstructions;
 
   /**
    * Merge translated ingredient text with original quantities/units.
@@ -125,7 +132,9 @@ export default function SavedMealRow({
             >
               <span>{sourceLabel(row.sourceType, row.mealData)}</span>
               <span aria-hidden="true" className="text-white/25">·</span>
-              <span>{Math.round(perServingNutrition.calories)} {t("savedMeals.cal")} / serving</span>
+              <span>{recipePackage
+                ? `${recipePackage.meals.length} recipes`
+                : <>{Math.round(perServingNutrition.calories)} {t("savedMeals.cal")} / serving</>}</span>
             </div>
           </div>
           <div
@@ -140,7 +149,7 @@ export default function SavedMealRow({
           <span aria-hidden="true" className="flex h-11 w-11 items-center justify-center text-white/55">
             {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </span>
-          <div className="pointer-events-auto">
+          {!embeddedMeal && <div className="pointer-events-auto">
             <TrashButton
               onClick={() => onRemove(row)}
               ariaLabel={`${t("savedMeals.remove")}: ${displayTitle}`}
@@ -149,19 +158,19 @@ export default function SavedMealRow({
               appearance="meal-card"
               className="shrink-0"
             />
-          </div>
+          </div>}
         </div>
       </div>
 
       {/* Keep the compact collapsed preview below the header; expanded image stays in the body. */}
-      {!isExpanded && (
+      {!isExpanded && (!recipePackage || recipePackage.meals.length > 0) && (
         <div className="px-3 pb-3">
           <div className="cursor-pointer" onClick={() => setIsExpanded(true)}>
             <MealImageSlot
               imageUrl={row.thumbnailUrl || d?.imageUrl}
               mealName={row.title}
               ingredients={d?.ingredients}
-              savedMealId={row.id}
+              savedMealId={embeddedMeal ? undefined : row.id}
               mediaAssetId={row.mediaAssetId}
               height="h-36"
             />
@@ -171,13 +180,41 @@ export default function SavedMealRow({
       )}
 
       {/* ── Expanded body ─────────────────────────────────────────────────── */}
-      {isExpanded && (
+      {isExpanded && recipePackage && (
+        <div id={`saved-meal-details-${row.id}`} className="space-y-4 border-t border-white/10 p-4">
+          <section aria-label="Preparation guide" className="space-y-4">
+            <h3 className="font-bold text-orange-400">{recipePackage.preparationGuide.title}</h3>
+            {recipePackage.preparationGuide.sections.map((section, index) => (
+              <div key={index}>
+                <h4 className="font-semibold text-white">{section.heading}</h4>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-white/80">{section.text}</p>
+              </div>
+            ))}
+          </section>
+          {recipePackage.meals.map((meal, index) => (
+            <SavedMealRow
+              key={index}
+              row={{
+                id: `${row.id}:recipe:${index}`, title: meal.name,
+                sourceType: row.sourceType, mealData: meal,
+                mediaAssetId: meal.mediaAssetId,
+              }}
+              sourceLabel={sourceLabel}
+              onRemove={onRemove}
+              onAddToMacros={() => onAddToMacros({ ...row, title: meal.name, mealData: meal })}
+              onAddToPlanSuccess={onAddToPlanSuccess}
+              initialExpanded embeddedMeal
+            />
+          ))}
+        </div>
+      )}
+      {isExpanded && !recipePackage && (
         <div id={`saved-meal-details-${row.id}`} className="space-y-4 border-t border-white/10 px-4 pb-4 pt-4">
           <MealImageSlot
             imageUrl={row.displayUrl || d?.imageUrl || row.thumbnailUrl}
             mealName={row.title}
             ingredients={d?.ingredients}
-            savedMealId={row.id}
+            savedMealId={embeddedMeal ? undefined : row.id}
             mediaAssetId={row.mediaAssetId}
             height="h-52"
           />
@@ -245,7 +282,7 @@ export default function SavedMealRow({
           )}
 
           {/* Instructions */}
-          {d?.instructions && (
+          {canonicalInstructions && (
             <div>
               <h4 className="text-sm font-semibold text-white/70 mb-2">
                 {t("savedMeals.instructions")}
@@ -273,7 +310,7 @@ export default function SavedMealRow({
               id: row.id,
               name: row.title,
               description: d?.description,
-              instructions: d?.instructions,
+              instructions: canonicalInstructions,
               ingredients: d?.ingredients,
               nutrition: d?.nutrition || { calories, protein, carbs, fat },
               imageUrl: d?.imageUrl,
@@ -290,7 +327,7 @@ export default function SavedMealRow({
                   id: row.id,
                   name: row.title,
                   description: d?.description,
-                  instructions: d?.instructions,
+                  instructions: canonicalInstructions,
                   ingredients: d?.ingredients,
                   nutrition: d?.nutrition || { calories, protein, carbs, fat },
                   imageUrl: d?.imageUrl,

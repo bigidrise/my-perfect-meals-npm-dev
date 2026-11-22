@@ -59,6 +59,8 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import { creatorMealNutrition as getMealNutrition } from "@/lib/mealMacroSnapshot";
 import TrashButton from "@/components/ui/TrashButton";
 import FavoriteButton from "@/components/FavoriteButton";
+import { isPreparationGuide, savedRecipePackage, type PreparationGuide } from "@shared/recipePackage";
+import { recipePackagesEnabled } from "@/lib/recipePackageGate";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { PillButton } from "@/components/ui/pill-button";
@@ -69,7 +71,6 @@ import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill from "@/components/MealClassificationPill";
 import KosherProTip from "@/components/KosherProTip";
-import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import {
   type DishCategory,
   type TraditionalDish,
@@ -114,7 +115,6 @@ interface CourseMeal {
     reason: string;
     color: string;
   }>;
-  imageUrl?: string;
   dietaryComplianceVerified?: boolean;
   dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
   courseType: "appetizer" | "main" | "side" | "dessert";
@@ -198,26 +198,33 @@ const COURSE_EMOJI: Record<string, string> = {
 // ─────────────────────────────────────────────
 const CACHE_KEY = "ultimateExperience.cache.v1";
 
-type CachedExperienceState = {
+export type CachedExperienceState = {
   courses: CourseMeal[];
   servings: number;
   situation: Situation;
   eventType: string | null;
   generatedAtISO: string;
+  harvestGuide?: PreparationGuide | null;
+  harvestGuideCollapsed?: boolean;
+  proteinSource?: string;
+  cookingMethod?: string;
+  outdoorExperienceType?: OutdoorExperienceType;
 };
 
-function saveExperienceCache(state: CachedExperienceState) {
+export function saveExperienceCache(state: CachedExperienceState) {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(state));
-  } catch {}
+    return true;
+  } catch { return false; }
 }
 
-function loadExperienceCache(): CachedExperienceState | null {
+export function loadExperienceCache(): CachedExperienceState | null {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!parsed?.courses?.length) return null;
+    if (!Array.isArray(parsed?.courses)) return null;
+    if (!parsed.courses.length && !(recipePackagesEnabled && isPreparationGuide(parsed.harvestGuide))) return null;
     return parsed as CachedExperienceState;
   } catch {
     return null;
@@ -258,8 +265,10 @@ export default function UltimateExperiencesPage() {
   const [servings, setServings] = useState<number>(6);
   const [proteinSource, setProteinSource] = useState("");
   const [cookingMethod, setCookingMethod] = useState("");
-  const [harvestGuide, setHarvestGuide] = useState<{ title: string; sections: { heading: string; text: string }[] } | null>(null);
+  const [harvestGuide, setHarvestGuide] = useState<PreparationGuide | null>(null);
   const [harvestGuideCollapsed, setHarvestGuideCollapsed] = useState(false);
+  const experienceGeneratedAtRef = useRef("");
+  const cacheWriteFailedRef = useRef(false);
   const [outdoorExperienceType, setOutdoorExperienceType] = useState<OutdoorExperienceType>("simple");
 
   // ── Shared state (from CreateDishPage) ───────
@@ -327,30 +336,65 @@ export default function UltimateExperiencesPage() {
   // Safe cache restore — generatedInSession stays false (no ShoppingBar cold-mount)
   useEffect(() => {
     const cached = loadExperienceCache();
-    if (cached?.courses?.length) {
+    if (cached && (cached.courses.length || (recipePackagesEnabled && cached.harvestGuide))) {
+      experienceGeneratedAtRef.current = cached.generatedAtISO || new Date().toISOString();
       setGeneratedCourses(cached.courses);
       setServings(cached.servings || 6);
       if (cached.situation) setSituation(cached.situation);
       if (cached.eventType) setSelectedEvent(cached.eventType);
-      // Re-fetch images for any courses without imageUrl — DB cache returns instantly
-      const needImages = cached.courses.filter((c: any) => !c.imageUrl);
-      if (needImages.length > 0) {
-        hydrateImages(needImages);
+      if (recipePackagesEnabled) {
+        setHarvestGuide(isPreparationGuide(cached.harvestGuide) ? cached.harvestGuide : null);
+        setHarvestGuideCollapsed(cached.harvestGuideCollapsed ?? false);
+        setProteinSource(cached.proteinSource ?? "");
+        setCookingMethod(cached.cookingMethod ?? "");
+        setOutdoorExperienceType(cached.outdoorExperienceType ?? "simple");
+      } else {
+        const needImages = cached.courses.filter((c: any) => !c.imageUrl);
+        if (needImages.length > 0) hydrateImages(needImages);
       }
     }
   }, []);
 
   useEffect(() => {
-    if (generatedCourses.length > 0) {
-      saveExperienceCache({
+    if (generatedCourses.length > 0 || (recipePackagesEnabled && harvestGuide)) {
+      const cached = saveExperienceCache({
         courses: generatedCourses,
         servings,
         situation: situation || "holiday",
         eventType: selectedEvent,
-        generatedAtISO: new Date().toISOString(),
+        generatedAtISO: recipePackagesEnabled
+          ? experienceGeneratedAtRef.current || new Date().toISOString()
+          : new Date().toISOString(),
+        ...(recipePackagesEnabled ? {
+          harvestGuide, harvestGuideCollapsed, proteinSource, cookingMethod, outdoorExperienceType,
+        } : {}),
       });
+      if (!cached && !cacheWriteFailedRef.current) {
+        toast({ title: t("Experience could not be cached"),
+          description: t("Your browser storage is full or unavailable. Save to Favorites to keep this experience."),
+          variant: "destructive" });
+      }
+      cacheWriteFailedRef.current = !cached;
     }
-  }, [generatedCourses, servings]);
+  }, [generatedCourses, servings,
+    recipePackagesEnabled ? harvestGuide : null,
+    recipePackagesEnabled ? harvestGuideCollapsed : null,
+    recipePackagesEnabled ? proteinSource : null,
+    recipePackagesEnabled ? cookingMethod : null,
+    recipePackagesEnabled ? outdoorExperienceType : null,
+    recipePackagesEnabled ? situation : null,
+    recipePackagesEnabled ? selectedEvent : null]);
+
+  const packageFavorite = recipePackagesEnabled && harvestGuide
+    ? savedRecipePackage({
+        version: 1,
+        id: experienceGeneratedAtRef.current,
+        source: "great-outdoors",
+        preparationGuide: harvestGuide,
+        meals: generatedCourses,
+        servings,
+      }, "create-dish")
+    : null;
 
   // Starch guard runs on combined input
   useEffect(() => {
@@ -551,6 +595,7 @@ export default function UltimateExperiencesPage() {
       stopProgressTicker();
       setIsGenerating(false);
       const courses: CourseMeal[] = data.courses || [];
+      experienceGeneratedAtRef.current = new Date().toISOString();
       setGeneratedCourses(courses);
       setHarvestGuide(data.harvestGuide || null);
       setHarvestGuideCollapsed(false);
@@ -561,7 +606,11 @@ export default function UltimateExperiencesPage() {
         servings,
         situation,
         eventType: selectedEvent,
-        generatedAtISO: new Date().toISOString(),
+        generatedAtISO: experienceGeneratedAtRef.current,
+        ...(recipePackagesEnabled ? {
+          harvestGuide: data.harvestGuide || null, harvestGuideCollapsed: false,
+          proteinSource, cookingMethod, outdoorExperienceType,
+        } : {}),
       });
 
       // Fire image generation for all courses in parallel — non-blocking
@@ -1316,9 +1365,15 @@ export default function UltimateExperiencesPage() {
                         <p className="text-orange-400 text-xs font-bold uppercase tracking-wider mb-1">
                           {section.heading}
                         </p>
-                        <p className="text-white/80 text-sm leading-relaxed">{section.text}</p>
+                        <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">{section.text}</p>
                       </div>
                     ))}
+                  </div>
+                )}
+                {packageFavorite && (
+                  <div className="px-4 py-3 border-t border-orange-400/20">
+                    <FavoriteButton {...packageFavorite} saveOnly showLabel
+                      disabled={isGenerating || Object.values(loadingImages).some(Boolean)} />
                   </div>
                 )}
               </div>
@@ -1386,9 +1441,11 @@ export default function UltimateExperiencesPage() {
                             {course.name}
                           </h3>
                           <FavoriteButton
-                            title={course.name}
-                            sourceType="create-dish"
-                            mealData={{ ...course, servings: course.servings ?? servings }}
+                            disabled={!!packageFavorite && (isGenerating || Object.values(loadingImages).some(Boolean))}
+                            {...(packageFavorite ?? {
+                              title: course.name, sourceType: "create-dish",
+                              mealData: { ...course, servings: course.servings ?? servings },
+                            })}
                           />
                         </div>
                         <button

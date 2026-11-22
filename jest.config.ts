@@ -6,6 +6,7 @@ const config: Config = {
   roots: ["<rootDir>/server/tests", "<rootDir>/client/src/lib/__tests__", "<rootDir>/client/src/hooks/__tests__", "<rootDir>/tests"],
   moduleFileExtensions: ["ts", "tsx", "js", "json"],
   moduleNameMapper: {
+    "^@/lib/recipePackageGate$": "<rootDir>/client/src/lib/__mocks__/recipePackageGate.ts",
     "^@/lib/shoppingProductActionsGate$": "<rootDir>/client/src/lib/__mocks__/shoppingProductActionsGate.ts",
     "\\.css$": "<rootDir>/tests/fixtures/styleMock.cjs",
     "^@/lib/ingredientDisplayGate$": "<rootDir>/client/src/lib/__mocks__/ingredientDisplayGate.ts",

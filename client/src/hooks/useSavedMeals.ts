@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { get, post } from "@/lib/api";
+import { savedMealFavoriteKey } from "@shared/recipePackage";
 
 export interface SavedMealRow {
   id: string;
@@ -98,11 +99,11 @@ export function useDeleteSavedMeal() {
   });
 }
 
-export function makeMealKey(title: string, sourceType: string): string {
-  return `${(title || "").trim().toLowerCase()}|${sourceType}`;
+export function makeMealKey(title: string, sourceType: string, packageId?: string): string {
+  return savedMealFavoriteKey(title, sourceType, packageId);
 }
 
-export function isMealSaved(keys: string[] | undefined, title: string, sourceType: string): boolean {
+export function isMealSaved(keys: string[] | undefined, title: string, sourceType: string, packageId?: string): boolean {
   if (!keys || keys.length === 0) return false;
-  return keys.includes(makeMealKey(title, sourceType));
+  return keys.includes(makeMealKey(title, sourceType, packageId));
 }
