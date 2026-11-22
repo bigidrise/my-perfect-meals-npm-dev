@@ -115,13 +115,12 @@ export function normalizeForDietaryScan(text: string): string {
   return butterMasked;
 }
 
-/** Development-only FoodMeaning integration; Production keeps its current policy. */
+/** Apply explicit protein-source identity consistently across runtimes.
+ * Never use this normalization for allergies or direct product avoidances. */
 export function foodMeaningDietaryText(text: string, rule: string): string {
   const sourceRule = ["pork", "no pork", "no red meat", "kosher", "halal", "kosher-halal"]
     .includes(rule.trim().toLowerCase());
-  return process.env.NODE_ENV === "development" && sourceRule
-    ? proteinSourceIngredientText(text)
-    : text;
+  return sourceRule ? proteinSourceIngredientText(text) : text;
 }
 
 
