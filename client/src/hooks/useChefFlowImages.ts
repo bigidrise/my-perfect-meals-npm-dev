@@ -29,7 +29,7 @@ function readFromLS(id: string): string | null {
   try {
     // Check sessionStorage first (base64 / data: URIs stored here)
     const ss = sessionStorage.getItem(SS_PREFIX + id);
-    if (ss && !isPlaceholderImage(ss)) return ss;
+    if (ss && isPermanentImageUrl(ss)) return ss;
     // Fall back to localStorage (https:// URLs stored here)
     const v = localStorage.getItem(LS_PREFIX + id);
     return v && isPermanentImageUrl(v) ? v : null;
@@ -40,9 +40,6 @@ function writeToLS(id: string, url: string): void {
   if (isPlaceholderImage(url)) return;
   if (isPermanentImageUrl(url)) {
     try { localStorage.setItem(LS_PREFIX + id, url); } catch {}
-  } else if (url.startsWith("data:")) {
-    // Store base64 in sessionStorage — tab-scoped, no cross-session quota risk
-    try { sessionStorage.setItem(SS_PREFIX + id, url); } catch {}
   }
 }
 
@@ -67,7 +64,7 @@ export interface ChefFlowImagesResult {
 export function useChefFlowImages(
   meals: ChefFlowMeal[],
   mealType: string,
-  options?: { restaurantImageOptimization?: boolean; ownerId?: string },
+  options?: { restaurantImageOptimization?: boolean; ownerId?: string; initialGeneration?: boolean },
 ): ChefFlowImagesResult {
   const ownerId = options?.ownerId;
   const optimized = options?.restaurantImageOptimization === true &&
@@ -173,6 +170,7 @@ export function useChefFlowImages(
                   headers: { "Content-Type": "application/json", ...getAuthHeaders() },
                   body: JSON.stringify({
                     mealName,
+                    generationIntent: options?.initialGeneration ? "initial" : "restore",
                     mealType,
                     sourceType: mealType === "beverage" || mealType === "drink" ? "beverage" : mealType === "snack" ? "snack" : "meal",
                     ...(meal.ingredients && meal.ingredients.length > 0 ? { ingredients: meal.ingredients } : {}),
@@ -212,7 +210,7 @@ export function useChefFlowImages(
 
       fire();
     });
-  }, [meals, mealType, optimized, ownerId]);
+  }, [meals, mealType, optimized, ownerId, options?.initialGeneration]);
 
   return {
     imageMap: optimized ? Object.fromEntries(Object.entries(imageMap).filter(([id]) =>

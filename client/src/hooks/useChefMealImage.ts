@@ -3,6 +3,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import type { Meal } from "@/types/meal";
 import { photographFromResponse, IMAGE_CLIENT_TIMEOUT_MS } from "@shared/imageResult";
+import { isPermanentImageUrl } from "@/lib/imageUrlUtils";
 
 function resolveSourceType(mealType: string): string {
   const t = mealType.toLowerCase();
@@ -21,11 +22,15 @@ export function useChefMealImage() {
   const pendingRef = useRef(new Set<string>());
 
   const fetchImageForMeal = useCallback(async (
-    meal: Pick<Meal, "id" | "name" | "title" | "ingredients">,
+    meal: Pick<Meal, "id" | "name" | "title" | "ingredients"> & { imageUrl?: string | null },
     mealType: string,
     onImageReady: (mealId: string, imageUrl: string) => void,
     dietType?: string
   ) => {
+    if (isPermanentImageUrl(meal.imageUrl)) {
+      onImageReady(meal.id, meal.imageUrl!);
+      return;
+    }
     const normalizedMealType = mealType === 'snacks' ? 'snack' : mealType;
     const sourceType = resolveSourceType(normalizedMealType);
     const mealName = meal.name ?? meal.title ?? "Meal";
@@ -53,6 +58,9 @@ export function useChefMealImage() {
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
           mealName,
+          // This hook is called from successful new-generation handlers, not
+          // restoration effects. Restored boards retain their stored URLs.
+          generationIntent: "initial",
           mealType: normalizedMealType,
           sourceType,
           dietType,

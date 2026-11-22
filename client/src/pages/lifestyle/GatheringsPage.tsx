@@ -566,7 +566,7 @@ export default function UltimateExperiencesPage() {
 
       // Fire image generation for all courses in parallel — non-blocking
       if (courses.length > 0) {
-        hydrateImages(courses);
+        hydrateImages(courses, { initialGeneration: true });
       }
 
       toast({

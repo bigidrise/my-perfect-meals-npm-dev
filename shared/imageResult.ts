@@ -1,3 +1,5 @@
+import { isFirstPartyPermanentImageUrl } from "./mediaImageUrls";
+
 /** Image outcome is independent of the recipe's success and of its display URL. */
 export interface ImageResult {
   generation: "not_requested" | "pending" | "succeeded" | "failed";
@@ -24,7 +26,7 @@ export const IMAGE_CLIENT_TIMEOUT_MS = 210_000;
 /** Legacy responses may omit typed evidence; explicit negative evidence always wins. */
 export function photographFromResponse(data: { imageUrl?: string | null; imageResult?: ImageResult }): string | null {
   if (data.imageResult) return isVerifiedPhotograph(data.imageResult) && data.imageResult.url === data.imageUrl ? data.imageUrl! : null;
-  return data.imageUrl && !isPlaceholderImage(data.imageUrl) ? data.imageUrl : null;
+  return isFirstPartyPermanentImageUrl(data.imageUrl) && !isPlaceholderImage(data.imageUrl) ? data.imageUrl! : null;
 }
 
 /** Keep the legacy field present, but never hand old clients fallback artwork to save. */
@@ -50,12 +52,13 @@ export function placeholderResult(url: string | null, reason: string): ImageResu
 
 export function isVerifiedPhotograph(result: ImageResult): boolean {
   return result.generation === "succeeded" && result.verification === "passed"
-    && result.display === "photograph" && !!result.url && !isPlaceholderImage(result.url);
+    && result.persistence === "durable" && result.display === "photograph"
+    && isFirstPartyPermanentImageUrl(result.url) && !isPlaceholderImage(result.url);
 }
 
 export function imageOutcome(result: ImageResult): "generated_verified" | "pending" | "failed" | "placeholder" {
   if (isVerifiedPhotograph(result)) return "generated_verified";
   if (result.generation === "pending") return "pending";
-  if (result.generation === "failed" || result.verification === "failed" || result.verification === "unavailable") return "failed";
+  if (result.generation === "failed" || result.persistence === "failed" || result.verification === "failed" || result.verification === "unavailable") return "failed";
   return "placeholder";
 }

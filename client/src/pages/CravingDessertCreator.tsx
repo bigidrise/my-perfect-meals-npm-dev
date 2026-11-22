@@ -293,8 +293,12 @@ export default function DessertCreator() {
   // back into state. The localStorage save effect below fires again once imageUrl is an S3
   // URL, so subsequent restores always have a valid imageUrl. The S3-URL guard at the top
   // makes this safe to run on every generatedDessert change without looping.
+  const initialImageRequest = useRef(false);
+  const freshImageChoices = useRef(new Set<string>());
   useEffect(() => {
     if (!generatedDessert) return;
+    const generationIntent = initialImageRequest.current ? "initial" : "restore";
+    initialImageRequest.current = false;
     const url = generatedDessert.imageUrl;
     if (url && !url.startsWith('data:')) return; // Already has an S3 URL — nothing to do
     if (!generatedDessert.name) return;
@@ -305,6 +309,7 @@ export default function DessertCreator() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        generationIntent,
         mealId: generatedDessert.id,
         mealName: generatedDessert.name,
         mealType: "desserts",
@@ -537,6 +542,8 @@ export default function DessertCreator() {
       }
 
       stopProgressTicker();
+      freshImageChoices.current = new Set(choices.map(choice => choice.id));
+      initialImageRequest.current = false;
       replaceChoices(data);
       setDessertImageLoading(false); // Image is returned inline from the server
 
@@ -1090,6 +1097,7 @@ export default function DessertCreator() {
             notice={choiceNotice}
             disabled={isGenerating}
             onSelect={(choice) => {
+              initialImageRequest.current = freshImageChoices.current.delete(choice.id);
               setGeneratedDessert(choice);
               setShowRecipeTotalNutrition(false);
               setInstructionsExpanded(false);

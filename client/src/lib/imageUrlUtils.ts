@@ -1,4 +1,5 @@
 import { isPlaceholderImage } from "@shared/imageResult";
+import { isFirstPartyPermanentImageUrl } from "@shared/mediaImageUrls";
 /**
  * imageUrlUtils — canonical image URL classification for My Perfect Meals
  *
@@ -15,12 +16,6 @@ import { isPlaceholderImage } from "@shared/imageResult";
  *   the client in normal operation, but we guard against them defensively.
  */
 
-/** Relative path prefixes used by MPM-controlled permanent object storage */
-const PERMANENT_PREFIXES = ['/public-objects/', '/images/', '/assets/'];
-
-/** Hostname substrings that indicate MPM-controlled S3 storage */
-const PERMANENT_HOST_PATTERNS = ['amazonaws.com'];
-
 /**
  * Returns true when `url` is a permanent, MPM-controlled image URL.
  * These URLs are safe to persist in the database, localStorage, and board
@@ -29,9 +24,7 @@ const PERMANENT_HOST_PATTERNS = ['amazonaws.com'];
 export function isPermanentImageUrl(url: string | null | undefined): boolean {
   if (!url) return false;
   if (isPlaceholderImage(url)) return false;
-  if (PERMANENT_PREFIXES.some((p) => url.startsWith(p))) return true;
-  if (PERMANENT_HOST_PATTERNS.some((p) => url.includes(p))) return true;
-  return false;
+  return isFirstPartyPermanentImageUrl(url);
 }
 
 /**

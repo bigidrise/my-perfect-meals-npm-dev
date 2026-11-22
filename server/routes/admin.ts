@@ -672,7 +672,12 @@ router.post("/repair-image-cache", async (req, res) => {
     const staleRows = await db
       .select({ cacheKey: mealImageCache.cacheKey, mealName: mealImageCache.mealName, imageUrl: mealImageCache.imageUrl })
       .from(mealImageCache)
-      .where(notLike(mealImageCache.imageUrl, `${S3_URL_PREFIX}%`));
+      .where(sql`
+        ${mealImageCache.imageUrl} LIKE 'data:%'
+        OR ${mealImageCache.imageUrl} LIKE '%oaidalleapiprodscus%'
+        OR ${mealImageCache.imageUrl} LIKE '%blob.core.windows.net%'
+        OR ${mealImageCache.imageUrl} LIKE '%openai.com%'
+      `);
 
     const staleKeys = staleRows.map(r => r.cacheKey);
 

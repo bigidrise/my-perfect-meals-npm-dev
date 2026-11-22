@@ -105,7 +105,7 @@ describe("Perfect Beginnings initial and restored image policy", () => {
     expect(request).toHaveBeenCalledTimes(1);
   });
 
-  it("joins one restoration request/save across StrictMode replay and child switches", async () => {
+  it("joins a read-only restoration across StrictMode replay without saving the recipe", async () => {
     const restore = createPediatricImageRestorer();
     const request = jest.fn().mockResolvedValue({ imageUrl: photo });
     const save = jest.fn().mockResolvedValue(undefined);
@@ -116,10 +116,11 @@ describe("Perfect Beginnings initial and restored image policy", () => {
     await Promise.all([one, two]);
     await restore("child-a:meal-a", input, "preschool", request, save);
     expect(request).toHaveBeenCalledTimes(1);
-    expect(save).toHaveBeenCalledTimes(1);
+    expect(save).not.toHaveBeenCalled();
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({ generationIntent: "restore" }));
     await restore("child-b:meal-b", input, "toddler", request, save);
     expect(request).toHaveBeenCalledTimes(2);
-    expect(save).toHaveBeenCalledTimes(2);
+    expect(save).not.toHaveBeenCalled();
   });
 
   it("never saves an illustration or base64 as a generated photograph", () => {
