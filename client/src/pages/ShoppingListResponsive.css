@@ -98,8 +98,9 @@
   padding: 4px 6px;
 }
 
-.shopping-product-picker {
+[role="dialog"].shopping-product-picker {
   /* Portaled dialogs do not inherit the page shell's iOS safe-area padding.
+   * Beat the shared top/max-height utilities regardless of stylesheet order.
    * Bound the existing frame; retain its fixed header/footer and body scroller.
    * Apply to the shared loading/results frame, including landscape phones. */
   --shopping-picker-safe-top: calc(env(safe-area-inset-top, 0px) + 1rem);
