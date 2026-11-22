@@ -17,7 +17,7 @@
 - [Coaching engine contracts](coaching-engine-phase1.md) — coaching evidence and typed contracts are the shared foundation for its observers and UI.
 - [Coaching confidence doctrine](coaching-engine-confidence-doctrine.md) — legacy structured-renderer confidence controls, not the released Ask Chef primary conversation.
 - [Object storage verification](object-storage-architecture.md) — resolve current environment authority; no-write readiness does not attest upload durability.
-- [Canonical media assets](media-asset-architecture.md) — media lifecycle gates must protect every referencing surface before object deletion.
+- [Canonical media assets](media-asset-architecture.md) — all active image pathways preserve finalized assets; no restore-triggered generation; audit before repairs; protect references before deletion.
 - [Meal image references](meal-image-reference-index.md) — recipe fidelity, pediatric prepared-food expectations, production delivery, bounded recovery, and board media identity.
 - [Daily prescription hierarchy](daily-prescription-hierarchy.md) — one endpoint owns macro targets; clinical overlays are applied in documented order.
 - [Nutrition decision engine entry points](nde-food-entry-points.md) — all food intake surfaces must consult NDE before presenting results.
