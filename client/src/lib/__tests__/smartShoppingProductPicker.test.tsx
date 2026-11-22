@@ -717,7 +717,7 @@ test("explicit qualifiers are preserved and review-only candidates explain why t
   expect(await screen.findByText("The requested low sodium requirement hasn't been verified. Check the current label.")).toBeInTheDocument();
   expect(screen.queryByText("No reviewed validator supports this qualifier.")).not.toBeInTheDocument();
   expect(screen.getByText("Compare sodium across lower-sodium varieties using the same serving size.")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Keep generic" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Keep generic" })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Choose this option" })).not.toBeInTheDocument();
   expect(post).toHaveBeenCalledWith("/api/grocery-coach/product-advisor", {
     mode: "find_product",
@@ -750,11 +750,12 @@ test("choosing an existing supported option saves that exact structured choice",
   await waitFor(() => expect(onCommit).toHaveBeenCalledWith(selection));
 });
 
-test("Keep generic and Clear save null; save failures remain visible", async () => {
+test("Clear choice saves null without Keep generic; save failures remain visible", async () => {
   (post as jest.Mock).mockResolvedValue({ catalogMatches: [] });
   const { onCommit, rerender } = renderPicker({ open: true, currentSelection: selection });
   await screen.findByText(/No suitable specific product could be identified/);
-  fireEvent.click(screen.getByRole("button", { name: "Keep generic" }));
+  expect(screen.queryByRole("button", { name: "Keep generic" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Clear choice" }));
   await waitFor(() => expect(onCommit).toHaveBeenCalledWith(null));
 
   (post as jest.Mock).mockResolvedValue({ catalogMatches: [] });
@@ -875,7 +876,7 @@ test.each([
   (post as jest.Mock).mockRejectedValue({ status });
   const { onCommit } = renderPicker({ open: true, currentSelection: selection });
   expect(await screen.findByRole("alert")).toHaveTextContent(message);
-  expect(screen.getByRole("button", { name: "Keep generic" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Keep generic" })).not.toBeInTheDocument();
   expect(screen.queryByText(/No suitable specific product could be identified/)).not.toBeInTheDocument();
   expect(screen.queryByText(/Compare sodium|Compare saturated fat/)).not.toBeInTheDocument();
   expect(onCommit).not.toHaveBeenCalled();

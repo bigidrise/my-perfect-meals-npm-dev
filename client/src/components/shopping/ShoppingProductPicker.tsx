@@ -395,7 +395,6 @@ export default function ShoppingProductPicker({
       footer={<div className="shopping-picker-footer flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-between">
         <Button type="button" variant="ghost" disabled={saving} onClick={() => closeWithoutSaving(false)} className="text-white/75 hover:bg-white/10">Cancel</Button>
         <div className="shopping-picker-footer-actions flex flex-col gap-2 sm:flex-row">
-          <Button type="button" variant="outline" disabled={saving} onClick={() => currentSelection ? void commit(null) : closeWithoutSaving(false)} className="border-white/20 bg-transparent text-white hover:bg-white/10">Keep generic</Button>
           {currentSelection && <Button type="button" variant="outline" disabled={saving} onClick={() => void commit(null)} className="border-orange-200/25 bg-transparent text-orange-100 hover:bg-orange-300/10">Clear choice</Button>}
         </div>
       </div>}
