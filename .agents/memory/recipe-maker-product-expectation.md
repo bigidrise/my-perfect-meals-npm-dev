@@ -27,8 +27,8 @@ GLP-1 medication use alone should not universally prohibit a requested pastry; a
 
 **How to apply:** Verify the clinical basis of a restriction before recommending a policy change. Keep that review separate from recipe-formatting corrections, and preserve genuine safety requirements.
 
-Recipe Maker should expose only Choose Photo and Camera; hide Speak and Type reversibly, without changing Companion product scanning or other creators.
+Recipe Maker's active inputs remain Choose Photo and Camera; hide Speak and Type reversibly, without changing Companion product scanning or other creators. Development may also show the requested disabled From Scratch pill.
 
 **Why:** The user said the photo workflow works better and that Craving and the other creators already cover non-photo creation.
 
-**How to apply:** Keep the photo-based recipe workflow intact. Do not restore non-photo choices or remove shared scanning functionality during unrelated modal changes.
+**How to apply:** Keep the photo-based recipe workflow intact. The founder subsequently requested a matching From Scratch placeholder, not a working recipe-generation pathway. Keep that pill inactive until explicitly authorized to implement it. Do not restore Speak/Type or remove shared scanning functionality during unrelated modal changes.
