@@ -11,6 +11,12 @@ Once My Perfect Meals generates and finalizes a meal card, its image must be a p
 
 **How to apply:** Make the existing persistence system dependable rather than introduce another image-generation system. Preserve the original asset and recipe association; distinguish delivery or permission failures from actual object loss. Before repairs, establish whether the relevant persistence code is in the running Production build, whether the exact file exists, and whether its runtime can retrieve it. Do not regenerate a replacement to conceal a read failure. Preserve the complete From Scratch recipe package alongside its permanent image reference.
 
+Initial image-storage failure must be recorded explicitly; never represent an unsuccessful upload as a successfully persisted image. Keep the preparation guide, cooking instructions, ingredients, nutrition and original image association attached to the finalized recipe.
+
+**Why:** The founder explicitly required honest failure handling and complete recipe persistence, rather than another workaround for From Scratch.
+
+**How to apply:** Audit existing creators' finalization, storage references and regeneration triggers before implementing repairs. Verify actual running Development and Production behavior separately; source presence alone is not runtime verification. Existing image-persistence behavior must be reliable before From Scratch implementation.
+
 ## Architecture Contract
 - `server/services/mediaAssetService.ts` — the ONLY path for images entering permanent storage. Returns `{ id, thumbnailUrl, displayUrl, status }`.
 - `server/services/imageLifecycle.ts` — routes through mediaAssetService; exposes `processMealImageForSave`, `isFirstPartyImageUrl`, `findMealsWithTempImages`.
