@@ -198,6 +198,9 @@ export default function BeverageCreator() {
   const tickerRef = useRef<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [beverageImageLoading, setBeverageImageLoading] = useState(false);
+  // Ephemeral permission belongs to this user action, never the saved recipe.
+  const initialImageRequest = useRef(false);
+  const freshImageChoices = useRef(new Set<string>());
   const [generationFailure, setGenerationFailure] = useState<GenerationFailureState>(HIDDEN_FAILURE);
   const [protocolFailure, setProtocolFailure] = useState<BeverageProtocolFailure | null>(null);
 
@@ -310,6 +313,8 @@ export default function BeverageCreator() {
   // makes this safe to run on every generatedBeverage change without looping.
   useEffect(() => {
     if (!generatedBeverage) return;
+    const generationIntent = initialImageRequest.current ? "initial" : "restore";
+    initialImageRequest.current = false;
     const url = generatedBeverage.imageUrl;
     if (url && !url.startsWith('data:')) return; // Already has an S3 URL — nothing to do
     if (!generatedBeverage.name) return;
@@ -321,6 +326,7 @@ export default function BeverageCreator() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        generationIntent,
         mealId: generatedBeverage.id,
         mealName: generatedBeverage.name,
         mealType: "beverages",
@@ -537,6 +543,8 @@ export default function BeverageCreator() {
       }
 
       stopProgressTicker();
+      freshImageChoices.current = new Set(choices.map(choice => choice.id));
+      initialImageRequest.current = false;
       replaceChoices(data);
       localStorage.removeItem("mpm_beverage_creator_result");
       setInstructionsExpanded(false);
@@ -958,6 +966,7 @@ export default function BeverageCreator() {
             notice={choiceNotice}
             disabled={isGenerating}
             onSelect={(choice) => {
+              initialImageRequest.current = freshImageChoices.current.delete(choice.id);
               setGeneratedBeverage(choice);
               setInstructionsExpanded(false);
               setActiveStep(null);

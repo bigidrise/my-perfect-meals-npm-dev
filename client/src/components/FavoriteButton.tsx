@@ -8,6 +8,8 @@ import { withShoppingProvenance } from "@/lib/mealShoppingApi";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
+import { readRecipePackage } from "@shared/recipePackage";
+import { recipePackagesEnabled } from "@/lib/recipePackageGate";
 
 interface FavoriteButtonProps {
   title: string;
@@ -15,9 +17,13 @@ interface FavoriteButtonProps {
   mealData: any;
   className?: string;
   size?: number;
+  /** An explicit Save control must not remove an already-saved package. */
+  saveOnly?: boolean;
+  showLabel?: boolean;
+  disabled?: boolean;
 }
 
-export default function FavoriteButton({ title, sourceType, mealData, className = "", size = 20 }: FavoriteButtonProps) {
+export default function FavoriteButton({ title, sourceType, mealData, className = "", size = 20, saveOnly = false, showLabel = false, disabled = false }: FavoriteButtonProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -28,12 +34,13 @@ export default function FavoriteButton({ title, sourceType, mealData, className 
   const [optimisticSaved, setOptimisticSaved] = useState<boolean | null>(null);
 
   const isFree = !hasActivePaidSubscription(user);
+  const packageId = recipePackagesEnabled ? readRecipePackage(mealData)?.id : undefined;
 
   useEffect(() => {
     setOptimisticSaved(null);
-  }, [keys]);
+  }, [keys, packageId]);
 
-  const serverSaved = isMealSaved(keys, title, sourceType);
+  const serverSaved = isMealSaved(keys, title, sourceType, packageId);
   const saved = optimisticSaved !== null ? optimisticSaved : serverSaved;
 
   const handleToggle = (e: React.MouseEvent) => {
@@ -43,6 +50,7 @@ export default function FavoriteButton({ title, sourceType, mealData, className 
       requestUpgrade({ requiredTier: "essential", featureName: "Saved Meals" });
       return;
     }
+    if (disabled || (packageId && toggle.isPending) || (saveOnly && saved)) return;
 
     const willBeSaved = !saved;
     setOptimisticSaved(willBeSaved);
@@ -67,8 +75,9 @@ export default function FavoriteButton({ title, sourceType, mealData, className 
   return (
     <button
       onClick={handleToggle}
-      className={`p-1.5 rounded-full transition-colors ${isFree ? "text-white/30" : saved ? "text-red-500" : "text-white/50"} active:scale-[0.98] relative ${className}`}
-      aria-label={isFree ? "Upgrade to save favorites" : saved ? "Remove from favorites" : "Save to favorites"}
+      disabled={disabled || (!!packageId && toggle.isPending)}
+      className={`p-1.5 rounded-full transition-colors ${showLabel ? "inline-flex items-center gap-2" : ""} ${isFree ? "text-white/30" : saved ? "text-red-500" : "text-white/50"} active:scale-[0.98] relative ${className}`}
+      aria-label={isFree ? "Upgrade to save favorites" : saved ? (saveOnly ? "Saved to Favorites" : "Remove from favorites") : "Save to favorites"}
     >
       <Heart
         style={{ width: size, height: size }}
@@ -82,6 +91,7 @@ export default function FavoriteButton({ title, sourceType, mealData, className 
           style={{ width: size * 0.5, height: size * 0.5 }}
         />
       )}
+      {showLabel && <span className="text-sm">{saved ? "Saved to Favorites" : "Save to Favorites"}</span>}
     </button>
   );
 }

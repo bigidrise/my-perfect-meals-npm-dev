@@ -252,7 +252,7 @@ export function CreateWithChefModal({
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-          body: JSON.stringify({ meal, mealType }),
+          body: JSON.stringify({ meal, mealType, generationIntent: "initial" }),
         });
         if (finalizeRes.ok) {
           const fd = await finalizeRes.json();

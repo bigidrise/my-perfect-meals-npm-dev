@@ -11,7 +11,7 @@ jest.mock("wouter", () => ({
   Link: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 jest.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({ t: (key: string) => key === "askChef" || key === "desktopNav.askChef" ? "Ask Chef" : key }),
 }));
 jest.mock("@/components/copilot/CopilotContext", () => ({
   useCopilot: () => mockCopilot(),
@@ -41,11 +41,14 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-test.each(["mobile", "desktop"])("%s smiley navigates to Ask Chef without opening or scheduling a Copilot card", async surface => {
+test.each(["mobile", "desktop"])("%s Ask Chef logo matches the dashboard and preserves navigation without Copilot", async surface => {
   await act(async () => {
     render(surface === "mobile" ? <BottomNav /> : <DesktopLayout><p>Current page</p></DesktopLayout>);
   });
-  fireEvent.click(screen.getByRole("button", { name: "Chef" }));
+  const button = screen.getByRole("button", { name: "Ask Chef" });
+  expect(button.querySelector("img")?.getAttribute("src")).toBe("/assets/ask-chef-desk-160.webp");
+  expect(button.textContent).toBe("Ask Chef");
+  fireEvent.click(button);
   act(() => { jest.advanceTimersByTime(2000); });
   expect(mockNavigate).toHaveBeenCalledTimes(1);
   expect(mockNavigate).toHaveBeenCalledWith("/coach-corner/home");

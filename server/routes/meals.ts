@@ -25,7 +25,7 @@ const router = express.Router();
 router.post("/generate-image", requireAuth, imageRateLimit, async (req: any, res) => {
   const { mealName, mealType = "dinner", ingredients, sourceType: callerSourceType } = req.body || {};
 
-  if (!mealName || mealName.trim().length < 3) {
+  if (typeof mealName !== "string" || mealName.trim().length < 3) {
     return res.status(400).json({ imageUrl: null });
   }
   const parsedPediatric = req.body?.pediatricContext === undefined
@@ -64,7 +64,23 @@ router.post("/generate-image", requireAuth, imageRateLimit, async (req: any, res
   // unprotected generations visible so they can be investigated and fixed at
   // the call site. Callers that legitimately have no recipe (e.g. manually
   // typed meals) are expected to appear here.
-  const normalizedIngredients = ingredients && ingredients.length > 0 ? ingredients : [];
+  const normalizedIngredients = Array.isArray(ingredients)
+    ? ingredients.filter(i => typeof i === "string" || (i && typeof i === "object"))
+    : [];
+  // Omitted intent is a restoration request, including older clients. Reads
+  // must bypass mutable context resolution and can never authorize paid work.
+  if (req.body?.generationIntent !== "initial") {
+    let imageFailureCode: string | undefined;
+    const imageUrl = await generateMealImageUnified(
+      mealName.trim(), normalizedIngredients, sourceType, pediatricContext, undefined,
+      { lookupOnly: true, onFailure: code => { imageFailureCode = code; } },
+    );
+    return res.json({
+      imageUrl: imageFailureCode ? null : imageUrl,
+      imageStatus: imageFailureCode ? "unavailable" : recipeImageStatus(imageUrl),
+      ...(imageFailureCode ? { imageFailureCode, message: "The original image could not be retrieved. No replacement was generated." } : {}),
+    });
+  }
   if (normalizedIngredients.length === 0) {
     console.warn(
       `[img-contract] ⚠️ generate-image called with no ingredients — ` +
@@ -126,8 +142,14 @@ router.post("/generate-image", requireAuth, imageRateLimit, async (req: any, res
   }
 
   try {
-    const imageUrl = await generateMealImageUnified(mealName.trim(), normalizedIngredients, sourceType, pediatricContext);
-    return res.json({ imageUrl, imageStatus: recipeImageStatus(imageUrl) });
+    let imageFailureCode: string | undefined;
+    const imageUrl = await generateMealImageUnified(mealName.trim(), normalizedIngredients, sourceType, pediatricContext,
+      undefined, { onFailure: code => { imageFailureCode = code; } });
+    return res.json({
+      imageUrl: imageFailureCode ? null : imageUrl,
+      imageStatus: imageFailureCode ? "unavailable" : recipeImageStatus(imageUrl),
+      ...(imageFailureCode ? { imageFailureCode, message: "The recipe is available, but its image could not be permanently stored or verified." } : {}),
+    });
   } catch (err: any) {
     console.error(`[generate-image] failed for "${mealName}":`, err.message);
     return res.json({ imageUrl: null });
@@ -533,7 +555,9 @@ router.post("/finalize", requireAuth, imageRateLimit, async (req: any, res) => {
 
   try {
     const { finalizeMealImage } = await import("../services/mealFinalizer");
-    const result = await finalizeMealImage({ meal, sourceType });
+    const result = await finalizeMealImage({
+      meal, sourceType, initialGeneration: req.body?.generationIntent === "initial",
+    });
     return res.json({
       meal: result.meal,
       imageUrl: result.imageUrl,

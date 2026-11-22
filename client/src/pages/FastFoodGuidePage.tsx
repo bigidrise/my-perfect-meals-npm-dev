@@ -369,7 +369,10 @@ export default function FastFoodGuidePage() {
     })),
     [generatedMeals],
   );
-  const { imageMap: chefFlowImages, failedSet: chefFlowFailed } = useChefFlowImages(chefFlowMeals, "fast-food");
+  const [initialImageGeneration, setInitialImageGeneration] = useState(false);
+  const { imageMap: chefFlowImages, failedSet: chefFlowFailed } = useChefFlowImages(
+    chefFlowMeals, "fast-food", { initialGeneration: initialImageGeneration },
+  );
 
   const { toast } = useToast();
   const { user } = useAuth();
@@ -525,6 +528,7 @@ export default function FastFoodGuidePage() {
         });
         return;
       }
+      setInitialImageGeneration(true);
       setGeneratedMeals(compliantRecs);
       setGuidedStep("results");
 

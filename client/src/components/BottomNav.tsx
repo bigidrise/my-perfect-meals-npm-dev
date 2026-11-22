@@ -7,7 +7,7 @@ import {
   getGuestNavigationOverride,
   getGuestSuitePage,
 } from "@/lib/guestSuiteNavigator";
-import ChefEmojiButton from "@/components/chef/ChefEmojiButton";
+import AskChefNavButton from "@/components/chef/AskChefNavButton";
 export default function BottomNav() {
   const [location, setLocation] = useLocation();
   const { t } = useTranslation();
@@ -85,7 +85,7 @@ export default function BottomNav() {
         style={{ bottom: "6px", transform: "translateX(-50%)" }}
       >
         <div className="pointer-events-auto">
-          <ChefEmojiButton onClick={handleChefClick} />
+          <AskChefNavButton onClick={handleChefClick} label={t("desktopNav.askChef", { defaultValue: "Ask Chef" })} />
         </div>
       </div>
 

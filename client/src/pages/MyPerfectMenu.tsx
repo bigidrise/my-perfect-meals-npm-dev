@@ -697,7 +697,7 @@ export default function MyPerfectMenu() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ meal, mealType }),
+        body: JSON.stringify({ meal, mealType, generationIntent: "initial" }),
       });
        const payload = await response.json().catch(() => ({}));
        if (!response.ok) {

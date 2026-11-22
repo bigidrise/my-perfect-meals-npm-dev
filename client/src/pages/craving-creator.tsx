@@ -411,7 +411,7 @@ export default function CravingCreator() {
       mealType: "snacks",
       generatedAtISO: new Date().toISOString(),
     });
-    hydrateImages([meal]);
+    hydrateImages([meal], { initialGeneration: true });
   };
 
   useEffect(() => {
@@ -888,7 +888,7 @@ export default function CravingCreator() {
 
       stopProgressTicker();
       setGeneratedMeals([{ ...meal, servings: meal.servings ?? servings }]);
-      hydrateImages([meal]);
+      hydrateImages([meal], { initialGeneration: true });
 
       // Immediately cache the new meal so it survives navigation/refresh
       saveCravingCache({

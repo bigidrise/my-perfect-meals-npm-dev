@@ -30,6 +30,8 @@
 
 import { generateMealImageUnified } from './mealImageGenerator';
 import { processMealImageForSave } from "./imageLifecycle";
+import { isFirstPartyPermanentImageUrl } from "../../shared/mediaImageUrls";
+import { isPlaceholderImage } from "../../shared/imageResult";
 
 // Re-export the ImageSourceType if the generator exports it — otherwise define inline.
 type ImageSourceType = 'meal' | 'snack' | 'beverage' | 'dessert';
@@ -45,6 +47,7 @@ export interface MealForFinalization {
 
 export interface FinalizeMealImageInput {
   meal: MealForFinalization;
+  initialGeneration?: boolean;
   /**
    * Image source type, used to select the appropriate prompt template inside
    * generateMealImageUnified. Defaults to 'meal'.
@@ -64,11 +67,8 @@ export interface FinalizeMealImageResult {
   permanent: boolean;
 }
 
-const PERMANENT_PREFIXES = ['/public-objects/', '/images/', '/assets/'];
-
 function isPermanent(url: string | null): boolean {
-  if (!url) return false;
-  return PERMANENT_PREFIXES.some((p) => url.startsWith(p)) || url.includes('amazonaws.com');
+  return isFirstPartyPermanentImageUrl(url) && !isPlaceholderImage(url);
 }
 
 /**
@@ -104,6 +104,14 @@ export async function finalizeMealImage(
   input: FinalizeMealImageInput,
 ): Promise<FinalizeMealImageResult> {
   const { meal, sourceType = 'meal' } = input;
+  const existingUrl = typeof meal.imageUrl === "string" ? meal.imageUrl : null;
+  const existingAssetId = typeof meal.mediaAssetId === "string" ? meal.mediaAssetId : null;
+  if (isPermanent(existingUrl)) {
+    return {
+      meal: { ...meal, imageUrl: existingUrl, mediaAssetId: existingAssetId },
+      imageUrl: existingUrl, mediaAssetId: existingAssetId, permanent: true,
+    };
+  }
 
   const ingredientStrings = (meal.ingredients ?? []).map((i) => {
     if (typeof i === 'string') return i;
@@ -113,17 +121,25 @@ export async function finalizeMealImage(
   let imageUrl: string | null = null;
 
   try {
-    imageUrl = await generateMealImageUnified(meal.name, ingredientStrings, sourceType);
+    imageUrl = await generateMealImageUnified(meal.name, ingredientStrings, sourceType,
+      undefined, undefined, { lookupOnly: input.initialGeneration !== true });
   } catch (err) {
     console.warn('[MealFinalizer] Image generation failed for "%s":', meal.name, err);
   }
 
-  if (!imageUrl) {
+  if (!isPermanent(imageUrl)) {
     return {
       meal: { ...meal, imageUrl: null, mediaAssetId: null },
       imageUrl: null,
       mediaAssetId: null,
       permanent: false,
+    };
+  }
+
+  if (!input.initialGeneration) {
+    return {
+      meal: { ...meal, imageUrl, mediaAssetId: existingAssetId },
+      imageUrl, mediaAssetId: existingAssetId, permanent: true,
     };
   }
 

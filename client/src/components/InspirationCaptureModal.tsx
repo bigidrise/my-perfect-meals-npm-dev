@@ -543,9 +543,9 @@ export default function InspirationCaptureModal({
       setPhase("preview");
       // Lazily fetch images for any options the server returned without one
       if (Array.isArray(normalizedData.options)) {
-        hydrateImages(normalizedData.options);
+        hydrateImages(normalizedData.options, { initialGeneration: true });
       } else if (normalizedData.mealData && !normalizedData.mealData.imageUrl) {
-        hydrateSingleImage([normalizedData.mealData]);
+        hydrateSingleImage([normalizedData.mealData], { initialGeneration: true });
       }
       if (destination === "recipe") {
         // Strip base64 imageUrls before persisting — they're ephemeral and often blow past
@@ -693,7 +693,7 @@ export default function InspirationCaptureModal({
       setSavedIndices([]);
       // Lazily load images for any options returned without one
       if (Array.isArray(normalizedData.options)) {
-        hydrateImages(normalizedData.options);
+        hydrateImages(normalizedData.options, { initialGeneration: true });
       }
       if (destination === "recipe") {
         const stripBase64 = (meal: any) => {

@@ -838,8 +838,13 @@ router.post("/generate-image", async (req: Request, res: Response) => {
   }
 
   try {
-    const imageUrl = await generateMealImageUnified(mealName, ingredients, mealType);
-    return res.json({ imageUrl });
+    let imageFailureCode: string | undefined;
+    const imageUrl = await generateMealImageUnified(mealName, ingredients, mealType,
+      undefined, undefined, {
+        lookupOnly: req.body?.generationIntent !== "initial",
+        onFailure: code => { imageFailureCode = code; },
+      });
+    return res.json({ imageUrl: imageFailureCode ? null : imageUrl, imageFailureCode });
   } catch (err: any) {
     console.warn(`⚠️ [ExperienceImage] Image generation failed for "${mealName}":`, err.message);
     return res.json({ imageUrl: null });

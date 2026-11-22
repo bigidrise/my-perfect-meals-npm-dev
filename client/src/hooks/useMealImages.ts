@@ -24,7 +24,7 @@ const IMAGE_CACHE_PREFIX = "mpm.imgcache.";
  * /public-objects/ paths and causing a fresh image request on every mount.
  */
 function persistImageUrl(mealId: string, imageUrl: string) {
-  if (isPlaceholderImage(imageUrl)) return;
+  if (!isPermanentImageUrl(imageUrl)) return;
   const isPermanentRelative =
     imageUrl.startsWith('/public-objects/') ||
     imageUrl.startsWith('/images/') ||
@@ -43,7 +43,7 @@ function persistImageUrl(mealId: string, imageUrl: string) {
 export function lookupHydratedImageUrl(mealId: string): string | null {
   try {
     const url = localStorage.getItem(IMAGE_CACHE_PREFIX + mealId);
-    return url && !isPlaceholderImage(url) ? url : null;
+    return isPermanentImageUrl(url) ? url : null;
   } catch { return null; }
 }
 
@@ -57,7 +57,7 @@ export function useMealImages<T extends HasMealImage>(
   const dietType = options?.dietType;
 
   const hydrateImages = useCallback(
-    async (meals: T[]) => {
+    async (meals: T[], intent?: { initialGeneration: true }) => {
       if (!meals.length) return;
 
       // Only hydrate meals that don't already have an image
@@ -79,6 +79,7 @@ export function useMealImages<T extends HasMealImage>(
                 headers: { "Content-Type": "application/json", ...getAuthHeaders() },
                 body: JSON.stringify({
                   mealName: meal.name,
+                  generationIntent: intent?.initialGeneration ? "initial" : "restore",
                   mealType: meal.mealType || mealType,
                   ingredients: (meal as any).ingredients || [],
                   dietType,
@@ -112,7 +113,7 @@ export function useMealImages<T extends HasMealImage>(
         );
       }
     },
-    [concurrency, mealType, setMeals]
+    [concurrency, mealType, dietType, setMeals]
   );
 
   return { loadingImages, hydrateImages };

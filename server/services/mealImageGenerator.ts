@@ -853,6 +853,7 @@ export interface CreateDishImageContext {
 }
 
 export interface MealImageRequest {
+  lookupOnly?: boolean;
   /** Development-only explicit recovery: at most one provider generation. */
   manualRetry?: boolean;
   mealName: string;
@@ -874,11 +875,37 @@ export interface GeneratedImage {
   createdAt: string;
 }
 
+/** Restoration is a read, never permission to generate or invalidate an asset. */
+async function lookupStoredMealImage(request: MealImageRequest): Promise<GeneratedImage> {
+  const ingredients = request.ingredients.map(i => (i || "").trim()).filter(Boolean);
+  const hash = buildStableCacheKey(normalizeMealName(request.mealName), ingredients,
+    request.sourceType, request.pediatricContext, request.createDishContext);
+  const unavailable = (failureCode: RecipeImageFailure): GeneratedImage => ({
+    url: getSemanticFallback(request.mealName), failureCode, hash,
+    prompt: "(stored image unavailable; no generation)", createdAt: new Date().toISOString(),
+  });
+  try {
+    const [row] = await db.select().from(mealImageCache)
+      .where(eq(mealImageCache.cacheKey, hash)).limit(1);
+    if (!row || !isCacheRowServable(row, computeRecipeSignature(ingredients))) {
+      return unavailable("validation_unavailable");
+    }
+    if (!isPermanentUrl(row.imageUrl)) return unavailable("storage_unavailable");
+    const authority = await validateMealImageAuthority(row.imageUrl);
+    if (authority.status !== "available") return unavailable("storage_unavailable");
+    return { url: authority.canonicalUrl, hash, prompt: "(stored image)",
+      createdAt: new Date().toISOString() };
+  } catch {
+    return unavailable("storage_unavailable");
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN GENERATION FUNCTION — 4-Layer Pipeline
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function generateMealImage(request: MealImageRequest): Promise<GeneratedImage> {
+  if (request.lookupOnly) return lookupStoredMealImage(request);
   // NORMALIZATION — must happen before cache key derivation and before prompt construction
   const normalizedName = normalizeMealName(request.mealName);
   const { ingredients, mealType, sourceType, pediatricContext, createDishContext } = request;
@@ -933,8 +960,11 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
     } else if (isPermanentUrl(memHit.url)) {
       const authority = await validateMealImageAuthority(memHit.url);
       if (authority.status !== "available") {
-        console.warn(`[IMG-LIFECYCLE:${traceId}] MEM-CACHE EVICT (storage ${authority.status}) | meal="${mealName}"`);
-        memCache.delete(cacheKey);
+        return {
+          url: getSemanticFallback(mealName), failureCode: "storage_unavailable",
+          prompt: "(original image unavailable; retained)", hash: cacheKey,
+          createdAt: new Date().toISOString(),
+        };
       } else {
         console.log(`[IMG-LIFECYCLE:${traceId}] MEM-CACHE HIT | urlType=permanent | meal="${mealName}" | +${Date.now()-_t0}ms`);
         return {
@@ -949,8 +979,8 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
       const urlType = memHit.url.startsWith('data:') ? 'base64-ephemeral' : isPermanentUrl(memHit.url) ? 'permanent' : 'unknown';
       console.log(`[IMG-LIFECYCLE:${traceId}] MEM-CACHE HIT | urlType=${urlType} | meal="${mealName}" | +${Date.now()-_t0}ms`);
       return {
-        url: memHit.url,
-        ...(memHit.failureCode ? { failureCode: memHit.failureCode } : {}),
+        url: getSemanticFallback(mealName),
+        failureCode: memHit.failureCode ?? "storage_unavailable",
         prompt: "(memory cache)",
         templateRef: request.templateRef,
         hash: cacheKey,
@@ -984,10 +1014,11 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
       } else if (isPermanentUrl(dbRow.imageUrl)) {
         const authority = await validateMealImageAuthority(dbRow.imageUrl);
         if (authority.status !== "available") {
-          console.warn(`[IMG-LIFECYCLE:${traceId}] DB-CACHE EVICT (storage ${authority.status}) | meal="${mealName}"`);
-          try {
-            await db.delete(mealImageCache).where(eq(mealImageCache.cacheKey, cacheKey));
-          } catch {}
+          return {
+            url: getSemanticFallback(mealName), failureCode: "storage_unavailable",
+            prompt: "(original image unavailable; retained)", hash: cacheKey,
+            createdAt: new Date().toISOString(),
+          };
         } else {
           console.log(`[IMG-LIFECYCLE:${traceId}] DB-CACHE HIT (permanent, validated) | meal="${mealName}" | +${Date.now()-_t0}ms`);
           memCache.set(cacheKey, { url: authority.canonicalUrl, validationStatus: dbRow.validationStatus, recipeSignature: dbRow.recipeSignature });
@@ -1008,6 +1039,12 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
     }
   } catch (dbErr) {
     console.warn(`⚠️ DB cache read failed for "${mealName}":`, dbErr);
+    // Unknown reference state is not proof no finalized photograph exists.
+    return {
+      url: getSemanticFallback(mealName), failureCode: "storage_unavailable",
+      prompt: "(image references unavailable)", hash: cacheKey,
+      createdAt: new Date().toISOString(),
+    };
   }
 
   // ── LAYER 1: BUILD STRONG PROMPT ───────────────────────────────────────────
@@ -1234,17 +1271,11 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
     console.warn(`[IMG-LIFECYCLE:${traceId}] STORAGE-THREW | msg=${uploadErr.message?.substring(0, 80)} | meal="${mealName}"`);
   }
 
-  // Object Storage upload failed — image is EPHEMERAL (base64 in memCache only).
-  // WARNING: On server restart or memCache eviction, the next request for this
-  // meal will call DALL-E again and may return a different image.
-  if (imageUrl.startsWith('data:')) {
-    memCache.set(cacheKey, { url: imageUrl, validationStatus: validation.verdict, recipeSignature });
-    console.warn(`[IMG-LIFECYCLE:${traceId}] STORAGE-FALLBACK | urlType=base64-ephemeral | meal="${mealName}" | +${Date.now()-_t0}ms — IMAGE WILL DIFFER AFTER SERVER RESTART`);
-  } else {
-    console.warn(`[IMG-LIFECYCLE:${traceId}] STORAGE-FALLBACK | urlType=ephemeral-url | meal="${mealName}" — skipping memCache, will regenerate on next request`);
-  }
+  // An upload failure is NOT a completed photograph. Never return ephemeral
+  // pixels as successful persistence or place them in the photograph cache.
   return {
-    url: imageUrl,
+    url: getSemanticFallback(mealName),
+    failureCode: "storage_unavailable",
     prompt: finalPrompt,
     templateRef: request.templateRef,
     hash: cacheKey,
@@ -1301,6 +1332,7 @@ export function getCachedImage(request: MealImageRequest): GeneratedImage | null
   );
   const entry = memCache.get(cacheKey);
   if (!entry) return null;
+  if (!isPermanentUrl(entry.url)) return null;
   if (!isCacheRowServable(entry, computeRecipeSignature(request.ingredients))) return null;
   return {
     url: entry.url,
@@ -1363,7 +1395,7 @@ export async function generateMealImageUnified(
   sourceType?: ImageSourceType,
   pediatricContext?: PediatricImageContext,
   createDishContext?: CreateDishImageContext,
-  options?: { manualRetry?: boolean; onFailure?: (code: RecipeImageFailure) => void },
+  options?: { manualRetry?: boolean; lookupOnly?: boolean; onFailure?: (code: RecipeImageFailure) => void },
 ): Promise<string> {
   if (!mealName || !mealName.trim()) {
     return getSemanticFallback("meal");
@@ -1376,6 +1408,17 @@ export async function generateMealImageUnified(
     .map(i => typeof i === "string" ? i : (i.name || i.item || ""))
     .map(i => (i || "").trim())
     .filter(Boolean);
+
+  // Do not join a paid in-flight operation, warm memory, evict DB rows or call
+  // food-context resolvers as a side effect of restoring a finalized card.
+  if (options?.lookupOnly) {
+    const stored = await lookupStoredMealImage({
+      mealName: normalizedName, ingredients: ingredientNames, sourceType,
+      pediatricContext, createDishContext,
+    });
+    if (stored.failureCode) options.onFailure?.(stored.failureCode);
+    return stored.url;
+  }
 
   // FAIL CLOSED: no usable recipe contract → semantic fallback, never cached.
   if (ingredientNames.length === 0) {

@@ -15,6 +15,7 @@ import { getAuthUserId } from "../utils/getAuthUserId";
 import { householdProfiles, users, weekBoards } from "@shared/schema";
 import { mediaAssets } from "../db/schema/mediaAssets";
 import { validateMealImageAuthority } from "../services/mealImageAuthority";
+import { publicObjectUrlForKey } from "../services/imageDeliveryRecovery";
 import { z } from "zod";
 import {
   isMyPerfectMenuBuilderKey,
@@ -629,17 +630,6 @@ export default function weekBoardRoutes(app: Express) {
       return res.status(409).json({ error: "Board meal media asset changed before recovery" });
     }
 
-    let mediaAssetId = target.meal.mediaAssetId as string | undefined;
-    if (!mediaAssetId) {
-      const candidates = await db.select({ id: mediaAssets.id }).from(mediaAssets)
-        .where(or(
-          eq(mediaAssets.thumbnailUrl, parsed.data.imageUrl),
-          eq(mediaAssets.displayUrl, parsed.data.imageUrl),
-        ))
-        .limit(2);
-      if (candidates.length === 1) mediaAssetId = candidates[0].id;
-    }
-
     const authority = await validateMealImageAuthority(parsed.data.imageUrl);
     if (authority.status === "unavailable") {
       console.log(JSON.stringify({ event: "board_image_recovery", outcome: "retry", mealId: parsed.data.mealId }));
@@ -649,76 +639,31 @@ export default function weekBoardRoutes(app: Express) {
       return res.json({ status: "retry", imageUrl: authority.canonicalUrl });
     }
 
-    const { finalizeMealImage } = await import("../services/mealFinalizer");
-    const result = await finalizeMealImage({
-      meal: {
-        ...target.meal,
-        name: target.meal.name || target.meal.title || "Meal",
-      },
-      sourceType: slot === "snacks" ? "snack" : "meal",
-    });
-    if (!result.imageUrl || !result.mediaAssetId) {
-      console.log(JSON.stringify({ event: "board_image_recovery", outcome: "failed", mealId: parsed.data.mealId }));
+    // Another runtime's bucket is not permission to generate a local substitute.
+    if (authority.reason === "inactive" || authority.reason === "invalid") {
       return res.json({ status: "unavailable" });
     }
-
-    // DEV and Production share Board rows, but not writable image buckets.
-    // A local display repair must not replace Production's canonical reference
-    // with a DEV-only object. The generator cache retains this local variant.
-    if (authority.status === "missing" && authority.reason === "inactive") {
-      console.log(JSON.stringify({
-        event: "board_image_recovery",
-        outcome: "recovered_local_display",
-        mealId: parsed.data.mealId,
-      }));
-      return res.json({
-        status: "recovered",
-        imageUrl: result.imageUrl,
-        mediaAssetId: result.mediaAssetId,
-      });
+    const assets = await db.select({
+      thumbnailUrl: mediaAssets.thumbnailUrl,
+      displayUrl: mediaAssets.displayUrl,
+      originalObjectKey: mediaAssets.originalObjectKey,
+    }).from(mediaAssets).where(or(
+      eq(mediaAssets.thumbnailUrl, parsed.data.imageUrl),
+      eq(mediaAssets.displayUrl, parsed.data.imageUrl),
+    )).limit(5);
+    const variants = [...new Set(assets.flatMap(asset => [
+      asset.thumbnailUrl, asset.displayUrl,
+      publicObjectUrlForKey(parsed.data.imageUrl, asset.originalObjectKey),
+    ]).filter((url): url is string => Boolean(url && url !== parsed.data.imageUrl)))];
+    for (const variant of variants) {
+      const original = await validateMealImageAuthority(variant);
+      if (original.status === "available") {
+        // Same original asset, viewer-only variant. Never update the Board,
+        // canonical media, Favorites or its nutrition/recipe snapshot here.
+        return res.json({ status: "recovered", imageUrl: original.canonicalUrl });
+      }
     }
-
-    const nextBoard = structuredClone(target.row.boardJSON as any);
-    const nextMeals = nextBoard.days[parsed.data.dateISO][slot];
-    const nextIndex = nextMeals.findIndex((meal: any) => String(meal?.id) === parsed.data.mealId);
-    if (nextIndex < 0 ||
-        nextMeals[nextIndex]?.imageUrl !== parsed.data.imageUrl ||
-        (target.meal.mediaAssetId && nextMeals[nextIndex]?.mediaAssetId !== target.meal.mediaAssetId)) {
-      return res.status(409).json({ error: "Board meal changed while recovery was running" });
-    }
-    nextMeals[nextIndex] = {
-      ...nextMeals[nextIndex],
-      imageUrl: result.imageUrl,
-      mediaAssetId: result.mediaAssetId,
-      imagePending: undefined,
-    };
-    nextBoard.meta = { ...nextBoard.meta, lastUpdatedAt: new Date().toISOString() };
-
-    const updated = await db.update(weekBoards).set({
-      boardJSON: nextBoard,
-      updatedAt: new Date(),
-    }).where(and(
-      eq(weekBoards.userId, target.row.userId),
-      eq(weekBoards.weekStartISO, target.row.weekStartISO),
-      eq(weekBoards.builderType, target.row.builderType),
-      sql`${weekBoards.boardJSON} = ${JSON.stringify(target.row.boardJSON)}::jsonb`,
-    )).returning({ userId: weekBoards.userId });
-    if (updated.length !== 1) {
-      return res.status(409).json({ error: "Board changed while image recovery was running" });
-    }
-
-    console.log(JSON.stringify({
-      event: "board_image_recovery",
-      outcome: "recovered",
-      mealId: parsed.data.mealId,
-      mediaAssetId: result.mediaAssetId,
-      legacyRelationshipAttached: !target.meal.mediaAssetId && Boolean(mediaAssetId),
-    }));
-    return res.json({
-      status: "recovered",
-      imageUrl: result.imageUrl,
-      mediaAssetId: result.mediaAssetId,
-    });
+    return res.json({ status: "unavailable" });
   });
 
   app.get("/api/week-board", (req: Request, res: Response) => {
