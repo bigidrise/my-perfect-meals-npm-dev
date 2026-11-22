@@ -158,3 +158,4 @@
 - [Clinical protocol repair governance](clinical-protocol-repair-governance.md) — all 17 conditions; preserve existing indicators and physician restrictions without treating ordinary trainer enrollment as authority.
 - [Restaurant cuisine correction](restaurant-cuisine-fidelity-boundary.md) — Development-only pending review; saved guidance, explicit cuisine, restaurant evidence and display language stay separate.
 - [Measurement preference authority](measurement-preference-authority.md) — country-based Auto and manual units stay independent of language; display changes never rewrite canonical data or product evidence.
+- [From Scratch recipe package](from-scratch-recipe-package.md) — Recipe Maker entry opens staged preparation and one saved recipe; prove saving and retrieval before building the new workflow.
