@@ -69,9 +69,43 @@
 .shopping-list-page .shopping-product-choice-action {
   line-height: 1.25;
   white-space: normal;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(0, 0, 0, 0.5);
+  font-weight: 600;
+}
+
+.shopping-list-page .shopping-product-options-button:hover,
+.shopping-list-page .shopping-product-choice-action:hover {
+  background-color: rgba(0, 0, 0, 0.65);
+}
+
+.shopping-list-page .shopping-product-options-button:focus-visible,
+.shopping-list-page .shopping-product-choice-action:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.shopping-list-page .shopping-product-choice-action:disabled {
+  opacity: 0.5;
+}
+
+.shopping-list-page .shopping-quantity {
+  color: #fff;
+  font-weight: 600;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 6px;
+  padding: 4px 6px;
 }
 
 .shopping-product-picker {
+  /* Portaled dialogs do not inherit the page shell's iOS safe-area padding.
+   * Bound the existing frame; retain its fixed header/footer and body scroller.
+   * Apply to the shared loading/results frame, including landscape phones. */
+  --shopping-picker-safe-top: calc(env(safe-area-inset-top, 0px) + 1rem);
+  --shopping-picker-safe-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+  top: calc((100dvh + var(--shopping-picker-safe-top) - var(--shopping-picker-safe-bottom)) / 2);
+  max-height: min(90vh, calc(100dvh - var(--shopping-picker-safe-top) - var(--shopping-picker-safe-bottom)));
   min-width: 0;
   overflow-wrap: anywhere;
   hyphens: none;
