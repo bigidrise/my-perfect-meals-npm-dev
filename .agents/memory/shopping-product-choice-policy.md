@@ -20,3 +20,9 @@ Development Shopping Product Options should start with real catalog-backed produ
 **Why:** The founder rejected three branded recommendations with unusable Choose buttons and specifically asked to fix their catalog connection, not merely recolor or unlock buttons.
 
 **How to apply:** Search beyond irrelevant or incomplete early hits within a bounded budget. Keep identity verification, allergy/diet/clinical restrictions and source provenance intact. A successful synthetic browser test alone does not establish real catalog coverage; distinguish it from public-catalog checks using a synthetic profile.
+
+Hide the Shopping list's Scan Barcode button without disconnecting or removing barcode functionality.
+
+**Why:** The founder said, “We do not use barcodes in this platform,” and explicitly requested hiding the button only.
+
+**How to apply:** Keep the existing barcode handlers and modal intact; do not restore the visible entry point without approval.

@@ -723,6 +723,8 @@ export default function ShoppingListMasterView() {
               {t("Voice Add")}
             </Button>
             <Button
+              hidden
+              style={{ display: "none" }}
               onClick={() => {
                 setBarcodeScanMode("manual");
                 setBarcodeModalOpen(true);
