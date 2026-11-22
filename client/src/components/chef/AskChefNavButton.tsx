@@ -23,7 +23,7 @@ export default function AskChefNavButton({ onClick, label, size = 48, horizontal
         width={size}
         height={size}
         alt=""
-        className="shrink-0 rounded-xl border border-orange-300/30 bg-black object-cover"
+        className="shrink-0 rounded-xl bg-black object-cover"
       />
       <span className={`${horizontal ? "text-sm" : "text-[10px] leading-3"} font-medium text-white/70 group-hover:text-orange-400 transition-colors`}>
         {label}
