@@ -599,7 +599,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     }
   }, [productSearch, PRODUCT_SESSION_KEY, productSearchOwnerKey]);
 
-  const handleProductSearch = useCallback(async (queryOverride?: string) => {
+  const handleProductSearch = useCallback(async (queryOverride?: string, findNewOptions = false) => {
     const query = (queryOverride ?? productQuery).trim();
     if (!query) return;
     const gen = sessionGenRef.current; // capture before first await
@@ -607,7 +607,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setProductError(null);
     setProductAddedKeys(new Set());
     try {
-      const data = await post("/api/biometrics/ingredient-scan-by-name", { productName: query });
+      const data = await post("/api/biometrics/ingredient-scan-by-name", { productName: query,
+        ...(findNewOptions ? { findNewOptions: true } : {}) });
       if (sessionGenRef.current !== gen) return; // identity changed — discard
       if (data?.error) throw new Error(data.error);
       if (data?.ok && data?.result?.analysisMethod === "by_name" && !data.result.fallbackUsed) {
@@ -669,6 +670,10 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       } : {}),
     }]);
     setProductAddedKeys((prev) => new Set(Array.from(prev).concat(key)));
+    const generation = sessionGenRef.current;
+    void post("/api/grocery-coach/product-preference", { query: productSearch?.query ?? ingredient, productName: brand }).catch(() => {
+      if (sessionGenRef.current === generation) toast({ title: t("Your item was added, but your usual choice could not be remembered.") });
+    });
     toast({ title: t("findProduct.added") });
   }, [productAddedKeys, addItems, toast, t, productSearch]);
 
@@ -1211,6 +1216,10 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   <div style={{ color: "#fb923c", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>
                     {t("findProduct.resultsFor", { query: productSearch.query })}
                   </div>
+                  <button type="button" onClick={() => void handleProductSearch(productSearch.query, true)}
+                    className="min-h-11 self-start rounded-lg border border-white/20 px-3 text-sm text-orange-200">
+                    {t("Find new options")}
+                  </button>
 
                   {productSearch.analysis && (
                     <IngredientIntelligenceSheet

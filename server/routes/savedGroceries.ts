@@ -253,7 +253,8 @@ router.post("/", async (req, res) => {
 
     const productKey = computeProductKey(barcode, brand, productName);
 
-    const [created] = await db
+    const persistProduct = async (database: typeof db) => {
+    const [created] = await database
       .insert(userSavedGroceryItems)
       .values({
         userId,
@@ -276,14 +277,12 @@ router.post("/", async (req, res) => {
       .returning();
 
     if (created) {
-      console.log(`[SavedGroceries] Saved: "${productName}" for user ${userId} (source: ${source})`);
-      return res.status(201).json({ item: { ...created, analysisRevision: savedAnalysisRevision(created) }, created: true,
-        supportsSavedAnalysisAttachment: true });
+      return { item: created, created: true };
     }
 
     // ON CONFLICT waits for a concurrent winner to commit. Re-read that row so
     // retries and double taps receive the same successful idempotent contract.
-    const [existing] = await db
+    const [existing] = await database
       .select()
       .from(userSavedGroceryItems)
       .where(and(
@@ -294,7 +293,22 @@ router.post("/", async (req, res) => {
     if (!existing) {
       throw new Error("Product-key conflict occurred but the saved row could not be reloaded");
     }
-    return res.json({ item: { ...existing, analysisRevision: savedAnalysisRevision(existing) }, created: false,
+    return { item: existing, created: false };
+    };
+    const isExplicitProductChoice = process.env.NODE_ENV === "development" &&
+      source === "grocery-coach" && typeof category === "string" && category.trim() &&
+      productMeta?.analysisMethod === "by_name" && productMeta?.subjectKind !== "companion";
+    const saved = isExplicitProductChoice ? await db.transaction(async tx => {
+      const result = await persistProduct(tx as unknown as typeof db);
+      const { createGroceryChoiceMemoryStore } = await import("../services/groceryChoiceMemoryStore");
+      const { groceryChoiceKey } = await import("../services/groceryChoiceMemory");
+      const name = brand?.trim() && !productName.trim().toLowerCase().startsWith(brand.trim().toLowerCase())
+        ? `${brand.trim()} ${productName.trim()}` : productName.trim();
+      await createGroceryChoiceMemoryStore(tx).prefer(userId, groceryChoiceKey(category), category, name);
+      return result;
+    }) : await persistProduct(db);
+    return res.status(saved.created ? 201 : 200).json({
+      item: { ...saved.item, analysisRevision: savedAnalysisRevision(saved.item) }, created: saved.created,
       supportsSavedAnalysisAttachment: true });
   } catch (err: any) {
     console.error("[SavedGroceries] POST error:", err?.message);

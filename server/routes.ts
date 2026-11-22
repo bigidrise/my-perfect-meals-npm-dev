@@ -2,7 +2,7 @@ import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE, retainPregnancyS
 import fs from "fs";
 import { buildCravingCategoryPrompt } from "../shared/cravingCategories";
 import { resolveCravingSelection } from "./services/craving/categorySelection";
-import { ConsumerOncologyError, saveConsumerSpecialtySupport, SELF_SELECTABLE_SPECIALTY_CONDITIONS } from "./services/consumerOncologySupport";
+import { ConsumerOncologyError, saveConsumerSpecialtySupport, saveConsumerSpecialtyConditions } from "./services/consumerOncologySupport";
 import { oncologySymptomPriorityEnabled } from "./services/guardrails/prompt/oncologySymptomPriority";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -4680,7 +4680,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
-      const ALLOWED = SELF_SELECTABLE_SPECIALTY_CONDITIONS;
       let { condition, conditions, oncologySupport } = req.body;
       if (Array.isArray(conditions)) conditions = normalizeClinicalProtocols(conditions);
       if (typeof condition === "string") condition = normalizeClinicalProtocols([condition])[0];
@@ -4722,10 +4721,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Multi-condition path: conditions[]
       if (conditions !== undefined) {
         if (!Array.isArray(conditions)) return res.status(400).json({ error: "conditions must be an array" });
-        const invalid = conditions.find((c: any) => !ALLOWED.includes(c));
-        // Development's transactional writer validates legacy retention against
-        // the locked authoritative row, never against client claims.
-        if (invalid && !oncologySymptomPriorityEnabled()) return res.status(400).json({ error: `Invalid condition: ${invalid}` });
+        // Both runtimes validate legacy retention against the locked
+        // authoritative row, never against client claims.
         if (conditions.includes("alpha-gal-syndrome")) {
           const [alphaGal] = await db.select({ profile: users.alphaGalProfile })
             .from(users).where(eq(users.id, userId)).limit(1);
@@ -4748,17 +4745,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         // Persist the explicit selection, never automatically activate raw lab signals.
         const merged = Array.from(new Set<string>(conditions));
-        const primaryCondition = merged.length > 0 ? merged[0] : null;
         if (oncologySymptomPriorityEnabled()) {
           const saved = await saveConsumerSpecialtySupport(userId, merged, oncologySupport);
           return res.json({ ok: true, specialtyConditions: saved.conditions, specialtyCondition: saved.conditions[0] ?? null, oncologySupportContext: saved.context });
         }
-        await db.update(users).set({
-          specialtyCondition: primaryCondition,
-          specialtyConditions: merged,
-        } as any).where(eq(users.id, userId));
-        console.log(`[specialty-condition] User ${userId} multi-set → ${merged.length} explicitly selected conditions`);
-        return res.json({ ok: true, specialtyConditions: merged, specialtyCondition: primaryCondition });
+        const saved = await saveConsumerSpecialtyConditions(userId, merged);
+        return res.json({ ok: true, specialtyConditions: saved.conditions, specialtyCondition: saved.conditions[0] ?? null });
       }
       if (condition === "pregnancy-support") {
         const [pregnancy] = await db.select({ stage: users.pregnancyStage })
@@ -4782,22 +4774,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Single-condition path: backward compat
-      if (condition !== null && condition !== undefined && !ALLOWED.includes(condition)) {
-        return res.status(400).json({ error: "Invalid specialty condition value" });
-      }
-      // Merge single-condition with lab-driven set
+      // Validate against the locked row, preserving established support settings.
       const baseArray = condition ? [condition] : [];
       const newArray = Array.from(new Set(baseArray));
       if (oncologySymptomPriorityEnabled()) {
         const saved = await saveConsumerSpecialtySupport(userId, newArray, oncologySupport);
         return res.json({ ok: true, specialtyCondition: saved.conditions[0] ?? null, specialtyConditions: saved.conditions, oncologySupportContext: saved.context });
       }
-      await db.update(users).set({
-        specialtyCondition: condition ?? null,
-        specialtyConditions: newArray,
-      } as any).where(eq(users.id, userId));
-      console.log(`[specialty-condition] User ${userId} updated`);
-      res.json({ ok: true, specialtyCondition: condition ?? null, specialtyConditions: newArray });
+      const saved = await saveConsumerSpecialtyConditions(userId, newArray);
+      res.json({ ok: true, specialtyCondition: saved.conditions[0] ?? null, specialtyConditions: saved.conditions });
     } catch (error: any) {
       if (error instanceof ConsumerOncologyError) {
         return res.status(error.status).json({ error: error.code, message: error.message });

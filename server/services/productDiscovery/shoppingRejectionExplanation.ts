@@ -50,6 +50,12 @@ export function shoppingRejectionExplanation(
   }
   for (const reason of decision.reasons) {
     switch (reason.code) {
+      case "context_unavailable":
+        messages.add("Your current food profile could not be confirmed.");
+        break;
+      case "policy_unavailable":
+        if (!messages.size) messages.add("Applicable product verification rules aren't available. Compatibility is not confirmed.");
+        break;
       case "identity_unverified":
         messages.add("We couldn't confirm the exact product and variant from current catalog information.");
         break;

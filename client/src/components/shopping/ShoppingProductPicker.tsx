@@ -9,6 +9,11 @@ import type { BetterAlternative } from "@/lib/photoIngredientCapture";
 import { BetterAlternativesSection } from "@/components/biometrics/IngredientIntelligenceSheet";
 import type { CatalogProductMatch } from "./GroceryStoreCoachSheet";
 import ProductCatalogChoices from "./ProductCatalogChoices";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import RecommendedProductActions from "./RecommendedProductActions";
+import ShoppingReferenceAction, { existingCatalogReference } from "./ShoppingReferenceAction";
+import { shoppingProductActionsDevelopmentEnabled } from "@/lib/shoppingProductActionsGate";
+import { shoppingRecommendationNamesProduct } from "@shared/shoppingRecommendationName";
 
 interface Props {
   open: boolean;
@@ -34,6 +39,7 @@ function stableJson(value: unknown): string {
 export default function ShoppingProductPicker({
   open, onOpenChange, ingredient, quantityLabel, sessionKey, currentSelection, onCommit, onCommitReference,
 }: Props) {
+  const { t } = useConsumerCopy();
   const [matches, setMatches] = useState<CatalogProductMatch[]>([]);
   const [allCatalogMatches, setAllCatalogMatches] = useState<CatalogProductMatch[]>([]);
   const [hasSelectable, setHasSelectable] = useState(false);
@@ -47,6 +53,8 @@ export default function ShoppingProductPicker({
   const [saving, setSaving] = useState(false);
   const [pendingReferenceCategory, setPendingReferenceCategory] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [lookupAttempt, setLookupAttempt] = useState(0);
+  const [findNewOptions, setFindNewOptions] = useState(false);
   const generation = useRef(0);
   const rowKey = `${ingredient.originalName}|${JSON.stringify(ingredient.requirements)}`;
   const identity = `${sessionKey}|${rowKey}`;
@@ -97,6 +105,7 @@ export default function ShoppingProductPicker({
     setPendingReferenceCategory(null);
     if (!open) {
       setLoading(false);
+      setFindNewOptions(false);
       return;
     }
     if (ingredient.originalName.trim().length > 80) {
@@ -114,6 +123,7 @@ export default function ShoppingProductPicker({
         mode: "find_product",
         ingredients: [ingredient.originalName],
         shoppingIngredient: ingredient,
+        ...(findNewOptions ? { findNewOptions: true } : {}),
       });
     }).then(data => {
       if (generation.current !== requestGeneration) return;
@@ -185,12 +195,21 @@ export default function ShoppingProductPicker({
         ? "We couldn't confirm your current requirements. Keep this ingredient generic or try again later."
         : status === 401 || status === 403
           ? "Product lookup isn't available for this account. Your ingredient and saved choice are unchanged."
-          : "We couldn’t check product choices just now. Your ingredient and saved choice are unchanged. You can keep it generic or close and try again.");
+          : t("We couldn’t load product options. Your ingredient and saved choice are unchanged. Try again or keep it generic."));
     }).finally(() => {
       if (generation.current === requestGeneration) setLoading(false);
     });
     return () => { generation.current += 1; };
-  }, [open]);
+  }, [open, lookupAttempt]);
+
+  function retryLookup(fresh = false) {
+    // Invalidate pending responses synchronously, before React runs the effect.
+    generation.current += 1;
+    setError("");
+    setLoading(true);
+    setFindNewOptions(fresh);
+    setLookupAttempt(attempt => attempt + 1);
+  }
 
   const closeWithoutSaving = (nextOpen: boolean) => {
     if (!nextOpen) {
@@ -249,7 +268,8 @@ export default function ShoppingProductPicker({
       match.productKey === check.catalogProductKey &&
       "recommendationLead" in match &&
       match.recommendationLead === category &&
-      match.recommendationIdentityVerified === true &&
+      (match.recommendationIdentityVerified === true ||
+        (shoppingProductActionsDevelopmentEnabled && shoppingRecommendationNamesProduct(category, match))) &&
       match.shoppingReference) {
       try {
         const fromCheck = parseShoppingProductReference(check.reference);
@@ -285,9 +305,9 @@ export default function ShoppingProductPicker({
     ].filter(item => item.text && item.source).slice(0, 3) : [];
     return (
       <div className="mt-2 space-y-2">
-        {match && <details className="rounded-lg border border-white/10 bg-black/15 p-2.5 text-xs text-white/75">
-          <summary className="min-h-11 cursor-pointer py-3 font-semibold text-orange-100">Review product identity and label evidence</summary>
-          {match.recommendationIdentityVerified !== true && <p className="mb-2 text-amber-100">Catalog candidate only — not confirmed as the exact recommended variant.</p>}
+        {match && !shoppingProductActionsDevelopmentEnabled && <details className="rounded-lg border border-white/10 bg-black/15 p-2.5 text-xs text-white/75">
+          <summary className="min-h-11 cursor-pointer py-3 font-semibold text-orange-100">{t("Review product identity and label evidence")}</summary>
+          {match.recommendationIdentityVerified !== true && <p className="mb-2 text-amber-100">{t("Catalog candidate only — not confirmed as the exact recommended variant.")}</p>}
           <p className="font-semibold text-white">{match.name}{match.brand ? ` · ${match.brand}` : ""}</p>
           {match.variant && <p className="mt-1">Variant: {match.variant}</p>}
           {match.packageSize && <p className="mt-1">Package: {match.packageSize}</p>}
@@ -303,12 +323,16 @@ export default function ShoppingProductPicker({
           disabled={saving}
           onClick={() => void commit(verifiedSelection)}
           className="shopping-recommendation-action min-h-11 w-full whitespace-normal bg-orange-600 text-white hover:bg-orange-500"
-        >Choose for My List</Button> : shoppingReference ? <div className="space-y-2">
+        >{t(shoppingProductActionsDevelopmentEnabled ? "Choose Product" : "Choose for My List")}</Button> : shoppingReference && shoppingProductActionsDevelopmentEnabled ? <div>
+          <p className="mb-2 text-xs text-white/75">{t("Product details not fully verified.")}</p>
+          <Button type="button" disabled={saving} onClick={() => void commitReference(shoppingReference)}
+            className="min-h-11 w-full whitespace-normal bg-orange-600 text-white hover:bg-orange-500">{t("Choose Product")}</Button>
+        </div> : shoppingReference ? <div className="space-y-2">
           {pendingReferenceCategory === category ? <>
             <div className="rounded-lg border border-amber-200/25 bg-amber-100/[0.07] p-3 text-xs leading-relaxed text-amber-50/90">
-              <p className="font-semibold">Shopping reference — Unverified</p>
+              <p className="font-semibold">{t("Shopping reference — Unverified")}</p>
               <p className="mt-1">This records shopping intent only. It is not medical or restricted-diet clearance.</p>
-              <p className="mt-2 font-medium">Unresolved review items</p>
+              <p className="mt-2 font-medium">{t("Unresolved review items")}</p>
               <ul className="mt-1 list-disc space-y-1 pl-5">
                 {shoppingReference.product.assessment.unresolvedRequirements.map((warning, index) =>
                   <li key={`${index}-${warning}`}>{warning}</li>)}
@@ -324,7 +348,7 @@ export default function ShoppingProductPicker({
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button type="button" disabled={saving} onClick={() => setPendingReferenceCategory(null)}
-                className="min-h-11 flex-1 border border-white/20 bg-transparent text-white hover:bg-white/10">Cancel shopping reference</Button>
+                className="min-h-11 flex-1 border border-white/20 bg-transparent text-white hover:bg-white/10">{t("Cancel shopping reference")}</Button>
               <Button type="button" disabled={saving} onClick={() => void commitReference(shoppingReference)}
                 className="min-h-11 flex-1 whitespace-normal bg-amber-700 text-white hover:bg-amber-600">
                 {saving ? "Saving reference…" : "Confirm shopping reference"}
@@ -332,15 +356,31 @@ export default function ShoppingProductPicker({
             </div>
           </> : <Button type="button" disabled={saving} onClick={() => setPendingReferenceCategory(category)}
             className="min-h-11 w-full whitespace-normal border border-amber-200/30 bg-amber-100/[0.07] text-amber-50 hover:bg-amber-100/[0.12]">
-            Use as shopping reference
+            {shoppingProductActionsDevelopmentEnabled ? t("Choose Product") : "Use as shopping reference"}
           </Button>}
-        </div> : <p className="rounded-lg border border-amber-200/15 bg-amber-100/[0.05] px-3 py-2 text-xs leading-relaxed text-amber-50/80">
-          Review only — {catalogUnavailable
+        </div> : <div>
+          {shoppingProductActionsDevelopmentEnabled && <Button type="button" disabled
+            className="min-h-11 w-full whitespace-normal bg-orange-600 text-white"
+            aria-describedby={`shopping-choice-unavailable-${recommendations?.indexOf(alternative) ?? 0}`}
+          >{t("Choose Product")}</Button>}
+          <p id={`shopping-choice-unavailable-${recommendations?.indexOf(alternative) ?? 0}`} className="mt-2 rounded-lg border border-amber-200/15 bg-amber-100/[0.05] px-3 py-2 text-xs leading-relaxed text-amber-50/80">
+          {shoppingProductActionsDevelopmentEnabled ? t("This product could not be reliably identified. Choose another option or keep the ingredient generic.") : <>Review only — {catalogUnavailable
             ? "The product catalog is temporarily unavailable. No exact product can be selected."
             : check?.status === "review_only" && check.reason
               ? check.reason
-              : "A matching exact-product selection could not be verified for this ingredient."}
-        </p>}
+              : "A matching exact-product selection could not be verified for this ingredient."}</>}
+          </p>
+        </div>}
+        {shoppingProductActionsDevelopmentEnabled && <RecommendedProductActions
+          alternative={alternative}
+          query={ingredient.originalName}
+          educationalFooter={recommendationContext?.educationalFooter ?? ""}
+          source="grocery-coach"
+          label={t("Save Product")}
+          contextKey={identity}
+          disabled={saving}
+          catalogProduct={match?.recommendationIdentityVerified === true ? match : undefined}
+        />}
       </div>
     );
   }
@@ -349,7 +389,7 @@ export default function ShoppingProductPicker({
     <PickerModal
       open={open}
       onOpenChange={closeWithoutSaving}
-      title="Here are your product options."
+      title={loading ? t("Finding your product options…") : "Here are your product options."}
       description={`${ingredient.originalName} · Original amount: ${quantityLabel}. Your ingredient and recipe quantities stay the same.`}
       className="shopping-product-picker border border-orange-200/15 bg-[#211c18] text-white"
       footer={<div className="shopping-picker-footer flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-between">
@@ -364,8 +404,18 @@ export default function ShoppingProductPicker({
         <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
           <p className="text-sm text-white/75">These are shopping references, not medical approval. Check the package label before you buy.</p>
         </div>
-        {loading && <div role="status" aria-label="Loading catalog choices" className="space-y-3">{[0, 1].map(i => <div key={i} className="h-28 animate-pulse rounded-xl border border-white/10 bg-white/[0.06]" />)}<p className="text-xs text-white/55">Finding personalized options and checking existing catalog evidence…</p></div>}
-        {error && <p role="alert" className="rounded-lg border border-red-200/20 bg-red-300/10 p-3 text-sm text-red-100">{error}</p>}
+        {loading && <div role="status" aria-live="polite" aria-label={t("Loading product options")} className="space-y-3">
+          {[0, 1].map(i => <div key={i} aria-hidden="true" className="shopping-options-skeleton rounded-xl border border-white/10 bg-white/[0.06] p-4">
+            <div className="mb-3 h-4 w-2/3 rounded bg-white/15" />
+            <div className="mb-2 h-3 w-full rounded bg-white/10" />
+            <div className="h-3 w-4/5 rounded bg-white/10" />
+          </div>)}
+          <p className="text-sm text-white/80">{t("Finding personalized options and checking existing catalog evidence…")}</p>
+        </div>}
+        {error && <div className="space-y-3">
+          <p role="alert" className="rounded-lg border border-red-200/20 bg-red-300/10 p-3 text-sm text-red-100">{error}</p>
+          <Button type="button" disabled={loading || saving} onClick={() => retryLookup()} className="min-h-11 bg-orange-700 text-white hover:bg-orange-600">{t("Try again")}</Button>
+        </div>}
         {!loading && !error && recommendations !== null && <>
           {catalogUnavailable && <p role="status" className="rounded-lg border border-amber-200/15 bg-amber-100/[0.05] p-3 text-sm text-amber-50/80">{recommendationNotice}</p>}
           <BetterAlternativesSection
@@ -376,6 +426,7 @@ export default function ShoppingProductPicker({
             educationalFooter={recommendationContext?.educationalFooter ?? ""}
             source="grocery-coach"
             showEvidenceNote={false}
+            highlightAvailability={shoppingProductActionsDevelopmentEnabled}
             renderAction={renderRecommendationAction}
           badgeLabel="Shopping options"
           />
@@ -386,6 +437,20 @@ export default function ShoppingProductPicker({
             products={matches}
             compactShopping
             disabled={saving}
+            renderAdditionalActions={shoppingProductActionsDevelopmentEnabled ? product => {
+              const reference = !catalogUnavailable && onCommitReference ? existingCatalogReference(product, ingredient) : null;
+              return <>
+                {reference && <ShoppingReferenceAction key={`${identity}:${product.productKey}`} reference={reference}
+                  disabled={saving} onConfirm={commitReference} />}
+                <RecommendedProductActions
+                  alternative={{ category: product.name, productName: product.name, brand: product.brand,
+                    whyBetter: product.recommendationExplanation?.whyBetter ?? [],
+                    targetCriteria: product.recommendationExplanation?.targetCriteria ?? "" }}
+                  query={ingredient.originalName} educationalFooter={product.shoppingCaution || product.verificationMessage || ""}
+                  source="grocery-coach" catalogProduct={product} label={t("Save Product")} contextKey={identity} disabled={saving}
+                />
+              </>;
+            } : undefined}
             onSelect={(product) => {
               if (product.shoppingDisplay === "label_review") return;
               const selection = product.shoppingSelection?.selection;
@@ -399,6 +464,7 @@ export default function ShoppingProductPicker({
           </>}
         </>}
         {!loading && (recommendations !== null || !hasSelectable) && <p className="rounded-lg border border-orange-200/10 bg-orange-100/[0.04] px-3 py-2 text-xs leading-relaxed text-orange-50/75">{shoppingTip || "Product labels can vary; check the current package before choosing."}</p>}
+        {!loading && !error && <Button type="button" variant="outline" disabled={saving} onClick={() => retryLookup(true)} className="min-h-11 border-white/20 bg-transparent text-white hover:bg-white/10">{t("Find new options")}</Button>}
         {saving && <p role="status" className="text-xs text-white/60">Saving your choice…</p>}
       </div>
     </PickerModal>

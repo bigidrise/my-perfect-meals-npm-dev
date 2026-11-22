@@ -162,7 +162,10 @@ export function evaluateProductCandidate(
       context.activeHardRestrictionIds.some((id) => !requirementIds.includes(id)) ||
       requirementIds.some((id) => !context.activeHardRestrictionIds.includes(id))) {
     return makeDecision(context, key, "needs_verification", [{
-      code: "context_unavailable", detail: "Current subject requirements could not be resolved.",
+      code: context.distinctVerificationReasons && context.resolved ? "policy_unavailable" : "context_unavailable",
+      detail: context.distinctVerificationReasons && context.resolved
+        ? "Applicable product verification rules are unavailable or incomplete."
+        : "Current subject requirements could not be resolved.",
     }]);
   }
 

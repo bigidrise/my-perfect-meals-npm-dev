@@ -4,7 +4,12 @@ export interface GroceryRetailer {
   id: GroceryRetailerId;
   name: string;
   color: string;
-  buildItemUrl: (name: string) => string;
+  buildItemUrl: (name: string, options?: { preserveProductIdentity?: boolean }) => string;
+}
+
+/** Explicit product choices bypass generic-ingredient cleanup, not URL encoding. */
+export function retailerSearchName(name: string, options?: { preserveProductIdentity?: boolean }): string {
+  return options?.preserveProductIdentity ? name.trim().replace(/\s+/g, " ") : normalizeForRetailerSearch(name);
 }
 
 /**
@@ -37,8 +42,8 @@ export const GROCERY_RETAILERS: GroceryRetailer[] = [
     id: 'walmart',
     name: 'Walmart',
     color: 'bg-blue-800/50 border-blue-500/30',
-    buildItemUrl: (name) => {
-      const q = normalizeForRetailerSearch(name);
+    buildItemUrl: (name, options) => {
+      const q = retailerSearchName(name, options);
       return q
         ? `https://www.walmart.com/search?q=${encodeURIComponent(q)}`
         : 'https://www.walmart.com/';
@@ -48,8 +53,8 @@ export const GROCERY_RETAILERS: GroceryRetailer[] = [
     id: 'instacart',
     name: 'Instacart',
     color: 'bg-green-800/50 border-green-500/30',
-    buildItemUrl: (name) => {
-      const q = normalizeForRetailerSearch(name);
+    buildItemUrl: (name, options) => {
+      const q = retailerSearchName(name, options);
       return q
         ? `https://www.instacart.com/store/s?k=${encodeURIComponent(q)}`
         : 'https://www.instacart.com/';
@@ -59,8 +64,8 @@ export const GROCERY_RETAILERS: GroceryRetailer[] = [
     id: 'amazon-fresh',
     name: 'Amazon Fresh',
     color: 'bg-orange-800/50 border-orange-500/30',
-    buildItemUrl: (name) => {
-      const q = normalizeForRetailerSearch(name);
+    buildItemUrl: (name, options) => {
+      const q = retailerSearchName(name, options);
       return q
         ? `https://www.amazon.com/s?k=${encodeURIComponent(q)}&i=amazonfresh`
         : 'https://www.amazon.com/fresh';
@@ -70,8 +75,8 @@ export const GROCERY_RETAILERS: GroceryRetailer[] = [
     id: 'kroger',
     name: 'Kroger',
     color: 'bg-blue-900/50 border-blue-400/30',
-    buildItemUrl: (name) => {
-      const q = normalizeForRetailerSearch(name);
+    buildItemUrl: (name, options) => {
+      const q = retailerSearchName(name, options);
       return q
         ? `https://www.kroger.com/search?query=${encodeURIComponent(q)}`
         : 'https://www.kroger.com/';

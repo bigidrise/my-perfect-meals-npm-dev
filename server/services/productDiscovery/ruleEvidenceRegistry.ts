@@ -149,6 +149,8 @@ export function resolveProductRulePolicy(
       contextFingerprint: subject.fingerprint,
       policyVersion: registry.version,
       resolved: subject.status === "resolved",
+      ...(process.env.NODE_ENV === "development" && !process.env.REPLIT_DEPLOYMENT
+        ? { distinctVerificationReasons: true } : {}),
       policyStatus: unresolved.some((issue) => issue.classification !== "support_context")
         ? "unresolved" : "resolved",
       activeHardRestrictionIds,

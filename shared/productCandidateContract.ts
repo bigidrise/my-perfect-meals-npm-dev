@@ -113,6 +113,8 @@ export interface ProductEvaluationContext {
   contextFingerprint: string; // current protocol/clinical/plan snapshot
   policyVersion: string; // changes to evidence requirements invalidate assessments
   resolved: boolean;
+  /** Opt-in Development diagnostics; does not change eligibility. */
+  distinctVerificationReasons?: boolean;
   /** From the authoritative resolver. If absent or incomplete, do not approve. */
   policyStatus: "resolved" | "unresolved";
   activeHardRestrictionIds: readonly string[];
@@ -149,7 +151,7 @@ export type ProductPresentation = "recommended_for_you" | "check_the_label" | "n
 
 export interface ProductDecisionReason {
   requirementId?: string;
-  code: "context_unavailable" | "identity_unverified" | "hard_conflict"
+  code: "context_unavailable" | "policy_unavailable" | "identity_unverified" | "hard_conflict"
     | "evidence_missing" | "assessment_missing";
   detail: string;
 }

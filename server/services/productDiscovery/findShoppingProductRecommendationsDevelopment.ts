@@ -3,6 +3,8 @@ import { canonicalShoppingIngredient, type ShoppingIngredientRequest } from "../
 import { findProductDevelopment } from "./findProductDevelopment";
 import type { ShoppingLookupStage } from "./shoppingEvidenceAdapter";
 import type { ShoppingRecommendationVerification } from "../../../shared/shoppingRecommendationVerification";
+import { boundedProductNames, developmentGroceryChoiceStore, groceryChoiceKey } from "../groceryChoiceMemory";
+import { catalogShoppingOptionsDevelopment } from "./catalogShoppingOptionsDevelopment";
 
 /**
  * Compose existing Find a Product suggestions with existing Shopping evidence
@@ -14,18 +16,45 @@ export async function findShoppingProductRecommendationsDevelopment(
   options: {
     recommend?: (name: string, userId: string) => Promise<IngredientScanResult>;
     discoveryOptions?: Pick<NonNullable<Parameters<typeof findProductDevelopment>[2]>, "sources" | "adapter" | "fallbackAdapter">;
+    findNewOptions?: boolean;
   } = {},
 ) {
   // Released Shopping Product Options uses this same governed pipeline in every
   // runtime. The historical function name does not imply a release restriction.
   const ingredient = canonicalShoppingIngredient(input);
+  if (true) {
+    return catalogShoppingOptionsDevelopment(userId, ingredient, options.discoveryOptions);
+  }
   const started = performance.now();
   const recommend = options.recommend ?? (async (name, owner) =>
-    (await import("../ingredientScanService")).analyzeProductByName(name, owner));
+    (await import("../ingredientScanService")).analyzeProductByName(name, owner, {
+      ingredient, findNewOptions: options.findNewOptions,
+    }));
   const analysis = await recommend(ingredient.originalName, userId);
   const recommendationMs = performance.now() - started;
-  if (analysis.analysisMethod !== "by_name" || analysis.fallbackUsed) {
-    throw new Error("Personalized product recommendations are temporarily unavailable.");
+  if (analysis.analysisMethod !== "by_name" || analysis.fallbackUsed ||
+      !Array.isArray(analysis.betterAlternatives) || !analysis.betterAlternatives.some(
+        alternative => typeof alternative?.category === "string" && alternative.category.trim(),
+      )) {
+    // A provider failure says nothing about catalog availability or dietary fit.
+    // Discover exact products through the existing governed path instead; all
+    // current profile, evidence, reference and selection checks still run.
+    if (analysis.failureReason === "unsupported_medical_claim") {
+      console.warn("[ShoppingProductLookup]", { stage: "recommendation", reason: "unsupported_medical_claim", next: "governed_catalog" });
+    }
+    const store = await developmentGroceryChoiceStore();
+    const memory = store ? await store.read(userId, groceryChoiceKey(ingredient.originalName, ingredient), ingredient.originalName) : null;
+    const rememberedLeads = memory && !options.findNewOptions ? boundedProductNames([
+      ...(memory.preferredName ? [memory.preferredName] : []), ...memory.shownNames,
+    ]).filter(name => name.length <= 80) : [];
+    const result = await findProductDevelopment(userId, ingredient.originalName, {
+      ...options.discoveryOptions, shoppingIngredient: ingredient,
+      ...(rememberedLeads.length ? { recommendationLeads: rememberedLeads } : {}),
+    });
+    return {
+      ...result,
+      recommendationNotice: "Personalized explanations are temporarily unavailable. These catalog options use the existing product checks; review the current package label.",
+    };
   }
   const recommendations = analysis.betterAlternatives
     .filter(alt => typeof alt.category === "string" && alt.category.trim())
@@ -71,7 +100,8 @@ export async function findShoppingProductRecommendationsDevelopment(
     return {
       recommendationCategory: category, status: "review_only",
       ...(exactMatches[0] ? { catalogProductKey: exactMatches[0].productKey } : {}),
-      ...(exactMatches[0]?.shoppingReference ? { reference: exactMatches[0].shoppingReference } : {}),
+      ...(exactMatches[0]?.shoppingReference
+        ? { reference: exactMatches[0].shoppingReference } : {}),
       reason: category.length > 80
         ? "The recommendation exceeds the exact-product lookup limit. Its identity and suitability have not been verified."
         : !result.catalogSearchAvailable

@@ -3,7 +3,8 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { execFileSync } = require("node:child_process");
+const { execFileSync, spawnSync } = require("node:child_process");
+const { incrementalArguments } = require("./phase0-comparison.cjs");
 const { check } = require("./cli.cjs");
 const { loadResources } = require("./resources.cjs");
 const fixture = (run) => {
@@ -49,6 +50,51 @@ test("invalid or unavailable base fails closed; no fallback to HEAD", () => fixt
   assert.equal(parsed.status, 2);
   assert.match(parsed.stderr, /could not run/);
 }));
+test("PR target excludes inherited post-adoption debt while historical audits still reject it", () => fixture(({ root, write, git }) => {
+  write("client/src/Inherited.tsx", 'export const X=()=> <p>Inherited post-adoption heading</p>');
+  git("add", "."); git("commit", "-qm", "Reviewed target");
+  const target = git("rev-parse", "HEAD");
+  write("note", "PR change without display copy");
+  git("add", "."); git("commit", "-qm", "Candidate");
+  assert.equal(check(root).findings.length, 1);
+  const args = incrementalArguments(["--ci"], { GITHUB_EVENT_NAME: "pull_request", I18N_PR_BASE_SHA: target });
+  const result = spawnSync(process.execPath, [path.join(__dirname, "cli.cjs"), ...args.slice(1), "--json"], { cwd: root, encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout).comparisonBase, target);
+  assert.equal(JSON.parse(result.stdout).findings.length, 0);
+  assert.equal(check(root).findings.length, 1, "PR comparison must not reset the historical adoption audit");
+}));
+test("PR wiring cannot bypass unavailable-history or unrelated-target ancestry failures", () => fixture(({ root, write, git }) => {
+  git("add", "."); git("commit", "-qm", "Tracked comparison configuration");
+  const branch = git("symbolic-ref", "--short", "HEAD");
+  git("checkout", "-qb", "unrelated-target");
+  write("side-note", "other history");
+  git("add", "."); git("commit", "-qm", "Unrelated target");
+  const unrelated = git("rev-parse", "HEAD");
+  git("checkout", "-q", branch);
+  for (const target of ["f".repeat(40), unrelated]) {
+    const args = incrementalArguments(["--ci"], { GITHUB_EVENT_NAME: "pull_request", I18N_PR_BASE_SHA: target });
+    const result = spawnSync(process.execPath, [path.join(__dirname, "cli.cjs"), ...args.slice(1)], { cwd: root, encoding: "utf8" });
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /could not run/);
+    assert.match(result.stderr, target === unrelated ? /git merge-base --is-ancestor/ : /git rev-parse --verify/);
+  }
+}));
+for (const [kind, copy, classification] of [
+  ["interface", "New untranslated shopping heading", "interface"],
+  ["clinical", "Medical advice for diabetes", "protected-review"],
+]) {
+  test(`PR-base guard still detects and rejects newly introduced ${kind} copy`, () => fixture(({ root, write, git }) => {
+    git("add", "."); git("commit", "-qm", "Reviewed target");
+    const target = git("rev-parse", "HEAD");
+    write("client/src/NewCopy.tsx", `export const X=()=> <p>${copy}</p>`);
+    git("add", "."); git("commit", "-qm", "Unreviewed new copy");
+    const args = incrementalArguments(["--ci"], { GITHUB_EVENT_NAME: "pull_request", I18N_PR_BASE_SHA: target });
+    const result = spawnSync(process.execPath, [path.join(__dirname, "cli.cjs"), ...args.slice(1), "--json"], { cwd: root, encoding: "utf8" });
+    assert.equal(result.status, 1, result.stderr);
+    assert.ok(JSON.parse(result.stdout).findings.some(item => item.text === copy && item.classification === classification));
+  }));
+}
 test("a comparison base before adoption or not in HEAD ancestry is rejected", () => fixture(({ root, write, git, config, saveConfig, base }) => {
   write("note", "after");
   git("add", "note"); git("commit", "-qm", "Later adoption");

@@ -8,3 +8,9 @@ Hydration contributors emit typed, nonnumeric claims. A single deterministic res
 **Why:** Allowing builders, performance context, condition overlays, or medication context to calculate or overwrite Hydration guidance independently would make clinical restrictions order-dependent and could create unsafe automatic fluid or sodium advice.
 
 **How to apply:** Keep self-reported POTS context-only. Represent clinician POTS protocols as directives without inventing thresholds. Under the clinical-registry policy, the resolver must reject claims that are not bound to an active registry definition with matching source, authority, effect, metric, version, family, and provenance. Any same-scope POTS restriction conflict must be withheld for review even when both claims have equal clinician authority. Preserve every builder contribution independently, reject mixed governance versions, and keep all numeric-plan permission and fields disabled until a later approved phase.
+
+Restriction precedence must also hold when support and restriction have equal authority. Explicit hard stops cannot be overridden by a higher-ranked support claim. General-scope actionable or POTS claims overlap metric-specific restrictions; unrelated metric claims and ordinary builder facts remain separate.
+
+**Why:** Rank alone does not resolve contradictory claims at the same authority, and treating general scope asymmetrically can hide a POTS conflict. These are safety conflicts, not permission to calculate a replacement plan.
+
+**How to apply:** Preserve these conservative semantics when extending authorities or scopes; no new numeric recommendation or clinical threshold follows from suppression.

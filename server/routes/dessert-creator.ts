@@ -30,6 +30,11 @@ import type { HumanFoodRequestScope } from "../services/humanFoodContext/request
 import { DESSERT_CATEGORY_LABELS } from "@shared/foodIdentity";
 import { normalizeDessertRecipeNutrition, dessertNutritionDiscrepancies, DessertNutritionError } from "../services/dessertNutrition";
 import { resolveDessertYield } from "@shared/dessertYields";
+import { randomUUID } from "node:crypto";
+import { fillFinalCreateDishChoices } from "../services/createDish/finalChoices";
+import { dessertChoiceSignature } from "../services/dessertChoiceEvidence";
+import { hasCulinaryEvidence } from "../services/craving/recipeEvidence";
+import { DESSERT_CHOICE_MESSAGES } from "@shared/dessertChoiceMessages";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -101,6 +106,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
       governanceOverrideToken,
       actionRequest: _actionRequest,
       authorizationAction: _authorizationAction,
+      choiceCount,
     } = req.body ?? {};
 
     const hasCustomDescription = !!(customDessertDescription && typeof customDessertDescription === 'string' && customDessertDescription.trim().length > 0);
@@ -478,25 +484,28 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
 - DO NOT include macro/nutrition data in ingredient rows - macros go in the nutrition object only
 `;
 
-    if (isDev) console.log("[DESSERT] Calling OpenAI GPT-4o...");
+    // Resolve request authority once. Every candidate and repair uses the same
+    // person, overrides, full-recipe yield and authorization reservation.
+    const dessertCreatorSystem =
+      userId && userId !== "1" ? await resolveCreatorSystemForUser(userId) : null;
+    let userConditions: string[] = [];
+    if (userId && userId !== "1") {
+      const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      userConditions = Array.isArray(dbUser?.healthConditions) ? dbUser.healthConditions : [];
+    }
+    type DessertResponse = { status: number; body: any };
+    let firstFailure: DessertResponse | undefined;
+    const failure = (status: number, body: any): DessertResponse => ({ status, body });
+    const generateDessert = async (candidatePrompt: string, signal?: AbortSignal) => {
     const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content: candidatePrompt }],
       response_format: { type: "json_object" },
-    });
-    if (isDev) console.log("[DESSERT] OpenAI response received");
-
-    let meal: any;
-    try {
-      const rawText = completion.choices[0]?.message?.content || "{}";
-      meal = JSON.parse(rawText);
-      if (isDev) console.log("[DESSERT] Generated response parsed");
-    } catch (parseErr) {
-      console.error("Dessert Creator JSON parse error:", parseErr);
-      return res
-        .status(500)
-        .json({ error: "AI returned invalid JSON for dessert" });
-    }
+    }, { signal });
+    return JSON.parse(completion.choices[0]?.message?.content || "{}");
+    };
+    const validateDessert = async (rawMeal: any, signal?: AbortSignal): Promise<DessertResponse> => {
+    let meal = rawMeal;
 
     // ── Post-gen protocol scan ──────────────────────────────────────────────
     const dessertScan = scanGeneratedOutput(meal, dessertEnvelope, {
@@ -506,7 +515,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
     });
     if (!dessertScan.passed) {
         console.log(`[DESSERT] Generated result rejected by protocol; requestId=${(req as any).id ?? "unavailable"}`);
-      return res.status(400).json({
+      return failure(400, {
         error: "PROTOCOL_VIOLATION",
         message: dessertScan.message,
         retryable: true,
@@ -524,7 +533,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
           const conflictSummary = (_dessertDishDirective?.conflicts ?? [])
             .map(c => `${c.component} (${c.guardrail})`)
             .join(", ");
-          return res.status(400).json({
+          return failure(400, {
             error: "DISH_IDENTITY_FAILURE",
             dishIdentityFailure: true,
             message:
@@ -538,6 +547,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
         console.log(`[DESSERT] Dish identity validated; requestId=${(req as any).id ?? "unavailable"}`);
       } catch (e) {
         console.warn(`[DESSERT] DISH_IDENTITY_VALIDATION_FAILED; requestId=${(req as any).id ?? "unavailable"}`);
+        return failure(422, { code: "DISH_IDENTITY_FAILURE", message: DESSERT_CHOICE_MESSAGES.identity, retryable: true });
       }
     }
 
@@ -560,47 +570,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
       meal.perSliceNutrition = { ...meal.perServingNutrition, sliceSize: "1 slice" };
     }
 
-    const ingredientNames = normalizedIngredients.map((i: any) =>
-      String(i.name ?? "").toLowerCase()
-    );
-
-    // Fetch user health conditions from database for medical badge generation
-    let userConditions: string[] = [];
-    if (userId && userId !== "1") {
-      try {
-        const [dbUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-        if (dbUser?.healthConditions && Array.isArray(dbUser.healthConditions)) {
-          userConditions = dbUser.healthConditions;
-          console.log(`[DESSERT] Medical policy loaded; requestId=${(req as any).id ?? "unavailable"}`);
-        }
-      } catch (err) {
-        console.warn(`[DESSERT] MEDICAL_POLICY_LOAD_FAILED; requestId=${(req as any).id ?? "unavailable"}`);
-      }
-    }
-
-    const constraints: any = {
-      lowGlycemicMode: dietaryPreferences?.includes("low-sugar") || false,
-      conditions: userConditions,
-    };
-
-    const medicalBadges = computeMedicalBadges(constraints, ingredientNames);
-    const alphaGalBadge = computeAlphaGalBadge(
-      `${(meal as any).name || ""} ${(meal as any).description || ""}`,
-      ingredientNames,
-      userConditions
-    );
-
-    // Generate image server-inline via canonical pipeline (caching + fallback handled internally)
-    let imageUrl: string | null = null;
-    try {
-      imageUrl = await generateMealImageUnified(meal.name, ingredientNames, "dessert");
-    } catch (imgErr) {
-      console.warn("[DESSERT] Image generation failed:", imgErr);
-    }
-
     // Creator System 2-pass transformation — applied after all safety checks and normalization.
-    const dessertCreatorSystem =
-      userId && userId !== "1" ? await resolveCreatorSystemForUser(userId) : null;
     if (userId && userId !== "1") {
       meal = await applyCreatorTransformation(meal, dessertCreatorSystem!, "dessert");
     }
@@ -724,7 +694,8 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
       const categoryMatches =
         String(candidate?.category ?? "").toLowerCase() === requestedCategory;
       const servingMatches = candidate?.servingSize === serving.label;
-      if (finiteNutrition && scalingMatches && categoryMatches && servingMatches) return result;
+      const recipeComplete = hasCulinaryEvidence(candidate);
+      if (finiteNutrition && scalingMatches && categoryMatches && servingMatches && recipeComplete) return result;
       const preserveOutcome: HumanFoodFinalValidationResult["outcome"] =
         result.outcome === "blocked" || result.outcome === "review_required"
           ? result.outcome
@@ -734,6 +705,11 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
         outcome: preserveOutcome,
         findings: [
           ...result.findings,
+          ...(!recipeComplete ? [{
+            dimension: "dish_identity" as const, outcome: "repairable" as const,
+            code: "final_recipe_incomplete", message: DESSERT_CHOICE_MESSAGES.incomplete,
+            assurance: "structured_evidence" as const, repairHint: "Return the complete baking or preparation instructions for the entire requested dessert yield.",
+          }] : []),
           ...(!finiteNutrition || !scalingMatches ? [{
             dimension: "nutrition" as const, outcome: "repairable" as const,
             code: "final_nutrition_invalid", message: "Final nutrition must contain finite, correctly scaled total and per-serving values.",
@@ -752,6 +728,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
         ],
         repairInstructions: preserveOutcome === "repairable" ? [
           ...result.repairInstructions,
+          ...(!recipeComplete ? ["Return the complete baking or preparation instructions for the entire requested dessert yield."] : []),
           ...(!finiteNutrition || !scalingMatches ? ["Return numeric total and per-serving nutrition that multiply to the requested serving count."] : []),
           ...(!categoryMatches ? [`Keep category "${requestedCategory}".`] : []),
           ...(!servingMatches ? [`Keep servingSize "${serving.label}" and scale nutrition to it.`] : []),
@@ -762,23 +739,17 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
       candidates: [meal],
       validate: validateFinalDessert,
       repair: async (repairInstructions) => {
-        const repairCompletion = await getOpenAI().chat.completions.create({
-          model: "gpt-4o",
-          messages: [{
-            role: "user",
-            content:
+        let repaired = await generateDessert(
               `${prompt}\n\nRepair this rejected dessert without changing the requested dessert identity, ` +
               `serving count, cuisine, flavor, sweetness, or texture.\n` +
               `${JSON.stringify(meal)}\n\n${repairInstructions.join("\n")}`,
-          }],
-          response_format: { type: "json_object" },
-        });
-        let repaired = JSON.parse(repairCompletion.choices[0]?.message?.content || "{}");
-        const repairedOriginalIngredients = Array.isArray(repaired.ingredients)
-          ? repaired.ingredients.map((row: any) => ({ ...row })) : [];
+          signal,
+        );
         if (dessertCreatorSystem) {
           repaired = await applyCreatorTransformation(repaired, dessertCreatorSystem, "dessert");
         }
+        const repairedOriginalIngredients = Array.isArray(repaired.ingredients)
+          ? repaired.ingredients.map((row: any) => ({ ...row })) : [];
         repaired = normalizeDessertRecipeNutrition({
           ...repaired, ingredients: repairedOriginalIngredients, recipeIngredientQuantities: repairedOriginalIngredients,
         },
@@ -794,7 +765,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
     if (finalDessertEnforcement.accepted.length === 0) {
       const validations = finalDessertEnforcement.validations.map(({ result }) => result);
       const reviewRequired = validations.some(({ outcome }) => outcome === "review_required");
-      return res.status(reviewRequired ? 409 : 422).json({
+      return failure(reviewRequired ? 409 : 422, {
         code: reviewRequired
           ? "HUMAN_FOOD_FINAL_REVIEW_REQUIRED"
           : "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
@@ -807,38 +778,41 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
     }
     meal = finalDessertEnforcement.accepted[0];
     if (validateFinalDessert(meal).outcome !== "pass") {
-      return res.status(422).json({
+      return failure(422, {
         code: "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
         message: "The final dessert response did not pass universal validation.",
         retryable: false,
       });
     }
 
-    if (isDev) console.log("[DESSERT] Sending response (image handled client-side)...");
-
-    // Phase 3B: emit usage event — dessert was generated
-    if (userId && userId !== "1") {
-      emitActivityEvent({
-        ownerUserId: String(userId),
-        eventType: "dessert_generated",
-        eventClass: "usage",
-        sourceFeature: "dessert_creator",
-        metadata: { dessertCategory, flavorFamily, specificDessert },
-      }).catch((err) => console.error("[ActivityEvents]", err.message));
+    // Repair/transformation output must pass the original protocol and dish
+    // checks too, not just a copied compliance label.
+    const finalProtocol = scanGeneratedOutput(meal, dessertEnvelope, {
+      generatorName: "dessert_creator_final",
+      skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
+      overriddenAllergens: _overriddenDessertAllergens.length ? _overriddenDessertAllergens : undefined,
+    });
+    if (!finalProtocol.passed || (_dessertIsNamed &&
+        validateDishIdentity(dessertIdentifier, meal, _dessertDishDirective).catastrophicDeviation)) {
+      return failure(422, { code: "HUMAN_FOOD_FINAL_VALIDATION_FAILED", message: DESSERT_CHOICE_MESSAGES.finalChecks, retryable: true });
     }
-
+    const ingredientNames = meal.ingredients.map((row: any) => String(row.name ?? row.item ?? "").toLowerCase());
+    // Preserve the existing legacy badge adapter. These display badges are
+    // not the request's clinical authority or a substitute for final checks.
+    const constraints: any = {
+      lowGlycemicMode: dietaryPreferences?.includes("low-sugar") || false,
+      conditions: userConditions,
+    };
+    const medicalBadges = computeMedicalBadges(constraints, ingredientNames);
+    const alphaGalBadge = computeAlphaGalBadge(`${meal.name || ""} ${meal.description || ""}`, ingredientNames, userConditions);
     const { complianceSection: dessertCompliance, dietClassification: dessertDietClass } =
       buildMealComplianceBundle(meal, dessertEnvelope, { isChefAdapted: dietAdapted });
-    // Claim consumption only after the exact final candidate is validated and
-    // a nonempty result is about to leave the route. Every earlier return and
-    // thrown failure is released in finally.
     if (typeof meal?.name !== "string" || !meal.name.trim()) {
       throw new Error("Final dessert output is empty");
     }
-    await humanFoodRequestScope.completeAuthorization();
-    return res.json({
+    return { status: 200, body: {
       ...meal,
-      imageUrl,
+      imageUrl: null,
       medicalBadges,
       ...(alphaGalBadge && { alphaGalBadge }),
       ...(dietAdapted && { dietAdapted: true, dietNotice }),
@@ -853,7 +827,83 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
         cakeType: dessertCategory === "cake" ? cakeType : undefined,
         dietaryPreferences,
       },
-    });
+    } };
+    };
+
+    // This is the existing Craving/Create a Dish coordinator, with Dessert's
+    // generator and complete Dessert release path as its callbacks.
+    const releaseDesserts = async (candidates: any[], signal?: AbortSignal) => {
+      const accepted: any[] = [];
+      for (const candidate of candidates) {
+        if (signal?.aborted) break;
+        try {
+          const result = await validateDessert(candidate, signal);
+          if (result.status === 200) accepted.push(result.body);
+          else firstFailure ??= result;
+        } catch (error: any) {
+          firstFailure ??= failure(error instanceof DessertNutritionError ? 422 : 500, {
+            error: "Failed to verify dessert",
+            ...(error instanceof DessertNutritionError ? { code: error.code } : {}),
+          });
+        }
+      }
+      return accepted;
+    };
+    const threeChoiceMode = choiceCount === 3;
+    let choices: any[];
+    if (threeChoiceMode) {
+      const result = await fillFinalCreateDishChoices({
+        initial: [], initialCandidates: [], maxRefillCalls: 4,
+        signature: dessertChoiceSignature,
+        deadlineAt: Date.now() + 100_000,
+        generate: async (call, excludedNames, signal) => [await generateDessert(
+          `${prompt}\n\nDESSERT CHOICE ATTEMPT ${call}:\n` +
+          `Create one complete recipe, preserving every requested dessert, flavor, texture, sweetness, ` +
+          `cake style, pan size and batch yield above. Where the request permits, vary meaningful base ` +
+          `ingredients or preparation, not merely names, garnishes or quantities. Never switch to an ` +
+          `unrelated dessert or relax any safety rule to supply variety.\n` +
+          `Do not repeat these previously attempted recipes: ${JSON.stringify(excludedNames)}.`,
+          signal,
+        )],
+        validate: releaseDesserts,
+      });
+      choices = result.choices.map((meal) => ({ ...meal, id: `dessert-choice-${randomUUID()}` }));
+    } else {
+      // Retain the legacy single-recipe API for older clients and saved results.
+      choices = await releaseDesserts([await generateDessert(prompt)]);
+    }
+    if (!choices.length) {
+      const rejected = firstFailure ?? failure(422, {
+        code: "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
+        message: DESSERT_CHOICE_MESSAGES.budget,
+        retryable: true,
+      });
+      return res.status(rejected.status).json(rejected.body);
+    }
+    // Only distinct, fully validated recipes get images, using their final
+    // ingredients (including any repair), never a discarded candidate's image.
+    await Promise.all(choices.map(async (meal) => {
+      try {
+        meal.imageUrl = await generateMealImageUnified(meal.name,
+          meal.ingredients.map((row: any) => String(row.name ?? row.item ?? "").toLowerCase()), "dessert");
+      } catch {
+        meal.imageUrl = null;
+      }
+    }));
+    await humanFoodRequestScope.completeAuthorization();
+    if (userId && userId !== "1") {
+      emitActivityEvent({
+        ownerUserId: String(userId), eventType: "dessert_generated",
+        eventClass: "usage", sourceFeature: "dessert_creator",
+        metadata: { dessertCategory, flavorFamily, specificDessert },
+      }).catch((err) => console.error("[ActivityEvents]", err.message));
+    }
+    return res.json(threeChoiceMode ? {
+      choices, requestedChoiceCount: 3,
+      ...(choices.length < 3 ? {
+        choiceNotice: `Only ${choices.length} distinct dessert${choices.length === 1 ? "" : "s"} passed the recipe, dietary, safety and serving checks within this request's generation budget. Only validated recipes are shown.`,
+      } : {}),
+    } : choices[0]);
   } catch (err: any) {
     if (err instanceof DessertNutritionError) {
       console.warn("[DESSERT] Recipe nutrition invalid", {

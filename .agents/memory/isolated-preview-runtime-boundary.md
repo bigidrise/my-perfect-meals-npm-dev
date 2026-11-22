@@ -63,3 +63,10 @@ window stub then fails while resolving location information.
 
 **How to apply:** Keep the PostgreSQL test process in its normal Node environment;
 stub only the individual browser APIs that the tested client functions require.
+
+An isolated Shopping fixture must be checked against real database constraints,
+not only matching table/column names, before its browser handoff.
+
+**Why:** Direct fixture inserts exposed identifier-type and required-scope constraints that a column-presence preflight did not establish.
+
+**How to apply:** Validate synthetic seed inserts transactionally against the verified local target and prove authentication, provider isolation and expected product decisions before spending a browser run. Never change shared schemas or loosen production contracts to make a fixture pass.

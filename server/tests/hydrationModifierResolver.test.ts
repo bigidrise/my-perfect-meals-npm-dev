@@ -156,6 +156,106 @@ describe("Hydration modifier resolver", () => {
     expect(result.clinicianDirectiveState).toBe("represented");
   });
 
+  it.each(["fluid", "sodium"] as const)(
+    "withholds general-scope POTS context behind a %s restriction in either order",
+    (metric) => {
+      const pots = modifier("condition:pots-general", {
+        modifierType: "pots",
+        metric: "general",
+        effect: "context_only",
+        authority: "condition_overlay",
+        source: "condition",
+      });
+      const safety = restriction(`safety:${metric}`, metric);
+      const result = resolve([pots, safety]);
+
+      expect(result).toEqual(resolve([safety, pots]));
+      expect(result).toMatchObject({
+        status: "needs_review",
+        potsState: "conflict_review",
+        clinicalConflictState: "unresolved",
+        escalationRequired: true,
+        numericPlanAllowed: false,
+      });
+      expect(result.suppressedModifiers[0]).toMatchObject({
+        id: pots.id,
+        suppressedByInputIds: [safety.id],
+      });
+    },
+  );
+
+  it("does not let equal-authority clinician support override a clinician restriction", () => {
+    const support = modifier("clinician:fluid-support", {
+      authority: "clinician",
+      source: "clinician_directive",
+    });
+    const safety = restriction("clinician:fluid-limit", "fluid", {
+      authority: "clinician",
+      source: "clinician_directive",
+    });
+    const result = resolve([support, safety]);
+
+    expect(result).toEqual(resolve([safety, support]));
+    expect(result).toMatchObject({
+      status: "needs_review",
+      clinicianDirectiveState: "needs_review",
+      escalationRequired: true,
+      activeModifiers: [],
+    });
+    expect(result.activeRestrictions[0].id).toBe(safety.id);
+    expect(result.suppressedModifiers[0]).toMatchObject({
+      id: support.id,
+      suppressedByInputIds: [safety.id],
+      suppressionReasonCodes: ["clinician_directive_precedence"],
+    });
+  });
+
+  it("keeps explicit hard stops non-overridable even without a restriction-shaped type", () => {
+    const hardStop = modifier("safety:explicit-stop", {
+      modifierType: "governed_safety",
+      effect: "requires_review",
+      authority: "condition_overlay",
+      source: "safety",
+      hardStop: true,
+    });
+    const clinician = modifier("clinician:support", {
+      authority: "clinician",
+      source: "clinician_directive",
+    });
+    const result = resolve([clinician, hardStop]);
+
+    expect(result).toEqual(resolve([hardStop, clinician]));
+    expect(result).toMatchObject({
+      status: "blocked",
+      escalationRequired: true,
+      activeModifiers: [],
+      targetMl: null,
+      minimumMl: null,
+      maximumMl: null,
+      remainingMl: null,
+      numericPlanAllowed: false,
+    });
+    expect(result.activeRestrictions[0].id).toBe(hardStop.id);
+    expect(result.suppressedModifiers[0].suppressedByInputIds).toEqual([hardStop.id]);
+  });
+
+  it("suppresses general actionable support without suppressing unrelated metrics or builder facts", () => {
+    const safety = restriction("clinical:fluid-only", "fluid");
+    const general = modifier("performance:general", { metric: "general" });
+    const sodium = modifier("performance:sodium-only", { metric: "sodium" });
+    const builder = createBuilderHydrationContextContribution({
+      builder: "diabetic",
+      policyVersion: POLICY_VERSION,
+    });
+    const result = resolve([general, sodium, safety, builder]);
+
+    expect(result.suppressedModifiers.map((claim) => claim.id)).toEqual([general.id]);
+    expect(result.activeModifiers.map((claim) => claim.id).sort()).toEqual(
+      [builder.id, sodium.id].sort(),
+    );
+    expect(result.activeRestrictions[0].id).toBe(safety.id);
+  });
+
   it("keeps POTS self-report context-only with no automatic fluid or sodium increase", () => {
     const potsSelfReport = modifier("condition:pots-self-report", {
       modifierType: "pots",

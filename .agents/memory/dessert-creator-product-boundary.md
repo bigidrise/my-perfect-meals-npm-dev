@@ -20,3 +20,9 @@ Do not reintroduce mandatory USDA matching or add an independent nutrition estim
 **Why:** The user approved removing the new ingredient-matching gate after legitimate recipe generation began failing, while explicitly preserving all food-safety protections.
 
 **How to apply:** Keep structured recipe estimates distinct from verified composition evidence. Unknown nutrition stays unknown, and serving arithmetic must not invent missing nutrients or remove clinical validation.
+
+Dessert's three-choice experience must retain its existing full-recipe generator and dessert-specific release checks while reusing the shared callback coordinator and comparison/selection UI.
+
+**Why:** The owner approved shared orchestration, not replacing Dessert with Craving's individual-serving prompt or creating another independent three-choice system.
+
+**How to apply:** Keep whole-dessert and batch semantics in Dessert callbacks. Generalize existing comparison components minimally, preserve the other Creators, and interpret Development implementation approval as workspace/release scope—not permission to add Development-only restrictions or activation flags. Production changes, GitHub promotion and publishing require separate owner approval.
