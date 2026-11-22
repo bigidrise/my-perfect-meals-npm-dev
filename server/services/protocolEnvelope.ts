@@ -2185,8 +2185,7 @@ The user has marked these as foods they do not eat: ${avoidList}
   }
 
   // ── TIER 7: Preferences ───────────────────────────────────────────────────
-  if (process.env.NODE_ENV === "development" &&
-      [...envelope.avoidances, ...envelope.dietaryIdentity].some(rule =>
+  if ([...envelope.avoidances, ...envelope.dietaryIdentity].some(rule =>
         ["pork", "no pork", "no red meat", "kosher", "halal", "kosher-halal"].includes(rule.trim().toLowerCase()))) {
     layers.avoidances += `\nFOOD IDENTITY — PROTEIN SOURCE:
 For an explicitly species-qualified processed meat, evaluate the named species, not the product-format word (bacon, ham, sausage, salami, pepperoni, chorizo).

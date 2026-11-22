@@ -368,9 +368,7 @@ export async function findProductDevelopment(
     throw new Error("Shopping recommendation leads must be bounded and preserve the original ingredient.");
   }
   const intent = makeIntent(initial);
-  const catalogFirstShopping = options.catalogFirstShopping === true &&
-    (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test") &&
-    !process.env.REPLIT_DEPLOYMENT && !!shoppingIngredient;
+  const catalogFirstShopping = options.catalogFirstShopping === true && !!shoppingIngredient;
   const adapters = options.adapter
     ? [options.adapter, ...(options.fallbackAdapter ? [options.fallbackAdapter] : [])]
     : [

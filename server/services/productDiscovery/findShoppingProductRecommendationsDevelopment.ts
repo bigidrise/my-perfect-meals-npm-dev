@@ -22,7 +22,7 @@ export async function findShoppingProductRecommendationsDevelopment(
   // Released Shopping Product Options uses this same governed pipeline in every
   // runtime. The historical function name does not imply a release restriction.
   const ingredient = canonicalShoppingIngredient(input);
-  if (process.env.NODE_ENV === "development" && !process.env.REPLIT_DEPLOYMENT) {
+  if (true) {
     return catalogShoppingOptionsDevelopment(userId, ingredient, options.discoveryOptions);
   }
   const started = performance.now();

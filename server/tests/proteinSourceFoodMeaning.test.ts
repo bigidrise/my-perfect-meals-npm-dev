@@ -128,11 +128,22 @@ describe("Development protein-source FoodMeaning", () => {
     expect(result.combined).toContain("does not override");
   });
 
-  test("Production keeps its existing behavior and does not receive the new prompt", () => {
+  test("Production enforces the same protein-source dietary protections", () => {
     process.env.NODE_ENV = "production";
-    expect(scanForHiddenDietaryViolations("turkey bacon", [], ["pork"]).length).toBeGreaterThan(0);
-    expect(enforceSafetyProfileSync(profile(["no pork"]), "turkey bacon").result).toBe("DIET_ADAPT");
+
+    for (const ingredient of ["turkey bacon", "beef bacon", "chicken sausage"]) {
+      expect(scanForHiddenDietaryViolations(ingredient, [], ["pork"])).toEqual([]);
+      expect(enforceSafetyProfileSync(profile(["no pork"]), ingredient).result).toBe("SAFE");
+      expect(scanGeneratedOutput(meal(ingredient), envelope()).passed).toBe(true);
+    }
+
+    for (const ingredient of ["pork bacon", "pork sausage", "bacon", "sausage", "turkey bacon with pork fat"]) {
+      expect(scanForHiddenDietaryViolations(ingredient, [], ["pork"]).length).toBeGreaterThan(0);
+      expect(scanGeneratedOutput(meal(ingredient), envelope()).passed).toBe(false);
+    }
+
+    expect(scanForHiddenDietaryViolations("turkey bacon", [], ["bacon"]).length).toBeGreaterThan(0);
     expect(enforceBeforeGenerate(envelope(), { generatorName: "create_with_chef" }).combined)
-      .not.toContain("FOOD IDENTITY — PROTEIN SOURCE");
+      .toContain("FOOD IDENTITY — PROTEIN SOURCE");
   });
 });

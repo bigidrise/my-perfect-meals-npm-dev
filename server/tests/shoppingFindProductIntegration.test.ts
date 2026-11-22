@@ -294,13 +294,18 @@ describe("catalog-first Development shopping options", () => {
     expect(f.recommend).not.toHaveBeenCalled();
   });
 
-  test("a deployment keeps the original recommendation pipeline", async () => {
+  test("a deployment uses the same catalog-first Shopping lookup", async () => {
     const previous = process.env.REPLIT_DEPLOYMENT;
     process.env.REPLIT_DEPLOYMENT = "1";
     try {
       const f = fixture();
-      await f.run();
-      expect(f.recommend).toHaveBeenCalledTimes(1);
+      const result = await f.run();
+      expect(f.recommend).not.toHaveBeenCalled();
+      expect(result.recommendations).toHaveLength(3);
+      expect(result.recommendationChecks).toHaveLength(3);
+      expect(result.catalogMatches.every(match =>
+        match.shoppingSelection?.eligible === true || !!match.shoppingReference
+      )).toBe(true);
     } finally {
       if (previous === undefined) delete process.env.REPLIT_DEPLOYMENT;
       else process.env.REPLIT_DEPLOYMENT = previous;
