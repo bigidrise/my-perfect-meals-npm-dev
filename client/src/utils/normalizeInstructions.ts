@@ -13,7 +13,7 @@ export function normalizeInstructions(input: string | string[] | any[] | undefin
 
   // Priority 1: numbered steps (1., 2., Step 1:, Step 2:, etc.)
   const numberedSplit = text
-    .split(/(?:^|\n|\s)(?:Step\s*\d+[:.]|\d+\.)\s*/i)
+    .split(/(?:^|\n|\s)(?:Step\s*\d+[:.]|\d+\.(?!\d))\s*/i)
     .map((s) => s.trim())
     .filter(Boolean);
   if (numberedSplit.length > 1) return numberedSplit;

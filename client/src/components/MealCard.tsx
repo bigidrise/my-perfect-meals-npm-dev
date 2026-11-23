@@ -24,6 +24,7 @@ import { type Meal, type DietClassification } from "@/types/meal";
 import KosherProTip from "@/components/KosherProTip";
 import BuilderSourcePill from "@/components/BuilderSourcePill";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
+import { formatCookingTemperatureText } from "@shared/units";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import FavoriteButton from "@/components/FavoriteButton";
 import { withSavedMealBuilderOrigin, type SavedMealBuilder } from "@/lib/savedMealSource";
@@ -538,7 +539,7 @@ export function MealCard({
                     <div className="min-w-[26px] h-[26px] w-[26px] rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
                       {index + 1}
                     </div>
-                    <p className="text-sm leading-relaxed text-white/85">{step}</p>
+                    <p className="text-sm leading-relaxed text-white/85">{formatCookingTemperatureText(step, measurementSystem)}</p>
                   </div>
                 ))}
               </div>

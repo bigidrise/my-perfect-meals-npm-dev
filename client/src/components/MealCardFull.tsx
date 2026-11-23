@@ -7,6 +7,7 @@ import MealRefinementSheet from "@/components/MealRefinementSheet";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
+import { formatCookingTemperatureText } from "@shared/units";
 import { useTranslation } from "react-i18next";
 import { useTranslatedMeal } from "@/hooks/useTranslatedMeal";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
@@ -419,7 +420,7 @@ export default function MealCardFull({
                 <span className="bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium shrink-0 mt-0.5">
                   {i + 1}
                 </span>
-                <span>{instruction}</span>
+                <span>{formatCookingTemperatureText(instruction, measurementSystem)}</span>
               </li>
             ))}
           </ol>

@@ -195,6 +195,93 @@ export function convertLengthDisplay(value: number, unit: string, system: Measur
   return system === "metric" ? `${+cm.toFixed(1)} cm` : `${+(cm / 2.54).toFixed(1)} in`;
 }
 
+// ─── Cooking temperature display ────────────────────────────────────────────
+
+/**
+ * Converts explicit cooking temperatures for display only.
+ * Call with original source text after language translation is selected.
+ * Does not mutate recipe data, nutrition, or translation caches.
+ */
+export function formatCookingTemperatureText(
+  text: string,
+  system: MeasurementSystem
+): string {
+  if (!text || typeof text !== "string") return text;
+
+  const number = String.raw`-?\d+(?:[.,]\d+)?`;
+  const unit = String.raw`(?:°\s*[FC]|[℃℉]|(?:degrees?|grados?)\s*(?:°\s*)?(?:Fahrenheit|Celsius|centígrados|centigrados|[FC])|Fahrenheit|Celsius)`;
+  const expression = new RegExp(String.raw`(${number})\s*(${unit})`, "gi");
+  const range = new RegExp(String.raw`(${number})\s*([-–—])\s*(${number})\s*(${unit})`, "gi");
+
+  const scaleOf = (raw: string): "F" | "C" | null => {
+    const normalized = raw.toLowerCase();
+    if (/℉|fahrenheit|f\s*$/i.test(normalized)) return "F";
+    if (/℃|celsius|cent[ií]grados|c\s*$/i.test(normalized)) return "C";
+    return null;
+  };
+
+  const ovenContext = (sourceText: string, offset: number): boolean =>
+    /(?:preheat|precalentar|oven|horno)\b/i.test(
+      sourceText.slice(Math.max(0, offset - 55), offset).toLowerCase()
+    );
+
+  const convert = (value: number, oven: boolean): string => {
+    const result = system === "metric"
+      ? (value - 32) * 5 / 9
+      : value * 9 / 5 + 32;
+
+    if (oven) {
+      const increment = system === "metric" ? 5 : 10;
+      return `${Math.round(result / increment) * increment}°${system === "metric" ? "C" : "F"}`;
+    }
+    return `≈${Number(result.toFixed(1))}°${system === "metric" ? "C" : "F"}`;
+  };
+
+  // Preserve existing dual-unit references, including safety thresholds.
+  const protectedPairs: string[] = [];
+  const pairPattern = new RegExp(
+    String.raw`(${number}\s*${unit})\s*\(\s*(${number}\s*${unit})\s*\)`,
+    "gi"
+  );
+  let output = text.replace(pairPattern, match => {
+    const token = `\uE000${protectedPairs.length}\uE001`;
+    protectedPairs.push(match);
+    return token;
+  });
+
+  // Convert whole ranges rather than only their final endpoint.
+  output = output.replace(range, (match, first, separator, second, rawUnit, offset, fullText) => {
+    const scale = scaleOf(rawUnit);
+    const target = system === "metric" ? "C" : "F";
+    if (!scale || scale === target) return match;
+
+    const a = Number(String(first).replace(",", "."));
+    const b = Number(String(second).replace(",", "."));
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return match;
+
+    const oven = ovenContext(fullText, offset);
+    if (!oven) return match;
+
+    return `${convert(a, true)}${separator}${convert(b, true)}`;
+  });
+
+  // Convert individual temperatures, leaving target-unit text unchanged.
+  output = output.replace(expression, (match, rawValue, rawUnit, offset, fullText) => {
+    const scale = scaleOf(rawUnit);
+    const target = system === "metric" ? "C" : "F";
+    if (!scale || scale === target) return match;
+
+    const value = Number(String(rawValue).replace(",", "."));
+    if (!Number.isFinite(value)) return match;
+
+    const oven = ovenContext(fullText, offset);
+    const converted = convert(value, oven);
+    return oven ? converted : `${converted} (${match})`;
+  });
+
+  return output.replace(/\uE000(\d+)\uE001/g, (_, index) => protectedPairs[Number(index)]);
+}
+
 // ─── AI Prompt instruction block ─────────────────────────────────────────────
 
 /**

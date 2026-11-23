@@ -1,5 +1,7 @@
 import { MeasurementQuantity } from "@/components/MeasurementQuantity";
 import { IngredientDisplay } from "@/components/IngredientDisplay";
+import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
+import { formatCookingTemperatureText } from "@shared/units";
 import { Sparkles, Users, Brain, ChefHat, CalendarPlus, Leaf } from "lucide-react";
 import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
 import { formatAmount } from "@/utils/formatAmount";
@@ -99,6 +101,7 @@ export default function GeneratedMealCard({
 }: GeneratedMealCardProps) {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const measurementSystem = useMeasurementSystem();
   const userDiet: string = (user as any)?.dietaryRestrictions?.[0] || (user as any)?.dietType || "";
   const isCarnivore = userDiet === "carnivore";
   const CARNIVORE_TIPS = [
@@ -377,9 +380,12 @@ export default function GeneratedMealCard({
             Instructions:
           </h4>
           <div className="text-sm text-white/80 whitespace-pre-line max-h-40 overflow-y-auto">
-            {Array.isArray(mealToShow.instructions)
-              ? mealToShow.instructions.join("\n")
-              : mealToShow.instructions}
+            {formatCookingTemperatureText(
+              Array.isArray(mealToShow.instructions)
+                ? mealToShow.instructions.join("\n")
+                : mealToShow.instructions,
+              measurementSystem
+            )}
           </div>
         </div>
       )}
