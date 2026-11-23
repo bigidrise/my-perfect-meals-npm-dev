@@ -110,3 +110,13 @@ test.each([
 ])("keeps %s connected to the shared display", file => {
   expect(readFileSync(`client/src/${file}`, "utf8")).toContain("<IngredientDisplay");
 });
+
+test("Spanish ingredient quantities use decimal commas without changing values", () => {
+  expect(ingredientQuantity(0.75, "ml", "metric", "es")).toBe("0,75 mL");
+  expect(ingredientQuantity(0.26, "g", "metric", "es")).toBe("0,26 g");
+  expect(ingredientQuantity(0.75, "ml", "metric", "en")).toBe("0.75 ml");
+});
+
+test("an empty quantity falls back to a valid structured amount", () => {
+  expect(ingredientLine({ quantity: "", amount: "250", unit: "ml", name: "water" }, "metric", "en")).toBe("250 ml water");
+});

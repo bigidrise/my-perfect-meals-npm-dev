@@ -55,7 +55,7 @@ export function ingredientQuantity(
   const preserveDecimal = decimalUnits.has((match[2] ?? "").trim().toLowerCase());
   const pretty = (preserveDecimal || (number > 0 && number < 0.01)
     ? String(number)
-    : formatQuantity(number, "")).replace(/(\\d)\\.(\\d)/g, language.startsWith("es") ? "$1,$2" : "$1.$2");
+    : formatQuantity(number, "")).replace(/(\d)\.(\d)/g, language.startsWith("es") ? "$1,$2" : "$1.$2");
   if (countUnits.has(displayUnit.toLowerCase())) return pretty;
   if (!language.startsWith("es")) {
     const english: Record<string, [string, string]> = {
@@ -83,7 +83,7 @@ export function ingredientLine(ingredient: DisplayIngredient, system: Measuremen
     return ingredientLine({ quantity: match[1], unit: match[2], name: match[3] }, system, language);
   }
   const name = ingredient.name || ingredient.item || "";
-  const amount = ingredient.quantity ?? ingredient.amount;
+  const amount = ingredient.quantity === "" || ingredient.quantity == null ? ingredient.amount : ingredient.quantity;
   // A historical displayText is a fallback, never authority over structured quantities.
   if (!name) return ingredient.displayText ? ingredientLine(ingredient.displayText, system, language) : "";
   if (amount == null || amount === "") {
