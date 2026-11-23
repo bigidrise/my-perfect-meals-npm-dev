@@ -21,16 +21,18 @@ Distinguish an Editor workspace running the Production entrypoint from a publish
 
 **How to apply:** Use the platform's workspace and published-runtime signals, keep the Production entrypoint's secure baseline independent of NODE_ENV, and cover creation and clearing of matching cookies. Partitioned cookies do not replace CSRF, MFA, authorization, or durable sessions. Cookie-header and session-round-trip fixtures are not proof of real-browser cookie acceptance.
 
-In Development, initialize the synchronizer token before authenticated requests
-fan out after session regeneration. Keep this correction out of published
-runtimes until separately approved.
+Initialize the synchronizer token before authenticated requests fan out after
+session regeneration, in both Development and Production.
 
 **Why:** Lazy token creation raced with slower authenticated requests saving
 older session snapshots. An isolated overlapping-request reproduction erased
 the issued token and caused saved Menu restoration to fail with CSRF rejection.
 Refreshing the client token alone does not prevent that server-side overwrite.
 
-**How to apply:** Preserve early initialization for new Development sessions and
+**How to apply:** Preserve early initialization for new sessions and
 test with a delayed session write, not only mocked HTTP responses. Keep token
-and exact-origin enforcement intact. Production-mode and published-runtime
-behavior must remain unchanged under this Development-only approval.
+and exact-origin enforcement intact across environments. The user approved
+removing the Development-only restriction: making and verifying changes in the
+Development workspace does not mean the bug fix should be disabled in
+Production. Pushing, merging, and deploying remain separate approval boundaries;
+do not add a runtime restriction merely to avoid those actions.

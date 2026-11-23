@@ -4,14 +4,15 @@ import supertest from "supertest";
 import { registerCsrfProtection } from "../lib/csrfProtection";
 import { regenerateSession } from "../lib/sessionSecurity";
 
-describe("Development saved Menu session security", () => {
+describe("Saved Menu session security across environments", () => {
   it.each([
-    ["development", "0", 200],
-    ["production", "0", 403],
-    ["development", "1", 403],
+    ["development", "0"],
+    ["production", "0"],
+    ["development", "1"],
+    ["production", "1"],
   ] as const)(
-    "%s with published=%s keeps its intended behavior during overlapping session writes",
-    async (environment, published, expectedStatus) => {
+    "%s with published=%s preserves the token during overlapping session writes",
+    async (environment, published) => {
       const previousEnvironment = process.env.NODE_ENV;
       const previousDeployment = process.env.REPLIT_DEPLOYMENT;
       process.env.NODE_ENV = environment;
@@ -62,19 +63,17 @@ describe("Development saved Menu session security", () => {
           .set("Origin", "https://app.myperfectmeals.com")
           .set("Cookie", cookie)
           .set("x-csrf-token", bootstrap.body.csrfToken);
-        expect(restore.status).toBe(expectedStatus);
-        if (expectedStatus === 200) {
-          expect(restore.body.concepts).toHaveLength(3);
-          const missingToken = await supertest(app).post("/api/one-touch-create/restore")
-            .set("Origin", "https://app.myperfectmeals.com").set("Cookie", cookie);
-          expect(missingToken.status).toBe(403);
-          const untrustedOrigin = await supertest(app).post("/api/one-touch-create/restore")
-            .set("Origin", "https://attacker.example").set("Cookie", cookie)
-            .set("x-csrf-token", bootstrap.body.csrfToken);
-          expect(untrustedOrigin.status).toBe(403);
-        } else {
-          expect(restore.body.code).toBe("CSRF_TOKEN_INVALID");
-        }
+        expect(restore.status).toBe(200);
+        expect(restore.body.concepts).toHaveLength(3);
+        const missingToken = await supertest(app).post("/api/one-touch-create/restore")
+          .set("Origin", "https://app.myperfectmeals.com").set("Cookie", cookie);
+        expect(missingToken.status).toBe(403);
+        expect(missingToken.body.code).toBe("CSRF_TOKEN_INVALID");
+        const untrustedOrigin = await supertest(app).post("/api/one-touch-create/restore")
+          .set("Origin", "https://attacker.example").set("Cookie", cookie)
+          .set("x-csrf-token", bootstrap.body.csrfToken);
+        expect(untrustedOrigin.status).toBe(403);
+        expect(untrustedOrigin.body.code).toBe("CSRF_ORIGIN_REJECTED");
       } finally {
         releaseSlowRequest?.();
         if (previousEnvironment === undefined) delete process.env.NODE_ENV;
