@@ -10,14 +10,12 @@ import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { MeasurementQuantity } from "@/components/MeasurementQuantity";
 
 let mockSystem: "imperial" | "metric" = "imperial";
-let mockEnabled = true;
 jest.mock("@/hooks/useMeasurementSystem", () => ({ useMeasurementSystem: () => mockSystem }));
-jest.mock("@/lib/ingredientDisplayGate", () => ({ get localizedIngredientDisplayEnabled() { return mockEnabled; } }));
 const language = createInstance();
 beforeAll(async () => {
   await language.use(initReactI18next).init({ lng: "es", fallbackLng: "en", resources: { en: {}, es: {} } });
 });
-beforeEach(async () => { mockSystem = "imperial"; mockEnabled = true; await language.changeLanguage("es"); });
+beforeEach(async () => { mockSystem = "imperial"; await language.changeLanguage("es"); });
 afterEach(cleanup);
 const wrapper = ({ children }: { children: React.ReactNode }) => <I18nextProvider i18n={language}>{children}</I18nextProvider>;
 
@@ -52,6 +50,13 @@ test("supports structured aliases, strings, saved displayText and combined amoun
   expect(ingredientLine({ quantity: 2, unit: "cup", name: "papaya" }, "imperial", "en")).toBe("2 cups papaya");
   expect(ingredientLine({ quantity: 6, unit: "unidades", name: "rice crackers" }, "imperial", "en")).toBe("6 rice crackers");
 });
+test("small positive ingredient quantities survive the final display formatter", () => {
+  expect(ingredientQuantity(0.0001, "g", "imperial", "en")).toBe("0.0001 g");
+  expect(ingredientQuantity(0.26, "g", "imperial", "en")).toBe("0.26 g");
+  expect(ingredientQuantity(0.75, "ml", "metric", "en")).toBe("0.75 ml");
+  expect(ingredientQuantity(2.6, "ml", "imperial", "en")).toBe("2.6 ml");
+  expect(ingredientQuantity(4.9, "ml", "imperial", "en")).toBe("4.9 ml");
+});
 test("preserves ambiguous, unknown and ranged quantities instead of guessing", () => {
   expect(ingredientLine("1-2 cup mango", "metric", "es")).toBe("1-2 cup mango");
   expect(ingredientLine("salt to taste", "metric", "es")).toBe("salt to taste");
@@ -84,10 +89,10 @@ test("the shared real display follows language and measurement changes without r
   await act(async () => { await language.changeLanguage("es"); });
   expect(screen.getByText("60 mL de cebollín")).toBeVisible();
 });
-test("Production/legacy rendering stays unchanged when the Development gate is off", () => {
-  mockEnabled = false;
+test("shared ingredient display uses localized formatting instead of legacy text", () => {
   render(<IngredientDisplay ingredient={{ quantity: 2, unit: "cup", name: "papaya" }} legacyText="ORIGINAL_SAVED_DISPLAY" />, { wrapper });
-  expect(screen.getByText("ORIGINAL_SAVED_DISPLAY")).toBeVisible();
+  expect(screen.getByText("2 tazas de papaya")).toBeVisible();
+  expect(screen.queryByText("ORIGINAL_SAVED_DISPLAY")).not.toBeInTheDocument();
 });
 test("split-layout quantity views also localize the unit wording", () => {
   render(<MeasurementQuantity amount={1} unit="tbsp" />, { wrapper });

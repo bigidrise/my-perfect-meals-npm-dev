@@ -46,6 +46,14 @@ export function parseMeasurementNumber(value: string | number): number | null {
   return Number.isFinite(number) ? number : null;
 }
 
+// Preserve small positive quantities without rounding them to zero.
+function preciseSmallQuantity(value: number): string {
+  if (!Number.isFinite(value)) return String(value);
+  if (value === 0) return "0";
+  const rounded = Number(value.toPrecision(8));
+  return rounded === 0 ? String(value) : String(rounded);
+}
+
 // ─── Weight ──────────────────────────────────────────────────────────────────
 
 /** Display a weight value in the user's preferred system. Input is always grams internally. */
@@ -55,7 +63,7 @@ export function convertWeightDisplay(grams: number, system: MeasurementSystem): 
       const kg = grams / 1000;
       return `${+kg.toFixed(2).replace(/\.?0+$/, "")} kg`;
     }
-    return `${Math.round(grams)} g`;
+    return `${grams > 0 && grams < 10 ? preciseSmallQuantity(grams) : Math.round(grams)} g`;
   }
   // Imperial
   const oz = grams / 28.3495;
@@ -63,6 +71,7 @@ export function convertWeightDisplay(grams: number, system: MeasurementSystem): 
     const lbs = oz / 16;
     return `${+lbs.toFixed(1).replace(/\.?0+$/, "")} lb`;
   }
+  if (grams > 0 && oz < 0.05) return `${preciseSmallQuantity(grams)} g`;
   return `${+oz.toFixed(1).replace(/\.?0+$/, "")} oz`;
 }
 
@@ -113,7 +122,7 @@ export function convertVolumeDisplay(ml: number, system: MeasurementSystem): str
       const liters = ml / 1000;
       return `${+liters.toFixed(2).replace(/\.?0+$/, "")} L`;
     }
-    return `${Math.round(ml)} ml`;
+    return `${ml > 0 && ml < 10 ? preciseSmallQuantity(ml) : Math.round(ml)} ml`;
   }
   // Imperial: cups / tbsp / tsp
   if (ml >= 240) {
@@ -130,8 +139,9 @@ export function convertVolumeDisplay(ml: number, system: MeasurementSystem): str
     const tbsp = Math.round(ml / 15);
     return `${tbsp} tbsp`;
   }
+  if (ml < 5) return `${preciseSmallQuantity(ml)} ml`;
   const tsp = Math.round(ml / 5);
-  return `${tsp || 1} tsp`;
+  return `${tsp} tsp`;
 }
 
 // ─── Serving display (for recipe ingredients) ────────────────────────────────

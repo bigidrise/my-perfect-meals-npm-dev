@@ -87,6 +87,17 @@ describe("actual existing conversion and formatting helpers", () => {
       expect(convertServingDisplay(2, unit, "imperial")).toBe(`2 ${unit}`);
     },
   );
+  test("small positive quantities retain precision without disappearing", () => {
+    expect(convertServingDisplay(0.0001, "g", "imperial")).toBe("0.0001 g");
+    expect(convertServingDisplay(0.26, "g", "imperial")).toBe("0.26 g");
+    expect(convertServingDisplay(0.75, "ml", "metric")).toBe("0.75 ml");
+    expect(convertServingDisplay(2.6, "ml", "imperial")).toBe("2.6 ml");
+    expect(convertServingDisplay(4.9, "ml", "imperial")).toBe("4.9 ml");
+    expect(convertServingDisplay(5, "ml", "imperial")).toBe("1 tsp");
+    expect(convertServingDisplay(15, "ml", "imperial")).toBe("1 tbsp");
+    expect(convertServingDisplay(240, "ml", "imperial")).toBe("1 cup");
+  });
+
   test("rounding carries without 5ft12in or lost cups; zero is not a teaspoon", () => {
     expect(convertHeightDisplay(182, "imperial")).toBe('6\' 0"');
     expect(convertVolumeDisplay(456, "imperial")).toBe("2 cup");

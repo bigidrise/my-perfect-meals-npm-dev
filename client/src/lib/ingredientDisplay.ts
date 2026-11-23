@@ -51,7 +51,11 @@ export function ingredientQuantity(
   const number = parseMeasurementNumber(match[1]);
   if (number === null) return converted;
   const displayUnit = (match[2] ?? "").trim();
-  const pretty = formatQuantity(number, "").replace(/(\d)\.(\d)/g, language.startsWith("es") ? "$1,$2" : "$1.$2");
+  const decimalUnits = new Set(["g", "kg", "ml", "l", "mg"]);
+  const preserveDecimal = decimalUnits.has((match[2] ?? "").trim().toLowerCase());
+  const pretty = (preserveDecimal || (number > 0 && number < 0.01)
+    ? String(number)
+    : formatQuantity(number, "")).replace(/(\\d)\\.(\\d)/g, language.startsWith("es") ? "$1,$2" : "$1.$2");
   if (countUnits.has(displayUnit.toLowerCase())) return pretty;
   if (!language.startsWith("es")) {
     const english: Record<string, [string, string]> = {
