@@ -50,7 +50,10 @@ export function ingredientQuantity(
   if (!match) return converted;
   const number = parseMeasurementNumber(match[1]);
   if (number === null) return converted;
-  const displayUnit = (match[2] ?? "").trim();
+  const rawDisplayUnit = (match[2] ?? "").trim();
+  const displayUnit = rawDisplayUnit.toLowerCase() === "ml"
+    ? "mL"
+    : rawDisplayUnit;
   const decimalUnits = new Set(["g", "kg", "ml", "l", "mg"]);
   const preserveDecimal = decimalUnits.has((match[2] ?? "").trim().toLowerCase());
   const pretty = (preserveDecimal || (number > 0 && number < 0.01)
@@ -76,6 +79,27 @@ export function ingredientQuantity(
   return `${pretty} ${fractionOf ? "de " : ""}${label}`.trim();
 }
 
+/**
+ * Choose practical recipe measurements without guessing ingredient density.
+ * Presentation only; never changes stored quantities or nutrition.
+ */
+function practicalIngredientSystem(name: string, unit: string | undefined, system: MeasurementSystem): MeasurementSystem {
+  if (system !== "metric" || !unit) return system;
+
+  const normalizedUnit = (canonicalUnits[unit.toLowerCase().trim()] ?? unit).toLowerCase().trim();
+  const normalizedName = name.toLowerCase().trim();
+
+  const liquid = /\b(water|milk|broth|stock|juice|oil|vinegar|wine|cream|syrup|agua|leche|caldo|jugo|zumo|aceite|vinagre|vino|crema|jarabe)\b/i.test(normalizedName);
+
+  // Preserve practical kitchen volume measures for nonliquid ingredients.
+  // Never infer a weight from an ingredient's volume.
+  if (!liquid && ["cup", "cups", "tbsp", "tablespoon", "tablespoons", "tsp", "teaspoon", "teaspoons"].includes(normalizedUnit)) {
+    return "imperial";
+  }
+
+  return system;
+}
+
 export function ingredientLine(ingredient: DisplayIngredient, system: MeasurementSystem, language: string): string {
   if (typeof ingredient === "string") {
     const match = ingredient.match(ingredientPattern);
@@ -95,7 +119,7 @@ export function ingredientLine(ingredient: DisplayIngredient, system: Measuremen
   if (!ingredient.unit && typeof amount === "string" && ingredientPattern.test(`${amount} ${name}`)) {
     return ingredientLine(`${amount} ${name}`, system, language);
   }
-  const quantity = ingredientQuantity(amount, ingredient.unit, system, language);
+  const quantity = ingredientQuantity(amount, ingredient.unit, practicalIngredientSystem(name, ingredient.unit, system), language);
   const sourceNumber = parseMeasurementNumber(amount);
   const known = !!units[(ingredient.unit ?? "").toLowerCase().trim()];
   return `${quantity}${name ? `${language.startsWith("es") && known && sourceNumber !== null ? " de " : " "}${name}` : ""}`.trim();

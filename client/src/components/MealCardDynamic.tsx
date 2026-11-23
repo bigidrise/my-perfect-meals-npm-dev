@@ -8,6 +8,8 @@ import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
 import { formatCookingTemperatureText } from "@shared/units";
+import { formatCookingInstruction } from "@/lib/cookingInstructionDisplay";
+import { useTranslation } from "react-i18next";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 
 interface MedicalBadge {
@@ -123,6 +125,7 @@ const MealCardDynamic: React.FC<MealCardDynamicProps> = ({
 }) => {
   const [showFullIngredients, setShowFullIngredients] = useState(false);
   const measurementSystem = useMeasurementSystem();
+  const { i18n } = useTranslation();
   const [showFullInstructions, setShowFullInstructions] = useState(false);
 
   // Generate dynamic medical badges based on user's onboarding profile
@@ -289,7 +292,7 @@ const MealCardDynamic: React.FC<MealCardDynamicProps> = ({
         <ol className="list-decimal pl-6 space-y-2">
           {meal.instructions && meal.instructions.slice(0, showFullInstructions ? meal.instructions.length : 3).map((step, index) => (
             <li key={index} className="text-sm text-slate-700 dark:text-slate-300">
-              {formatCookingTemperatureText(step, measurementSystem)}
+              {formatCookingTemperatureText(formatCookingInstruction(step, meal.ingredients, measurementSystem, i18n.language), measurementSystem)}
             </li>
           ))}
         </ol>

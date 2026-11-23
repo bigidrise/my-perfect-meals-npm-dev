@@ -8,6 +8,7 @@ import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import { IngredientDisplay } from "@/components/IngredientDisplay";
 import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
 import { formatCookingTemperatureText } from "@shared/units";
+import { formatCookingInstruction } from "@/lib/cookingInstructionDisplay";
 import { useTranslation } from "react-i18next";
 import { useTranslatedMeal } from "@/hooks/useTranslatedMeal";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
@@ -168,7 +169,7 @@ export default function MealCardFull({
   // Local meal state — updated on accepted refinements so the card re-renders without needing a parent callback
   const [currentMeal, setCurrentMeal] = useState<Meal>(() => meal);
   const [preRefineMeal, setPreRefineMeal] = useState<Meal | null>(null);
-  const { t } = useTranslation("savedMeals");
+  const { t, i18n } = useTranslation("savedMeals");
 
   // Translation — only active for non-English locales and when a saved-meal UUID is provided
   const validMealId = mealId && UUID_RE.test(mealId) ? mealId : "";
@@ -420,7 +421,7 @@ export default function MealCardFull({
                 <span className="bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium shrink-0 mt-0.5">
                   {i + 1}
                 </span>
-                <span>{formatCookingTemperatureText(instruction, measurementSystem)}</span>
+                <span>{formatCookingTemperatureText(formatCookingInstruction(instruction, displayIngredients, measurementSystem, i18n.language), measurementSystem)}</span>
               </li>
             ))}
           </ol>

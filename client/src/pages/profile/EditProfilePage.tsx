@@ -850,12 +850,10 @@ function AccountEditProfilePage() {
         <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-lg">
           <CardContent className="p-4">
             <p className="text-white text-sm font-semibold mb-1">
-              Meal Builder (Read-only)
+              {t("mealBuilderReadOnly")}
             </p>
             <p className="text-white/70 text-xs">
-              This page does not change your Meal Builder. To switch builders,
-              use <span className="text-white">Meal Builder Exchange</span> in
-              My Hub.
+              {t("mealBuilderNotice")}
             </p>
           </CardContent>
         </Card>
@@ -873,55 +871,55 @@ function AccountEditProfilePage() {
               }`}
             />
           ))}
-          <span className="text-white/60 text-xs ml-2">Step {step} of 5</span>
+          <span className="text-white/60 text-xs ml-2">{t("stepCounter", { step })}</span>
         </div>
 
         {step === 1 && (
           <StepShell
-            title="Personal info"
-            subtitle="This helps personalize your experience."
+            title={t("personalInfo")}
+            subtitle={t("personalInfoDescription")}
           >
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                  <label className="text-white/70 text-xs">First Name</label>
+                  <label className="text-white/70 text-xs">{t("firstName")}</label>
                   <input
                     value={form.firstName || ""}
                     onChange={(e) =>
                       setForm((p) => ({ ...p, firstName: e.target.value }))
                     }
                     className="mt-1 w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40"
-                    placeholder="First name"
+                    placeholder={t("firstNamePlaceholder")}
                   />
                 </div>
                 <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                  <label className="text-white/70 text-xs">Last Name</label>
+                  <label className="text-white/70 text-xs">{t("lastName")}</label>
                   <input
                     value={form.lastName || ""}
                     onChange={(e) =>
                       setForm((p) => ({ ...p, lastName: e.target.value }))
                     }
                     className="mt-1 w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40"
-                    placeholder="Last name"
+                    placeholder={t("lastNamePlaceholder")}
                   />
                 </div>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                <label className="text-white/70 text-xs">Preferred Name / Nickname</label>
+                <label className="text-white/70 text-xs">{t("preferredName")}</label>
                 <input
                   value={form.nickname || ""}
                   onChange={(e) =>
                     setForm((p) => ({ ...p, nickname: e.target.value }))
                   }
                   className="mt-1 w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40"
-                  placeholder="What should we call you?"
+                  placeholder={t("preferredNamePlaceholder")}
                 />
-                <p className="text-white/40 text-[10px] mt-1">If set, this name will be used throughout the app instead of your first name</p>
+                <p className="text-white/40 text-[10px] mt-1">{t("preferredNameHelp")}</p>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                <label className="text-white/70 text-xs">Email Address</label>
+                <label className="text-white/70 text-xs">{t("emailAddress")}</label>
                 <input
                   type="email"
                   value={form.email || ""}
@@ -958,12 +956,12 @@ function AccountEditProfilePage() {
 
         {step === 2 && (
           <StepShell
-            title="Goals & activity"
-            subtitle="This impacts recommendations and daily targets."
+            title={t("goalsActivity")}
+            subtitle={t("goalsActivityDescription")}
           >
             <div className="space-y-3">
               <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                <label className="text-white/70 text-xs">Fitness Goal</label>
+                <label className="text-white/70 text-xs">{t("fitnessGoalLabel")}</label>
                 <select
                   value={form.fitnessGoal}
                   onChange={(e) =>
@@ -976,14 +974,14 @@ function AccountEditProfilePage() {
                 >
                   {Object.entries(GOAL_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>
-                      {label}
+                      {t(`fitnessGoals.${value}`, { defaultValue: label })}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                <label className="text-white/70 text-xs">Activity Level</label>
+                <label className="text-white/70 text-xs">{t("activityLevelLabel")}</label>
                 <select
                   value={form.activityLevel}
                   onChange={(e) =>
@@ -996,19 +994,19 @@ function AccountEditProfilePage() {
                 >
                   {Object.entries(ACTIVITY_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>
-                      {label}
+                      {t(`activityLevels.${value}`, { defaultValue: label })}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                <label className="text-white/70 text-xs">Personal Goal (optional)</label>
+                <label className="text-white/70 text-xs">{t("personalGoalLabel")}</label>
                 <div className="flex gap-2 mt-2 flex-wrap">
                   {([
-                    { value: "lose", label: "🔥 Lose Weight" },
-                    { value: "maintain", label: "⚖️ Maintain" },
-                    { value: "gain", label: "💪 Gain Muscle" },
+                    { value: "lose", label: t("goalLose") },
+                    { value: "maintain", label: t("goalMaintain") },
+                    { value: "gain", label: t("goalGain") },
                   ] as { value: GoalType; label: string }[]).map((opt) => (
                     <PillButton
                       key={opt.value}
@@ -1025,7 +1023,7 @@ function AccountEditProfilePage() {
                       type="text"
                       value={goalTarget}
                       onChange={(e) => setGoalTarget(e.target.value)}
-                      placeholder={goalType === "lose" ? "e.g. 20 lbs or 9 kg — optional" : goalType === "gain" ? "e.g. 10 lbs or 4.5 kg — optional" : "e.g. stay at 160 lbs — optional"}
+                      placeholder={goalType === "lose" ? t("goalLosePlaceholder") : goalType === "gain" ? t("goalGainPlaceholder") : t("goalMaintainPlaceholder")}
                       maxLength={100}
                       className="w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm placeholder-white/30 focus:outline-none"
                     />
@@ -1034,14 +1032,14 @@ function AccountEditProfilePage() {
                       onChange={(e) => setGoalTimelineWeeks(e.target.value ? Number(e.target.value) : null)}
                       className="w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none"
                     >
-                      <option value="">No timeline — optional</option>
-                      <option value="4">4 weeks</option>
-                      <option value="8">8 weeks</option>
-                      <option value="12">12 weeks</option>
-                      <option value="16">16 weeks</option>
-                      <option value="20">20 weeks</option>
-                      <option value="26">6 months</option>
-                      <option value="52">1 year</option>
+                      <option value="">{t("noTimeline")}</option>
+                      <option value="4">{t("weeks", { count: 4 })}</option>
+                      <option value="8">{t("weeks", { count: 8 })}</option>
+                      <option value="12">{t("weeks", { count: 12 })}</option>
+                      <option value="16">{t("weeks", { count: 16 })}</option>
+                      <option value="20">{t("weeks", { count: 20 })}</option>
+                      <option value="26">{t("sixMonths")}</option>
+                      <option value="52">{t("oneYear")}</option>
                     </select>
                   </div>
                 )}
@@ -1068,7 +1066,7 @@ function AccountEditProfilePage() {
                     disabled={!canContinueStep2}
                     onClick={() => setStep(3)}
                   >
-                    Continue
+                    {t("continue")}
                   </Button>
                 </div>
               </div>
@@ -1078,14 +1076,14 @@ function AccountEditProfilePage() {
 
         {step === 3 && (
           <StepShell
-            title="Preferences & restrictions"
-            subtitle="Optional — leave blank if you don't have any."
+            title={t("preferencesRestrictions")}
+            subtitle={t("preferencesRestrictionsDescription")}
           >
             <div className="space-y-3">
               <div className="rounded-xl border border-white/10 bg-black/30 p-4">
                 <div className="mb-3">
-                  <p className="text-white font-semibold text-sm">Preferences & restrictions</p>
-                  <p className="text-white/60 text-xs mt-0.5">Pick your eating style — we'll tailor every meal to it automatically.</p>
+                  <p className="text-white font-semibold text-sm">{t("dietarySectionTitle")}</p>
+                  <p className="text-white/60 text-xs mt-0.5">{t("dietarySectionDescription")}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {DIET_OPTIONS.map((opt) => (
@@ -1094,14 +1092,16 @@ function AccountEditProfilePage() {
                       active={dietaryStyle === opt.value}
                       onClick={() => setDietaryStyle(opt.value)}
                     >
-                      {opt.label}
+                      {t(`dietOptions.${opt.value}`, { defaultValue: opt.label })}
                     </PillButton>
                   ))}
                 </div>
                 {DIETARY_IDENTITY_HINTS[dietaryStyle] && (
                   <div className="mt-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
                     <p className="text-xs text-white/50 leading-relaxed">
-                      {DIETARY_IDENTITY_HINTS[dietaryStyle]}
+                      {t(`dietaryHints.${dietaryStyle}`, {
+                        defaultValue: DIETARY_IDENTITY_HINTS[dietaryStyle],
+                      })}
                     </p>
                   </div>
                 )}
@@ -1111,7 +1111,7 @@ function AccountEditProfilePage() {
                       type="text"
                       value={customDietInput}
                       onChange={(e) => setCustomDietInput(e.target.value)}
-                      placeholder="e.g. Whole30, raw food, flexitarian..."
+                      placeholder={t("customDietPlaceholder")}
                       className="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/40 placeholder:text-white/30"
                       autoFocus
                     />
@@ -1121,16 +1121,15 @@ function AccountEditProfilePage() {
 
               <div className="rounded-xl border border-white/10 bg-black/30 p-4">
                 <div className="mb-4 space-y-1">
-                  <p className="text-white font-semibold text-sm">Nutrition Priorities</p>
+                  <p className="text-white font-semibold text-sm">{t("nutritionPrioritiesTitle")}</p>
                   <p className="text-white/75 text-xs font-medium">
-                    Tell us what you'd like My Perfect Meals to consider more often.
+                    {t("nutritionPrioritiesIntro")}
                   </p>
                   <p className="text-white/55 text-xs leading-relaxed">
-                    Choose foods, ingredients, or nutrition characteristics you'd like us to work into your meals when they fit.
-                    We'll still consider your dietary needs, allergies, health context, preferences, and what you're asking for right now.
+                    {t("nutritionPrioritiesDescription")}
                   </p>
                   <p className="text-white/40 text-[11px]">
-                    Select any number, or none. These are optional food-inclusion preferences, not medical treatment or nutrition targets.
+                    {t("nutritionPrioritiesDisclaimer")}
                   </p>
                 </div>
                 <NutritionPrioritiesSelector
@@ -1148,30 +1147,30 @@ function AccountEditProfilePage() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Shield className="h-4 w-4 text-amber-400" />
-                    <span className="text-amber-300 font-semibold text-sm">SafetyGuard™ — Allergy Protection</span>
+                    <span className="text-amber-300 font-semibold text-sm">{t("allergyProtection")}</span>
                   </div>
                   {allergiesUnlocked ? (
                     <div className="flex items-center gap-1 text-emerald-400 text-xs">
                       <Unlock className="h-3.5 w-3.5" />
-                      <span>Unlocked</span>
+                      <span>{t("unlocked")}</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-1 text-amber-400 text-xs">
                       <Lock className="h-3.5 w-3.5" />
-                      <span>Locked</span>
+                      <span>{t("locked")}</span>
                     </div>
                   )}
                 </div>
                 
                 <label className="text-white/70 text-xs">
-                  Allergies (comma-separated)
+                  {t("allergiesCommaSeparated")}
                 </label>
                 {allergiesUnlocked ? (
                   <textarea
                     value={allergiesText}
                     onChange={(e) => setAllergiesText(e.target.value)}
                     className="mt-1 w-full min-h-[90px] bg-black/40 border border-emerald-500/30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                    placeholder="e.g. peanuts, dairy, shellfish..."
+                    placeholder={t("allergiesPlaceholder")}
                   />
                 ) : (
                   <div className="mt-1">
@@ -1180,13 +1179,13 @@ function AccountEditProfilePage() {
                         active={true}
                         onClick={() => setShowPinModal(true)}
                       >
-                        Unlock to Edit
+                        {t("unlockToEdit")}
                       </PillButton>
                     </div>
                     <div className="w-full min-h-[70px] bg-black/40 border border-amber-500/20 rounded-lg px-3 py-2 text-white/60 text-sm flex items-center justify-center">
                       <div className="text-center">
                         <p className="text-amber-300 text-xs font-medium">
-                          {allergiesText.trim() || "No allergies set"}
+                          {allergiesText.trim() || t("noAllergiesSet")}
                         </p>
                       </div>
                     </div>
@@ -1194,7 +1193,7 @@ function AccountEditProfilePage() {
                 )}
                 
                 <p className="text-white/60 text-xs mt-2">
-                  Your allergies are protected by your Safety PIN. This prevents accidental changes.
+                  {t("allergyPinNotice")}
                 </p>
               </div>
 
@@ -1202,10 +1201,10 @@ function AccountEditProfilePage() {
               <div className="rounded-xl border border-white/10 bg-black/30 p-3">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-base">🚫</span>
-                  <span className="text-white/80 font-semibold text-sm">Foods to Avoid</span>
+                  <span className="text-white/80 font-semibold text-sm">{t("foodsToAvoidTitle")}</span>
                 </div>
                 <p className="text-white/60 text-xs mb-3">
-                  Foods or categories you never want in your meals. No PIN needed — this is a preference, not a medical safety setting.
+                  {t("foodsToAvoidDescription")}
                 </p>
 
                 {/* Quick-tap category pills */}
@@ -1224,7 +1223,7 @@ function AccountEditProfilePage() {
                           )
                         }
                       >
-                        {cat}
+                        {t(`avoidedFoodCategories.${stored}`, { defaultValue: cat })}
                       </PillButton>
                     );
                   })}
@@ -1245,7 +1244,7 @@ function AccountEditProfilePage() {
                         }
                       }
                     }}
-                    placeholder="Type a specific food..."
+                    placeholder={t("avoidedFoodPlaceholder")}
                     className="flex-1 bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/20 placeholder:text-white/30"
                   />
                   <PillButton
@@ -1259,7 +1258,7 @@ function AccountEditProfilePage() {
                       }
                     }}
                   >
-                    Add
+                    {t("addAvoidedFood")}
                   </PillButton>
                 </div>
 
@@ -1285,7 +1284,7 @@ function AccountEditProfilePage() {
               <div className="rounded-xl border border-sky-500/30 bg-sky-950/20 p-3">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-base">🩺</span>
-                  <span className="text-sky-300 font-semibold text-sm">Specialty Health Protocol</span>
+                  <span className="text-sky-300 font-semibold text-sm">{t("specialtyHealthProtocol")}</span>
                 </div>
 
                 {/* ── Physician-set oncology protocol banner ─────────────────── */}
@@ -1297,25 +1296,25 @@ function AccountEditProfilePage() {
                         {physicianOncologyLocked ? (
                           <>
                             <p className="text-amber-300 text-xs font-semibold mb-0.5">
-                              Cancer / Oncology Protocol — Managed by Your Care Team
+                              {t("oncologyManagedTitle")}
                             </p>
                             <p className="text-white/60 text-xs">
                               {oncologyCtx?.ownerName
-                                ? `Set by ${oncologyCtx.ownerName}.`
-                                : "Set by your physician."}{" "}
-                              This protocol is active and controlled by your care team while you remain connected. To make changes, contact your physician.
+                                ? t("oncologySetBy", { name: oncologyCtx.ownerName })
+                                : t("oncologySetByPhysician")}{" "}
+                              {t("oncologyManagedNotice")}
                             </p>
                           </>
                         ) : (
                           <>
                             <p className="text-rose-300 text-xs font-semibold mb-0.5">
-                              Cancer / Oncology Protocol — Previously Set by Your Care Team
+                              {t("oncologyPreviouslyManagedTitle")}
                             </p>
                             <p className="text-white/60 text-xs mb-2">
                               {oncologyCtx?.ownerName
-                                ? `Originally set by ${oncologyCtx.ownerName}.`
-                                : "Originally set by a physician."}{" "}
-                              You are no longer connected to this provider. You may keep or remove this protocol.
+                                ? t("oncologyOriginallySetBy", { name: oncologyCtx.ownerName })
+                                : t("oncologyOriginallySetByPhysician")}{" "}
+                              {t("oncologyDisconnectedNotice")}
                             </p>
                             <button
                               onClick={async () => {
@@ -1330,7 +1329,7 @@ function AccountEditProfilePage() {
                               disabled={physicianProtocolClearing}
                               className="text-xs px-3 py-1.5 rounded-lg bg-rose-600/70 hover:bg-rose-600 text-white border border-rose-500/50 transition-colors disabled:opacity-50"
                             >
-                              {physicianProtocolClearing ? "Removing…" : "Remove This Protocol"}
+                              {physicianProtocolClearing ? t("oncologyRemoving") : t("oncologyRemoveProtocol")}
                             </button>
                           </>
                         )}
@@ -1340,7 +1339,7 @@ function AccountEditProfilePage() {
                 )}
 
                 <p className="text-white/60 text-xs mb-3">
-                  Select all conditions that apply — you can choose more than one. Each condition activates its full clinical protocol across every meal generator.{labDrivenConditions.length > 0 ? "" : " No lab entry required; you can add labs later for precision."}
+                  {t("clinicalConditionsInstruction")}{labDrivenConditions.length > 0 ? "" : t("clinicalLabsOptional")}
                 </p>
 
                 {/* ── Lab-driven lock banner ─────────────────────────────── */}
@@ -1349,7 +1348,7 @@ function AccountEditProfilePage() {
                     <div className="flex items-start gap-2">
                       <span className="text-sky-400 text-xs mt-0.5">🔬</span>
                       <p className="text-sky-300/80 text-xs leading-relaxed">
-                        <span className="font-semibold text-sky-300">Lab-activated protocols</span> are marked <span className="font-semibold">🔬</span>. You can turn off Cardiac / Heart Disease here and save your profile without changing your lab values. This stops Cardiac nutrition guidance unless your physician controls it. Other lab-activated protocols are managed through Biometrics.
+                        <span className="font-semibold text-sky-300">{t("labActivatedProtocols")}</span> {t("labActivatedNotice")} <span className="font-semibold">🔬</span>. {t("labActivatedGuidance")}
                       </p>
                     </div>
                   </div>
@@ -1361,9 +1360,9 @@ function AccountEditProfilePage() {
                     <div className="flex items-start gap-2">
                       <Lock className="h-3.5 w-3.5 text-amber-400 mt-0.5 shrink-0" />
                       <div>
-                        <p className="text-amber-300 text-xs font-semibold mb-0.5">Clinical Protocol Review Required</p>
+                        <p className="text-amber-300 text-xs font-semibold mb-0.5">{t("clinicalReviewRequired")}</p>
                         <p className="text-white/60 text-xs leading-relaxed">
-                          Your clinical settings include physician-directed or earlier clinical assignments. Contact your care team for review before changing them.
+                          {t("clinicalReviewNotice")}
                         </p>
                       </div>
                     </div>
@@ -1425,15 +1424,15 @@ function AccountEditProfilePage() {
                         }}
                         className={locked ? "opacity-80 cursor-not-allowed" : ""}
                       >
-                        {isLabDriven ? <span className="mr-1 text-[10px]">🔬</span> : null}{opt.label}{opt.value === "pregnancy-support" && !PREGNANCY_PAGE_VISIBLE ? " — Coming Soon (Clinical)" : ""}
+                        {isLabDriven ? <span className="mr-1 text-[10px]">🔬</span> : null}{t(`clinicalConditionLabels.${opt.value}`, { defaultValue: opt.label })}{opt.value === "pregnancy-support" && !PREGNANCY_PAGE_VISIBLE ? t("comingSoonClinicalSuffix") : ""}
                       </PillButton>
                     );
                   })}
                   {import.meta.env.DEV ? (
-                    glp1Active && <p className="text-sm text-muted-foreground">Earlier GLP-1 information is on your profile. It does not activate meal guidance by itself; current medication or care-team guidance needs review.</p>
+                    glp1Active && <p className="text-sm text-muted-foreground">{t("earlierGlp1Notice")}</p>
                   ) : (
                     <PillButton active={glp1Active} onClick={() => setGlp1Active(prev => !prev)}>
-                      Existing meal-generation GLP-1 setting</PillButton>
+                      {t("existingGlp1Setting")}</PillButton>
                   )}
                   {/* Alpha-gal Syndrome — clinical allergy, handled separately from specialty conditions */}
                   <PillButton
@@ -1473,7 +1472,7 @@ function AccountEditProfilePage() {
                     <div className="flex items-start gap-2">
                       <span className="text-pink-400 text-base mt-0.5">🩷</span>
                       <div>
-                        <p className="text-pink-300 text-xs font-semibold mb-1">My Perfect Pregnancy — {PREGNANCY_PAGE_VISIBLE ? "Nutritional Guidance Only" : "Coming Soon (Clinical)"}</p>
+                        <p className="text-pink-300 text-xs font-semibold mb-1">My Perfect Pregnancy — {PREGNANCY_PAGE_VISIBLE ? t("nutritionalGuidanceOnly") : t("comingSoonClinical")}</p>
                         <p className="text-white/70 text-xs leading-relaxed">
                           {PREGNANCY_PAGE_VISIBLE ? PREGNANCY_PAUSE_MESSAGE.replace("My Perfect Pregnancy — Coming Soon in Clinical. ", "") : PREGNANCY_PAUSE_MESSAGE}
                         </p>
@@ -1486,15 +1485,15 @@ function AccountEditProfilePage() {
                     <div className="flex items-start gap-2">
                       <span className="text-teal-400 text-base mt-0.5">🦋</span>
                       <div>
-                        <p className="text-teal-300 text-xs font-semibold mb-1">Thyroid Support — Nutritional Guidance Only</p>
+                        <p className="text-teal-300 text-xs font-semibold mb-1">{t("thyroidGuidanceTitle")}</p>
                         <p className="text-white/70 text-xs leading-relaxed">
-                          This activates anti-inflammatory, selenium-focused meal guidance designed to complement thyroid wellness — including smart medication timing awareness if you take thyroid medication. This is <span className="text-white font-medium">not a medical diagnosis</span> and is <span className="text-white font-medium">not a substitute for your doctor or endocrinologist's care</span>. Always follow your healthcare provider's recommendations.
+                          {t("thyroidGuidanceIntro")} <span className="text-white font-medium">{t("thyroidNotDiagnosis")}</span> and is <span className="text-white font-medium">{t("thyroidNotSubstitute")}</span>. {t("thyroidGuidanceClosing")}
                         </p>
                       </div>
                     </div>
                     <div>
                       <label className="text-teal-300/80 text-xs font-medium block mb-1.5">
-                        My thyroid condition <span className="text-white/40 font-normal">(optional — sharpens the protocol)</span>
+                        {t("myThyroidCondition")} <span className="text-white/40 font-normal">{t("thyroidConditionOptional")}</span>
                       </label>
                       <div className="flex flex-wrap gap-2">
                         {([
@@ -1507,23 +1506,23 @@ function AccountEditProfilePage() {
                             active={thyroidType === opt.value}
                             onClick={() => setThyroidType(prev => prev === opt.value ? null : opt.value)}
                           >
-                            {opt.label}
+                            {t(`clinicalConditionLabels.${opt.value}`, { defaultValue: opt.label })}
                           </PillButton>
                         ))}
                       </div>
                     </div>
                     <div>
                       <label className="text-teal-300/80 text-xs font-medium block mb-1">
-                        Thyroid Medication <span className="text-white/40 font-normal">(optional)</span>
+                        {t("thyroidMedication")} <span className="text-white/40 font-normal">{t("thyroidOptional")}</span>
                       </label>
                       <input
                         type="text"
                         value={thyroidMedication}
                         onChange={(e) => setThyroidMedication(e.target.value)}
-                        placeholder="e.g. Levothyroxine 50mcg"
+                        placeholder={t("thyroidMedicationPlaceholder")}
                         className="w-full bg-black/40 border border-teal-500/30 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-teal-400/60"
                       />
-                      <p className="text-white/35 text-[10px] mt-1">Helps the AI suggest appropriate meal timing around your medication schedule.</p>
+                      <p className="text-white/35 text-[10px] mt-1">{t("thyroidMedicationTiming")}</p>
                     </div>
                   </div>
                 )}
@@ -1568,9 +1567,9 @@ function AccountEditProfilePage() {
                     <div className="flex items-start gap-2">
                       <span className="text-orange-400 text-base mt-0.5">💉</span>
                       <div>
-                        <p className="text-orange-300 text-xs font-semibold mb-1">Existing GLP-1 meal-generation guidance</p>
+                        <p className="text-orange-300 text-xs font-semibold mb-1">{t("existingGlp1Guidance")}</p>
                         <p className="text-white/70 text-xs leading-relaxed">
-                          This older profile setting currently affects meal generation, including alongside a Diabetic Builder. It does not prove current medication use. Your separate nutrition support choice below does not yet change today's meals. Follow your clinician's guidance where applicable.
+                          {t("existingGlp1GuidanceNotice")}
                         </p>
                       </div>
                     </div>
@@ -1861,7 +1860,7 @@ function AccountEditProfilePage() {
                     disabled={!canContinueStep3}
                     onClick={() => setStep(glycemicEligible ? 4 : 5)}
                   >
-                    Continue
+                    {t("continue")}
                   </Button>
                 </div>
               </div>
@@ -2069,12 +2068,14 @@ function AccountEditProfilePage() {
                   </p>
                 )}
                 <p className="text-white/80 text-xs">
-                  Goal: {form.fitnessGoal ? GOAL_LABELS[form.fitnessGoal] : "—"}
+                  Goal: {form.fitnessGoal ? t(`fitnessGoals.${form.fitnessGoal}`, { defaultValue: GOAL_LABELS[form.fitnessGoal] }) : "—"}
                 </p>
                 <p className="text-white/80 text-xs">
                   Activity:{" "}
                   {form.activityLevel
-                    ? ACTIVITY_LABELS[form.activityLevel]
+                    ? t(`activityLevels.${form.activityLevel}`, {
+                        defaultValue: ACTIVITY_LABELS[form.activityLevel],
+                      })
                     : "—"}
                 </p>
                 <p className="text-white/80 text-xs">
@@ -2086,10 +2087,12 @@ function AccountEditProfilePage() {
                 <p className="text-white/80 text-xs">
                   Restrictions:{" "}
                   {dietaryStyle === "none" || !dietaryStyle
-                    ? "None"
+                    ? t("dietOptions.none")
                     : dietaryStyle === "custom"
-                      ? customDietInput.trim() || "Custom"
-                      : DIET_OPTIONS.find((o) => o.value === dietaryStyle)?.label || dietaryStyle}
+                      ? customDietInput.trim() || t("dietOptions.custom")
+                      : t(`dietOptions.${dietaryStyle}`, {
+                          defaultValue: DIET_OPTIONS.find((o) => o.value === dietaryStyle)?.label || dietaryStyle,
+                        })}
                 </p>
                 <p className="text-white/80 text-xs">
                   Allergies: {allergiesText.trim() || "None"}

@@ -14,6 +14,7 @@ import { builderMealMacros, formatBuilderMacro, type BuilderMacroKey } from "@/l
 import TrashButton from "@/components/ui/TrashButton";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import { IngredientDisplay } from "@/components/IngredientDisplay";
+import { formatCookingInstruction } from "@/lib/cookingInstructionDisplay";
 import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
 import MealCardActions, { MealCardAction } from "@/components/MealCardActions";
 import { StarchMealBadge } from "@/components/StarchMealBadge";
@@ -168,7 +169,7 @@ export function MealCard({
   /** Called after a successful component swap so the board can be refreshed. */
   onRefined?:   () => void;
 }) {
-  const { t } = useTranslation("mealCard");
+  const { t, i18n } = useTranslation("mealCard");
   const measurementSystem = useMeasurementSystem();
   const storedDiabeticMemory = meal.diabeticMemory ?? diabeticMemoryContext;
   const { toast } = useToast();
@@ -486,7 +487,7 @@ export function MealCard({
                   );
                 }
                 const name = ing.name || ing.item || t("ingredientFallback");
-                const qty = ing.quantity || ing.amount || "";
+                const qty = ing.quantity === "" || ing.quantity == null ? (ing.amount ?? "") : ing.quantity;
                 const unit = ing.unit || "";
                 
                 // Use formatIngredientWithGrams for proper display
@@ -539,7 +540,7 @@ export function MealCard({
                     <div className="min-w-[26px] h-[26px] w-[26px] rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
                       {index + 1}
                     </div>
-                    <p className="text-sm leading-relaxed text-white/85">{formatCookingTemperatureText(step, measurementSystem)}</p>
+                    <p className="text-sm leading-relaxed text-white/85">{formatCookingTemperatureText(formatCookingInstruction(step, displayIngredients, measurementSystem, i18n.language), measurementSystem)}</p>
                   </div>
                 ))}
               </div>

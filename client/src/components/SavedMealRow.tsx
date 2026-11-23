@@ -18,6 +18,7 @@ import MealCardActions, { MealCardAction } from "@/components/MealCardActions";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
 import { formatCookingTemperatureText } from "@shared/units";
+import { formatCookingInstruction } from "@/lib/cookingInstructionDisplay";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 import { useTranslatedMeal } from "@/hooks/useTranslatedMeal";
@@ -58,7 +59,7 @@ export default function SavedMealRow({
   initialExpanded = false,
   embeddedMeal = false,
 }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const measurementSystem = useMeasurementSystem();
   // Support both prop names for backward compatibility
   const startExpanded = isInitiallyExpanded || initialExpanded;
@@ -296,7 +297,7 @@ export default function SavedMealRow({
                     <span className="shrink-0 w-6 h-6 rounded-full bg-blue-600/70 flex items-center justify-center text-xs font-bold text-white">
                       {i + 1}
                     </span>
-                    <span className="pt-0.5">{formatCookingTemperatureText(step, measurementSystem)}</span>
+                    <span className="pt-0.5">{formatCookingTemperatureText(formatCookingInstruction(step, displayIngredients(), measurementSystem, i18n.language), measurementSystem)}</span>
                   </li>
                 ))}
               </ol>

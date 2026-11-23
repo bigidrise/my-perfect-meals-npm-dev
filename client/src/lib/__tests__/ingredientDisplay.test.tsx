@@ -35,7 +35,7 @@ test.each([
   expect(ingredientLine({ quantity, unit, name }, "imperial", "es")).toBe(expected);
 });
 test.each(["en", "es"])("measurement conversion stays independent of %s", locale => {
-  expect(ingredientQuantity("1/2", "cup", "metric", locale)).toBe(locale === "es" ? "120 mL" : "120 ml");
+  expect(ingredientQuantity("1/2", "cup", "metric", locale)).toBe(locale === "es" ? "120 mL" : "120 mL");
   expect(ingredientQuantity(6, "oz", "metric", locale)).toBe("170 g");
   expect(ingredientQuantity(6, "oz", "imperial", locale)).toBe("6 oz");
 });
@@ -53,9 +53,9 @@ test("supports structured aliases, strings, saved displayText and combined amoun
 test("small positive ingredient quantities survive the final display formatter", () => {
   expect(ingredientQuantity(0.0001, "g", "imperial", "en")).toBe("0.0001 g");
   expect(ingredientQuantity(0.26, "g", "imperial", "en")).toBe("0.26 g");
-  expect(ingredientQuantity(0.75, "ml", "metric", "en")).toBe("0.75 ml");
-  expect(ingredientQuantity(2.6, "ml", "imperial", "en")).toBe("2.6 ml");
-  expect(ingredientQuantity(4.9, "ml", "imperial", "en")).toBe("4.9 ml");
+  expect(ingredientQuantity(0.75, "ml", "metric", "en")).toBe("0.75 mL");
+  expect(ingredientQuantity(2.6, "ml", "imperial", "en")).toBe("2.6 mL");
+  expect(ingredientQuantity(4.9, "ml", "imperial", "en")).toBe("4.9 mL");
 });
 test("preserves ambiguous, unknown and ranged quantities instead of guessing", () => {
   expect(ingredientLine("1-2 cup mango", "metric", "es")).toBe("1-2 cup mango");
@@ -64,9 +64,33 @@ test("preserves ambiguous, unknown and ranged quantities instead of guessing", (
   expect(ingredientLine({ quantity: 2, unit: "spray", name: "oil" }, "metric", "es")).toBe("2 spray oil");
 });
 test("converts volumes to volumes, never ingredient-specific guessed weights", () => {
-  expect(ingredientLine({ quantity: 2, unit: "cup", name: "papaya verde" }, "metric", "es")).toBe("480 mL de papaya verde");
-  expect(ingredientLine({ quantity: "1/2", unit: "cup", name: "spinach" }, "metric", "en")).toBe("120 ml spinach");
+  expect(ingredientLine({ quantity: 2, unit: "cup", name: "papaya verde" }, "metric", "es")).toBe("2 tazas de papaya verde");
+  expect(ingredientLine({ quantity: "1/2", unit: "cup", name: "spinach" }, "metric", "en")).toBe("½ cup spinach");
 });
+test.each([
+  ["1/2", "cup", "spinach", "½ cup spinach"],
+  ["1/2", "cup", "bell peppers", "½ cup bell peppers"],
+  ["1/2", "cup", "mushrooms", "½ cup mushrooms"],
+  [1, "cup", "cooked rice", "1 cup cooked rice"],
+  [1, "cup", "cauliflower", "1 cup cauliflower"],
+  ["1/4", "tsp", "salt", "¼ tsp salt"],
+  [1, "tbsp", "olive oil", "15 mL olive oil"],
+  [1, "cup", "milk", "240 mL milk"],
+  [4, "oz", "chicken breast", "113 g chicken breast"],
+] as const)("uses practical metric kitchen units for %s %s %s", (quantity, unit, name, expected) => {
+  expect(ingredientLine({ quantity, unit, name }, "metric", "en")).toBe(expected);
+});
+
+test.each([
+  ["1/2", "cup", "espinaca", "½ taza de espinaca"],
+  ["1/2", "cup", "pimientos", "½ taza de pimientos"],
+  [1, "cup", "arroz cocido", "1 taza de arroz cocido"],
+  [1, "tbsp", "aceite de oliva", "15 mL de aceite de oliva"],
+  [1, "cup", "leche", "240 mL de leche"],
+] as const)("uses practical Spanish metric kitchen units for %s %s %s", (quantity, unit, name, expected) => {
+  expect(ingredientLine({ quantity, unit, name }, "metric", "es")).toBe(expected);
+});
+
 test("repeated language/system changes cannot mutate stored recipe quantities, nutrition or instructions", () => {
   const ingredient = Object.freeze({ quantity: "1/2", unit: "cup", name: "zanahoria" });
   const meal = Object.freeze({ ingredients: Object.freeze([ingredient]), calories: 240, protein: 18, carbs: 22, fat: 10,
@@ -85,9 +109,9 @@ test("the shared real display follows language and measurement changes without r
   expect(screen.getByText("¼ cup cebollín")).toBeVisible();
   mockSystem = "metric";
   view.rerender(<IngredientDisplay ingredient={ingredient} legacyText="ORIGINAL" />);
-  expect(screen.getByText("60 ml cebollín")).toBeVisible();
+  expect(screen.getByText("¼ cup cebollín")).toBeVisible();
   await act(async () => { await language.changeLanguage("es"); });
-  expect(screen.getByText("60 mL de cebollín")).toBeVisible();
+  expect(screen.getByText("¼ de taza de cebollín")).toBeVisible();
 });
 test("shared ingredient display uses localized formatting instead of legacy text", () => {
   render(<IngredientDisplay ingredient={{ quantity: 2, unit: "cup", name: "papaya" }} legacyText="ORIGINAL_SAVED_DISPLAY" />, { wrapper });
@@ -114,9 +138,9 @@ test.each([
 test("Spanish ingredient quantities use decimal commas without changing values", () => {
   expect(ingredientQuantity(0.75, "ml", "metric", "es")).toBe("0,75 mL");
   expect(ingredientQuantity(0.26, "g", "metric", "es")).toBe("0,26 g");
-  expect(ingredientQuantity(0.75, "ml", "metric", "en")).toBe("0.75 ml");
+  expect(ingredientQuantity(0.75, "ml", "metric", "en")).toBe("0.75 mL");
 });
 
 test("an empty quantity falls back to a valid structured amount", () => {
-  expect(ingredientLine({ quantity: "", amount: "250", unit: "ml", name: "water" }, "metric", "en")).toBe("250 ml water");
+  expect(ingredientLine({ quantity: "", amount: "250", unit: "ml", name: "water" }, "metric", "en")).toBe("250 mL water");
 });

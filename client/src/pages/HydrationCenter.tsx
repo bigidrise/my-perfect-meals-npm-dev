@@ -13,6 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import { BasicHydrationLogger } from "@/components/biometrics/BasicHydrationLogger";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
+import { parseMeasurementNumber } from "@shared/units";
 import HydrationFourDoorPanels from "@/components/HydrationFourDoorPanels";
 import HydrationHubGuide from "@/components/HydrationHubGuide";
 import HydrationInterventionCards from "@/components/HydrationInterventionCards";
@@ -79,10 +81,16 @@ function isHydrationBeverageClass(value: string): value is HydrationBeverageClas
 }
 
 function mlToOz(value: number) { return Math.round(value / ML_PER_OUNCE); }
-function displayVolume(value: number | null) {
-  return value === null ? "—" : `${value.toLocaleString()} mL`;
+function displayVolume(value: number | null, measurementSystem: "imperial" | "metric") {
+  if (value === null) return "—";
+  return measurementSystem === "metric"
+    ? `${value.toLocaleString()} mL`
+    : `${mlToOz(value)} oz (${value.toLocaleString()} mL)`;
 }
-function usePolicyCopy(policy: HydrationNumericPolicyState | undefined) {
+function usePolicyCopy(
+  policy: HydrationNumericPolicyState | undefined,
+  measurementSystem: "imperial" | "metric",
+) {
   const { t } = useConsumerCopy();
   if (!policy) return null;
   if (policy.status === "TRACK_ONLY") return {
@@ -99,19 +107,19 @@ function usePolicyCopy(policy: HydrationNumericPolicyState | undefined) {
   };
   if (policy.targetKind === "ceiling") return {
     title: t("Clinician-set ceiling"),
-    body: `${displayVolume(policy.headroomToMaximumMl)} remains before the clinician-set maximum. This is a limit, not a goal.`,
+    body: `${displayVolume(policy.headroomToMaximumMl, measurementSystem)} remains before the clinician-set maximum. This is a limit, not a goal.`,
   };
   if (policy.targetKind === "range") return {
     title: t("Clinician-set range"),
-    body: `${displayVolume(policy.remainingToMinimumMl)} to the lower bound; ${displayVolume(policy.headroomToMaximumMl)} before the upper bound.`,
+    body: `${displayVolume(policy.remainingToMinimumMl, measurementSystem)} to the lower bound; ${displayVolume(policy.headroomToMaximumMl, measurementSystem)} before the upper bound.`,
   };
   if (policy.targetKind === "floor") return {
     title: t("Clinician-set minimum"),
-    body: policy.remainingToMinimumMl === 0 ? "The clinician-set minimum has been reached." : `${displayVolume(policy.remainingToMinimumMl)} remains.`,
+    body: policy.remainingToMinimumMl === 0 ? "The clinician-set minimum has been reached." : `${displayVolume(policy.remainingToMinimumMl, measurementSystem)} remains.`,
   };
   return {
     title: t("Clinician-set target"),
-    body: policy.remainingMl === 0 ? "The clinician-set target has been reached." : `${displayVolume(policy.remainingMl)} remains today.`,
+    body: policy.remainingMl === 0 ? "The clinician-set target has been reached." : `${displayVolume(policy.remainingMl, measurementSystem)} remains today.`,
   };
 }
 
@@ -123,6 +131,7 @@ export default function HydrationCenter() {
   const labels = useHydrationChoiceLabels();
   usePageTitle(t("My Perfect Hydration Center"));
   const { user } = useAuth();
+  const measurementSystem = useMeasurementSystem();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const initializedSetup = useRef(false);
@@ -133,7 +142,27 @@ export default function HydrationCenter() {
   const saving = pendingAction !== null;
   const [error, setError] = useState("");
   const [customAmount, setCustomAmount] = useState("");
-  const [customUnit, setCustomUnit] = useState<"oz" | "ml">("oz");
+  const [customUnit, setCustomUnit] = useState<"oz" | "ml">(() => measurementSystem === "metric" ? "ml" : "oz");
+
+  useEffect(() => {
+    const preferredUnit = measurementSystem === "metric" ? "ml" : "oz";
+    if (customUnit === preferredUnit) return;
+
+    const numeric = parseMeasurementNumber(customAmount);
+    if (customAmount.trim() && numeric === null) return;
+
+    if (numeric !== null) {
+      setCustomAmount(String(
+        preferredUnit === "ml"
+          ? numeric * ML_PER_OUNCE
+          : numeric / ML_PER_OUNCE
+      ));
+    }
+    setCustomUnit(preferredUnit);
+    // Synchronize only when the account measurement preference changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [measurementSystem]);
+
   const [beverageClass, setBeverageClass] = useState<HydrationBeverageClass>("water");
   const [historyWindow, setHistoryWindow] = useState<"today" | "7" | "30">("today");
   const [consented, setConsented] = useState(false);
@@ -256,7 +285,7 @@ export default function HydrationCenter() {
   const projections = state?.projections;
   const today = projections?.today || { totalFluidsMl: state?.totalLoggedMl || 0, plainWaterMl: state?.totalLoggedMl || 0, beverageMix: [] };
   const policy = state?.numericPolicy;
-  const copy = usePolicyCopy(policy);
+  const copy = usePolicyCopy(policy, measurementSystem);
   const options = helpOptions.length ? helpOptions : (state?.interventions || []).slice(0, 4);
   const dailyRows = (projections?.dailyTotals || []).filter((row) => {
     if (historyWindow === "30") return true;
@@ -317,10 +346,10 @@ export default function HydrationCenter() {
                   <Droplets className="h-7 w-7 text-sky-300" />
                 </div>
                 <div className="mt-5 grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl border border-sky-300/15 bg-sky-400/10 p-4 text-white"><p className="text-xs text-white">{t("Total fluids")}</p><p className="mt-1 text-3xl font-bold text-white">{mlToOz(today.totalFluidsMl)} <span className="text-sm font-medium text-white">oz</span></p><p className="text-xs text-white">{today.totalFluidsMl.toLocaleString()} mL</p></div>
-                  <div className="rounded-2xl border border-white/10 bg-white/[.04] p-4 text-white"><p className="text-xs text-white">{t("Plain water")}</p><p className="mt-1 text-3xl font-bold text-white">{mlToOz(today.plainWaterMl)} <span className="text-sm font-medium text-white">oz</span></p><p className="text-xs text-white">{today.plainWaterMl.toLocaleString()} mL</p></div>
+                  <div className="rounded-2xl border border-sky-300/15 bg-sky-400/10 p-4 text-white"><p className="text-xs text-white">{t("Total fluids")}</p><p className="mt-1 text-3xl font-bold text-white">{measurementSystem === "metric" ? today.totalFluidsMl.toLocaleString() : mlToOz(today.totalFluidsMl)} <span className="text-sm font-medium text-white">{measurementSystem === "metric" ? "mL" : "oz"}</span></p>{measurementSystem === "imperial" && <p className="text-xs text-white">{today.totalFluidsMl.toLocaleString()} mL</p>}</div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[.04] p-4 text-white"><p className="text-xs text-white">{t("Plain water")}</p><p className="mt-1 text-3xl font-bold text-white">{measurementSystem === "metric" ? today.plainWaterMl.toLocaleString() : mlToOz(today.plainWaterMl)} <span className="text-sm font-medium text-white">{measurementSystem === "metric" ? "mL" : "oz"}</span></p>{measurementSystem === "imperial" && <p className="text-xs text-white">{today.plainWaterMl.toLocaleString()} mL</p>}</div>
                 </div>
-                {!!today.beverageMix.length && <div className="mt-4 flex flex-wrap gap-2">{today.beverageMix.map((item) => <Badge key={item.beverageClass} variant="outline" className="border-white/10 text-white">{labels.beverages[item.beverageClass] ?? item.beverageClass}: {mlToOz(item.amountMl)} oz</Badge>)}</div>}
+                {!!today.beverageMix.length && <div className="mt-4 flex flex-wrap gap-2">{today.beverageMix.map((item) => <Badge key={item.beverageClass} variant="outline" className="border-white/10 text-white">{labels.beverages[item.beverageClass] ?? item.beverageClass}: {measurementSystem === "metric" ? `${item.amountMl.toLocaleString()} mL` : `${mlToOz(item.amountMl)} oz`}</Badge>)}</div>}
                 <div className="mt-5 rounded-xl border border-white/10 bg-black/15 p-4 text-white"><div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-sky-300" /><h3 className="font-semibold text-white">{copy.title}</h3></div><p className="mt-2 text-sm leading-relaxed text-white">{copy.body}</p><p className="mt-2 text-xs text-white">Preferences may change practical suggestions, never physiological requirements.</p></div>
               </CardContent>
             </Card>
@@ -345,8 +374,8 @@ export default function HydrationCenter() {
               <div className="flex items-center gap-2"><Plus className="h-5 w-5 text-sky-300" /><h2 className="font-semibold text-white">{t("Log a fluid")}</h2></div>
               <label className="mt-4 block text-xs text-white">{t("Beverage")}</label>
               <select value={beverageClass} onChange={(event) => { if (isHydrationBeverageClass(event.target.value)) setBeverageClass(event.target.value); }} className="mt-1 w-full rounded-md border border-white/10 bg-slate-900 px-3 py-2.5 text-sm text-white" data-testid="hydration-beverage-class">{BEVERAGES.map(([value, label]) => <option key={value} value={value}>{labels.beverages[value] ?? label}</option>)}</select>
-              <div className="mt-3 grid grid-cols-2 gap-2">{[8, 12, 16, 24].map((ounces) => <Button key={ounces} disabled={saving} onClick={() => void addFluid(ounces, "oz")} className="border border-sky-300/20 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25" data-testid={`hydration-add-${ounces}oz`}>+{ounces} oz</Button>)}</div>
-              <div className="mt-3 flex gap-2"><Input inputMode="decimal" value={customAmount} onChange={(event) => setCustomAmount(event.target.value)} placeholder={t("Custom amount")} className="border-white/10 bg-white/5 text-white" data-testid="hydration-custom-amount" /><select value={customUnit} onChange={(event) => setCustomUnit(event.target.value as "oz" | "ml")} className="rounded-md border border-white/10 bg-slate-900 px-3 text-sm text-white"><option value="oz">oz</option><option value="ml">mL</option></select></div>
+              <div className="mt-3 grid grid-cols-2 gap-2">{[8, 12, 16, 24].map((ounces) => <Button key={ounces} disabled={saving} onClick={() => void addFluid(ounces, "oz")} className="border border-sky-300/20 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25" data-testid={`hydration-add-${ounces}oz`}>+{measurementSystem === "metric" ? `${Math.round(ounces * ML_PER_OUNCE)} mL` : `${ounces} oz`}</Button>)}</div>
+              <div className="mt-3 flex gap-2"><Input inputMode="decimal" value={customAmount} onChange={(event) => setCustomAmount(event.target.value)} placeholder={t("Custom amount")} className="border-white/10 bg-white/5 text-white" data-testid="hydration-custom-amount" /><select value={customUnit} onChange={(event) => { const nextUnit = event.target.value as "oz" | "ml"; if (nextUnit === customUnit) return; const numeric = parseMeasurementNumber(customAmount); if (customAmount.trim() && numeric === null) return; if (numeric !== null) setCustomAmount(String(nextUnit === "ml" ? numeric * ML_PER_OUNCE : numeric / ML_PER_OUNCE)); setCustomUnit(nextUnit); }} className="rounded-md border border-white/10 bg-slate-900 px-3 text-sm text-white"><option value="oz">oz</option><option value="ml">mL</option></select></div>
               <Button disabled={saving || Number(customAmount) <= 0} onClick={() => void addFluid(Number(customAmount), customUnit)} className="mt-2 w-full bg-sky-500 text-white hover:bg-sky-400 hover:text-white" data-testid="hydration-add-custom">{pendingAction === "fluid" ? t("Saving…") : t("Add to today")}</Button>
               <p className="mt-3 text-xs leading-relaxed text-white">{t("Fluid contribution is tracked separately from calories, sugar, sodium, and other nutrition.")}</p>
             </CardContent></Card>
@@ -380,7 +409,7 @@ export default function HydrationCenter() {
               <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><Clock3 className="h-5 w-5 text-sky-300" /><h2 className="font-semibold text-white">{t("Descriptive history")}</h2></div><div className="flex rounded-lg border border-white/30 bg-black/15 p-1">{(["today", "7", "30"] as const).map((window) => <button key={window} onClick={() => setHistoryWindow(window)} className={`rounded-md px-3 py-1.5 text-xs text-white ${historyWindow === window ? "bg-sky-400/20" : ""}`}>{window === "today" ? t("Today") : t("{{count}} days", { count: Number(window) })}</button>)}</div></div>
               {!state ? (
                 <p className="mt-4 rounded-xl border border-dashed border-white/30 p-5 text-center text-sm text-white/70">{t("Saved history will appear here when it is ready.")}</p>
-              ) : historyWindow === "today" ? <div className="mt-4 space-y-2">{state.todayHistory?.length ? state.todayHistory.map((item) => <div key={item.id} className="flex items-center justify-between rounded-xl border border-white/30 bg-white/[.04] px-3 py-2.5 text-white"><div><span className="text-sm text-white">{new Intl.DateTimeFormat(i18n.resolvedLanguage, { hour: "numeric", minute: "2-digit" }).format(new Date(item.intakeTime))}</span><span className="ml-2 text-xs text-white">{labels.beverages[item.beverageClass] ?? item.beverageClass}</span></div><span className="font-medium text-white">{mlToOz(item.amountMl)} oz <span className="ml-1 text-xs font-normal text-white">{item.amountMl} mL</span></span></div>) : <p className="rounded-xl border border-dashed border-white/30 p-5 text-center text-sm text-white">{t("No fluids logged yet today.")}</p>}</div> : <div className="mt-4 space-y-2">{dailyRows.length ? dailyRows.map((row) => <div key={row.localDate} className="grid grid-cols-[1fr_auto_auto] gap-4 rounded-xl border border-white/30 bg-white/[.04] px-3 py-2.5 text-sm text-white"><span className="text-white">{new Date(`${row.localDate}T12:00:00`).toLocaleDateString(i18n.resolvedLanguage, { month: "short", day: "numeric" })}</span><span className="text-white">{t("{{amount}} oz total", { amount: mlToOz(row.totalMl) })}</span><span className="text-white">{t("{{amount}} oz water", { amount: mlToOz(row.plainWaterMl) })}</span></div>) : <p className="rounded-xl border border-dashed border-white/30 p-5 text-center text-sm text-white">{t("No entries in this window.")}</p>}</div>}
+              ) : historyWindow === "today" ? <div className="mt-4 space-y-2">{state.todayHistory?.length ? state.todayHistory.map((item) => <div key={item.id} className="flex items-center justify-between rounded-xl border border-white/30 bg-white/[.04] px-3 py-2.5 text-white"><div><span className="text-sm text-white">{new Intl.DateTimeFormat(i18n.resolvedLanguage, { hour: "numeric", minute: "2-digit" }).format(new Date(item.intakeTime))}</span><span className="ml-2 text-xs text-white">{labels.beverages[item.beverageClass] ?? item.beverageClass}</span></div><span className="font-medium text-white">{measurementSystem === "metric" ? `${item.amountMl.toLocaleString()} mL` : `${mlToOz(item.amountMl)} oz`} {measurementSystem === "imperial" && <span className="ml-1 text-xs font-normal text-white">{item.amountMl.toLocaleString()} mL</span>}</span></div>) : <p className="rounded-xl border border-dashed border-white/30 p-5 text-center text-sm text-white">{t("No fluids logged yet today.")}</p>}</div> : <div className="mt-4 space-y-2">{dailyRows.length ? dailyRows.map((row) => <div key={row.localDate} className="grid grid-cols-[1fr_auto_auto] gap-4 rounded-xl border border-white/30 bg-white/[.04] px-3 py-2.5 text-sm text-white"><span className="text-white">{new Date(`${row.localDate}T12:00:00`).toLocaleDateString(i18n.resolvedLanguage, { month: "short", day: "numeric" })}</span><span className="text-white">{measurementSystem === "metric" ? t("{{amount}} mL total", { amount: row.totalMl.toLocaleString() }) : t("{{amount}} oz total", { amount: mlToOz(row.totalMl) })}</span><span className="text-white">{measurementSystem === "metric" ? t("{{amount}} mL water", { amount: row.plainWaterMl.toLocaleString() }) : t("{{amount}} oz water", { amount: mlToOz(row.plainWaterMl) })}</span></div>) : <p className="rounded-xl border border-dashed border-white/30 p-5 text-center text-sm text-white">{t("No entries in this window.")}</p>}</div>}
               <p className="mt-3 text-xs text-white">History describes what you logged. It does not diagnose hydration status or prescribe a target.</p>
             </CardContent></Card>
 
