@@ -34,6 +34,76 @@ interface WeeklyMealCardProps {
   onRefined?: () => void;
 }
 
+function convertToAmericanUnits(
+  quantity: number | string,
+  unit: string,
+  ingredientName: string,
+): { quantity: string; unit: string } {
+  const numQuantity =
+    typeof quantity === "string" ? parseFloat(quantity) : quantity;
+  if (isNaN(numQuantity)) return { quantity: String(quantity), unit };
+
+  const name = ingredientName.toLowerCase();
+
+  if (unit?.toLowerCase() === "g" || unit?.toLowerCase() === "grams") {
+    if (
+      name.includes("chicken") ||
+      name.includes("beef") ||
+      name.includes("pork") ||
+      name.includes("turkey") ||
+      name.includes("fish") ||
+      name.includes("salmon") ||
+      name.includes("shrimp") ||
+      name.includes("meat") ||
+      name.includes("steak") ||
+      name.includes("bacon") ||
+      name.includes("ham") ||
+      name.includes("sausage") ||
+      name.includes("cheese") ||
+      name.includes("butter")
+    ) {
+      const ounces = numQuantity / 28.35;
+      if (ounces >= 16) {
+        const pounds = ounces / 16;
+        return {
+          quantity: pounds >= 1 ? pounds.toFixed(1) : pounds.toFixed(2),
+          unit: "lb",
+        };
+      }
+      return {
+        quantity: ounces >= 1 ? ounces.toFixed(1) : ounces.toFixed(2),
+        unit: "oz",
+      };
+    }
+  }
+
+  if (unit?.toLowerCase() === "ml" || unit?.toLowerCase() === "milliliters") {
+    if (
+      name.includes("milk") ||
+      name.includes("cream") ||
+      name.includes("oil") ||
+      name.includes("broth") ||
+      name.includes("stock") ||
+      name.includes("juice") ||
+      name.includes("water") ||
+      name.includes("sauce") ||
+      name.includes("vinegar")
+    ) {
+      const flOz = numQuantity / 29.57;
+      if (flOz >= 32) {
+        const cups = flOz / 8;
+        return { quantity: cups.toFixed(1), unit: "cups" };
+      }
+      return {
+        quantity: flOz >= 1 ? flOz.toFixed(1) : flOz.toFixed(2),
+        unit: "fl oz",
+      };
+    }
+  }
+
+  return { quantity: String(quantity), unit };
+}
+
 export default function WeeklyMealCard({
   dateISO,
   slot,
@@ -211,13 +281,19 @@ export default function WeeklyMealCard({
                   );
                 }
 
+                const converted = convertToAmericanUnits(
+                  ingredient.quantity || ingredient.amount || "",
+                  ingredient.unit || "",
+                  ingredient.name || ingredient.item || "",
+                );
+
                 return (
                   <li key={i} className="flex items-start">
                     <span className="text-green-400 mr-1">•</span>
                     <span>
                       <IngredientDisplay
                         ingredient={ingredient}
-                        legacyText={`${ingredient.quantity || ingredient.amount || ""} ${ingredient.unit || ""} ${ingredient.name || ingredient.item || ""}`.trim()}
+                        legacyText={`${converted.quantity} ${converted.unit} ${ingredient.name || ingredient.item || ""}`.trim()}
                       />
                     </span>
                   </li>
