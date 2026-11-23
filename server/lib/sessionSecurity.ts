@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import type { Request, Response } from "express";
 
 export const SESSION_COOKIE_NAME = "connect.sid";
@@ -32,6 +33,15 @@ export function regenerateSession(req: Request): Promise<void> {
       if (error) {
         reject(error);
         return;
+      }
+      // Seed Development's new session before concurrent authenticated reads
+      // can save older copies without the lazily bootstrapped CSRF token.
+      // Published runtimes retain their existing session/token behavior.
+      if (
+        process.env.NODE_ENV === "development" &&
+        process.env.REPLIT_DEPLOYMENT !== "1"
+      ) {
+        req.session.csrfToken = randomBytes(32).toString("base64url");
       }
       resolve();
     });

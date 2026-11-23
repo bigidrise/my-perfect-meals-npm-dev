@@ -20,3 +20,17 @@ Distinguish an Editor workspace running the Production entrypoint from a publish
 **Why:** Production-mode code can still run inside a cross-site embedded workspace preview. Using NODE_ENV alone to exclude preview cookies misses that context; applying preview behavior to published deployments changes a separate security boundary.
 
 **How to apply:** Use the platform's workspace and published-runtime signals, keep the Production entrypoint's secure baseline independent of NODE_ENV, and cover creation and clearing of matching cookies. Partitioned cookies do not replace CSRF, MFA, authorization, or durable sessions. Cookie-header and session-round-trip fixtures are not proof of real-browser cookie acceptance.
+
+In Development, initialize the synchronizer token before authenticated requests
+fan out after session regeneration. Keep this correction out of published
+runtimes until separately approved.
+
+**Why:** Lazy token creation raced with slower authenticated requests saving
+older session snapshots. An isolated overlapping-request reproduction erased
+the issued token and caused saved Menu restoration to fail with CSRF rejection.
+Refreshing the client token alone does not prevent that server-side overwrite.
+
+**How to apply:** Preserve early initialization for new Development sessions and
+test with a delayed session write, not only mocked HTTP responses. Keep token
+and exact-origin enforcement intact. Production-mode and published-runtime
+behavior must remain unchanged under this Development-only approval.
