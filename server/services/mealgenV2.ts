@@ -47,6 +47,8 @@ export type Meal = {
   badges: string[];
 };
 
+import { validateRecipePreparation } from "./recipePreparationValidator";
+
 export async function generateMealV2(opts: {
   userId: string;
   courseStyle: "Breakfast"|"Lunch"|"Dinner"|"Snack";
@@ -89,12 +91,14 @@ export async function generateMealV2(opts: {
   // Validate against onboarding; auto-regen up to 4 tries
   let tries = 0;
   while (tries < 4) {
-    const why = violatesOnboarding(meal, opts.onboarding);
+    const dietaryIssue = violatesOnboarding(meal, opts.onboarding);
+    const preparation = validateRecipePreparation(meal);
+    const why = dietaryIssue || preparation.errors.join("; ");
     if (!why) break;
     
     const regen = await callCravingCreator({
       targetMealType: opts.courseStyle.toLowerCase(),
-      cravingInput: `${opts.courseStyle} variation ${tries + 2} avoiding ${why}`,
+      cravingInput: `${opts.courseStyle} variation ${tries + 2}. Correct this issue: ${why}.${glp1V2Block}`,
       userId: opts.userId,
       dietaryRestrictions: constraints.allergies || [],
       allergies: constraints.allergies || [],
@@ -106,6 +110,22 @@ export async function generateMealV2(opts: {
     tries++;
   }
   
+  const finalDietaryIssue = violatesOnboarding(meal, opts.onboarding);
+  const finalPreparation = validateRecipePreparation(meal);
+
+  if (finalDietaryIssue || !finalPreparation.isValid) {
+    const reasons = [
+      finalDietaryIssue,
+      ...finalPreparation.errors
+    ].filter(Boolean).join("; ");
+
+    const error = new Error(
+      `Meal generation failed final validation after ${tries} retries: ${reasons}`
+    );
+    error.name = "MealRecipeValidationError";
+    throw error;
+  }
+
   console.log(`✅ Generated compliant meal: ${meal.name} (${tries} retries)`);
   return meal;
 }
@@ -283,9 +303,12 @@ function normalizeMeal(raw: any): Meal {
       };
     }
     
+    const original = (ing as any)._universal;
+    const notes = original?.notes || universal.notes || "";
+
     return {
-      name: universal.name,
-      amount: `${universal.quantity} ${universal.unit}`.trim()
+      name: notes ? `${universal.name} (${notes})` : universal.name,
+      amount: `${original?.quantity ?? universal.quantity} ${original?.unit || universal.unit}`.trim()
     };
   });
   
@@ -345,15 +368,33 @@ function normalizeIngredientToUniversal(ing: any): {
 
   // Handle object format
   const rawName = ing.item || ing.name || ing.ingredient || String(ing);
-  const rawQty = ing.qty || ing.quantity || ing.amount || ing.amountOz || 1;
+  const rawQty = ing.qty ?? ing.quantity ?? ing.amount ?? ing.amountOz ?? 1;
   const rawUnit = ing.unit || "";
   const rawNotes = ing.notes || "";
 
-  // Parse quantity to number
-  const quantity = parseQuantityToNumber(rawQty);
-  
-  // Normalize unit to singular
-  const unit = normalizeSingularUnit(rawUnit);
+  // Extract units embedded in amounts, e.g. "1 cup" or "1 1/2 cups".
+  const amountText = typeof rawQty === "string" ? rawQty.trim() : "";
+  const amountMatch = amountText.match(
+    /^((?:\d+(?:\.\d+)?|\d+\/\d+|[½¼¾⅓⅔⅛⅜⅝⅞])(?:\s+(?:\d+\/\d+|[½¼¾⅓⅔⅛⅜⅝⅞]))?)\s+([a-zA-Z]+)\b/
+  );
+
+  const recognizedUnits = new Set([
+    "tsp", "teaspoon", "teaspoons", "tbsp", "tablespoon", "tablespoons",
+    "cup", "cups", "oz", "ounce", "ounces", "lb", "lbs", "pound", "pounds",
+    "g", "gram", "grams", "kg", "kilogram", "kilograms",
+    "ml", "milliliter", "milliliters", "l", "liter", "liters",
+    "piece", "pieces", "clove", "cloves", "slice", "slices",
+    "pinch", "dash", "each", "can", "cans"
+  ]);
+
+  const embeddedUnit = amountMatch && recognizedUnits.has(amountMatch[2].toLowerCase())
+    ? amountMatch[2]
+    : "";
+
+  const quantity = parseQuantityToNumber(
+    embeddedUnit ? amountMatch![1] : rawQty
+  );
+  const unit = normalizeSingularUnit(rawUnit || embeddedUnit);
   
   // Extract descriptors from name
   const { cleanName, extractedNotes } = extractDescriptors(rawName);
@@ -444,7 +485,8 @@ function normalizeSingularUnit(unit: any): string {
     'kilogram': 'kg', 'kilograms': 'kg', 'milliliter': 'ml', 'milliliters': 'ml',
     'liter': 'l', 'liters': 'l', 'piece': 'piece', 'pieces': 'piece',
     'clove': 'clove', 'cloves': 'clove', 'slice': 'slice', 'slices': 'slice',
-    'pinch': 'pinch', 'dash': 'dash', 'each': 'each'
+    'pinch': 'pinch', 'dash': 'dash', 'each': 'each',
+    'can': 'can', 'cans': 'can'
   };
   
   const normalized = String(unit).trim().toLowerCase();

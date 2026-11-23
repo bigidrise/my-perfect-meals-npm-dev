@@ -26,6 +26,7 @@ import {
   type RequestedMealMacroConstraint,
 } from './requestedMealMacros';
 import { parseGeneratedRecipeSteps } from './recipeInstructions';
+
 import { getMeasurementPromptBlock, resolveMeasurementSystem, MeasurementSystem } from '../../shared/units';
 import { loadUserProtocolEnvelope, loadGenerationProtocolEnvelope, ProtocolContextUnavailableError, enforceBeforeGenerate, scanGeneratedOutput, filterMealsByProtocol, buildGuestEnvelope, deriveProcedureRules, type UserProtocolEnvelope } from './protocolEnvelope';
 import { buildVegetableStrategyPrompt, NutritionStrategyContext, buildStrictModeBlock } from './promptBuilder';
@@ -3904,6 +3905,9 @@ TASK: Create a complete ${validMealType} recipe for ${requestedServings} serving
 REQUIREMENTS:
 - Create a delicious, well-balanced meal that matches the user's description
 - Include realistic ingredients with precise quantities
+- INGREDIENT FORM ACCURACY: Specify fresh, frozen, dried, canned, raw, cooked, or precooked whenever the form affects preparation, quantity, or nutrition. Examples: fresh sliced peaches versus canned peaches in juice (drained); dried lentils versus canned lentils (drained); uncooked rice versus cooked rice; raw chicken versus precooked chicken.
+- PREPARATION CONSISTENCY: Instructions must match the ingredient forms and quantities. Dried beans and lentils require appropriate cooking with liquid and time; canned versions require draining or rinsing when appropriate. Do not instruct users to cook already-cooked ingredients as though they were raw.
+- NUTRITION CONSISTENCY: Base nutritional estimates on the specified ingredient forms and actual quantities, including drained versus undrained canned ingredients. Preserve all dietary, allergy, and clinical requirements.
 - Provide detailed step-by-step cooking instructions as an array of ordered strings, one cooking action per element (no embedded numbering or combined actions)
 - Include accurate nutritional estimates with SEPARATE carb types
 - Make the recipe achievable for home cooks
@@ -4920,6 +4924,9 @@ SNACK PRODUCT DEFINITION:
 REQUIREMENTS:
 - Create a satisfying individual eating occasion that addresses the request
 - Include realistic ingredients with precise quantities
+- INGREDIENT FORM ACCURACY: Specify fresh, frozen, dried, canned, raw, cooked, or precooked whenever the form affects preparation, quantity, or nutrition. Examples: fresh sliced peaches versus canned peaches in juice (drained); dried lentils versus canned lentils (drained); uncooked rice versus cooked rice; raw chicken versus precooked chicken.
+- PREPARATION CONSISTENCY: Instructions must match the ingredient forms and quantities. Dried beans and lentils require appropriate cooking with liquid and time; canned versions require draining or rinsing when appropriate. Do not instruct users to cook already-cooked ingredients as though they were raw.
+- NUTRITION CONSISTENCY: Base nutritional estimates on the specified ingredient forms and actual quantities, including drained versus undrained canned ingredients. Preserve all dietary, allergy, and clinical requirements.
 - Provide clear preparation instructions as an array of ordered strings, one action per element (even for simple snacks)
 - Include accurate nutritional estimates with SEPARATE carb types
 - Keep preparation practical for the requested food; do not force a complex dessert under an arbitrary time limit
