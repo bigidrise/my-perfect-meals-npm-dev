@@ -15,6 +15,18 @@ The user also requires preserving the requested food identity while adapting ing
 
 **How to apply:** Do not replace a named pastry with a generic protein bowl merely to produce an option. Report a genuine unresolved restriction rather than claiming every food can be generated.
 
+Ingredient forms, quantities, and preparation must agree in English and
+Spanish. Never silently convert dried ingredients into cooked ingredients, or
+vice versa, without accounting for quantity and nutrition differences.
+
+**Why:** The user explicitly required this recipe-accuracy rule after
+dried-versus-canned lentil inconsistencies.
+
+**How to apply:** Preserve source ingredient notes and quantities, use shared
+deterministic validation with existing bounded retries, and reject unresolved
+inconsistencies rather than guessing conversion factors or altering clinical
+calculations. This accuracy check never replaces dietary or safety validation.
+
 Category recognition and numeric compliance alone do not prove that a recipe passes its complete clinical validation.
 
 **Why:** A low-fat pastry fixture still failed an established ingredient rule. A mocked category handoff would have missed that limitation.

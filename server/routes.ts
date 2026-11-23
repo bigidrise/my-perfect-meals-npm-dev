@@ -7762,6 +7762,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Release only consistent final recipes, including fallback and repaired
+      // output. Existing final-choice budgets may refill rejected candidates.
+      const { isPreparedRecipe } = await import("./services/recipePreparationValidator");
+      formattedOptions = formattedOptions.filter(isPreparedRecipe);
+
       if (cravingSelection) {
         // Fallbacks, repairs and formatted payloads must preserve the same
         // category/method and meaningful variety; titles cannot grant release.

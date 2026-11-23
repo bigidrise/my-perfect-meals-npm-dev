@@ -28,6 +28,26 @@ const run = (overrides: Partial<Parameters<typeof fillFinalCreateDishChoices<Rec
 };
 
 describe("Create a Dish final-choice budget", () => {
+  it("does not count preparation-invalid initial choices and uses the existing refill budget", async () => {
+    const invalid = { name: "Lentil salad", ingredients: ["1 cup dried lentils"], instructions: "Fold cooked lentils into salad." };
+    const valid = { name: "Canned lentil salad", ingredients: ["1 cup canned lentils"], instructions: "Fold canned lentils into salad." };
+    const generated = jest.fn().mockResolvedValueOnce([valid]).mockResolvedValue([]);
+    const result = await run({ initial: [invalid], initialCandidates: [invalid], generate: generated }).execute();
+    expect(result.choices).toEqual([valid]);
+    expect(result.refillCalls).toBeLessThanOrEqual(2);
+  });
+
+  it("rejects a preparation mismatch introduced during final formatting", async () => {
+    const original = { name: "Lentil salad", ingredients: ["1 cup canned lentils"], instructions: "Fold canned lentils into salad." };
+    const released = await releaseCreateDishReplacementBatch([original], {
+      clinical: () => true, protocol: candidates => candidates, allergen: candidates => candidates,
+      transform: async candidates => candidates, humanFood: () => true, dishIntent: () => true,
+      format: candidate => ({ ...candidate, ingredients: ["1 cup dried lentils"] }),
+      finalFood: () => true, finalDishIntent: () => true,
+    });
+    expect(released).toEqual([]);
+  });
+
   it("sends every replacement through the clinical, protocol, allergy, Human Food, dish, and post-format gates", async () => {
     const names = [
       "Carb limit", "Quinoa gumbo", "Shrimp gumbo", "Human Food fail",

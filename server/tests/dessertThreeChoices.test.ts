@@ -218,6 +218,29 @@ describe("Dessert Creator shared three-choice handler", () => {
     expect(mockComplete).not.toHaveBeenCalled();
   });
 
+  it("rejects dried pulses treated as canned even after the bounded dessert repairs", async () => {
+    const invalid = fixture();
+    invalid.ingredients.push({ name: "dried lentils", amount: "100", unit: "g" });
+    invalid.instructions = "Blend canned lentils into the batter. Bake at 350 F for 30 minutes and cool.";
+    mockCreate.mockResolvedValue(completion(invalid));
+    const { status } = await generate();
+    expect(status).toBe(422);
+    expect(mockCreate.mock.calls.length).toBeLessThanOrEqual(8);
+    expect(mockImage).not.toHaveBeenCalled();
+    expect(mockComplete).not.toHaveBeenCalled();
+  });
+
+  it("preserves canned-form notes through dessert normalization and release", async () => {
+    const valid = fixture();
+    valid.ingredients.push({ name: "canned black beans, drained", amount: "100", unit: "g" });
+    valid.instructions = "Blend canned black beans into the batter. Bake at 350 F for 30 minutes and cool.";
+    mockCreate.mockResolvedValue(completion(valid));
+    const { status, data } = await generate({ choiceCount: 1 });
+    expect(status).toBe(200);
+    expect(data.ingredients.some((row: any) => row.name.includes("canned"))).toBe(true);
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+  });
+
   it("uses repaired final ingredients for imagery and never reuses the rejected recipe's image", async () => {
     mockCreate.mockResolvedValueOnce(completion({ ...fixture(), servingSize: "wrong yield" }))
       .mockResolvedValueOnce(completion(fixture("cake", "cake-9-2-12", 2)))

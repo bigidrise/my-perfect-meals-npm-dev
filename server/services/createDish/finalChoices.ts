@@ -1,3 +1,5 @@
+import { isPreparedRecipe } from "../recipePreparationValidator";
+
 export interface ChoiceCandidate {
   name?: string;
   ingredients?: unknown[];
@@ -34,7 +36,7 @@ export async function releaseCreateDishReplacementBatch<
   const intent = humanFood.filter(gates.dishIntent);
   const formatted = intent.map(gates.format);
   return formatted.filter(candidate =>
-    gates.finalFood(candidate) && gates.finalDishIntent(candidate)
+    gates.finalFood(candidate) && gates.finalDishIntent(candidate) && isPreparedRecipe(candidate)
   );
 }
 
@@ -83,6 +85,7 @@ export async function fillFinalCreateDishChoices<T extends ChoiceCandidate>(inpu
 
   function add(candidate: T): void {
     if (choices.length >= 3) return;
+    if (!isPreparedRecipe(candidate)) return;
     const name = normalize(candidate.name ?? "");
     const signature = (input.signature ?? recipeSignature)(candidate);
     if (!name || !signature || names.has(name) || signatures.has(signature)) return;
