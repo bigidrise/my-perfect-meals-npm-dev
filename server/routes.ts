@@ -3342,6 +3342,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return res.json({ days: dayCount, items: glp1FilteredItems, meta: { onboardingHash: obHash, mode } });
           }
         } catch (error) {
+          if (error instanceof Error && error.name === "MealRecipeValidationError") {
+            console.error("MEALGEN V2 recipe validation failed:", error);
+            return res.status(422).json({
+              error: "We couldn't generate a recipe that passed all quality checks. Please try again."
+            });
+          }
+
           console.error("MEALGEN V2 failed, falling back to legacy:", error);
           // Fall through to legacy system
         }
