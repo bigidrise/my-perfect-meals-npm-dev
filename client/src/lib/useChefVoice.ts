@@ -7,9 +7,14 @@
 
 import { useCallback } from "react";
 import { voiceManager } from "@/voice/VoiceManager";
+import { LEGACY_CHEF_NARRATION_ENABLED } from "@shared/legacyNarration";
 
 export function useChefVoice() {
   const speak = useCallback(async (text: string, onEnd?: () => void) => {
+    if (!LEGACY_CHEF_NARRATION_ENABLED) {
+      onEnd?.();
+      return;
+    }
     if (!text) {
       onEnd?.();
       return;
@@ -28,6 +33,7 @@ export function useChefVoice() {
   }, []);
 
   const preload = useCallback(async () => {
+    if (!LEGACY_CHEF_NARRATION_ENABLED) return;
     await voiceManager.preload();
   }, []);
 

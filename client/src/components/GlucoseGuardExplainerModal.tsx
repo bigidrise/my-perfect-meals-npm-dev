@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Droplets, TrendingDown, Target, TrendingUp, AlertTriangle, Activity } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import { ttsService } from "@/lib/tts";
+import { LegacyNarration } from "@/components/LegacyNarration";
 import { GLUCOSE_GUARD_EXPLANATION_SCRIPT } from "@/components/copilot/scripts/glucoseGuardScripts";
 
 interface GlucoseGuardExplainerModalProps {
@@ -176,7 +177,7 @@ export function GlucoseGuardExplainerModal({ isOpen, onClose }: GlucoseGuardExpl
                 Every meal we generate is built around your most recent blood glucose reading. Here's exactly how it works.
               </p>
 
-              <div className="flex flex-col items-center gap-1.5 mt-5">
+              <LegacyNarration><div className="flex flex-col items-center gap-1.5 mt-5">
                 <div
                   className="rounded-full overflow-hidden"
                   style={{
@@ -191,7 +192,7 @@ export function GlucoseGuardExplainerModal({ isOpen, onClose }: GlucoseGuardExpl
                 <PillButton onClick={handleListenToggle} active={isPlaying}>
                   {isPlaying ? "Stop" : "Listen"}
                 </PillButton>
-              </div>
+              </div></LegacyNarration>
             </motion.div>
 
             <motion.div

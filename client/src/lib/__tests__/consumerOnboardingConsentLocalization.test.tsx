@@ -12,6 +12,10 @@ import { approvedConsumerOnboardingSpanish } from "@/i18n/approvedConsumerOnboar
 const mockNavigate = jest.fn();
 const mockPlay = jest.fn();
 const mockNarration = jest.fn();
+jest.mock("@/styles/entryReadabilityGate", () => ({ entryReadabilityClassName: "" }));
+// Keep the retained, reversible narration implementation covered when enabled.
+// Default-disabled behavior is verified in legacyNarrationRetirement.test.tsx.
+jest.mock("@shared/legacyNarration", () => ({ LEGACY_CHEF_NARRATION_ENABLED: true }));
 jest.mock("wouter", () => ({ useLocation: () => ["/consumer-welcome", mockNavigate] }));
 jest.mock("@/hooks/useNarration", () => ({
   useNarration: (...args: unknown[]) => mockNarration(...args),

@@ -49,6 +49,7 @@ import { logout, getAuthHeaders } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFontSize } from "@/contexts/FontSizeContext";
 import { useNarrationSpeed, type NarrationSpeed } from "@/contexts/NarrationSpeedContext";
+import { LegacyNarration } from "@/components/LegacyNarration";
 import { useToast } from "@/hooks/use-toast";
 import MealReminders from "@/components/MealReminders";
 import { MealReminderPanelFrame } from "@/components/MealReminderPanelFrame";
@@ -524,7 +525,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
         </div>
 
         {/* Narration Speed Selector */}
-        <div className="mt-3 p-4 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl">
+        <LegacyNarration><div className="mt-3 p-4 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl">
           <p className="text-sm text-white/70 mb-3">{t("narrationSpeed")}</p>
           <div className="flex gap-2">
             {(["0.75", "1.0", "1.25", "1.5"] as const).map((speed) => (
@@ -541,7 +542,7 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
               </button>
             ))}
           </div>
-        </div>
+        </div></LegacyNarration>
 
         <div className="mt-6 pt-6 border-t border-white/10">
           {/* Logout Button */}

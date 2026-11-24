@@ -6,6 +6,7 @@ import { useLocation } from 'wouter';
 import { VoiceProvider, useVoiceContext } from '@/context/VoiceContext';
 import { VoiceAssistantManager } from './VoiceAssistantManager';
 import { apiUrl } from '@/lib/resolveApiBase';
+import { LEGACY_CHEF_NARRATION_ENABLED } from "@shared/legacyNarration";
 
 interface VoiceCommandResponse {
   action: string;
@@ -19,7 +20,7 @@ const VoiceConciergeInner = () => {
 
   // Text-to-speech response
   const speakResponse = (text: string) => {
-    if (window.speechSynthesis) {
+    if (LEGACY_CHEF_NARRATION_ENABLED && window.speechSynthesis) {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 0.9;
       utterance.pitch = 1.0;

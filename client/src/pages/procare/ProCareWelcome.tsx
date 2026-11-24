@@ -1,9 +1,9 @@
-import { LanguagePreferenceSelector } from "@/components/profile/LanguagePreferenceSelector";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { ArrowRight, ArrowLeft, GraduationCap, User, Rocket, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NarrationBar } from "@/components/NarrationBar";
+import { LegacyNarration } from "@/components/LegacyNarration";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useTranslation } from "react-i18next";
 
@@ -124,10 +124,6 @@ export default function ProCareWelcome() {
           {t("procare.welcome.back")}
         </button>
 
-        <div className="mb-5">
-          <LanguagePreferenceSelector />
-        </div>
-
         {/* Hero */}
         <div className="flex flex-col items-center mb-6 text-center">
           <img
@@ -147,12 +143,12 @@ export default function ProCareWelcome() {
         </div>
 
         {/* Copilot */}
-        <div className="mb-6 px-4 py-3 rounded-xl bg-black/30 border border-orange-500/30">
+        <LegacyNarration><div className="mb-6 px-4 py-3 rounded-xl bg-black/30 border border-orange-500/30">
           <p className="text-xs text-white/50 mb-2">
             Hear the full journey explained by Chef Copilot
           </p>
           <NarrationBar sections={COPILOT_SECTIONS} speedOverride="1.0" />
-        </div>
+        </div></LegacyNarration>
 
         {/* 3-Step Journey */}
         <div className="mb-6">

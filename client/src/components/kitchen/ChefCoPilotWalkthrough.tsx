@@ -13,6 +13,7 @@ import {
   ChevronLeft, ChevronRight, X, Volume2, VolumeX, Pause, Play,
 } from "lucide-react";
 import { ttsService } from "@/lib/tts";
+import { LEGACY_CHEF_NARRATION_ENABLED } from "@shared/legacyNarration";
 
 const DISMISS_KEY   = "mpm.dismiss.chefCoPilotWalkthrough";
 const NARRATION_KEY = "mpm.copilot.narration.enabled";
@@ -148,7 +149,7 @@ type NarrationState = "idle" | "loading" | "playing" | "paused";
 export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBook, onContact }: Props) {
   const [step, setStep] = useState(0);
   const [narrationEnabled, setNarrationEnabled] = useState<boolean>(
-    () => localStorage.getItem(NARRATION_KEY) !== "false",
+    () => LEGACY_CHEF_NARRATION_ENABLED && localStorage.getItem(NARRATION_KEY) !== "false",
   );
   const [narrationState, setNarrationState] = useState<NarrationState>("idle");
   const audioRef           = useRef<HTMLAudioElement | null>(null);
@@ -203,6 +204,7 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
   }
 
   async function speakStep(stepIndex: number) {
+    if (!LEGACY_CHEF_NARRATION_ENABLED) return;
     stopAudio();
     setNarrationState("loading");
     const text = NARRATION_SCRIPTS[stepIndex];
@@ -263,6 +265,7 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
 
   // ── Narration controls UI ───────────────────────────────────────────────────
   function NarrationControls() {
+    if (!LEGACY_CHEF_NARRATION_ENABLED) return null;
     if (!narrationEnabled) {
       return (
         <button type="button" onClick={toggleNarration} title="Enable narration"
@@ -494,7 +497,7 @@ export default function ChefCoPilotWalkthrough({ isOpen, onClose, onApply, onBoo
                 </div>
 
                 {/* Narration off hint */}
-                {!narrationEnabled && (
+                {LEGACY_CHEF_NARRATION_ENABLED && !narrationEnabled && (
                   <button type="button" onClick={toggleNarration}
                     className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[11px] text-white/30 active:opacity-60"
                     style={{ backgroundColor: "#ffffff05", border: "1px dashed #ffffff10" }}>

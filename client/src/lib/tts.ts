@@ -9,6 +9,7 @@
 
 import { apiUrl } from './resolveApiBase';
 import { getAuthHeaders } from './auth';
+import { LEGACY_CHEF_NARRATION_ENABLED } from "@shared/legacyNarration";
 
 type TTSProvider = 'elevenlabs' | 'silent';
 
@@ -33,6 +34,10 @@ class TTSService {
    * NO browser speech fallback - branded voice or silence
    */
   async speak(text: string, callbacks?: TTSCallbacks): Promise<TTSResult> {
+    if (!LEGACY_CHEF_NARRATION_ENABLED) {
+      callbacks?.onEnd?.();
+      return { provider: 'silent', success: true };
+    }
     const elevenLabsResult = await this.tryElevenLabs(text);
     if (elevenLabsResult.success) {
       return elevenLabsResult;

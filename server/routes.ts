@@ -1,5 +1,6 @@
 import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE, retainPregnancySupport } from "@shared/pregnancyAvailability";
 import fs from "fs";
+import { requireLegacyNarration } from "./middleware/legacyNarration";
 import { readRecipePackage, savedMealFavoriteKey } from "../shared/recipePackage";
 import { buildCravingCategoryPrompt } from "../shared/cravingCategories";
 import { resolveCravingSelection } from "./services/craving/categorySelection";
@@ -971,7 +972,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ElevenLabs TTS proxy endpoint - Coach Idrise Voice Clone
-  app.post("/api/tts", requireAuth, async (req, res) => {
+  app.post("/api/tts", requireAuth, requireLegacyNarration, async (req, res) => {
     try {
       const apiKey = process.env.ELEVENLABS_API_KEY;
       if (!apiKey) {
