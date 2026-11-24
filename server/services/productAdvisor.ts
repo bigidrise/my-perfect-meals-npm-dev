@@ -17,6 +17,8 @@ import type { GroceryCoachContext } from "./groceryCoachContext";
 import { appendWholeFoodStandardPrompt, evaluateWholeFoodCandidate } from "./wholeFoodStandard";
 import { scanGeneratedOutput } from "./protocolEnvelope";
 import { requiresVerifiedIngredientEvidence } from "./foodCompositionEvidence";
+import { developmentGroceryChoiceStore, groceryChoiceKey, groceryMemoryPrompt, orderRememberedChoices } from "./groceryChoiceMemory";
+import type { DevelopmentProductMatch } from "./productDiscovery/findProductDevelopment";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,6 +30,7 @@ export interface BrandRecommendation {
   evidenceStatus?: "verified" | "unverified";
   verificationMessage?: string;
   wholeFoodNote?: string;
+  catalogProduct?: DevelopmentProductMatch;
 }
 
 export interface AvoidRecommendation {
@@ -415,8 +418,11 @@ export class ClinicalContextUnavailableError extends Error {
 
 /** The provider has names, not complete product labels; retrying cannot verify them. */
 export class ProductIngredientVerificationRequiredError extends Error {
-  constructor() {
-    super("Brand names alone cannot verify complete product ingredients for this profile. Use Product Scan to check a specific package's ingredient label.");
+  constructor(
+    message = "Brand names alone cannot verify complete product ingredients for this profile. Use Product Scan to check a specific package's ingredient label.",
+    readonly retryable = false,
+  ) {
+    super(message);
     this.name = "ProductIngredientVerificationRequiredError";
   }
 }
@@ -530,7 +536,40 @@ export class ProductAdvisorEngine {
       );
     }
 
-    const protocolContext = buildProtocolContextString(ctx);
+    if (process.env.NODE_ENV === "development" && !process.env.REPLIT_DEPLOYMENT) {
+      const { verifiedGroceryCatalog } = await import("./productDiscovery/developmentGroceryVerification");
+      const advice: IngredientAdvice[] = [];
+      const profileUsed = new Set<string>();
+      for (const ingredient of ingredients) {
+        const catalog = await verifiedGroceryCatalog(userId, ingredient).catch(error => {
+          if (error instanceof Error && error.name === "ProductSubjectContextUnavailableError")
+            throw new ClinicalContextUnavailableError("Your current food profile could not be confirmed. Please try again.");
+          throw error;
+        });
+        catalog.profileUsed.forEach(factor => profileUsed.add(factor));
+        if (!catalog.catalogSearchAvailable) throw new ProductIngredientVerificationRequiredError(
+          "The product catalog is temporarily unavailable. Compatibility could not be verified; please try again.", true,
+        );
+        advice.push({
+          ingredient, category: "Grocery",
+          recommended: catalog.alternatives.map((option, index) => ({
+            brand: option.category, rank: (index + 1) as 1 | 2 | 3,
+            grade: option.evidenceStatus === "eligible" ? "A" as const : "C" as const,
+            reason: option.whyBetter.join(" "),
+            evidenceStatus: option.evidenceStatus === "eligible" ? "verified" as const : "unverified" as const,
+            verificationMessage: option.targetCriteria,
+            catalogProduct: catalog.products.find(product => product.productKey === option.productKey),
+          })),
+          avoid: [], usualPick: null,
+        });
+      }
+      return { advice, profileUsed: [...profileUsed], ...(store ? { store } : {}) };
+    }
+    const memoryStore = await developmentGroceryChoiceStore();
+    const memories = new Map(await Promise.all(ingredients.map(async ingredient =>
+      [ingredient, memoryStore ? await memoryStore.read(userId, groceryChoiceKey(ingredient), ingredient) : null] as const)));
+    const protocolContext = buildProtocolContextString(ctx) + ingredients.map(ingredient =>
+      `\nIngredient: ${JSON.stringify(ingredient)}${groceryMemoryPrompt(memories.get(ingredient) ?? null)}`).join("");
 
     const raw = await this.provider.getCartRecommendations(ingredients, protocolContext, store);
     const hasProviderCandidates = raw.advice.some((item) => item.recommended.length > 0);
@@ -559,11 +598,15 @@ export class ProductAdvisorEngine {
         acceptedCount += 1;
         return true;
       });
-      return { ...item, recommended };
+      return { ...item, recommended: orderRememberedChoices(recommended, pick => pick.brand, memories.get(item.ingredient) ?? null) };
     });
 
     if (candidateCount > 0 && acceptedCount === 0) {
       throw new WholeFoodRecommendationUnavailableError();
+    }
+    if (memoryStore) {
+      await Promise.all(advice.map(item => memoryStore.observe(userId, groceryChoiceKey(item.ingredient), item.ingredient,
+        item.recommended.map(pick => pick.brand))));
     }
     return { ...sanitized, advice };
   }

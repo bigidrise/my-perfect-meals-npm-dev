@@ -72,6 +72,8 @@ jobs:
         run: npm run test:i18n:new
 
       - name: GATE_02 + GATE_03 + GATE_07 + GATE_08 + GATE_09 — Phase 0 Validate
+        env:
+          I18N_PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: ./node_modules/.bin/tsx scripts/i18n-phase0-validate.ts --ci
 
       - name: Generate clinical registry (verify it builds)

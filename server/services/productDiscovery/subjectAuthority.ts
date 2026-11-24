@@ -20,6 +20,8 @@ export interface ProductSubjectSnapshot {
   status: "resolved" | "unresolved";
   issues: string[];
   fingerprint: string;
+  /** Stable protocol state, unlike the request-specific Human Food fingerprint. */
+  protocolStateReference?: string;
   dietaryIdentity: string[];
   allergies: string[];
   explicitAvoidances: string[];
@@ -155,6 +157,9 @@ export async function resolveProductSubjectAuthority(
     status: issues.length ? "unresolved" : "resolved",
     issues,
     fingerprint,
+    protocolStateReference: createHash("sha256").update(JSON.stringify(envelope,
+      (key, value) => ["generatedAt", "resolvedAt", "retrievedAt", "requestId", "internalFingerprint"].includes(key)
+        ? undefined : value)).digest("hex"),
     dietaryIdentity: [...food.diet.stored],
     allergies: [...food.safety.allergies],
     explicitAvoidances: [...food.safety.avoidedFoods],

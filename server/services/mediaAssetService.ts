@@ -18,6 +18,7 @@ import { db } from "../db";
 import { mediaAssets } from "../db/schema/mediaAssets";
 import { validateMealImageAuthority } from "./mealImageAuthority";
 import crypto from "crypto";
+import { and, eq, or } from "drizzle-orm";
 import {
   assertActiveMealImageWriteBucket,
   getActiveMealImageBucket,
@@ -127,6 +128,21 @@ export async function processImageForMeal(
   // Wrap in a media_assets record as-is (status: ready).
   // These don't get re-uploaded; no resizing at this stage.
   if (source.startsWith("/public-objects/")) {
+    // The generated photo already has its canonical original/display/thumbnail
+    // record. Saving or forwarding the recipe must reuse that identity, not wrap
+    // its thumbnail as a new "original" and lose the surviving variants.
+    const [existing] = await db.select().from(mediaAssets).where(and(
+      eq(mediaAssets.status, "ready"),
+      or(eq(mediaAssets.thumbnailUrl, source), eq(mediaAssets.displayUrl, source)),
+    )).limit(1);
+    if (existing) {
+      return {
+        id: existing.id, status: "ready",
+        validationStatus: existing.validationStatus as MediaAsset["validationStatus"],
+        thumbnailUrl: existing.thumbnailUrl, displayUrl: existing.displayUrl,
+        originalObjectKey: existing.originalObjectKey,
+      };
+    }
     const authority = await validateMealImageAuthority(source);
     if (authority.status !== "available") {
       const processingError =
@@ -198,11 +214,18 @@ export async function processImageForMeal(
   const isExternal = source.startsWith("http://") || source.startsWith("https://");
 
   if (isBase64 || isTempUrl || isExternal) {
-    const hash = crypto.createHash("sha256").update(source.slice(0, 300)).digest("hex").slice(0, 16);
+    let uploadedOriginalKey: string | null = null;
     try {
       const { buffer: original, contentType } = await fetchImageBytes(source);
+      // Hash the complete bytes: PNG headers/short base64 prefixes can be shared
+      // by unrelated photos and must never cause overwriting of a recipe image.
+      const hash = crypto.createHash("sha256").update(original).digest("hex").slice(0, 32);
       const ext = contentType.includes("png") ? "png" : "jpg";
 
+      // Preserve the source before derivative processing/upload can fail.
+      const origKey = buildObjectKey(mealName, "orig", hash, ext);
+      await uploadBuffer(original, contentType, origKey);
+      uploadedOriginalKey = origKey;
       // Thumbnail variant
       const thumbBuffer = await sharp(original)
         .resize({ width: THUMB_WIDTH, withoutEnlargement: true })
@@ -220,8 +243,6 @@ export async function processImageForMeal(
       const displayUrl = await uploadBuffer(displayBuffer, "image/jpeg", displayKey);
 
       // Original (stored but not routinely delivered)
-      const origKey = buildObjectKey(mealName, "orig", hash, ext);
-      await uploadBuffer(original, contentType, origKey);
 
       const [record] = await db.insert(mediaAssets).values({
         status: "ready",
@@ -255,12 +276,13 @@ export async function processImageForMeal(
         validationStatus: "failed",
         sourceType: isBase64 ? "base64" : "url",
         processingError,
+        originalObjectKey: uploadedOriginalKey,
         retryCount: 0,
         nextRetryAt: new Date(Date.now() + 5 * 60 * 1000), // retry eligibility in 5 min
       }).returning();
 
       // CRITICAL: base64 bytes are NOT returned. Caller stores null imageUrl.
-      return { id: record.id, status: "failed", validationStatus: record.validationStatus as MediaAsset["validationStatus"], thumbnailUrl: null, displayUrl: null, originalObjectKey: null };
+      return { id: record.id, status: "failed", validationStatus: record.validationStatus as MediaAsset["validationStatus"], thumbnailUrl: null, displayUrl: null, originalObjectKey: uploadedOriginalKey };
     }
   }
 

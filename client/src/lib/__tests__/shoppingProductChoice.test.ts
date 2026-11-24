@@ -7,6 +7,10 @@ import { buildConsolidatedItems } from "../shoppingConsolidation";
 import { applyShoppingProductChoice } from "../shoppingProductChoice";
 import { useShoppingListStore } from "../../stores/shoppingListStore";
 
+jest.mock("@/lib/shoppingProductOptionsGate", () => ({
+  shoppingProductOptionsEnabled: true,
+}));
+
 jest.mock("@/lib/apiRequest", () => ({ apiRequest: jest.fn(() => { throw new Error("Live requests forbidden"); }) }));
 jest.mock("@/lib/shoppingMetadataGate", () => ({ shoppingMetadataEnabled: true }));
 jest.mock("@/stores/shoppingListStore", () => ({ useShoppingListStore: { getState: jest.fn() } }));
@@ -61,6 +65,41 @@ function fixture() {
     loseEvidence: () => { dropEvidence = true; } };
 }
 beforeEach(() => { localStorage.clear(); localStorage.setItem("userId", "synthetic-owner"); });
+
+test("numeric product macros, recipe provenance, required amounts and checked state survive a fresh store reload", async () => {
+  const f = fixture();
+  await f.store.getState().hydrate();
+  const ids = f.store.getState().items.map(item => item.id);
+  f.store.getState().updateItem(ids[0], { isChecked: true });
+  await f.store.getState().hydrate();
+  const before = f.rows();
+  const choice = product("synthetic-macro-product");
+  const nutrition = { calories: 140, protein: 3, carbs: 16, fat: 7 };
+  for (const [nutrient, value] of Object.entries(nutrition)) {
+    choice.product.evidence.push({
+      kind: "nutrition", statement: `${nutrient}: ${value} ${nutrient === "calories" ? "kcal" : "g"} per 60 g`,
+      measurement: { value, unit: nutrient === "calories" ? "kcal" : "g",
+        basis: "per_serving", servingSize: "60 g" },
+      provenance: { source: "synthetic-catalog" },
+    });
+  }
+  choice.product.sourcePayloadJson = JSON.stringify({ nutrition, servingSize: "60 g" });
+  await f.store.getState().chooseProduct(ids, choice);
+  const reloaded = createDevelopmentShoppingListStore(f.api);
+  await reloaded.getState().hydrate();
+  for (const row of reloaded.getState().items) {
+    expect(row.ingredientMetadata?.selectedProduct?.evidence).toEqual(choice.product.evidence);
+    expect(JSON.parse(row.ingredientMetadata!.selectedProduct!.sourcePayloadJson!)).toEqual({
+      nutrition, servingSize: "60 g",
+    });
+  }
+  expect(reloaded.getState().items.find(row => row.id === ids[0])?.isChecked).toBe(true);
+  expect(f.rows().map((row: any) => ({ ...row, ingredientMetadata: {
+    ...row.ingredientMetadata, selectedProduct: undefined,
+  } }))).toEqual(before.map((row: any) => ({ ...row, ingredientMetadata: {
+    ...row.ingredientMetadata, selectedProduct: undefined,
+  } })));
+});
 
 test("a separate reference action persists, reloads, changes and clears existing consolidated rows without changing recipe amounts", async () => {
   const f = fixture();

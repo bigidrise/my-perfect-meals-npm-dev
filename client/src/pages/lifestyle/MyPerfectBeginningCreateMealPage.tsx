@@ -2021,7 +2021,7 @@ export default function MyPerfectBeginningCreateMealPage() {
       // legacy response missing that attempt may make one background image call.
       resolvePediatricRecipeImage(
         data, selectedStage, mealOccasion,
-        body => post('/api/meals/generate-image', body),
+        body => post('/api/meals/generate-image', { ...body, generationIntent: "initial" }),
       ).then(result => {
         setRecipeImageUrl(result.imageUrl);
         setRecipe(previous => ({ ...result.recipe, shoppingSelectionId: previous?.shoppingSelectionId,

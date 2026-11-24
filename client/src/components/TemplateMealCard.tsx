@@ -5,6 +5,8 @@ import { apiUrl } from '@/lib/resolveApiBase';
 import { InformationModal } from "@/components/ui/universal-modal";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import { IngredientDisplay } from "@/components/IngredientDisplay";
+import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
+import { formatCookingTemperatureText } from "@shared/units";
 
 // Centralized macro data availability check
 function macroDataAvailable(meal: any): boolean {
@@ -184,6 +186,7 @@ export function TemplateMealCard({
 
 // Crash-proof Cooking Instructions Modal Component  
 function CookingInstructionsModal({ meal, open, onClose }: { meal: any, open: boolean, onClose: () => void }) {
+  const measurementSystem = useMeasurementSystem();
   const [hydratedMeal, setHydratedMeal] = useState<any>(meal);
   const [loading, setLoading] = useState(false);
   
@@ -257,7 +260,7 @@ function CookingInstructionsModal({ meal, open, onClose }: { meal: any, open: bo
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-600 text-white text-sm font-medium flex items-center justify-center">
                     {idx + 1}
                   </span>
-                  <p className="text-zinc-200 leading-relaxed">{step}</p>
+                  <p className="text-zinc-200 leading-relaxed">{formatCookingTemperatureText(step, measurementSystem)}</p>
                 </div>
               )) || (
                 <div className="text-zinc-400 text-center py-4">

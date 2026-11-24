@@ -245,3 +245,14 @@ work back to this feature.
 **How to apply:** Include guided and returning-user paths, expanded panels,
 educational/source dialogs, validation, notifications and save confirmations.
 Keep canonical measurements, nutrition calculations and stored records unchanged.
+
+Edit Profile localization belongs in the normal release path, not behind a new
+Development-only switch. Reuse existing catalogs so another language does not
+require revisiting each profile control.
+
+**Why:** The founder explicitly rejected Development-only restrictions for this
+localization and asked for catalog-based extensibility.
+
+**How to apply:** Keep display text separate from canonical identifiers and
+personal text. Preserve independent clinical availability holds. Authorization
+to implement localization is not authorization to publish or change infrastructure.

@@ -81,7 +81,7 @@ describe("MealImageSlot — loading and unavailable states are distinct", () => 
     const { container } = render(
       <MealImageSlot imageUrl={null} mealName="Pasta Primavera" isLoading />,
     );
-    expect(container.textContent).toContain("Generating image");
+    expect(container.textContent).toContain("Loading image");
     expect(container.textContent).not.toContain("Image unavailable");
   });
 
@@ -90,7 +90,7 @@ describe("MealImageSlot — loading and unavailable states are distinct", () => 
       <MealImageSlot imageUrl={null} mealName="Pasta Primavera" isLoading={false} />,
     );
     expect(container.textContent).toContain("Image unavailable");
-    expect(container.textContent).not.toContain("Generating image");
+    expect(container.textContent).not.toContain("Loading image");
   });
 });
 

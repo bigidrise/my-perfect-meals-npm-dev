@@ -332,7 +332,7 @@ export default function SushiCreator() {
       mealType: "snacks",
       generatedAtISO: new Date().toISOString(),
     });
-    hydrateImages([mealForDisplay]);
+    hydrateImages([mealForDisplay], { initialGeneration: true });
   };
 
   useEffect(() => {
@@ -650,7 +650,7 @@ export default function SushiCreator() {
         setIsGenerating(false);
         return;
       }
-      hydrateImages([mealForDisplay]);
+      hydrateImages([mealForDisplay], { initialGeneration: true });
 
       // Immediately cache the new meal so it survives navigation/refresh
       saveCravingCache({

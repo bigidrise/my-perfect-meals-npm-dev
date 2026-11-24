@@ -15,6 +15,8 @@ import { shoppingCatalogPresentation, shoppingCatalogTip } from "./shoppingCatal
 import { shoppingEvidenceAdapter, type ShoppingStageTimer } from "./shoppingEvidenceAdapter";
 import { shoppingRecommendationIdentityMatches } from "./shoppingRecommendationIdentity";
 import { shoppingReferenceBridge } from "./shoppingReferenceBridge";
+import { shoppingRecommendationNamesProduct } from "../../../shared/shoppingRecommendationName";
+import { shoppingCatalogPreservesIntent } from "./shoppingCatalogIntent";
 import type { ShoppingProductReference } from "../../../shared/shoppingProductSelection";
 
 export interface DevelopmentProductMatch {
@@ -75,6 +77,8 @@ function recommendationStatus(
   unresolved: readonly { id: string; classification: string }[],
 ): DevelopmentProductMatch["recommendationStatus"] {
   const { candidate, decision } = item;
+  if (process.env.NODE_ENV === "development" && !process.env.REPLIT_DEPLOYMENT &&
+      decision.status !== "eligible") return "review";
   const identity = candidate.identity;
   const source = identity.provenance;
   const observed = Date.parse(source.observedAt);
@@ -292,6 +296,8 @@ export async function findProductDevelopment(
     shoppingIngredient?: ShoppingIngredientRequest;
     /** Server-owned Find a Product leads; never accepted as package evidence. */
     recommendationLeads?: readonly string[];
+    /** Development Shopping only: source-backed cards, not AI-name matching. */
+    catalogFirstShopping?: boolean;
     onStageTiming?: ShoppingStageTimer;
   } = {},
 ): Promise<{
@@ -307,7 +313,8 @@ export async function findProductDevelopment(
   profileUsed: string[];
   shoppingTip?: string;
 }> {
-  if (process.env.NODE_ENV !== "development" && process.env.NODE_ENV !== "test") {
+  if (process.env.NODE_ENV !== "development" && process.env.NODE_ENV !== "test" &&
+      !options.shoppingIngredient) {
     throw new Error("Development product discovery is not available in Production.");
   }
   const food = query.trim();
@@ -361,15 +368,16 @@ export async function findProductDevelopment(
     throw new Error("Shopping recommendation leads must be bounded and preserve the original ingredient.");
   }
   const intent = makeIntent(initial);
+  const catalogFirstShopping = options.catalogFirstShopping === true && !!shoppingIngredient;
   const adapters = options.adapter
     ? [options.adapter, ...(options.fallbackAdapter ? [options.fallbackAdapter] : [])]
     : [
-      createOpenFoodFactsSearchAdapter(fetch, options.recommendationLeads ? 1 : intent.searchCategories.length === 1 ? 4 : 1,
+      createOpenFoodFactsSearchAdapter(fetch, options.recommendationLeads ? 1 : catalogFirstShopping ? 2 : intent.searchCategories.length === 1 ? 4 : 1,
         options.recommendationLeads ? 3 : 8),
       createUsdaBrandedAdapter(),
     ];
-  const transports = options.recommendationLeads
-    ? adapters.map(adapter => shoppingEvidenceAdapter(adapter, options.onStageTiming)) : [];
+  const transports = options.recommendationLeads || catalogFirstShopping
+    ? adapters.map(adapter => shoppingEvidenceAdapter(adapter, options.onStageTiming, catalogFirstShopping ? 8 : 3)) : [];
   const excludedRecommendationLeads = new Set<string>();
   const evaluated = await discoverProductCandidates({
     subject: {
@@ -387,7 +395,10 @@ export async function findProductDevelopment(
     maxCandidates: options.recommendationLeads ? 18 : 40, maxPages: 6,
     targetCount: options.recommendationLeads ? 3 : 9,
     maxEvaluatedCandidates: options.recommendationLeads ? 18 : 24,
-    acceptCandidate: options.recommendationLeads
+    acceptCandidate: catalogFirstShopping
+      ? candidate => intent.searchCategories.some(category =>
+        shoppingCatalogPreservesIntent(category.category, candidate.identity))
+      : options.recommendationLeads
       ? candidate => options.recommendationLeads!.some(lead => shoppingRecommendationMatches(lead, candidate))
       : undefined,
     onSubjectResolved: milliseconds => options.onStageTiming?.("profile", milliseconds),
@@ -450,18 +461,21 @@ export async function findProductDevelopment(
     const selection = shoppingSelectionBridge(candidate, decision, evaluated.subject!, evaluated.unresolved, shoppingIngredient);
     return shoppingCatalogPresentation(candidate, decision, selection, shoppingIngredient).shoppingDisplay !== "hidden";
   });
+  const namedReferenceDevelopment = (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test") &&
+    !process.env.REPLIT_DEPLOYMENT;
   const isSelectable = (item: EvaluatedProduct) =>
     (!options.recommendationLeads || options.recommendationLeads.some(lead =>
       shoppingRecommendationIdentityMatches(lead, item.candidate))) && shoppingSelectionBridge(
     item.candidate, item.decision, evaluated.subject!, evaluated.unresolved, shoppingIngredient!,
   ).eligible;
   const isReferenceable = (item: EvaluatedProduct) =>
-    !!shoppingIngredient && !!options.recommendationLeads?.some(lead =>
-      shoppingRecommendationIdentityMatches(lead, item.candidate)) &&
+    !!shoppingIngredient && (catalogFirstShopping || !!options.recommendationLeads?.some(lead =>
+      shoppingRecommendationIdentityMatches(lead, item.candidate) ||
+      (namedReferenceDevelopment && shoppingRecommendationNamesProduct(lead, item.candidate.identity)))) &&
     !!shoppingReferenceBridge(item.candidate, item.decision, evaluated.subject!, shoppingIngredient,
       shoppingSelectionBridge(item.candidate, item.decision, evaluated.subject!,
         evaluated.unresolved, shoppingIngredient).reason || "Product verification is incomplete.");
-  const presentable = options.recommendationLeads && shoppingIngredient
+  const presentable = (options.recommendationLeads || catalogFirstShopping) && shoppingIngredient
     ? [
       ...selectDistinctProducts(presentationCandidates.filter(isSelectable), evaluated.subject, evaluated.unresolved),
       ...selectDistinctProducts(presentationCandidates.filter(item => !isSelectable(item) && isReferenceable(item)), evaluated.subject, evaluated.unresolved),
@@ -477,6 +491,8 @@ export async function findProductDevelopment(
       : undefined;
     const recommendationLead = options.recommendationLeads?.find(lead =>
       shoppingRecommendationIdentityMatches(lead, candidate)) ??
+      (namedReferenceDevelopment ? options.recommendationLeads?.find(lead =>
+        shoppingRecommendationNamesProduct(lead, candidate.identity)) : undefined) ??
       options.recommendationLeads?.find(lead => shoppingRecommendationMatches(lead, candidate));
     const recommendationIdentityVerified = !!recommendationLead &&
       shoppingRecommendationIdentityMatches(recommendationLead, candidate);
@@ -493,7 +509,14 @@ export async function findProductDevelopment(
         recommendationLead, recommendationIdentityVerified,
         variant: candidate.identity.variant, packageSize: candidate.identity.packageSize,
       } : {}),
-      ...(shoppingIngredient && shoppingSelection && !shoppingSelection.eligible && recommendationIdentityVerified
+      // Shopping intent never inherits medical eligibility. Only a source
+      // record with the SAME product name can supply a reference in Development;
+      // a related sauce or mayonnaise must never replace the displayed oil.
+      ...(shoppingIngredient && shoppingSelection && !shoppingSelection.eligible &&
+        (catalogFirstShopping || recommendationIdentityVerified || (
+          namedReferenceDevelopment && !!recommendationLead &&
+          shoppingRecommendationNamesProduct(recommendationLead, candidate.identity)
+        ))
         ? (() => {
           const reference = shoppingReferenceBridge(candidate, decision, evaluated.subject!,
             shoppingIngredient, shoppingSelection.reason || "Product verification is incomplete.");

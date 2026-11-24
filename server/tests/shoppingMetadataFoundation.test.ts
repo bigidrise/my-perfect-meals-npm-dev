@@ -89,7 +89,7 @@ const originalEnvironment = process.env.NODE_ENV;
 beforeEach(() => { process.env.NODE_ENV = "development"; state.rows = []; state.sources = []; state.writes = []; });
 afterAll(() => { process.env.NODE_ENV = originalEnvironment; });
 
-test("Production rejects the unverified shopping reference payload before any update", async () => {
+test("Production rejects a malformed shopping reference before any update", async () => {
   process.env.NODE_ENV = "production";
   state.rows = [{ id: "synthetic-row", userId: "synthetic-a", name: "olive oil", quantity: "3", unit: "tsp" }];
   const handler = v2.stack.find((layer: any) => layer.route?.path === "/:id" &&
@@ -97,7 +97,7 @@ test("Production rejects the unverified shopping reference payload before any up
   const res: any = { status: jest.fn().mockReturnThis(), json: jest.fn().mockReturnThis() };
   await handler({ params: { id: "synthetic-row" }, authUser: { id: "synthetic-a" },
     body: { ingredientMetadata: { selectedProduct: { selectionKind: "unverified_shopping_reference" } } } }, res);
-  expect(res.status).toHaveBeenCalledWith(403);
+  expect(res.status).toHaveBeenCalledWith(400);
   expect(state.writes).toEqual([]);
   expect(state.rows[0].quantity).toBe("3");
 });
@@ -272,9 +272,9 @@ describe("Development routes use synthetic database only", () => {
     const js = ts.transpileModule(`async function fixture(){${block};return insertedItems}`, {
       compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
     }).outputText;
-    const run = new Function("db", "shoppingListItems", "and", "eq", "userId", "items", "scope", "strategy", "multiplier", "sourceBuilder",
+    const run = new Function("db", "shoppingListItems", "and", "eq", "userId", "items", "scope", "strategy", "multiplier", "sourceBuilder", "coachMetadata",
       `${js};return fixture()`);
-    const rows = await run(mockDatabase, shoppingListItems, ops.and, ops.eq, "synthetic-a", [{ name: "Bread", quantity: 1, ingredientMetadata: m }], { type: "adhoc", key: "inbox" }, "replace_scope", 1, "fixture");
+    const rows = await run(mockDatabase, shoppingListItems, ops.and, ops.eq, "synthetic-a", [{ name: "Bread", quantity: 1, ingredientMetadata: m }], { type: "adhoc", key: "inbox" }, "replace_scope", 1, "fixture", [undefined]);
     expect(rows).toHaveLength(1);
     expect(rows[0].ingredientMetadata).toBeUndefined();
     expect(state.rows[0].ingredientMetadata).toBeUndefined();

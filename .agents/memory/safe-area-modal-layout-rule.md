@@ -54,6 +54,12 @@ A confirmed tall dialog using the standard fixed header, internally scrollable b
 
 **How to apply:** Preserve the existing flex and overflow structure. Bound and center only the affected mobile-browser dialog within `100dvh` minus top and bottom environment insets, retain the established desktop geometry, and avoid applying browser compensation to a native shell that already supplies automatic content insets.
 
+Safe-area frame selectors must outrank the shared dialog's position and max-height utilities, not merely match their specificity.
+
+**Why:** A single-class route rule can lose to a later global utility stylesheet. Short loading content can appear safe while taller results expose the missing bounds.
+
+**How to apply:** Scope local geometry with an attribute-plus-class selector such as `[role="dialog"].feature-modal`. Check both loading and tall results; source-string checks alone do not establish the browser's winning styles.
+
 ## How to suppress the built-in X and add a Trash2 instead
 
 ```tsx

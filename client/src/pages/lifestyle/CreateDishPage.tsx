@@ -523,7 +523,7 @@ export default function CreateDishPage() {
       servings,
       generatedAtISO: new Date().toISOString(),
     });
-    hydrateOptionImages([meal]);
+    hydrateOptionImages([meal], { initialGeneration: true });
   };
 
   const startProgressTicker = () => {

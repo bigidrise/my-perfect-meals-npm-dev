@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { profilePinError } from "@/lib/profileDisplayLabels";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +14,7 @@ type Mode = "view" | "set" | "change" | "remove";
 
 export function SafetyPinSettings() {
   const { t } = useTranslation();
+  const { t: displayError } = useConsumerCopy();
   const { toast } = useToast();
   const [hasPin, setHasPin] = useState<boolean | null>(null);
   const [authFailed, setAuthFailed] = useState(false);
@@ -77,7 +80,7 @@ export function SafetyPinSettings() {
       const data = await response.json();
       
       if (!response.ok) {
-        setError(data.error || t("safetyPin.errorSetFailed"));
+        setError(profilePinError(displayError, data.error, t("safetyPin.errorSetFailed")));
         return;
       }
       
@@ -120,7 +123,7 @@ export function SafetyPinSettings() {
       const data = await response.json();
       
       if (!response.ok) {
-        setError(data.error || t("safetyPin.errorChangeFailed"));
+        setError(profilePinError(displayError, data.error, t("safetyPin.errorChangeFailed")));
         return;
       }
       
@@ -151,7 +154,7 @@ export function SafetyPinSettings() {
       const data = await response.json();
       
       if (!response.ok) {
-        setError(data.error || t("safetyPin.errorRemoveFailed"));
+        setError(profilePinError(displayError, data.error, t("safetyPin.errorRemoveFailed")));
         return;
       }
       

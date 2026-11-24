@@ -54,11 +54,12 @@ mealImagesRouter.post('/meal-images/generate', requireAuth, imageRateLimit, asyn
       ingredients,
       style,
       templateRef,
-      mealType // 🍎 Pass mealType to enable snack firewall
+      mealType, // 🍎 Pass mealType to enable snack firewall
+      lookupOnly: req.body?.generationIntent !== "initial",
     });
     
     res.json({ 
-      success: true,
+      success: !result.failureCode,
       image: result
     });
     
@@ -83,6 +84,7 @@ mealImagesRouter.post('/meal-images/generate-batch', requireAuth, imageRateLimit
     }
     
     const requests = meals.map(meal => ({
+      lookupOnly: req.body?.generationIntent !== "initial",
       mealName: meal.name || meal.title,
       ingredients: meal.ingredients?.map((ing: any) => ing.name) || [],
       style: meal.style || 'overhead',

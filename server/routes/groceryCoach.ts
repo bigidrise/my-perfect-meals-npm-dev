@@ -669,6 +669,30 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
 });
 
 // ── Product Advisor ─────────────────────────────────────────────────────────────
+router.post("/product-preference", async (req, res) => {
+  const userId = resolveUserId(req);
+  if (!userId) return res.status(401).json({ error: "Not authenticated" });
+  if (process.env.NODE_ENV !== "development") return res.status(404).json({ error: "Not available" });
+  const { query, productName } = req.body;
+  if (typeof query !== "string" || !query.trim() || query.length > 200 ||
+      typeof productName !== "string" || !productName.trim() || productName.length > 200) {
+    return res.status(400).json({ error: "A product and its original search are required." });
+  }
+  try {
+    const { developmentGroceryChoiceStore, groceryChoiceKey } = await import("../services/groceryChoiceMemory");
+    const store = await developmentGroceryChoiceStore();
+    const key = groceryChoiceKey(query);
+    const prior = await store!.read(userId, key);
+    if (!prior || ![...prior.shownNames, prior.preferredName].some(
+      name => name?.toLocaleLowerCase("en-US") === productName.trim().toLocaleLowerCase("en-US"),
+    )) return res.status(409).json({ error: "Reopen the product options before remembering this choice." });
+    await store!.prefer(userId, key, query, productName);
+    return res.json({ remembered: true });
+  } catch {
+    return res.status(503).json({ error: "Your product choice could not be remembered. Try again." });
+  }
+});
+
 router.post("/product-advisor", async (req, res) => {
   try {
     const userId = resolveUserId(req);
@@ -680,9 +704,11 @@ router.post("/product-advisor", async (req, res) => {
       return res.status(400).json({ error: "ingredients array is required" });
     }
 
-    // Only the Find a Product tab in Development uses catalog discovery.
-    // Smart Cart, Replace, Product Scan, and Production retain their paths.
-    if (process.env.NODE_ENV === "development" && req.body.mode === "find_product") {
+    // Shopping Product Options is released in every runtime. The unrelated
+    // generic Find a Product tab keeps its existing Development-only behavior.
+    // Original ingredient validation and all evidence checks remain mandatory.
+    if (req.body.mode === "find_product" &&
+        (process.env.NODE_ENV === "development" || req.body.shoppingIngredient !== undefined)) {
       if (ingredients.length !== 1 || typeof ingredients[0] !== "string" ||
           !ingredients[0].trim() || ingredients[0].trim().length > 80) {
         return res.status(400).json({ error: "Enter one product category (up to 80 characters)." });
@@ -701,7 +727,8 @@ router.post("/product-advisor", async (req, res) => {
         }
         const matches = shoppingIngredient
           ? await (await import("../services/productDiscovery/findShoppingProductRecommendationsDevelopment"))
-            .findShoppingProductRecommendationsDevelopment(userId, shoppingIngredient)
+            .findShoppingProductRecommendationsDevelopment(userId, shoppingIngredient,
+              ...(req.body.findNewOptions === true ? [{ findNewOptions: true }] as const : [] as const))
           : await findProductDevelopment(userId, ingredients[0]);
         if (shoppingIngredient && "lookupTiming" in matches) {
           console.info("[SmartShopping/Development]", JSON.stringify({
@@ -720,7 +747,9 @@ router.post("/product-advisor", async (req, res) => {
           catalogNotice: "Important: My Perfect Meals uses your profile and available product information to identify products that may fit your needs. Ingredients, formulations, manufacturing practices, and allergen information can change. Always review the current product label and allergen statements before purchasing or consuming, especially with a food allergy, intolerance, or medical dietary restriction. My Perfect Meals cannot guarantee a product is free from a specific allergen or ingredient.",
         });
       } catch (error) {
-        console.error("[FindProduct/Development]", error);
+        console.warn("[FindProduct/Development]", {
+          reason: error instanceof ProductSubjectContextUnavailableError ? "profile_unavailable" : "lookup_unavailable",
+        });
         return res.status(error instanceof ProductSubjectContextUnavailableError ? 409 : 503).json({
           error: error instanceof ProductSubjectContextUnavailableError
             ? error.message
@@ -736,10 +765,10 @@ router.post("/product-advisor", async (req, res) => {
     return res.json(result);
   } catch (err: any) {
     if (err instanceof ProductIngredientVerificationRequiredError) {
-      return res.status(422).json({
-        code: "PRODUCT_INGREDIENTS_UNVERIFIED",
+      return res.status(err.retryable ? 503 : 422).json({
+        code: err.retryable ? "PRODUCT_CATALOG_UNAVAILABLE" : "PRODUCT_INGREDIENTS_UNVERIFIED",
         error: err.message,
-        retryable: false,
+        retryable: err.retryable,
       });
     }
     if (err instanceof ClinicalContextUnavailableError) {

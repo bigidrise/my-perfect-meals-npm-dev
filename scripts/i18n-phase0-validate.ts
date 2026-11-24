@@ -18,11 +18,12 @@
 
 import fs from "fs";
 import path from "path";
-import { execSync } from "child_process";
+import { execSync, execFileSync } from "child_process";
 import { createRequire } from "node:module";
 const requireValidation = createRequire(import.meta.url);
 const { validateSourceDispositions } = requireValidation("./localization-check/clinical-source.cjs");
 const { loadResources } = requireValidation("./localization-check/resources.cjs");
+const { incrementalArguments } = requireValidation("./localization-check/phase0-comparison.cjs");
 
 const CI_MODE = process.argv.includes("--ci");
 const LOCALES_DIR = path.resolve("client/src/i18n/locales");
@@ -445,7 +446,7 @@ if (!fs.existsSync(PERFILE_BASELINE_FILE)) {
 // Additive incremental guard. Keep all existing gates/baselines above intact.
 section("GATE_09 — Newly Introduced Interface Text (EN/ES)");
 try {
-  execSync("node scripts/localization-check/cli.cjs", { stdio: "inherit" });
+  execFileSync(process.execPath, incrementalArguments(process.argv.slice(2), process.env), { stdio: "inherit" });
   pass("Incremental interface-copy check passed within its documented source scope");
 } catch {
   fail("Incremental interface-copy check failed or could not compare history; run npm run validate:i18n:new");

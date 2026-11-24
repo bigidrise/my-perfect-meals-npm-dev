@@ -13,6 +13,9 @@ import {
   HydrationIntakeServiceError,
 } from "../services/hydration/hydrationIntakeService";
 
+// All service operations in this suite use the in-memory store below.
+jest.mock("../db", () => ({ db: {} }));
+
 const OWNER_ID = "hydration-owner";
 const OTHER_ID = "hydration-other";
 const INSTANCE_ID = "00000000-0000-4000-8000-000000000041";

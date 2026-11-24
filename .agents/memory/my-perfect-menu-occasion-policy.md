@@ -1,6 +1,6 @@
 ---
 name: My Perfect Menu occasion policy
-description: Culinary occasion suitability, cultural breadth, destination freedom, and the Development release hold.
+description: Culinary occasion suitability, cultural breadth, destination freedom, and Production synchronization authority.
 ---
 
 My Perfect Menu ideas must fit the selected eating occasion based on their actual preparation, not merely a breakfast/lunch/dinner/snack label. Preserve American, international, high-protein, and legitimate nontraditional breakfasts without ingredient blacklists. Lunch and dinner may overlap; culinary completeness is not a new nutrition or food-group rule. Food Snack and Dessert Snack identity remains authoritative.
@@ -15,14 +15,15 @@ Mocked classifier tests alone do not establish culinary suitability or recipe id
 
 **How to apply:** Keep culinary completeness separate from nutritional completeness and occasion fit separate from recipe identity. Verify compatible ingredient adaptations as well as genuine dish changes before promoting reviewer changes.
 
+The user authorized Production snack reliability: retain one or two fully verified snack choices when three cannot be completed, including persistence, restoration, and explanatory UI. Other occasions' partial-choice rollout, independent occasion-review activation, and diagnostic/test endpoints retain their existing boundaries.
+
 Equivalent translations are not changes of dish identity. Keep this judgment specific to Menu's selected concept and full recipe, rather than imposing English-name overlap or changing shared food rules. Name-vocabulary misses need meaningful ingredients and preparation evidence plus an independent preserved-identity judgment; clear format changes, uncertainty and unavailable review remain blocking.
 
-**Why:** Research found equivalent English/Spanish recipe names could fail deterministic matching before the independent review. The approved repair must retain identity verification, not disable it.
+**Why:** Equivalent English/Spanish recipe names must not fail solely because of vocabulary differences; independent recipe identity verification remains required.
 
-**How to apply:** Preserve canonical Food Snack versus Dessert Snack and specific dessert structure alongside every existing food safeguard; never treat review eligibility alone as approval.
+**How to apply:** Preserve Food Snack versus Dessert Snack identity, dessert structure, ingredient safeguards, and independent review. The additional recipe-identity repair remains Development-only until separately authorized; the previously approved Production snack reliability behavior remains authorized.
 
-This repair is approved for Development only. Report files, tests, results, and limitations before any GitHub push; do not promote or activate it in Production without separate authorization.
 
-**Why:** The user's written repair requirements explicitly set that release boundary.
+**Why:** On 2026-11-14, the user approved enabling the Production repair after a real snack request retained two valid choices but failed the three-choice requirement. Importing the merged source had not activated Development-gated partial success.
 
-**How to apply:** Preserve the Development-only boundary during unrelated merges and releases. A prior request to promote other changes does not authorize promoting this repair.
+**How to apply:** Enable only the approved snack reliability behavior, keep all existing safety checks and opt-in caller boundaries, and keep test endpoints Development-only. Workspace changes do not authorize live publication.

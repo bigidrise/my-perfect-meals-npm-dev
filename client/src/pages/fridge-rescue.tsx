@@ -582,7 +582,7 @@ const FridgeRescuePage = () => {
       }));
       stopProgressTicker();
       setMeals(mealsArray);
-      hydrateImages(mealsArray);
+      hydrateImages(mealsArray, { initialGeneration: true });
       setShowResults(true);
 
       if (data.quota) {
@@ -775,7 +775,7 @@ const FridgeRescuePage = () => {
         );
         console.log("✅ Meal replaced locally:", next.name);
         if (!next.imageUrl) {
-          hydrateImages([next]);
+          hydrateImages([next], { initialGeneration: true });
         }
       }
     } catch (error) {

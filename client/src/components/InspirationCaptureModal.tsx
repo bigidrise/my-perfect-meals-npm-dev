@@ -543,9 +543,9 @@ export default function InspirationCaptureModal({
       setPhase("preview");
       // Lazily fetch images for any options the server returned without one
       if (Array.isArray(normalizedData.options)) {
-        hydrateImages(normalizedData.options);
+        hydrateImages(normalizedData.options, { initialGeneration: true });
       } else if (normalizedData.mealData && !normalizedData.mealData.imageUrl) {
-        hydrateSingleImage([normalizedData.mealData]);
+        hydrateSingleImage([normalizedData.mealData], { initialGeneration: true });
       }
       if (destination === "recipe") {
         // Strip base64 imageUrls before persisting — they're ephemeral and often blow past
@@ -693,7 +693,7 @@ export default function InspirationCaptureModal({
       setSavedIndices([]);
       // Lazily load images for any options returned without one
       if (Array.isArray(normalizedData.options)) {
-        hydrateImages(normalizedData.options);
+        hydrateImages(normalizedData.options, { initialGeneration: true });
       }
       if (destination === "recipe") {
         const stripBase64 = (meal: any) => {
@@ -773,7 +773,13 @@ export default function InspirationCaptureModal({
           }}
         >
 
-          {/* ── Header — fixed, does not scroll ── */}
+          {!isSmartScan && profileType === "human" && (
+            <div className="flex justify-end mb-4" data-testid="recipe-maker-top-help">
+              <HowThisWorksLink featureKey="recipeMaker" labelKey="tutorialControl.howItWorks" />
+            </div>
+          )}
+
+          {/* ── Header — title/delete row, followed by the description ── */}
           <DialogHeader className="mb-5 shrink-0">
             <div className="flex items-center justify-center relative">
               {/* Back arrow — options phase only; takes you back to capture */}
@@ -815,16 +821,13 @@ export default function InspirationCaptureModal({
               <HowThisWorksLink featureKey="productScan" labelKey="tutorialControl.howItWorks" />
             </div>
           )}
-          {!isSmartScan && profileType === "human" && (
-            <div className="flex justify-end mb-5">
-              <HowThisWorksLink featureKey="recipeMaker" labelKey="tutorialControl.howItWorks" />
-            </div>
-          )}
 
           {/* ── CAPTURE ── */}
           {(phase === "capture" || phase === "error") && (
             <div className="space-y-5">
-              <div className="flex gap-2 justify-center flex-wrap">
+              <div className={!isSmartScan && profileType === "human"
+                ? "grid grid-cols-3 gap-2 [&_button]:w-full [&_button]:h-8 [&_button]:px-1 [&_button]:whitespace-normal [&_button]:leading-tight [&_button]:text-[9px]"
+                : "flex gap-2 justify-center flex-wrap"}>
                 {/* "Choose Photo" pill — overlay input covers the button so the tap lands directly on the input */}
                 <div className="relative overflow-hidden rounded-full inline-flex">
                   <PillButton active={mode === "upload"} onClick={() => switchMode("upload")}>
@@ -854,6 +857,17 @@ export default function InspirationCaptureModal({
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
                 </div>
+                {!isSmartScan && profileType === "human" && (
+                  <PillButton
+                    type="button"
+                    disabled
+                    title="Coming soon"
+                    data-testid="recipe-maker-from-scratch"
+                    className="disabled:cursor-not-allowed disabled:opacity-60 disabled:animate-none disabled:transform-none"
+                  >
+                    {foodCopy("From Scratch")}
+                  </PillButton>
+                )}
                 {isCompanionScan && (
                   <>
                     <PillButton

@@ -18,7 +18,7 @@ it("never regenerates on mount; a double click makes one request and applies the
   const done = jest.fn();
   render(<PediatricImageRetry mealId="saved" childProfileId="child" onRecovered={done} />);
   expect(mockPost).not.toHaveBeenCalled();
-  const button = screen.getByRole("button", { name: "Regenerate Image" });
+  const button = screen.getByRole("button", { name: "Recover Original Image" });
   fireEvent.click(button);
   fireEvent.click(button);
   expect(mockPost).toHaveBeenCalledTimes(1);
@@ -35,10 +35,10 @@ it("never regenerates on mount; a double click makes one request and applies the
 it("keeps the same operation ID after a lost response, and reports failure without automatic retries", async () => {
   mockPost.mockRejectedValue(new Error("Network unavailable"));
   render(<PediatricImageRetry mealId="saved" childProfileId="child" onRecovered={jest.fn()} />);
-  fireEvent.click(screen.getByRole("button", { name: "Regenerate Image" }));
+  fireEvent.click(screen.getByRole("button", { name: "Recover Original Image" }));
   await screen.findByText("Network unavailable");
   expect(mockPost).toHaveBeenCalledTimes(1);
-  fireEvent.click(screen.getByRole("button", { name: "Regenerate Image" }));
+  fireEvent.click(screen.getByRole("button", { name: "Recover Original Image" }));
   await waitFor(() => expect(mockPost).toHaveBeenCalledTimes(2));
   expect(mockPost.mock.calls[0][1].requestId).toBe(mockPost.mock.calls[1][1].requestId);
 });
@@ -48,7 +48,7 @@ it("does not apply a late response after switching away from the saved meal", as
   mockPost.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
   const done = jest.fn();
   const view = render(<PediatricImageRetry mealId="saved" childProfileId="child" onRecovered={done} />);
-  fireEvent.click(screen.getByRole("button", { name: "Regenerate Image" }));
+  fireEvent.click(screen.getByRole("button", { name: "Recover Original Image" }));
   view.unmount();
   finish({ imageUrl: "photo", imagePersisted: true });
   await Promise.resolve();

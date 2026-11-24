@@ -156,8 +156,9 @@ async function runMealImageRecoveryJob(jobId: string): Promise<void> {
     const sourceType = normalizeSourceType(meal.sourceType);
     const generator = await import("./mealImageGenerator");
     const request: MealImageRequest = { mealName: meal.title, ingredients, sourceType };
-    await generator.invalidateMealImageCache(request);
-    const imageUrl = await generator.generateMealImageUnified(meal.title, ingredients, sourceType);
+    const imageUrl = await generator.generateMealImageUnified(
+      meal.title, ingredients, sourceType, undefined, undefined, { lookupOnly: true },
+    );
     if (!isRecoverablePermanentImageUrl(imageUrl)) {
       throw new Error("Regeneration did not produce a permanent Object Storage URL");
     }
@@ -216,69 +217,9 @@ export async function queueMealImageRecovery(input: MealImageRecoveryInput): Pro
   recoveryId?: string;
   reason?: string;
 }> {
-  if (!isRecoverablePermanentImageUrl(input.imageUrl)) {
-    return { accepted: false, reason: "Only permanent first-party image failures can be recovered" };
-  }
-  if (!input.savedMealId) {
-    return { accepted: false, reason: "An owned saved meal with a media asset is required" };
-  }
-
-  const meal = await loadOwnedSavedMeal(input.savedMealId, input.userId);
-  if (!meal?.mediaAssetId) return { accepted: false, reason: "An owned saved meal with a media asset is required" };
-  if (input.mediaAssetId && input.mediaAssetId !== meal.mediaAssetId) {
-    return { accepted: false, reason: "Image asset does not belong to this saved meal" };
-  }
-
-  const [asset] = await db.select().from(mediaAssets).where(eq(mediaAssets.id, meal.mediaAssetId)).limit(1);
-  if (!asset) return { accepted: false, reason: "Image asset was not found" };
-  if (asset.thumbnailUrl !== input.imageUrl && asset.displayUrl !== input.imageUrl) {
-    return { accepted: false, reason: "Reported URL is not the saved meal's current image" };
-  }
-  const deliveryState = asset.validationStatus ?? "unvalidated";
-  if (asset.status !== "failed" && deliveryState !== "failed" && deliveryState !== "unvalidated") {
-    return { accepted: false, reason: "Image asset is already delivery-validated" };
-  }
-
-  const fingerprint = recipeFingerprint(meal);
-  const [created] = await db.insert(mealImageRecoveryJobs)
-    .values({
-      userId: input.userId,
-      savedMealId: meal.id,
-      assetId: asset.id,
-      reportedUrl: input.imageUrl,
-      recipeFingerprint: fingerprint,
-      status: "pending",
-    })
-    .onConflictDoNothing()
-    .returning({ id: mealImageRecoveryJobs.id });
-
-  if (!created) {
-    const [active] = await db.select({ id: mealImageRecoveryJobs.id })
-      .from(mealImageRecoveryJobs)
-      .where(and(
-        eq(mealImageRecoveryJobs.savedMealId, meal.id),
-        eq(mealImageRecoveryJobs.assetId, asset.id),
-        inArray(mealImageRecoveryJobs.status, ["pending", "processing"]),
-      ))
-      .orderBy(desc(mealImageRecoveryJobs.updatedAt))
-      .limit(1);
-    if (active) return { accepted: true, recoveryId: active.id };
-    return { accepted: false, reason: "Image recovery could not be queued" };
-  }
-
-  await db.update(mediaAssets)
-    .set({
-      status: "failed",
-      validationStatus: "failed",
-      processingError: "Permanent Object Storage URL failed to load in client",
-      retryCount: sql`COALESCE(${mediaAssets.retryCount}, 0) + 1`,
-      nextRetryAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(mediaAssets.id, asset.id));
-
-  void runMealImageRecoveryJob(created.id);
-  return { accepted: true, recoveryId: created.id };
+  // Historical API retained for old clients, but a delivery failure is never
+  // permission to replace a finalized image or mutate shared media state.
+  return { accepted: false, reason: "Original image retained. Use read-only image delivery recovery; replacement generation is disabled." };
 }
 
 export async function getMealImageRecoveryStatus(
@@ -298,19 +239,8 @@ export async function getMealImageRecoveryStatus(
 
 /** Restart-safe recovery worker: resumes pending jobs and expired leases on boot. */
 export async function resumePendingMealImageRecoveries(): Promise<void> {
-  const now = new Date();
-  while (true) {
-    const jobs = await db.select({ id: mealImageRecoveryJobs.id })
-      .from(mealImageRecoveryJobs)
-      .where(or(
-        eq(mealImageRecoveryJobs.status, "pending"),
-        and(eq(mealImageRecoveryJobs.status, "processing"), sql`${mealImageRecoveryJobs.leaseExpiresAt} < ${now}`),
-      ))
-      .limit(20);
-    if (jobs.length === 0) return;
-    await Promise.all(jobs.map((job) => runMealImageRecoveryJob(job.id)));
-    if (jobs.length < 20) return;
-  }
+  // Do not resume historical paid replacement jobs during application boot.
+  // Keep records intact; image delivery recovery is read-only.
 }
 
 export const mealImageRecoveryInternals = {

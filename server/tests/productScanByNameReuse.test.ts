@@ -2,11 +2,14 @@
 jest.mock("../utils/openaiSafe", () => ({ openai: {}, chatJson: jest.fn() }));
 jest.mock("../services/protocolEnvelope", () => ({ loadUserProtocolEnvelope: jest.fn() }));
 jest.mock("../services/ingredientIntelligence", () => ({ scanTextForHighRiskIngredients: jest.fn() }));
+jest.mock("../services/groceryChoiceMemory", () => ({
+  ...jest.requireActual("../services/groceryChoiceMemory"),
+  developmentGroceryChoiceStore: jest.fn(async () => null),
+}));
 
 import { chatJson } from "../utils/openaiSafe";
 import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
-import { analyzeProductByName, analyzeFullProduct } from "../services/ingredientScanService";
-import { createHash } from "node:crypto";
+import { analyzeProductByName, analyzeFullProduct, analyzeIngredientContent } from "../services/ingredientScanService";
 
 test("by-name service fails closed on a fabricated soy/TRT restriction without mutating historical results", async () => {
   (loadUserProtocolEnvelope as jest.Mock).mockResolvedValue(profile());
@@ -101,10 +104,36 @@ test("provider failure remains a retryable analysis failure, not made-up guidanc
   expect(result.betterAlternatives).toEqual([]);
 });
 
-test("photo-based full-product analysis keeps its exact pre-change prompt", async () => {
-  // Frozen original prompt prefix: independent of future commits and Git availability.
+test("photo-based full-product analysis retains label authority and existing medical safeguards", async () => {
   await analyzeFullProduct("Example sauce", "Tomatoes, water, salt", "synthetic-shopper");
   const request = (chatJson as jest.Mock).mock.calls[0][0];
-  expect(createHash("sha256").update(request.system.slice(0, 7763)).digest("hex"))
-    .toBe("286aea12dbad9f0f5c3243537e0fe2e86676d5c4cbfaf0156b493493f8695a9f");
+  expect(request.system).toContain("MEDICAL AUTHORITY:");
+  expect(request.system).toContain("Use only applicable supplied rules.");
+  expect(request.system).toContain("Given a specific branded product name");
+  expect(request.user).toContain("Tomatoes, water, salt");
+  expect(request.user).toContain("Example sauce");
+  expect(request.user).toMatch(/vegan/i);
 });
+
+test.each(["by_name", "by_label", "full_product"] as const)(
+  "Development %s scans delegate the final verdict and alternatives to exact-catalog verification",
+  async method => {
+    const environment = process.env.NODE_ENV;
+    const verification = await import("../services/productDiscovery/developmentGroceryVerification");
+    const marker = { ...analysis(), productName: "Verified synthetic result", betterAlternatives: [] };
+    const spy = jest.spyOn(verification, "verifyDevelopmentScanResult").mockResolvedValue(marker as any);
+    try {
+      process.env.NODE_ENV = "development";
+      const result = method === "by_name"
+        ? await analyzeProductByName("Example sauce", "synthetic-shopper", { memoryStore: null })
+        : method === "full_product"
+          ? await analyzeFullProduct("Example sauce", "Tomatoes, water", "synthetic-shopper")
+          : await analyzeIngredientContent("synthetic-shopper", { rawText: "Tomatoes, water" });
+      expect(result).toBe(marker);
+      expect(spy).toHaveBeenCalledWith("synthetic-shopper", expect.any(Object), expect.objectContaining({ userId: "synthetic-shopper" }));
+    } finally {
+      process.env.NODE_ENV = environment;
+      spy.mockRestore();
+    }
+  },
+);

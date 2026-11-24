@@ -19,6 +19,7 @@ import {
   useShoppingListStore,
   ShoppingListItem,
 } from "@/stores/shoppingListStore";
+import { shoppingProductOptionsEnabled } from "@/lib/shoppingProductOptionsGate";
 import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
 import { buildConsolidatedItems, ConsolidatedItem } from "@/lib/shoppingConsolidation";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,8 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { isProOrAbove } from "@/lib/subscriptionCheck";
 import ShoppingProductPicker from "@/components/shopping/ShoppingProductPicker";
 import SmartShoppingProductChoice from "@/components/shopping/SmartShoppingProductChoice";
+import { shoppingProductActionsDevelopmentEnabled } from "@/lib/shoppingProductActionsGate";
+import { groceryProductLabel } from "@/lib/savedGroceryRecommendation";
 import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
 import { shoppingIngredientFor, applyShoppingProductChoice, applyShoppingProductReference } from "@/lib/shoppingProductChoice";
 import { parseShoppingProductReference } from "@shared/shoppingProductSelection";
@@ -199,7 +202,7 @@ export default function ShoppingListMasterView() {
     currentSelection: ShoppingProductSelection | null;
     sessionKey: string;
   } | null>(null);
-  const productPickerEnabled = shoppingMetadataEnabled && groceryCoachCatalogEnabled;
+  const productPickerEnabled = shoppingProductOptionsEnabled;
   const productPickerSessionKey = `${user?.id || "guest"}:${JSON.stringify(user ?? null)}`;
   const previousProductSession = useRef(productPickerSessionKey);
   useEffect(() => {
@@ -720,6 +723,8 @@ export default function ShoppingListMasterView() {
               {t("Voice Add")}
             </Button>
             <Button
+              hidden
+              style={{ display: "none" }}
               onClick={() => {
                 setBarcodeScanMode("manual");
                 setBarcodeModalOpen(true);
@@ -1139,7 +1144,8 @@ export default function ShoppingListMasterView() {
                         <>
                           <div className="shopping-item-content min-w-0 flex-1">
                             <div className={`shopping-item-name text-white ${item.isChecked ? "line-through" : ""}`}>
-                              {item.name}
+                              {shoppingProductActionsDevelopmentEnabled && item.ingredientMetadata?.selectedProduct
+                                ? groceryProductLabel({ productName: item.ingredientMetadata.selectedProduct.name, brand: item.ingredientMetadata.selectedProduct.brand }) : item.name}
                             </div>
                             <SmartShoppingProductChoice
                               item={item}
@@ -1226,7 +1232,10 @@ export default function ShoppingListMasterView() {
                                 <Check className="h-4 w-4" />
                               </Button>
                               <div className="shopping-item-content min-w-0 flex-1">
-                                <div className="shopping-item-name text-white line-through">{item.name}</div>
+                                <div className="shopping-item-name text-white line-through">
+                                  {shoppingProductActionsDevelopmentEnabled && item.ingredientMetadata?.selectedProduct
+                                    ? groceryProductLabel({ productName: item.ingredientMetadata.selectedProduct.name, brand: item.ingredientMetadata.selectedProduct.brand }) : item.name}
+                                </div>
                                 <SmartShoppingProductChoice
                                   item={item}
                                   enabled={productPickerEnabled}

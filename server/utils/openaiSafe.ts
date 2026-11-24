@@ -24,13 +24,15 @@ function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
 export async function chatJson(opts: {
   system: string; user: string; model?: string; temperature?: number;
+  timeoutMs?: number; maxRetries?: number;
 }): Promise<any> {
   const model = opts.model ?? process.env.OPENAI_TEXT_MODEL ?? "gpt-4o-mini";
   let lastErr: any;
+  const retries = opts.maxRetries ?? MAX_RETRIES;
 
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
     const ac = new AbortController();
-    const t = setTimeout(() => ac.abort("timeout"), DEFAULT_TIMEOUT_MS);
+    const t = setTimeout(() => ac.abort("timeout"), opts.timeoutMs ?? DEFAULT_TIMEOUT_MS);
     try {
       const res = await openai.chat.completions.create({
         model,
@@ -40,7 +42,7 @@ export async function chatJson(opts: {
           { role: "user", content: opts.user },
         ],
         response_format: { type: "json_object" },
-      });
+      }, { signal: ac.signal, ...(opts.maxRetries === undefined ? {} : { maxRetries: 0 }) });
       clearTimeout(t);
       const content = res.choices[0]?.message?.content ?? "{}";
       return JSON.parse(content);
@@ -48,7 +50,7 @@ export async function chatJson(opts: {
       clearTimeout(t);
       lastErr = e;
       // backoff: 500ms, 1500ms, ...
-      if (attempt < MAX_RETRIES) await sleep(500 * (attempt + 1) + Math.random() * 200);
+      if (attempt < retries) await sleep(500 * (attempt + 1) + Math.random() * 200);
     }
   }
   throw lastErr ?? new Error("LLM failed");

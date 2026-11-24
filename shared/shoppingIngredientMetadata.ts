@@ -68,6 +68,7 @@ export const shoppingIngredientMetadataSchema = z.object({
       policyVersion: text.optional(),
       subjectReference: text.optional(),
       contextReference: text.optional(),
+      profileContextReference: text.optional(),
     }).strict(),
   }).strict().nullable().optional(),
 }).strict().superRefine((value, ctx) => {

@@ -11,6 +11,7 @@ export function isFirstPartyPermanentImageUrl(
   s3Bucket?: string,
 ): boolean {
   if (!url) return false;
+  if (/[?&](?:X-Amz-[^=]+|AWSAccessKeyId|Signature|Expires)=/i.test(url)) return false;
   if (LOCAL_PERMANENT_IMAGE_PREFIXES.some((prefix) => url.startsWith(prefix))) return true;
 
   if (s3Bucket) return url.startsWith(`https://${s3Bucket}.s3.`);

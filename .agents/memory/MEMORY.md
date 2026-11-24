@@ -17,7 +17,7 @@
 - [Coaching engine contracts](coaching-engine-phase1.md) — coaching evidence and typed contracts are the shared foundation for its observers and UI.
 - [Coaching confidence doctrine](coaching-engine-confidence-doctrine.md) — legacy structured-renderer confidence controls, not the released Ask Chef primary conversation.
 - [Object storage verification](object-storage-architecture.md) — resolve current environment authority; no-write readiness does not attest upload durability.
-- [Canonical media assets](media-asset-architecture.md) — media lifecycle gates must protect every referencing surface before object deletion.
+- [Canonical media assets](media-asset-architecture.md) — all active image pathways preserve finalized assets; no restore-triggered generation; audit before repairs; protect references before deletion.
 - [Meal image references](meal-image-reference-index.md) — recipe fidelity, pediatric prepared-food expectations, production delivery, bounded recovery, and board media identity.
 - [Daily prescription hierarchy](daily-prescription-hierarchy.md) — one endpoint owns macro targets; clinical overlays are applied in documented order.
 - [Nutrition decision engine entry points](nde-food-entry-points.md) — all food intake surfaces must consult NDE before presenting results.
@@ -59,6 +59,7 @@
 - [Professional glucose access](professional-glucose-access.md) — raw glucose requires verified clinical identity, exact active care relationship, org isolation, and current consent.
 - [Saved grocery evidence governance](saved-grocery-evidence-governance.md) — permanent favorites stay evidence-ranked and fail closed against the current profile.
 - [Smart Grocery persistence boundary](smart-grocery-persistence-boundary.md) — minimal existing-catalog picker is Development-only; older Production replacements lose metadata; live writes require isolation.
+- [Shopping product choice policy](shopping-product-choice-policy.md) — one-click intent and name-only rows; preserve internal evidence and hard blocks; never substitute sauce for oil.
 - [Auth security-state issuance](auth-security-state-issuance.md) — credential issuance must compare the security version verified before password or MFA acceptance.
 - [Signup email and username identity](signup-email-username-identity.md) — matching email prefixes never link accounts; username collisions must not block distinct emails.
 - [Consumer signup first-run order](consumer-signup-first-run.md) — regular signup leads into onboarding and personal meal setup, not trial feature exploration.
@@ -123,6 +124,7 @@
 - [Professional erasure policy](professional-erasure-policy.md) — minimize personal lifecycle data; reviewer erasure preserves other applications; no six-year retention assumption.
 - [Professional credential clearance](professional-credential-clearance.md) — bind genuine MFA-reviewed evidence to current identity; activation, pilots and demos remain separate.
 - [Grocery Coach workflow](grocery-coach-meal-card-workflow.md) — automatic Favorites/card continuity and Development-only, user-initiated packaged-product discovery.
+- [Development scope protection](development-scope-regression-protection.md) — no Development-only runtime restrictions; release approval stays separate; preserve agreed scope and existing behavior.
 - [Focused Jest execution](focused-jest-execution.md) — use isolated test transpilation and a separate type gate to avoid loading the entire project twice.
 - [Studio loading release boundary](studio-loading-release-boundary.md) — loading corrections are Development-only; permission caching and restart/release need separate approval.
 - [Recipe carbohydrate categories](recipe-carb-category-boundary.md) — preserve explicit source estimates; dietary fiber and unknown carbohydrate remain distinct.
@@ -156,3 +158,4 @@
 - [Clinical protocol repair governance](clinical-protocol-repair-governance.md) — all 17 conditions; preserve existing indicators and physician restrictions without treating ordinary trainer enrollment as authority.
 - [Restaurant cuisine correction](restaurant-cuisine-fidelity-boundary.md) — Development-only pending review; saved guidance, explicit cuisine, restaurant evidence and display language stay separate.
 - [Measurement preference authority](measurement-preference-authority.md) — country-based Auto and manual units stay independent of language; display changes never rewrite canonical data or product evidence.
+- [From Scratch recipe package](from-scratch-recipe-package.md) — Recipe Maker entry opens staged preparation and one saved recipe; prove saving and retrieval before building the new workflow.

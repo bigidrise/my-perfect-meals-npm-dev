@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChefHat, Clock, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { useState } from "react";
+import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
 import HealthBadgesPopover from "./badges/HealthBadgesPopover";
-import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import { IngredientDisplay } from "@/components/IngredientDisplay";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import BuilderSourcePill from "@/components/BuilderSourcePill";
@@ -16,6 +16,7 @@ import { MealRefinementPanel } from "@/components/MealRefinementPanel";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
 import { GroceryCoachCarbStatus } from "@/components/shopping/GroceryCoachMacroTiles";
+import { formatCookingTemperatureText } from "@shared/units";
 
 interface WeeklyMealCardProps {
   dateISO: string;
@@ -113,6 +114,7 @@ export default function WeeklyMealCard({
   weekStartISO,
   onRefined,
 }: WeeklyMealCardProps) {
+  const measurementSystem = useMeasurementSystem();
   const [regenerating, setRegenerating] = useState(false);
   const [instructionsExpanded, setInstructionsExpanded] = useState(false);
   
@@ -289,7 +291,10 @@ export default function WeeklyMealCard({
                   <li key={i} className="flex items-start">
                     <span className="text-green-400 mr-1">•</span>
                     <span>
-                      <IngredientDisplay ingredient={ingredient} legacyText={`${converted.quantity} ${converted.unit} ${ingredient.name || ingredient.item}`.trim()} />
+                      <IngredientDisplay
+                        ingredient={ingredient}
+                        legacyText={`${converted.quantity} ${converted.unit} ${ingredient.name || ingredient.item || ""}`.trim()}
+                      />
                     </span>
                   </li>
                 );
@@ -312,8 +317,8 @@ export default function WeeklyMealCard({
                 <div>
                   <p className="mb-2">
                     {instructionsExpanded
-                      ? instructions
-                      : `${instructions.substring(0, 120)}...`}
+                      ? formatCookingTemperatureText(instructions, measurementSystem)
+                      : `${formatCookingTemperatureText(instructions, measurementSystem).substring(0, 120)}...`}
                   </p>
                   <button
                     onClick={() => setInstructionsExpanded(!instructionsExpanded)}
@@ -333,7 +338,7 @@ export default function WeeklyMealCard({
                   </button>
                 </div>
               ) : (
-                <p>{instructions}</p>
+                <p>{formatCookingTemperatureText(instructions, measurementSystem)}</p>
               )}
             </div>
           </div>

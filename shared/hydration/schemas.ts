@@ -202,7 +202,7 @@ export const hydrationPlanningEligibilityReasonSchema = z
     disposition: z.enum(["withhold", "review", "informational"]),
     source: z.enum(["access", "intake", "registry", "resolver", "eligibility"]),
     inputIds: z.array(z.string().trim().min(1).max(200)).max(10_000),
-    sourceIds: z.array(z.string().trim().min(1).max(200)).max(10_000),
+    sourceIds: z.array(z.string().trim().min(1).max(400)).max(10_000),
     detailCodes: z.array(z.string().trim().min(1).max(200)).max(100).optional(),
   })
   .strict();
@@ -222,7 +222,8 @@ export const hydrationPlanningEligibilityResultSchema = z
       z.literal("unavailable"),
     ]),
     resolverSnapshotHash: z.string().trim().min(1).max(256).optional(),
-    reasons: z.array(hydrationPlanningEligibilityReasonSchema).max(500),
+    // One reason per allowed modifier plus access/intake/resolver-level reasons.
+    reasons: z.array(hydrationPlanningEligibilityReasonSchema).max(600),
     provenance: z
       .object({
         intakeEventIds: z.array(z.string().trim().min(1).max(200)).max(10_000),
@@ -233,7 +234,7 @@ export const hydrationPlanningEligibilityResultSchema = z
           .array(z.string().trim().min(1).max(200))
           .max(10_000),
         resolverInputIds: z.array(z.string().trim().min(1).max(200)).max(500),
-        resolverSourceIds: z.array(z.string().trim().min(1).max(200)).max(500),
+        resolverSourceIds: z.array(z.string().trim().min(1).max(400)).max(500),
         policyVersions: z.record(z.string().trim().min(1).max(200)),
       })
       .strict(),

@@ -1,8 +1,9 @@
 import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE, retainPregnancySupport } from "@shared/pregnancyAvailability";
 import fs from "fs";
+import { readRecipePackage, savedMealFavoriteKey } from "../shared/recipePackage";
 import { buildCravingCategoryPrompt } from "../shared/cravingCategories";
 import { resolveCravingSelection } from "./services/craving/categorySelection";
-import { ConsumerOncologyError, saveConsumerSpecialtySupport, SELF_SELECTABLE_SPECIALTY_CONDITIONS } from "./services/consumerOncologySupport";
+import { ConsumerOncologyError, saveConsumerSpecialtySupport, saveConsumerSpecialtyConditions } from "./services/consumerOncologySupport";
 import { oncologySymptomPriorityEnabled } from "./services/guardrails/prompt/oncologySymptomPriority";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -820,11 +821,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ ...decision, retryAfterMs: 1_000 });
       }
 
-      const candidates = [
+      // Historical Favorites saves sometimes wrapped a thumbnail in another
+      // asset record. Recover surviving variants only from records sharing this
+      // exact owned image URL, never by dish name or a similar recipe.
+      const sameImageAssets = await db.select({
+        thumbnailUrl: mediaAssetsTable.thumbnailUrl,
+        displayUrl: mediaAssetsTable.displayUrl,
+        originalObjectKey: mediaAssetsTable.originalObjectKey,
+      }).from(mediaAssetsTable).where(and(
+        eq(mediaAssetsTable.status, "ready"),
+        or(eq(mediaAssetsTable.thumbnailUrl, failedUrl), eq(mediaAssetsTable.displayUrl, failedUrl)),
+      )).limit(5);
+      const candidates = [...new Set([
         asset.thumbnailUrl,
         asset.displayUrl,
         publicObjectUrlForKey(failedUrl, asset.originalObjectKey),
-      ].filter((url): url is string => Boolean(url && url !== failedUrl));
+        ...sameImageAssets.flatMap(related => [
+          related.thumbnailUrl, related.displayUrl,
+          publicObjectUrlForKey(failedUrl, related.originalObjectKey),
+        ]),
+      ].filter((url): url is string => Boolean(url && url !== failedUrl)))];
 
       let alternate: { url: string; probe: DeliveryProbe } | null = null;
       for (const candidate of candidates) {
@@ -3326,6 +3342,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return res.json({ days: dayCount, items: glp1FilteredItems, meta: { onboardingHash: obHash, mode } });
           }
         } catch (error) {
+          if (error instanceof Error && error.name === "MealRecipeValidationError") {
+            console.error("MEALGEN V2 recipe validation failed:", error);
+            return res.status(422).json({
+              error: "We couldn't generate a recipe that passed all quality checks. Please try again."
+            });
+          }
+
           console.error("MEALGEN V2 failed, falling back to legacy:", error);
           // Fall through to legacy system
         }
@@ -4680,7 +4703,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
-      const ALLOWED = SELF_SELECTABLE_SPECIALTY_CONDITIONS;
       let { condition, conditions, oncologySupport } = req.body;
       if (Array.isArray(conditions)) conditions = normalizeClinicalProtocols(conditions);
       if (typeof condition === "string") condition = normalizeClinicalProtocols([condition])[0];
@@ -4722,10 +4744,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Multi-condition path: conditions[]
       if (conditions !== undefined) {
         if (!Array.isArray(conditions)) return res.status(400).json({ error: "conditions must be an array" });
-        const invalid = conditions.find((c: any) => !ALLOWED.includes(c));
-        // Development's transactional writer validates legacy retention against
-        // the locked authoritative row, never against client claims.
-        if (invalid && !oncologySymptomPriorityEnabled()) return res.status(400).json({ error: `Invalid condition: ${invalid}` });
+        // Both runtimes validate legacy retention against the locked
+        // authoritative row, never against client claims.
         if (conditions.includes("alpha-gal-syndrome")) {
           const [alphaGal] = await db.select({ profile: users.alphaGalProfile })
             .from(users).where(eq(users.id, userId)).limit(1);
@@ -4748,17 +4768,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         // Persist the explicit selection, never automatically activate raw lab signals.
         const merged = Array.from(new Set<string>(conditions));
-        const primaryCondition = merged.length > 0 ? merged[0] : null;
         if (oncologySymptomPriorityEnabled()) {
           const saved = await saveConsumerSpecialtySupport(userId, merged, oncologySupport);
           return res.json({ ok: true, specialtyConditions: saved.conditions, specialtyCondition: saved.conditions[0] ?? null, oncologySupportContext: saved.context });
         }
-        await db.update(users).set({
-          specialtyCondition: primaryCondition,
-          specialtyConditions: merged,
-        } as any).where(eq(users.id, userId));
-        console.log(`[specialty-condition] User ${userId} multi-set → ${merged.length} explicitly selected conditions`);
-        return res.json({ ok: true, specialtyConditions: merged, specialtyCondition: primaryCondition });
+        const saved = await saveConsumerSpecialtyConditions(userId, merged);
+        return res.json({ ok: true, specialtyConditions: saved.conditions, specialtyCondition: saved.conditions[0] ?? null });
       }
       if (condition === "pregnancy-support") {
         const [pregnancy] = await db.select({ stage: users.pregnancyStage })
@@ -4782,22 +4797,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Single-condition path: backward compat
-      if (condition !== null && condition !== undefined && !ALLOWED.includes(condition)) {
-        return res.status(400).json({ error: "Invalid specialty condition value" });
-      }
-      // Merge single-condition with lab-driven set
+      // Validate against the locked row, preserving established support settings.
       const baseArray = condition ? [condition] : [];
       const newArray = Array.from(new Set(baseArray));
       if (oncologySymptomPriorityEnabled()) {
         const saved = await saveConsumerSpecialtySupport(userId, newArray, oncologySupport);
         return res.json({ ok: true, specialtyCondition: saved.conditions[0] ?? null, specialtyConditions: saved.conditions, oncologySupportContext: saved.context });
       }
-      await db.update(users).set({
-        specialtyCondition: condition ?? null,
-        specialtyConditions: newArray,
-      } as any).where(eq(users.id, userId));
-      console.log(`[specialty-condition] User ${userId} updated`);
-      res.json({ ok: true, specialtyCondition: condition ?? null, specialtyConditions: newArray });
+      const saved = await saveConsumerSpecialtyConditions(userId, newArray);
+      res.json({ ok: true, specialtyCondition: saved.conditions[0] ?? null, specialtyConditions: saved.conditions });
     } catch (error: any) {
       if (error instanceof ConsumerOncologyError) {
         return res.status(error.status).json({ error: error.code, message: error.message });
@@ -7754,6 +7762,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Release only consistent final recipes, including fallback and repaired
+      // output. Existing final-choice budgets may refill rejected candidates.
+      const { isPreparedRecipe } = await import("./services/recipePreparationValidator");
+      formattedOptions = formattedOptions.filter(isPreparedRecipe);
+
       if (cravingSelection) {
         // Fallbacks, repairs and formatted payloads must preserve the same
         // category/method and meaningful variety; titles cannot grant release.
@@ -8259,11 +8272,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const { generateMealImageUnified } = await import("./services/mealImageGenerator");
       const sourceType = type === "beverage" ? "beverage" : "meal";
-      const imageUrl = await generateMealImageUnified(name, ingredients ?? [], sourceType);
-      if (imageUrl) {
+      let imageFailureCode: string | undefined;
+      const imageUrl = await generateMealImageUnified(name, ingredients ?? [], sourceType,
+        undefined, undefined, {
+          lookupOnly: req.body?.generationIntent !== "initial",
+          onFailure: code => { imageFailureCode = code; },
+        });
+      if (imageUrl && !imageFailureCode) {
         res.json({ imageUrl });
       } else {
-        res.status(500).json({ error: 'Failed to generate image' });
+        res.status(503).json({ imageUrl: null, imageFailureCode, error: 'The original image is unavailable. No replacement was generated.' });
       }
     } catch (error) {
       console.error('Image generation endpoint error:', error);
@@ -8293,6 +8311,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const ingredientNames = (ingredients as any[]).map((i: any) =>
         typeof i === "string" ? i : (i.name || i.item || "")
       ).filter(Boolean);
+      if (req.body?.generationIntent !== "initial") {
+        let imageFailureCode: string | undefined;
+        const imageUrl = await generateMealImageUnified(
+          mealName, ingredientNames, resolvedSourceType,
+          parsedPediatric?.success ? parsedPediatric.data : undefined, undefined,
+          { lookupOnly: true, onFailure: code => { imageFailureCode = code; } },
+        );
+        return res.json({
+          imageUrl: imageFailureCode ? null : imageUrl,
+          imageStatus: imageFailureCode ? "unavailable" : recipeImageStatus(imageUrl),
+          ...(imageFailureCode ? { imageFailureCode, message: "The original image could not be retrieved. No replacement was generated." } : {}),
+        });
+      }
       // This duplicate registration is retained for deployments that initialize
       // routes.ts without the shared meals router. Bind image recreation to the
       // authenticated user's server-resolved glucose context just as the shared
@@ -8330,13 +8361,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (glucoseFinding) {
         return res.status(422).json({ error: glucoseFinding.message, code: "GLUCOSE_PRODUCE_NOT_ALLOWED" });
       }
+      let imageFailureCode: string | undefined;
       const imageUrl = await generateMealImageUnified(
         mealName,
         ingredientNames,
         resolvedSourceType,
-        parsedPediatric?.success ? parsedPediatric.data : undefined
+        parsedPediatric?.success ? parsedPediatric.data : undefined,
+        undefined, { onFailure: code => { imageFailureCode = code; } },
       );
-      res.json({ imageUrl, imageStatus: recipeImageStatus(imageUrl) });
+      res.json({
+        imageUrl: imageFailureCode ? null : imageUrl,
+        imageStatus: imageFailureCode ? "unavailable" : recipeImageStatus(imageUrl),
+        ...(imageFailureCode ? { imageFailureCode } : {}),
+      });
     } catch (err: any) {
       console.error("❌ /api/meals/generate-image error:", err);
       res.status(500).json({ error: "Image generation failed" });
@@ -11122,14 +11159,18 @@ Provide a single exceptional meal recommendation in JSON format with the followi
 
   // ── Saved Meals / Favorites ──────────────────────────────────────
   const crypto = await import("crypto");
+  const developmentRecipePackages = process.env.NODE_ENV !== "production";
 
   function mealSignature(
     title: string,
     sourceType: string,
     macros?: { calories?: number; protein?: number; carbs?: number; fat?: number },
-    bglBucket?: string
+    bglBucket?: string,
+    packageId?: string,
   ): string {
-    const raw = `${title.trim().toLowerCase()}|${sourceType}|${macros?.calories ?? 0}|${macros?.protein ?? 0}|${macros?.carbs ?? 0}|${macros?.fat ?? 0}|${bglBucket ?? ""}`;
+    const identity = savedMealFavoriteKey(title, sourceType, packageId);
+    const raw = packageId ? identity
+      : `${identity}|${macros?.calories ?? 0}|${macros?.protein ?? 0}|${macros?.carbs ?? 0}|${macros?.fat ?? 0}|${bglBucket ?? ""}`;
     return crypto.createHash("sha256").update(raw).digest("hex").slice(0, 64);
   }
 
@@ -11152,7 +11193,8 @@ Provide a single exceptional meal recommendation in JSON format with the followi
         (mealData?.builderType as string | undefined) === "diabetic";
 
       const macros = mealData.nutrition || { calories: mealData.calories, protein: mealData.protein, carbs: mealData.carbs, fat: mealData.fat };
-      const hash = mealSignature(title, sourceType || "unknown", macros, diabeticMemory?.bglBucket);
+      const packageId = developmentRecipePackages ? readRecipePackage(mealData)?.id : undefined;
+      const hash = mealSignature(title, sourceType || "unknown", macros, diabeticMemory?.bglBucket, packageId);
 
       const existing = await db.select().from(savedMealsTable).where(
         and(eq(savedMealsTable.userId, String(userId)), eq(savedMealsTable.signatureHash, hash))
@@ -11239,11 +11281,16 @@ Provide a single exceptional meal recommendation in JSON format with the followi
     try {
       const userId = (req as AuthenticatedRequest).authUser.id;
 
-      const rows = await db.select({ title: savedMealsTable.title, sourceType: savedMealsTable.sourceType })
+      const rows = await db.select({
+        title: savedMealsTable.title, sourceType: savedMealsTable.sourceType,
+        recipePackageId: developmentRecipePackages
+          ? sql<string | null>`${savedMealsTable.mealData}->'recipePackage'->>'id'`
+          : sql<null>`NULL`,
+      })
         .from(savedMealsTable)
         .where(eq(savedMealsTable.userId, String(userId)));
 
-      res.json(rows.map(r => `${r.title.trim().toLowerCase()}|${r.sourceType}`));
+      res.json(rows.map(r => savedMealFavoriteKey(r.title, r.sourceType, r.recipePackageId ?? undefined)));
     } catch (error) {
       console.error("Error checking saved meals:", error);
       res.status(500).json({ error: "Failed to check saved meals" });

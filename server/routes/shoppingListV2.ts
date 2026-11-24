@@ -5,6 +5,7 @@ import { shoppingListItems, shoppingListSources } from "@shared/schema";
 import { normalizeShopping } from "../services/shopping-list/builder-v2";
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
+import { shoppingProductOptionsServerEnabled } from "../services/shopping-list/productOptionsGate";
 import { getAuthUserId } from "../utils/getAuthUserId";
 import { getLanguageInstruction } from "../utils/languageInstruction";
 import { shoppingMetadataDevelopment, developmentItemPatch, metadataInputFailure, developmentMealCommit, developmentMealIngredients, developmentIngredientFields, aggregateDevelopmentShoppingItems } from "../services/shopping-list/metadataPersistence";
@@ -149,8 +150,9 @@ shoppingRouter.get("/", requireAuth, async (req: any, res: any) => {
     });
 
     res.json({
-      items,
-      ...(shoppingMetadataDevelopment() ? { shoppingMetadataVersion: 1, ownerUserId: userId } : {}),
+      items: await (await import("../services/productDiscovery/productProfileAssessment"))
+        .currentShoppingAssessments(userId!, items),
+      ...(shoppingProductOptionsServerEnabled() ? { shoppingMetadataVersion: 1, ownerUserId: userId } : {}),
     });
   } catch (error: any) {
     console.error("Error fetching shopping list:", error);
@@ -175,11 +177,18 @@ shoppingRouter.patch("/:id", requireAuth, async (req: any, res: any) => {
       return res.status(404).json({ error: "Item not found" });
     }
 
-    if (!shoppingMetadataDevelopment() &&
-      req.body?.ingredientMetadata?.selectedProduct?.selectionKind === "unverified_shopping_reference") {
-      return res.status(403).json({ error: "Unverified shopping references are Development-only" });
+    if (!shoppingProductOptionsServerEnabled() && req.body?.ingredientMetadata &&
+        existing.ingredientMetadata?.selectedProduct?.source?.source === "Product Scan by-name guidance") {
+      return res.status(400).json({
+        error: "Grocery Coach ingredient association cannot be replaced by an item edit"
+      });
     }
-    if (shoppingMetadataDevelopment()) updates = developmentItemPatch(req.body, existing);
+    if (!shoppingProductOptionsServerEnabled() && req.body?.ingredientMetadata) {
+      return res.status(403).json({ error: "Structured shopping product selections are not enabled" });
+    }
+    if (shoppingProductOptionsServerEnabled() && req.body?.ingredientMetadata) {
+      updates = developmentItemPatch(req.body, existing);
+    }
     else if (existing.ingredientMetadata?.selectedProduct?.source?.source === "Product Scan by-name guidance") {
       // Quantity/check edits cannot replace the original ingredient or its
       // historical product association. Catalog selection remains disabled.
@@ -188,18 +197,39 @@ shoppingRouter.patch("/:id", requireAuth, async (req: any, res: any) => {
       }
     }
 
-    await db.update(shoppingListItems)
+    const writeItem = async (database: typeof db) => { await database.update(shoppingListItems)
       .set(updates)
-      .where(shoppingMetadataDevelopment()
-        ? and(eq(shoppingListItems.id, id), eq(shoppingListItems.userId, userId))
-        : eq(shoppingListItems.id, id));
+      .where(and(
+        eq(shoppingListItems.id, id),
+        eq(shoppingListItems.userId, userId)
+      )); };
+    const selected = updates.ingredientMetadata?.selectedProduct;
+    if (process.env.NODE_ENV === "development" && selected &&
+        JSON.stringify(selected) !== JSON.stringify(existing.ingredientMetadata?.selectedProduct)) {
+      // Persist only an explicit, already-validated selection, atomically with
+      // the item change. A mere lookup or quantity edit is never a preference.
+      const { groceryChoiceKey } = await import("../services/groceryChoiceMemory");
+      const { createGroceryChoiceMemoryStore } = await import("../services/groceryChoiceMemoryStore");
+      await db.transaction(async tx => {
+        await writeItem(tx as unknown as typeof db);
+        const original = updates.ingredientMetadata.ingredient;
+        const name = selected.brand && !selected.name.toLowerCase().startsWith(selected.brand.toLowerCase())
+          ? `${selected.brand} ${selected.name}` : selected.name;
+        await createGroceryChoiceMemoryStore(tx).prefer(userId, groceryChoiceKey(original.originalName, original), original.originalName, name);
+      });
+    } else {
+      await writeItem(db);
+    }
 
     const updated = await db.query.shoppingListItems.findFirst({
       where: (items, { eq }) => eq(items.id, id),
       with: { sources: true },
     });
 
-    res.json({ item: updated });
+    if (!updated) return res.status(409).json({ error: "This shopping item changed. Please reload your list." });
+    const [currentItem] = await (await import("../services/productDiscovery/productProfileAssessment"))
+      .currentShoppingAssessments(userId!, [updated]);
+    res.json({ item: currentItem });
   } catch (error: any) {
     if (metadataInputFailure(error, res)) return;
     console.error("Error updating shopping list item:", error);
