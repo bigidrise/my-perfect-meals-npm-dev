@@ -85,11 +85,15 @@ const courses = [
     servings: 4, calories: 800, protein: 120, carbs: 8, fat: 30,
     nutrition: { calories: 800, protein: 120, carbs: 8, fat: 30 },
     imageUrl: "/public-objects/fixture/turkey.jpg", mediaAssetId: "original-turkey",
-    courseType: "main", courseLabel: "Main", medicalBadges: [] },
+    courseType: "main" as const, courseLabel: "Main", medicalBadges: [],
+    reasoning: "Test meal fixture", servingSize: "1 serving",
+    assignedDish: null, isFamilySpecialty: false },
   { id: "beans", name: "Campfire beans", description: "Warm beans", ingredients: [{ name: "beans", quantity: 1, unit: "cup" }],
     instructions: "Simmer the beans.", servings: 4, calories: 400, protein: 20, carbs: 60, fat: 5,
     imageUrl: "/public-objects/fixture/beans.jpg", mediaAssetId: "original-beans",
-    courseType: "side", courseLabel: "Side", medicalBadges: [] },
+    courseType: "side" as const, courseLabel: "Side", medicalBadges: [],
+    reasoning: "Test meal fixture", servingSize: "1 serving",
+    assignedDish: null, isFamilySpecialty: false },
 ];
 const cached = {
   courses, harvestGuide: guide, servings: 4, situation: "outdoor" as const, eventType: null,
