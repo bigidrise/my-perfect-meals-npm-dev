@@ -9,6 +9,18 @@ Every MPM development task must have a defined scope. Add only the requested cha
 
 **How to apply:** Before implementation, document existing behavior, the precise authorized additions and affected components/actions/data contracts. Identify regression coverage proving both old and new workflows. Preserve recommendations, buttons, data handling and workflows when the request concerns only shimmer. Verify the actual customer journey rather than relying only on button rendering or unit tests; report unavailable verification honestly. A diagnosis or plan is not implementation authorization.
 
+“No development-only restrictions on anything we build.” Do not add
+Development-only runtime restrictions to this app's features or fixes.
+
+**Why:** The user explicitly prohibited them after a bug fix was unnecessarily
+disabled in Production.
+
+**How to apply:** Build and verify code in the Development workspace without
+making the implementation inactive in Production. Git pushes, merges, and
+deployments remain separate approval boundaries, not reasons to add runtime
+restrictions. This supersedes older blanket Development-only implementation
+instructions; it does not remove authentication, safety, or clinical checks.
+
 Shopping acceptance must cover ordinary incomplete recommendation-to-catalog identity, not only artificial perfect-match fixtures. An available handler is not proof that the customer can see and use Choose Product. Verify the primary shopping-row label after confirmation and reload.
 
 **Why:** The founder rejected completion after real Product Options still lacked Choose Product despite a passing exact-match fixture journey.

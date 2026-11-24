@@ -937,6 +937,8 @@ export const consumerFeatureSpanish: Record<string, string> = {
   "No fluids logged yet today.": "Todavía no hay líquidos registrados hoy.",
   "{{amount}} oz total": "{{amount}} oz en total",
   "{{amount}} oz water": "{{amount}} oz de agua",
+  "{{amount}} mL total": "{{amount}} mL en total",
+  "{{amount}} mL water": "{{amount}} mL de agua",
   "No entries in this window.": "No hay registros en este período.",
   "Learn & reflect": "Aprende y reflexiona",
   "Options tried": "Opciones probadas",

@@ -1092,7 +1092,7 @@ export default function DashboardNew() {
           className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
         >
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center px-4 h-14">
+          <div data-testid="dashboard-mobile-header" className="grid grid-cols-[1fr_auto_1fr] items-center px-2 min-[430px]:px-4 h-14">
             {/* LEFT: compact Quick Start */}
             <div className="justify-self-start">
               <QuickStartPopover compact />
@@ -1102,15 +1102,17 @@ export default function DashboardNew() {
               <h1 className="text-md font-bold leading-none text-white whitespace-nowrap">{t("mpmLabel")}</h1>
             </div>
             {/* RIGHT: Bug report + Hub */}
-            <div className="justify-self-end flex items-center gap-2 self-center">
+            <div className="justify-self-end flex !flex-nowrap items-center gap-0 min-[430px]:gap-2 self-center">
               <BugReportButton />
               <ProfileSheet>
                 <button
-                  className="flex items-center gap-1.5 px-3 py-2 bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg hover:bg-black/70 hover:border-orange-500/30 transition-all"
+                  className="flex !flex-nowrap items-center justify-center gap-0.5 min-[375px]:gap-1 h-12 px-0 min-[375px]:px-1 py-1 whitespace-nowrap bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg hover:bg-black/70 hover:border-orange-500/30 transition-all"
                   data-testid="button-my-hub"
                 >
                   <span className="text-xs font-semibold text-orange-400">{t("hubLabel")}</span>
-                  <HubControlIcon size="md" />
+                  <span className="shrink-0 [&>div]:h-6 [&>div]:w-6 min-[375px]:[&>div]:h-8 min-[375px]:[&>div]:w-8">
+                    <HubControlIcon size="sm" />
+                  </span>
                 </button>
               </ProfileSheet>
             </div>

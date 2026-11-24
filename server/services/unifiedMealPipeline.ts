@@ -36,6 +36,10 @@ import { createIngredientSignature, hashSignature } from './ingredientSignature'
 import { getCachedMeals, cacheMeals } from './mealCachePersistent';
 import { generateFridgeRescueMeals } from './fridgeRescueGenerator';
 import { applyGuardrails, validateMealForDiet, getSystemPromptForDiet, DietType, BuilderMode } from './guardrails';
+import {
+  filterPreparedMealResponse, isPreparedRecipe, RECIPE_PREPARATION_GUIDANCE,
+  validateRecipePreparation,
+} from "./recipePreparationValidator";
 import { buildGLP1ConstraintOverlay } from './guardrails/prompt/glp1PromptBuilder';
 import type { ResolvedGLP1Targets } from './glp1/resolveGLP1MealTargets';
 import { getGLP1FatCeiling } from './glp1/resolveGLP1MealTargets';
@@ -729,7 +733,7 @@ async function ensureImage(
  * Convert FinalMeal ingredients to unified U.S. format
  * Uses the new ingredient normalizer that enforces U.S. measurements
  */
-function normalizeIngredients(ingredients: any[]): Array<{ name: string; quantity: string; unit: string }> {
+function normalizeIngredients(ingredients: any[], preservePreparationNotes = false): Array<{ name: string; quantity: string; unit: string; notes?: string }> {
   if (!ingredients || !Array.isArray(ingredients)) return [];
   
   // Use the new U.S. measurement normalizer
@@ -739,7 +743,8 @@ function normalizeIngredients(ingredients: any[]): Array<{ name: string; quantit
   return normalized.map(ing => ({
     name: ing.name,
     quantity: ing.amount, // Map amount -> quantity for backward compat
-    unit: ing.unit
+    unit: ing.unit,
+    ...(preservePreparationNotes && ing.preparationNote ? { notes: ing.preparationNote } : {}),
   }));
 }
 
@@ -855,7 +860,7 @@ export async function generateCravingMealUnified(
       }
     }
   }
-  return result;
+  return filterPreparedMealResponse(result);
 }
 
 async function generateCravingMealUnifiedInternal(
@@ -1167,7 +1172,7 @@ The instructions field MUST be an array of ordered strings; each element is one 
       const aiMeal = JSON.parse(jsonStr.trim());
       
       // Normalize ingredients to U.S. measurements
-      const normalizedIngredients = normalizeIngredients(aiMeal.ingredients || []);
+      const normalizedIngredients = normalizeIngredients(aiMeal.ingredients || [], true);
       
       // Extract starchyCarbs and fibrousCarbs from AI response
       const starchyCarbs = aiMeal.starchyCarbs ?? 0;
@@ -1267,7 +1272,7 @@ The instructions field MUST be an array of ordered strings; each element is one 
               const regenContent = regenResponse.choices?.[0]?.message?.content;
               if (regenContent) {
                 const regenMeal = JSON.parse(regenContent);
-                const regenNormalized = normalizeIngredients(regenMeal.ingredients || []);
+                const regenNormalized = normalizeIngredients(regenMeal.ingredients || [], true);
                 const regenRaw: UnifiedMeal = {
                   ...unifiedMeal,
                   name: regenMeal.name || unifiedMeal.name,
@@ -1372,7 +1377,7 @@ The instructions field MUST be an array of ordered strings; each element is one 
             const corrContent = correctionResponse.choices?.[0]?.message?.content;
             if (corrContent) {
               const corrMeal = JSON.parse(corrContent);
-              const corrNormalized = normalizeIngredients(corrMeal.ingredients || []);
+              const corrNormalized = normalizeIngredients(corrMeal.ingredients || [], true);
               currentMeal = enforceCarbs({
                 ...currentMeal,
                 name: corrMeal.name || currentMeal.name,
@@ -2156,7 +2161,7 @@ export function mapToUnifiedMeal(opt: any, idx: number, cravingInput: string, va
     id: `variety-ai-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 9)}`,
     name: opt.name || `${cravingInput} Option ${idx + 1}`,
     description: opt.description || `A delicious ${validMealType} inspired by ${cravingInput}`,
-    ingredients: normalizeIngredients(opt.ingredients || []),
+    ingredients: normalizeIngredients(opt.ingredients || [], true),
     instructions: parseGeneratedRecipeSteps(opt.instructions),
     calories: opt.calories || 400,
     protein: opt.protein || 15,
@@ -2528,6 +2533,7 @@ export async function generateCravingMealOptions(
 
   /** One attempt at calling AI and parsing result */
   let refillModelCalls = 0;
+  let preparationIssues: string[] = [];
   const attempt = async (stricterMode: boolean, violationHint?: string, accepted: any[] = []): Promise<any[]> => {
     if (refillSignal?.aborted) throw new Error("Create a Dish refill time budget exceeded");
     if (refillSignal && ++refillModelCalls > 1) {
@@ -2542,6 +2548,9 @@ export async function generateCravingMealOptions(
         : `\n\nSECOND ATTEMPT — STRICT MODE: The previous response drifted from the dish family. You MUST generate 3 options that are clearly recognizable variations of "${dishFamily}". No exceptions.`
       : "";
     const hintAddendum = violationHint ? `\n\n${violationHint}` : "";
+    const preparationCorrection = preparationIssues.length
+      ? `\n\nCorrect the previous ingredient-form/preparation issues without changing the requested dish or its protections:\n${preparationIssues.slice(0, 6).join("\n")}`
+      : "";
     // Dish Adaptation Layer: identity anchor + explicit guardrail adaptations
     // prepended so every attempt adapts the dish rather than replacing it.
     const dalBlock = dishDirective?.adaptationBlock ? dishDirective.adaptationBlock + '\n\n' : '';
@@ -2556,7 +2565,7 @@ export async function generateCravingMealOptions(
       // image-scan already anchored the dish concept, so full gpt-4o quality
       // isn't needed for subsequent swipes.
       model: fastMode ? "gpt-4o-mini" : "gpt-4o",
-      messages: [{ role: "user", content: (varietyLanguageInstruction ? varietyLanguageInstruction + '\n\n' : '') + contractBlock + dalBlock + selectionBlock + (specialtyMedicalBlock ? specialtyMedicalBlock + '\n\n' : '') + (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
+      messages: [{ role: "user", content: (varietyLanguageInstruction ? varietyLanguageInstruction + '\n\n' : '') + contractBlock + dalBlock + selectionBlock + (specialtyMedicalBlock ? specialtyMedicalBlock + '\n\n' : '') + (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum + '\n\n' + RECIPE_PREPARATION_GUIDANCE + preparationCorrection }],
       temperature: stricterMode ? 0.6 : 0.85,
       max_tokens: fastMode ? 1500 : 2500,
       response_format: { type: "json_object" },
@@ -2564,9 +2573,17 @@ export async function generateCravingMealOptions(
     const content = response.choices[0]?.message?.content;
     if (!content) throw new Error("Empty AI response from variety engine");
     const parsed = parseVarietyContent(content);
+    preparationIssues = [];
+    const prepared = parsed.filter(candidate => {
+      const check = validateRecipePreparation(candidate, { strictIngredientForms: true });
+      preparationIssues.push(...check.errors);
+      return check.isValid;
+    });
+    // Keep valid candidates; existing bounded strict/refill attempts handle a
+    // short set. No extra retry loop or provider call is introduced here.
     return cravingSelection
-      ? filterCravingSelectionCandidates(openai, parsed, cravingSelection, accepted, refillSignal)
-      : parsed;
+      ? filterCravingSelectionCandidates(openai, prepared, cravingSelection, accepted, refillSignal)
+      : prepared;
   };
 
   let rawOptions: any[];
@@ -2835,11 +2852,11 @@ export async function generateCravingMealOptions(
   }
 
   console.log(`✅ [VARIETY ENGINE] ${finalOptions.length} options: ${finalOptions.map((o: any) => o?.name).join(" | ")}`);
-  return finalOptions.map((opt, idx) => {
+  return finalOptions.filter(isPreparedRecipe).map((opt, idx) => {
     const meal = mapToUnifiedMeal(opt, idx, cravingInput, validMealType);
     if (cuisineOverride) meal.name = culturalNameTransform(meal.name, cuisineOverride);
     return meal;
-  });
+  }).filter(isPreparedRecipe);
 }
 
 /** Recheck the actual final/scaled recipes, including fallback and refill output.
@@ -4176,7 +4193,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
         id: `chef-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name: culturalNameTransform(mealData.name, chefEnvelope.cuisinePreference ?? undefined),
         description: mealData.description,
-        ingredients: normalizeIngredients(mealData.ingredients || []),
+        ingredients: normalizeIngredients(mealData.ingredients || [], true),
         instructions: parseGeneratedRecipeSteps(mealData.instructions),
         calories: mealData.calories || 400,
         protein: requestedMacros.length ? (mealData.protein ?? 25) : (mealData.protein || 25),
@@ -4663,7 +4680,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       id: `chef-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: finalMealData.name,
       description: finalMealData.description,
-      ingredients: normalizeIngredients(finalMealData.ingredients || []),
+      ingredients: normalizeIngredients(finalMealData.ingredients || [], true),
       instructions: parseGeneratedRecipeSteps(finalMealData.instructions),
       calories: chefFoodContext ? Number(finalMealData.calories) : (finalMealData.calories || 400),
       protein: chefFoodContext
@@ -5055,7 +5072,7 @@ Create the personalized snack for: "${cravingDescription}"`;
         id: `snack-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name: snackData.name,
         description: snackData.description,
-        ingredients: normalizeIngredients(snackData.ingredients || []),
+        ingredients: normalizeIngredients(snackData.ingredients || [], true),
         instructions: parseGeneratedRecipeSteps(snackData.instructions),
         calories: snackData.calories || 150,
         protein: snackData.protein || 8,
@@ -5291,7 +5308,7 @@ Create the personalized snack for: "${cravingDescription}"`;
       console.warn('⚠️ Image generation failed for snack, using fallback:', imgError);
     }
     
-    const snackIngredients = finalSnackData.tempSnackIngredients || normalizeIngredients(finalSnackData.ingredients || []);
+    const snackIngredients = finalSnackData.tempSnackIngredients || normalizeIngredients(finalSnackData.ingredients || [], true);
 
     const unifiedSnack: UnifiedMeal = {
       id: `snack-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -5703,5 +5720,6 @@ export async function generateMealUnified(
     }
   }
 
-  return result;
+  // Fridge Rescue is explicitly outside this preparation-consistency task.
+  return request.type === "fridge-rescue" ? result : filterPreparedMealResponse(result);
 }

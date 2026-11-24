@@ -46,6 +46,14 @@ export function parseMeasurementNumber(value: string | number): number | null {
   return Number.isFinite(number) ? number : null;
 }
 
+// Preserve small positive quantities without rounding them to zero.
+function preciseSmallQuantity(value: number): string {
+  if (!Number.isFinite(value)) return String(value);
+  if (value === 0) return "0";
+  const rounded = Number(value.toPrecision(8));
+  return rounded === 0 ? String(value) : String(rounded);
+}
+
 // ─── Weight ──────────────────────────────────────────────────────────────────
 
 /** Display a weight value in the user's preferred system. Input is always grams internally. */
@@ -55,7 +63,7 @@ export function convertWeightDisplay(grams: number, system: MeasurementSystem): 
       const kg = grams / 1000;
       return `${+kg.toFixed(2).replace(/\.?0+$/, "")} kg`;
     }
-    return `${Math.round(grams)} g`;
+    return `${grams > 0 && grams < 10 ? preciseSmallQuantity(grams) : Math.round(grams)} g`;
   }
   // Imperial
   const oz = grams / 28.3495;
@@ -63,6 +71,7 @@ export function convertWeightDisplay(grams: number, system: MeasurementSystem): 
     const lbs = oz / 16;
     return `${+lbs.toFixed(1).replace(/\.?0+$/, "")} lb`;
   }
+  if (grams > 0 && oz < 0.05) return `${preciseSmallQuantity(grams)} g`;
   return `${+oz.toFixed(1).replace(/\.?0+$/, "")} oz`;
 }
 
@@ -113,7 +122,7 @@ export function convertVolumeDisplay(ml: number, system: MeasurementSystem): str
       const liters = ml / 1000;
       return `${+liters.toFixed(2).replace(/\.?0+$/, "")} L`;
     }
-    return `${Math.round(ml)} ml`;
+    return `${ml > 0 && ml < 10 ? preciseSmallQuantity(ml) : Math.round(ml)} ml`;
   }
   // Imperial: cups / tbsp / tsp
   if (ml >= 240) {
@@ -130,8 +139,9 @@ export function convertVolumeDisplay(ml: number, system: MeasurementSystem): str
     const tbsp = Math.round(ml / 15);
     return `${tbsp} tbsp`;
   }
+  if (ml < 5) return `${preciseSmallQuantity(ml)} ml`;
   const tsp = Math.round(ml / 5);
-  return `${tsp || 1} tsp`;
+  return `${tsp} tsp`;
 }
 
 // ─── Serving display (for recipe ingredients) ────────────────────────────────
@@ -193,6 +203,93 @@ export function convertLengthDisplay(value: number, unit: string, system: Measur
   if (unit !== "cm" && unit !== "in" && unit !== "inches") return `${value} ${unit}`;
   const cm = unit === "cm" ? value : value * 2.54;
   return system === "metric" ? `${+cm.toFixed(1)} cm` : `${+(cm / 2.54).toFixed(1)} in`;
+}
+
+// ─── Cooking temperature display ────────────────────────────────────────────
+
+/**
+ * Converts explicit cooking temperatures for display only.
+ * Call with original source text after language translation is selected.
+ * Does not mutate recipe data, nutrition, or translation caches.
+ */
+export function formatCookingTemperatureText(
+  text: string,
+  system: MeasurementSystem
+): string {
+  if (!text || typeof text !== "string") return text;
+
+  const number = String.raw`-?\d+(?:[.,]\d+)?`;
+  const unit = String.raw`(?:°\s*[FC]|[℃℉]|(?:degrees?|grados?)\s*(?:°\s*)?(?:Fahrenheit|Celsius|centígrados|centigrados|[FC])|Fahrenheit|Celsius)`;
+  const expression = new RegExp(String.raw`(${number})\s*(${unit})`, "gi");
+  const range = new RegExp(String.raw`(${number})\s*([-–—])\s*(${number})\s*(${unit})`, "gi");
+
+  const scaleOf = (raw: string): "F" | "C" | null => {
+    const normalized = raw.toLowerCase();
+    if (/℉|fahrenheit|f\s*$/i.test(normalized)) return "F";
+    if (/℃|celsius|cent[ií]grados|c\s*$/i.test(normalized)) return "C";
+    return null;
+  };
+
+  const ovenContext = (sourceText: string, offset: number): boolean =>
+    /(?:preheat|precalentar|oven|horno)\b/i.test(
+      sourceText.slice(Math.max(0, offset - 55), offset).toLowerCase()
+    );
+
+  const convert = (value: number, oven: boolean): string => {
+    const result = system === "metric"
+      ? (value - 32) * 5 / 9
+      : value * 9 / 5 + 32;
+
+    if (oven) {
+      const increment = system === "metric" ? 5 : 10;
+      return `${Math.round(result / increment) * increment}°${system === "metric" ? "C" : "F"}`;
+    }
+    return `≈${Number(result.toFixed(1))}°${system === "metric" ? "C" : "F"}`;
+  };
+
+  // Preserve existing dual-unit references, including safety thresholds.
+  const protectedPairs: string[] = [];
+  const pairPattern = new RegExp(
+    String.raw`(${number}\s*${unit})\s*\(\s*(${number}\s*${unit})\s*\)`,
+    "gi"
+  );
+  let output = text.replace(pairPattern, match => {
+    const token = `\uE000${protectedPairs.length}\uE001`;
+    protectedPairs.push(match);
+    return token;
+  });
+
+  // Convert whole ranges rather than only their final endpoint.
+  output = output.replace(range, (match, first, separator, second, rawUnit, offset, fullText) => {
+    const scale = scaleOf(rawUnit);
+    const target = system === "metric" ? "C" : "F";
+    if (!scale || scale === target) return match;
+
+    const a = Number(String(first).replace(",", "."));
+    const b = Number(String(second).replace(",", "."));
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return match;
+
+    const oven = ovenContext(fullText, offset);
+    if (!oven) return match;
+
+    return `${convert(a, true)}${separator}${convert(b, true)}`;
+  });
+
+  // Convert individual temperatures, leaving target-unit text unchanged.
+  output = output.replace(expression, (match, rawValue, rawUnit, offset, fullText) => {
+    const scale = scaleOf(rawUnit);
+    const target = system === "metric" ? "C" : "F";
+    if (!scale || scale === target) return match;
+
+    const value = Number(String(rawValue).replace(",", "."));
+    if (!Number.isFinite(value)) return match;
+
+    const oven = ovenContext(fullText, offset);
+    const converted = convert(value, oven);
+    return oven ? converted : `${converted} (${match})`;
+  });
+
+  return output.replace(/\uE000(\d+)\uE001/g, (_, index) => protectedPairs[Number(index)]);
 }
 
 // ─── AI Prompt instruction block ─────────────────────────────────────────────

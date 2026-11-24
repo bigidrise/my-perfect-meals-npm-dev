@@ -23,6 +23,7 @@ import { emitActivityEvent } from "../services/coaching/activityEvents";
 import { generateMealImageUnified } from "../services/mealImageGenerator";
 import { getDishAdaptationDirective, buildGuardrailContext } from "../services/dishAdaptation/dishAdaptationLayer";
 import { validateDishIdentity } from "../services/dishAdaptation/dishIdentityValidator";
+import { RECIPE_PREPARATION_GUIDANCE, validateRecipePreparation } from "../services/recipePreparationValidator";
 import type { DishAdaptationDirective } from "../services/dishAdaptation/types";
 import { getAuthUserId } from "../utils/getAuthUserId";
 import type { HumanFoodFinalValidationResult } from "../../shared/humanFoodValidation";
@@ -497,6 +498,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
     let firstFailure: DessertResponse | undefined;
     const failure = (status: number, body: any): DessertResponse => ({ status, body });
     const generateDessert = async (candidatePrompt: string, signal?: AbortSignal) => {
+      candidatePrompt += `\n\n${RECIPE_PREPARATION_GUIDANCE}`;
     const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: candidatePrompt }],
@@ -694,7 +696,11 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
       const categoryMatches =
         String(candidate?.category ?? "").toLowerCase() === requestedCategory;
       const servingMatches = candidate?.servingSize === serving.label;
-      const recipeComplete = hasCulinaryEvidence(candidate);
+      const preparation = validateRecipePreparation(candidate, { strictIngredientForms: true });
+      const recipeComplete = hasCulinaryEvidence(candidate) && preparation.isValid;
+      const preparationHint = preparation.errors.length
+        ? `Correct ingredient-form/preparation inconsistencies without relabeling quantities or nutrition: ${preparation.errors.join("; ")}`
+        : "Return the complete baking or preparation instructions for the entire requested dessert yield.";
       if (finiteNutrition && scalingMatches && categoryMatches && servingMatches && recipeComplete) return result;
       const preserveOutcome: HumanFoodFinalValidationResult["outcome"] =
         result.outcome === "blocked" || result.outcome === "review_required"
@@ -708,7 +714,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
           ...(!recipeComplete ? [{
             dimension: "dish_identity" as const, outcome: "repairable" as const,
             code: "final_recipe_incomplete", message: DESSERT_CHOICE_MESSAGES.incomplete,
-            assurance: "structured_evidence" as const, repairHint: "Return the complete baking or preparation instructions for the entire requested dessert yield.",
+            assurance: "structured_evidence" as const, repairHint: preparationHint,
           }] : []),
           ...(!finiteNutrition || !scalingMatches ? [{
             dimension: "nutrition" as const, outcome: "repairable" as const,
@@ -728,7 +734,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
         ],
         repairInstructions: preserveOutcome === "repairable" ? [
           ...result.repairInstructions,
-          ...(!recipeComplete ? ["Return the complete baking or preparation instructions for the entire requested dessert yield."] : []),
+          ...(!recipeComplete ? [preparationHint] : []),
           ...(!finiteNutrition || !scalingMatches ? ["Return numeric total and per-serving nutrition that multiply to the requested serving count."] : []),
           ...(!categoryMatches ? [`Keep category "${requestedCategory}".`] : []),
           ...(!servingMatches ? [`Keep servingSize "${serving.label}" and scale nutrition to it.`] : []),

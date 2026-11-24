@@ -47,7 +47,7 @@ export type Meal = {
   badges: string[];
 };
 
-import { validateRecipePreparation } from "./recipePreparationValidator";
+import { RECIPE_PREPARATION_GUIDANCE, validateRecipePreparation } from "./recipePreparationValidator";
 
 export async function generateMealV2(opts: {
   userId: string;
@@ -78,7 +78,7 @@ export async function generateMealV2(opts: {
 
   const raw = await callCravingCreator({
     targetMealType: opts.courseStyle.toLowerCase(),
-    cravingInput: `${opts.courseStyle} ${opts.variation ? `variation ${opts.variation}` : ''}${glp1V2Block}`,
+    cravingInput: `${opts.courseStyle} ${opts.variation ? `variation ${opts.variation}` : ''}${glp1V2Block}\n${RECIPE_PREPARATION_GUIDANCE}`,
     userId: opts.userId,
     dietaryRestrictions: constraints.allergies || [],
     allergies: constraints.allergies || [],
@@ -92,13 +92,13 @@ export async function generateMealV2(opts: {
   let tries = 0;
   while (tries < 4) {
     const dietaryIssue = violatesOnboarding(meal, opts.onboarding);
-    const preparation = validateRecipePreparation(meal);
+    const preparation = validateRecipePreparation(meal, { strictIngredientForms: true });
     const why = dietaryIssue || preparation.errors.join("; ");
     if (!why) break;
     
     const regen = await callCravingCreator({
       targetMealType: opts.courseStyle.toLowerCase(),
-      cravingInput: `${opts.courseStyle} variation ${tries + 2}. Correct this issue: ${why}.${glp1V2Block}`,
+      cravingInput: `${opts.courseStyle} variation ${tries + 2}. Correct this issue: ${why}.${glp1V2Block}\n${RECIPE_PREPARATION_GUIDANCE}`,
       userId: opts.userId,
       dietaryRestrictions: constraints.allergies || [],
       allergies: constraints.allergies || [],
@@ -111,7 +111,7 @@ export async function generateMealV2(opts: {
   }
   
   const finalDietaryIssue = violatesOnboarding(meal, opts.onboarding);
-  const finalPreparation = validateRecipePreparation(meal);
+  const finalPreparation = validateRecipePreparation(meal, { strictIngredientForms: true });
 
   if (finalDietaryIssue || !finalPreparation.isValid) {
     const reasons = [

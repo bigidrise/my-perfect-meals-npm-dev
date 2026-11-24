@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import type { Request, Response } from "express";
 
 export const SESSION_COOKIE_NAME = "connect.sid";
@@ -33,6 +34,9 @@ export function regenerateSession(req: Request): Promise<void> {
         reject(error);
         return;
       }
+      // Seed the new session before concurrent authenticated reads
+      // can save older copies without the lazily bootstrapped CSRF token.
+      req.session.csrfToken = randomBytes(32).toString("base64url");
       resolve();
     });
   });
