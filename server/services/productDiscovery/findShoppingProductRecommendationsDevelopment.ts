@@ -43,9 +43,10 @@ export async function findShoppingProductRecommendationsDevelopment(
       console.warn("[ShoppingProductLookup]", { stage: "recommendation", reason: "unsupported_medical_claim", next: "governed_catalog" });
     }
     const store = await developmentGroceryChoiceStore();
-    const memory = store ? await store.read(userId, groceryChoiceKey(ingredient.originalName, ingredient), ingredient.originalName) : null;
-    const rememberedLeads = memory && !options.findNewOptions ? boundedProductNames([
-      ...(memory.preferredName ? [memory.preferredName] : []), ...memory.shownNames,
+    const memory = await store?.read(userId, groceryChoiceKey(ingredient.originalName, ingredient), ingredient.originalName);
+    const rememberedLeads = !options.findNewOptions ? boundedProductNames([
+      ...(memory?.preferredName ? [memory?.preferredName ?? ""] : []),
+      ...(memory?.shownNames ?? []),
     ]).filter(name => name.length <= 80) : [];
     const result = await findProductDevelopment(userId, ingredient.originalName, {
       ...options.discoveryOptions, shoppingIngredient: ingredient,
