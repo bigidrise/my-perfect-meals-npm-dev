@@ -33,6 +33,41 @@ Preserve existing security, clinical safety, credentials, infrastructure, and en
 
 **How to apply:** Before completing any task, verify that approved functionality is accessible under Production runtime conditions. Appropriate regression coverage, a verified Production build, documented configuration and a reviewable release path remain required. A feature working only in Development is not complete or release-ready; it must also pass Production-runtime verification. Report existing environment restrictions affecting the feature and resolve them when authorized. Preserve explicit founder-approved Development-only runtime holds and unrelated experiments until separately authorized; do not enable broader experimental flags just to release a narrow feature.
 
+## Mandatory Production parity
+
+All approved My Perfect Meals features and interface improvements must function
+in both Development and Production. Development is where changes are made and
+tested, not a restriction on where approved functionality may run.
+
+**Why:** The founder repeated this as a mandatory rule after approved interface
+improvements differed between Development and the published application.
+
+**How to apply:** Never place approved features, layouts, buttons, styling or
+functionality behind `isDevelopmentRuntime`, `import.meta.env.DEV`,
+`NODE_ENV === "development"` or equivalent restrictions unless the founder
+explicitly requests Development-only runtime behavior. Never add Production-off
+flags without explicit authorization. Preserve security, clinical safety,
+credentials, infrastructure and environment-specific service configuration.
+Report existing restrictions affecting the requested feature and resolve them
+when authorized. Permission to modify only the Development workspace never
+means permission to restrict the runtime. Verify accessibility and behavior
+under Production runtime conditions before declaring release readiness; a
+Development-only pass is insufficient. Do not push, merge, deploy, publish or
+modify Production infrastructure without explicit founder approval.
+
+For release-parity investigations, compare merged source with the assets
+actually served, not source or environment flags alone.
+
+**Why:** A published shopping stylesheet lacked contrast and safe-area changes
+that were already present in merged source, while a separate merged Recipe Maker
+layout really was guarded by Development runtime conditions.
+
+**How to apply:** Distinguish unpromoted source changes, stale compiled assets,
+actual runtime restrictions and browser caching using direct evidence. Do not
+claim a rebuild fixes a true runtime gate or that removing a gate fixes missing
+release source. Test expectations from an older implementation do not establish
+current Production parity.
+
 ## Released Shopping Product Options
 
 Shopping Product Options must be available by default in Development and Production,

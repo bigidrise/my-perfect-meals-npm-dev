@@ -15,6 +15,7 @@
 import { AlertTriangle, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 // ── Shared Alpha-gal profile types ──────────────────────────────────────────
 
@@ -53,6 +54,7 @@ interface Props {
 }
 
 export function AlphaGalProfileModal({ open, draft, onChange, onSave, onClose, isUpdate }: Props) {
+  const { t } = useConsumerCopy();
   if (!open) return null;
 
   function handleSave() {
@@ -77,22 +79,22 @@ export function AlphaGalProfileModal({ open, draft, onChange, onSave, onClose, i
           <div>
             <h3 className="text-white font-semibold text-lg flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />
-              Alpha-gal Syndrome Details
+              {t("Alpha-gal Syndrome Details")}
             </h3>
             <p className="text-white/60 text-xs mt-1">
-              {isUpdate
+              {t(isUpdate
                 ? "Update your Alpha-gal profile. Your answers shape exactly which ingredients are blocked."
-                : "This helps us block the right ingredients safely. Answers stay private."}
+                : "This helps us block the right ingredients safely. Answers stay private.")}
             </p>
           </div>
-          <button type="button" onClick={onClose} className="text-white/40 hover:text-white flex-shrink-0 ml-3">
+          <button type="button" onClick={onClose} aria-label={t("Close")} className="text-white/40 hover:text-white flex-shrink-0 ml-3">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Q1: Diagnosis status */}
         <div className="space-y-2">
-          <Label className="text-white/80 text-sm">How was this diagnosed?</Label>
+          <Label className="text-white/80 text-sm">{t("How was this diagnosed?")}</Label>
           <div className="grid grid-cols-3 gap-2">
             {(["diagnosed", "being_evaluated", "no"] as const).map((val) => (
               <button
@@ -105,7 +107,7 @@ export function AlphaGalProfileModal({ open, draft, onChange, onSave, onClose, i
                     : "bg-white/5 border-white/20 text-white/60 hover:border-white/40"
                 }`}
               >
-                {val === "diagnosed" ? "Confirmed by doctor" : val === "being_evaluated" ? "Being evaluated" : "Self-suspected"}
+                {t(val === "diagnosed" ? "Confirmed by doctor" : val === "being_evaluated" ? "Being evaluated" : "Self-suspected")}
               </button>
             ))}
           </div>
@@ -113,7 +115,7 @@ export function AlphaGalProfileModal({ open, draft, onChange, onSave, onClose, i
 
         {/* Q2: Dairy tolerance */}
         <div className="space-y-2">
-          <Label className="text-white/80 text-sm">Can you tolerate dairy (milk, cheese, yogurt)?</Label>
+          <Label className="text-white/80 text-sm">{t("Can you tolerate dairy (milk, cheese, yogurt)?")}</Label>
           <div className="grid grid-cols-3 gap-2">
             {(["yes", "no", "unsure"] as const).map((val) => (
               <button
@@ -126,16 +128,16 @@ export function AlphaGalProfileModal({ open, draft, onChange, onSave, onClose, i
                     : "bg-white/5 border-white/20 text-white/60 hover:border-white/40"
                 }`}
               >
-                {val === "yes" ? "Yes, tolerate" : val === "no" ? "No, avoid" : "Not sure yet"}
+                {t(val === "yes" ? "Yes, tolerate" : val === "no" ? "No, avoid" : "Not sure yet")}
               </button>
             ))}
           </div>
-          <p className="text-white/40 text-xs">Dairy tolerance varies — many people with Alpha-gal can still eat dairy.</p>
+          <p className="text-white/40 text-xs">{t("Dairy tolerance varies — many people with Alpha-gal can still eat dairy.")}</p>
         </div>
 
         {/* Q3: Gelatin restriction */}
         <div className="space-y-2">
-          <Label className="text-white/80 text-sm">Do you restrict gelatin or mammalian-derived thickeners?</Label>
+          <Label className="text-white/80 text-sm">{t("Do you restrict gelatin or mammalian-derived thickeners?")}</Label>
           <div className="grid grid-cols-3 gap-2">
             {(["yes", "no", "unsure"] as const).map((val) => (
               <button
@@ -148,7 +150,7 @@ export function AlphaGalProfileModal({ open, draft, onChange, onSave, onClose, i
                     : "bg-white/5 border-white/20 text-white/60 hover:border-white/40"
                 }`}
               >
-                {val === "yes" ? "Yes, avoid" : val === "no" ? "No restriction" : "Not sure"}
+                {t(val === "yes" ? "Yes, avoid" : val === "no" ? "No restriction" : "Not sure")}
               </button>
             ))}
           </div>
@@ -156,7 +158,7 @@ export function AlphaGalProfileModal({ open, draft, onChange, onSave, onClose, i
 
         {/* Q4: Severe reaction history */}
         <div className="space-y-2">
-          <Label className="text-white/80 text-sm">Have you had a severe or anaphylactic reaction?</Label>
+          <Label className="text-white/80 text-sm">{t("Have you had a severe or anaphylactic reaction?")}</Label>
           <div className="grid grid-cols-3 gap-2">
             {(["yes", "no", "unsure"] as const).map((val) => (
               <button
@@ -169,7 +171,7 @@ export function AlphaGalProfileModal({ open, draft, onChange, onSave, onClose, i
                     : "bg-white/5 border-white/20 text-white/60 hover:border-white/40"
                 }`}
               >
-                {val === "yes" ? "Yes" : val === "no" ? "No" : "Unsure"}
+                {t(val === "yes" ? "Yes" : val === "no" ? "No" : "Unsure")}
               </button>
             ))}
           </div>
@@ -178,7 +180,7 @@ export function AlphaGalProfileModal({ open, draft, onChange, onSave, onClose, i
         {/* Footer */}
         <div className="pt-1 space-y-2">
           <p className="text-xs text-white/40 leading-relaxed">
-            Mammalian meats (beef, pork, lamb) and mammalian fats are always blocked regardless of answers above.
+            {t("Mammalian meats (beef, pork, lamb) and mammalian fats are always blocked regardless of answers above.")}
           </p>
           <Button
             type="button"
@@ -186,7 +188,7 @@ export function AlphaGalProfileModal({ open, draft, onChange, onSave, onClose, i
             className="w-full bg-red-700 hover:bg-red-600 text-white"
           >
             <Check className="w-4 h-4 mr-2" />
-            {isUpdate ? "Update Alpha-gal Profile" : "Save Alpha-gal Profile"}
+            {t(isUpdate ? "Update Alpha-gal Profile" : "Save Alpha-gal Profile")}
           </Button>
         </div>
       </div>

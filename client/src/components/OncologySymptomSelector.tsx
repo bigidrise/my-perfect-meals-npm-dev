@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ONCOLOGY_SYMPTOM_OPTIONS, readOncologySupportSelection, type OncologySymptomSelection } from "../../../shared/oncologySupportSelection";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 export function useConsumerOncologySelection(context: unknown) {
   const saved = useMemo(() => {
@@ -27,18 +28,19 @@ export function OncologySymptomSelector({ symptoms, onChange, readOnly = false, 
   readOnly?: boolean;
   error?: string | null;
 }) {
+  const { t } = useConsumerCopy();
   return <fieldset className="mt-3 rounded-xl border border-rose-400/40 bg-rose-950/20 p-3">
-    <legend className="px-1 text-sm font-semibold text-white">What are you currently experiencing?</legend>
-    {readOnly && <p className="mb-2 text-xs text-white/80">{error || "Managed by your care team. Contact them to change these selections."}</p>}
+    <legend className="px-1 text-sm font-semibold text-white">{t("What are you currently experiencing?")}</legend>
+    {readOnly && <p className="mb-2 text-xs text-white/80">{t(error || "Managed by your care team. Contact them to change these selections.")}</p>}
     <div className="grid gap-2 sm:grid-cols-2">
       {ONCOLOGY_SYMPTOM_OPTIONS.map(option => <label key={option.value} className="flex items-center gap-2 text-sm text-white">
         <input type="checkbox" disabled={readOnly} checked={symptoms.includes(option.value)}
           onChange={() => onChange(symptoms.includes(option.value) ? symptoms.filter(value => value !== option.value) : [...symptoms, option.value])} />
-        {option.value === "fatigue_low_prep" ? "Fatigue / need easier meals" : option.label}
+        {t(option.value === "fatigue_low_prep" ? "Fatigue / need easier meals" : option.label)}
       </label>)}
       <label className="flex items-center gap-2 text-sm text-white">
         <input type="checkbox" disabled={readOnly} checked={symptoms.length === 0} onChange={() => onChange([])} />
-        None currently
+        {t("None currently")}
       </label>
     </div>
   </fieldset>;

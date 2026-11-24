@@ -1,6 +1,7 @@
 import { ONCOLOGY_SYMPTOM_OPTIONS, type OncologySymptomSelection } from "../../../shared/oncologySupportSelection";
 import { OncologySymptomSelector } from "./OncologySymptomSelector";
 import { FormModal } from "./ui/universal-modal";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 type OncologySymptomDialogProps = {
   open: boolean;
@@ -21,12 +22,13 @@ export function OncologySymptomDialog({
   error = null,
   saveHint,
 }: OncologySymptomDialogProps) {
+  const { t } = useConsumerCopy();
   return (
     <FormModal
       open={open}
       onOpenChange={onOpenChange}
-      title="What are you currently experiencing?"
-      description="Cancer Support — select all that apply, or choose None currently."
+      title={t("What are you currently experiencing?")}
+      description={t("Cancer Support — select all that apply, or choose None currently.")}
       className="w-[calc(100vw-2rem)] max-w-sm max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-1.5rem)] rounded-2xl border border-rose-200/20 bg-[#251c25] text-rose-50 shadow-[0_24px_80px_rgba(16,8,18,0.48)]"
       footer={
         <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -38,7 +40,7 @@ export function OncologySymptomDialog({
             onClick={() => onOpenChange(false)}
             className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-rose-100 px-5 text-sm font-semibold text-[#382633] transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#251c25]"
           >
-            Done
+            {t("Done")}
           </button>
         </div>
       }
@@ -58,7 +60,7 @@ export function OncologySymptomDialog({
             role="alert"
             className="rounded-lg border border-rose-300/30 bg-rose-400/10 px-3.5 py-3 text-sm leading-relaxed text-rose-100"
           >
-            {error}
+            {t(error)}
           </p>
         )}
       </div>
@@ -72,18 +74,19 @@ export function OncologySymptomSummary({ symptoms, onReview, readOnly = false, e
   readOnly?: boolean;
   error?: string | null;
 }) {
-  const summary = error ? "Saved selections could not be verified."
+  const { t } = useConsumerCopy();
+  const summary = error ? t("Saved selections could not be verified.")
     : symptoms.length ? ONCOLOGY_SYMPTOM_OPTIONS.filter(option => symptoms.includes(option.value)).map(option =>
-      option.value === "fatigue_low_prep" ? "Fatigue / need easier meals" : option.label).join(", ")
-    : "None currently";
+      t(option.value === "fatigue_low_prep" ? "Fatigue / need easier meals" : option.label)).join(", ")
+    : t("None currently");
   return (
     <div className="mt-3 rounded-xl border border-rose-400/40 bg-rose-950/20 p-3">
-      <p className="text-sm font-semibold text-white">Cancer Support symptoms</p>
+      <p className="text-sm font-semibold text-white">{t("Cancer Support symptoms")}</p>
       <p className="mt-1 break-words text-sm text-white/80" aria-live="polite">{summary}</p>
       <button type="button" onClick={onReview}
         className="mt-3 inline-flex min-h-11 items-center justify-center rounded-lg border border-rose-300/50 bg-rose-500/15 px-4 text-sm font-semibold text-rose-100 hover:bg-rose-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
         aria-haspopup="dialog">
-        {readOnly ? "View symptoms" : "Review symptoms"}
+        {t(readOnly ? "View symptoms" : "Review symptoms")}
       </button>
     </div>
   );

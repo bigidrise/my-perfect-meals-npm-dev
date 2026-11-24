@@ -1,4 +1,5 @@
 /** @jest-environment jsdom */
+import "@/i18n";
 import React from "react";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

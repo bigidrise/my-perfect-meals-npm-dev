@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/apiRequest";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 type SupportState = { enabled: boolean; legacyPreferenceSaved: boolean };
 const endpoint = "/api/health-context/support/anti_inflammatory";
 
 /** Account identity scopes local state, never server authorization. */
 export function AntiInflammatorySupportControl({ userId }: { userId: string }) {
+  const { t } = useConsumerCopy();
   const queryClient = useQueryClient();
   const scope = useRef(0);
   const [state, setState] = useState<SupportState | null>(null);
@@ -62,16 +64,14 @@ export function AntiInflammatorySupportControl({ userId }: { userId: string }) {
     }
   };
   return (
-    <section className="rounded-lg border border-white/20 bg-black/30 p-3" aria-label="Anti-Inflammatory Support">
-      <h3 className="text-white font-semibold text-sm">Anti-Inflammatory Support</h3>
+    <section className="rounded-lg border border-white/20 bg-black/30 p-3" aria-label={t("Anti-Inflammatory Support")}>
+      <h3 className="text-white font-semibold text-sm">{t("Anti-Inflammatory Support")}</h3>
       <p className="text-white/70 text-xs mt-1">
-        Add Anti-Inflammatory ingredient guidance across supported food tools without changing your primary program.
-        Allergies, dietary restrictions, diabetic, GLP-1, and clinical requirements still take precedence.
-        The standalone Anti-Inflammatory Builder remains separate.
+        {t("Add Anti-Inflammatory ingredient guidance across supported food tools without changing your primary program. Allergies, dietary restrictions, diabetic, GLP-1, and clinical requirements still take precedence. The standalone Anti-Inflammatory Builder remains separate.")}
       </p>
-      {current && <p role="status" className="text-white/80 text-xs mt-2">Optional support: {current.enabled ? "On" : "Off"}</p>}
+      {current && <p role="status" className="text-white/80 text-xs mt-2">{t("Optional support: {{status}}", { status: t(current.enabled ? "On" : "Off") })}</p>}
       {current?.legacyPreferenceSaved && !current.enabled && (
-        <p className="text-amber-200 text-xs mt-2">An earlier preference is saved but is not active. Enable support explicitly to apply it to new food guidance.</p>
+        <p className="text-amber-200 text-xs mt-2">{t("An earlier preference is saved but is not active. Enable support explicitly to apply it to new food guidance.")}</p>
       )}
       <div className="mt-3">
         <button type="button" aria-pressed={current?.enabled === true}
@@ -79,10 +79,10 @@ export function AntiInflammatorySupportControl({ userId }: { userId: string }) {
             current?.enabled ? "border-emerald-400/60 bg-emerald-600/80" : "border-yellow-400/70 bg-yellow-500/20"
           }`}
           disabled={!current || busy} onClick={() => void change()}>
-          {busy ? "Saving support…" : !current ? "Loading support…" : current.enabled ? "Turn off Anti-Inflammatory support" : "Enable Anti-Inflammatory support"}
+          {t(busy ? "Saving support…" : !current ? "Loading support…" : current.enabled ? "Turn off Anti-Inflammatory support" : "Enable Anti-Inflammatory support")}
         </button>
       </div>
-      {error && <p role="alert" className="text-red-200 text-xs mt-2">{error} <button type="button" className="underline" onClick={() => void load(++scope.current)}>Reload settings</button></p>}
+      {error && <p role="alert" className="text-red-200 text-xs mt-2">{t(error)} <button type="button" className="underline" onClick={() => void load(++scope.current)}>{t("Reload settings")}</button></p>}
     </section>
   );
 }
