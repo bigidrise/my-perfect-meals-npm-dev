@@ -1643,3 +1643,17 @@ mtime_ms = 1795234987813
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:5b503fbf-1926-4592-8a37-99d9960f359a/2233e1ae-ac5a-4657-bfd3-59f73ef85ef7/fa70ccc1-f225-46c8-8d81-ef937343ad92"
 storage_version_token = "1795235002885165"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "KOenp6tMpgIxcZfaSkQsz"
+uri = "file://generated-artifacts/mobile-header/before-after.jpg"
+type = "image"
+title = "Mobile header: English and Spanish before/after"
+description = "390px browser screenshots of isolated real header markup with compiled app CSS—not signed-in dashboard screenshots."
+logical_id = "b5c4b85c-ef19-4e4a-8489-6a000d6c71ad"
+content_hash = "sha256:823fb8e4df2304896b044c68931a28707f0453337d38c870426d960b8caa30e8"
+size = 46021
+mtime_ms = 1795489298922
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/b5c4b85c-ef19-4e4a-8489-6a000d6c71ad/370a7ad6-b3b4-498b-947b-4233719aaf2b"
+storage_version_token = "1795489312956335"
+content_type = "image/jpeg"

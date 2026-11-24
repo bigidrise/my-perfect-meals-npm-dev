@@ -2,6 +2,7 @@
 import React from "react";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
+import { readFileSync } from "node:fs";
 
 const mockNavigate = jest.fn();
 let mockLanguage = "en";
@@ -14,7 +15,8 @@ jest.mock("@tanstack/react-query", () => ({ useQuery: () => ({ data: undefined }
 jest.mock("react-i18next", () => ({ useTranslation: () => ({
   t: (key: string, options?: { name?: string }) =>
     key === "Messages" && mockLanguage === "es" ? require("@/i18n/consumerJourney").consumerSpanish.Messages :
-    key === "greeting" ? `Welcome back, ${options?.name}!` : key,
+    key === "greeting" ? `Welcome back, ${options?.name}!` :
+    key === "hubLabel" ? (mockLanguage === "es" ? "Centro" : "Hub") : key,
 }) }));
 jest.mock("@/features/coachCornerFlag", () => ({ COACHES_CORNER_ENABLED: false }));
 jest.mock("@/lib/auth", () => ({ getAuthHeaders: () => ({}) }));
@@ -27,9 +29,9 @@ jest.mock("@/hooks/useMyPerfectMenuBuilder", () => ({ useMyPerfectMenuBuilder: (
 jest.mock("@/contexts/UpgradeModalContext", () => ({ useUpgradeModal: () => ({ openUpgradeModal: jest.fn() }) }));
 jest.mock("@/components/copilot/CopilotContext", () => ({ useCopilot: () => ({ open: jest.fn() }) }));
 jest.mock("@/components/WorkspaceChooser", () => ({ WorkspaceChooser: () => <div>UNEXPECTED WORKSPACE CHOOSER</div> }));
-jest.mock("@/components/ProfileSheet", () => ({ ProfileSheet: () => null }));
+jest.mock("@/components/ProfileSheet", () => ({ ProfileSheet: ({ children }: any) => <>{children}</> }));
 jest.mock("@/components/MedicalSourcesInfo", () => ({ MedicalSourcesInfo: () => null }));
-jest.mock("@/components/icons/HubControlIcon", () => ({ HubControlIcon: () => null }));
+jest.mock("@/components/icons/HubControlIcon", () => jest.requireActual("@/components/icons/HubControlIcon"));
 jest.mock("@/components/BugReportButton", () => ({ BugReportButton: () => null }));
 jest.mock("@/components/dashboard/ComplianceCard", () => ({ ComplianceCard: () => null }));
 jest.mock("@/components/dashboard/HydrationDashboardCard", () => ({ __esModule: true, default: () => null }));
@@ -85,6 +87,22 @@ async function openConversation() {
 }
 
 describe("real Dashboard client panel with isolated synthetic dependencies", () => {
+  it.each(["en", "es"])("keeps the %s mobile Hub in one compact header row", async language => {
+    mockLanguage = language;
+    render(<DashboardNew />);
+    const header = screen.getByTestId("dashboard-mobile-header");
+    const button = within(header).getByTestId("button-my-hub");
+    expect(button).toHaveTextContent(language === "es" ? "Centro" : "Hub");
+    expect(button).toHaveClass("!flex-nowrap", "whitespace-nowrap", "h-12", "py-1");
+    expect(button.parentElement).toHaveClass("!flex-nowrap", "gap-0", "min-[430px]:gap-2");
+    expect(button).toHaveClass("px-0", "min-[375px]:px-1", "gap-0.5");
+    expect(button.querySelector("span.shrink-0")).toHaveClass("[&>div]:w-6", "min-[375px]:[&>div]:w-8");
+    expect(button.querySelector(".h-8.w-8")).toBeInTheDocument();
+    expect(header).toHaveClass("grid-cols-[1fr_auto_1fr]", "h-14");
+    // JSDOM drops env() declarations; browser geometry verifies the actual inset.
+    expect(readFileSync("client/src/pages/DashboardNew.tsx", "utf8")).toContain('paddingTop: "env(safe-area-inset-top, 0px)"');
+    await act(async () => {});
+  });
   it.each([["en", "Messages"], ["es", "Mensajes"]])("localizes only the %s inbox heading without marking messages read", async (language, heading) => {
     mockLanguage = language;
     render(<DashboardNew />);
