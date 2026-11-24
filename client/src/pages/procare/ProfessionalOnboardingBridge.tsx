@@ -111,10 +111,10 @@ function PersonalOnboardingStep({ onStart }: { onStart: () => void }) {
         <div className="space-y-3 mb-8">
           {[
             t("procare.bridge.personalProfileStep"),
-            "Define your goals and dietary preferences",
+            t("procare.bridge.defineGoals"),
             t("procare.bridge.firstMealPlan"),
-            "Explore the meal builders and tools",
-            "Experience the app as your clients will",
+            t("procare.bridge.exploreTools"),
+            t("procare.bridge.experienceAsClient"),
           ].map((item, i) => (
             <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-black/30 border border-white/10">
               <CheckCircle2 className="w-4 h-4 text-orange-400 mt-0.5 shrink-0" />
@@ -125,7 +125,7 @@ function PersonalOnboardingStep({ onStart }: { onStart: () => void }) {
 
         <div className="p-4 rounded-2xl bg-black/20 border border-white/5">
           <p className="text-xs text-white/50 italic text-center leading-relaxed">
-            "You can't confidently guide someone through an experience you haven't had yourself."
+            {t("procare.bridge.personalExperienceQuote")}
           </p>
         </div>
       </div>
@@ -160,11 +160,10 @@ function CertPhase1Step({ onStart }: { onStart: () => void }) {
           </div>
           <p className="text-orange-300 text-sm font-semibold mb-2">{t("procare.bridge.step2Excellent")}</p>
           <h1 className="text-2xl font-black leading-tight mb-3">
-            You've Experienced My Perfect Meals as a User
+            {t("procare.bridge.experienceCompleteTitle")}
           </h1>
           <p className="text-white/60 text-sm leading-relaxed max-w-xs">
-            You now understand what your clients will experience. Next, you'll learn how to use every
-            feature professionally so you can confidently guide them.
+            {t("procare.bridge.experienceCompleteDesc")}
           </p>
         </div>
 
@@ -179,13 +178,12 @@ function CertPhase1Step({ onStart }: { onStart: () => void }) {
             {t("procare.bridge.step2Phase1Desc")}
           </p>
           <div className="space-y-2">
-            {/* i18n: leave for content team */}
             {[
-              "Every major feature of the platform",
-              "How to personalize nutrition for each client",
-              "How to use AI responsibly",
-              "Client onboarding and setup",
-              "Meal boards and progress tracking",
+              t("procare.bridge.majorFeatures"),
+              t("procare.bridge.clientPersonalization"),
+              t("procare.bridge.responsibleAI"),
+              t("procare.bridge.clientSetup"),
+              t("procare.bridge.mealBoardsTracking"),
             ].map((item, i) => (
               <div key={i} className="flex items-start gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-orange-400 mt-0.5 shrink-0" />
@@ -218,11 +216,11 @@ function CertPhase2Step({ onStart }: { onStart: () => void }) {
           <div className="flex flex-wrap justify-center gap-2 mb-4">
             <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 rounded-full border border-emerald-500/30">
               <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-              <span className="text-xs font-semibold text-emerald-300">Personal Profile Complete</span>
+              <span className="text-xs font-semibold text-emerald-300">{t("procare.bridge.personalProfileComplete")}</span>
             </div>
             <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 rounded-full border border-emerald-500/30">
               <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-              <span className="text-xs font-semibold text-emerald-300">Phase 1 Complete</span>
+              <span className="text-xs font-semibold text-emerald-300">{t("procare.bridge.phase1Complete")}</span>
             </div>
           </div>
           <h1 className="text-2xl font-black leading-tight mb-3">
@@ -249,8 +247,8 @@ function CertPhase2Step({ onStart }: { onStart: () => void }) {
               t("procare.bridge.learningItems.questionnaires"),
               t("procare.bridge.learningItems.communication"),
               t("procare.bridge.learningItems.revenue"),
-              "Affiliate program and Business Suite",
-              "Client retention and best practices",
+              t("procare.bridge.affiliateBusinessSuite"),
+              t("procare.bridge.clientRetention"),
             ].map((item, i) => (
               <div key={i} className="flex items-start gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-orange-400 mt-0.5 shrink-0" />

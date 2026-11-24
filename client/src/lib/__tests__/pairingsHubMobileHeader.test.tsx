@@ -1,4 +1,6 @@
+/** @jest-environment jsdom */
 import React from "react";
+import i18n from "@/i18n";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import fs from "node:fs";
 
@@ -24,7 +26,8 @@ jest.mock("framer-motion", () => ({
 
 import PairingsHub from "@/pages/lifestyle/PairingsHub";
 
-beforeEach(() => {
+beforeEach(async () => {
+  await i18n.changeLanguage("en");
   mockDesktop = false;
   mockNavigate.mockClear();
   jest.spyOn(window, "scrollTo").mockImplementation(() => {});

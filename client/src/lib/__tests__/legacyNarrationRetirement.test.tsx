@@ -104,6 +104,123 @@ test.each(["en", "es"])("%s all professional welcome routes keep written content
   expect(global.fetch).not.toHaveBeenCalled();
 });
 
+
+test.each(["en", "es"])("%s professional welcome resolves every active translation key", async language => {
+  await i18n.changeLanguage(language);
+
+  const keys = [
+    "back",
+    "beginJourney",
+    "chefAlt",
+    "title",
+    "accountReady.trainer",
+    "accountReady.physician",
+    "accountReady.professional",
+    "introduction",
+    "profileComplete",
+    "journeyHeading",
+    "steps.experience.title",
+    "steps.experience.description",
+    "steps.fundamentals.title",
+    "steps.fundamentals.description",
+    "steps.business.title",
+    "steps.business.description",
+    "certificationHeading",
+    "benefits.features",
+    "benefits.personalization",
+    "benefits.responsibleAI",
+    "benefits.clientOnboarding",
+    "benefits.automation",
+    "benefits.revenue",
+    "benefits.studio",
+    "benefits.clientQuestions",
+    "closingStatement",
+  ];
+
+  for (const key of keys) {
+    const fullKey = `procare.welcome.${key}`;
+    const resource = i18n.getResource(language, "translation", fullKey);
+    expect(typeof resource).toBe("string");
+    expect(resource.trim().length).toBeGreaterThan(0);
+    expect(i18n.t(fullKey)).toBe(resource);
+  }
+});
+
+test.each(["en", "es"])("%s professional welcome renders localized content and preserves role navigation", async language => {
+  await i18n.changeLanguage(language);
+
+  const routes = [
+    ["/trainer-welcome", "trainer", "/professional-onboarding-bridge"],
+    ["/physician-welcome", "physician", "/professional-onboarding-bridge"],
+    ["/procare-welcome", "professional", "/procare-identity"],
+  ];
+
+  for (const [path, role, destination] of routes) {
+    mockPath = path;
+    mockNavigate.mockClear();
+    const view = render(<ProCareWelcome />);
+
+    const copy = (key: string) => i18n.t(`procare.welcome.${key}`);
+
+    expect(screen.getByRole("heading", { name: copy("title") })).toBeInTheDocument();
+    expect(view.container).toHaveTextContent(copy(`accountReady.${role}`));
+    expect(view.container).toHaveTextContent(copy("introduction"));
+    expect(view.container).toHaveTextContent(copy("journeyHeading"));
+    expect(view.container).toHaveTextContent(copy("certificationHeading"));
+    expect(view.container).toHaveTextContent(copy("closingStatement"));
+
+    for (const step of ["experience", "fundamentals", "business"]) {
+      expect(view.container).toHaveTextContent(copy(`steps.${step}.title`));
+      expect(view.container).toHaveTextContent(copy(`steps.${step}.description`));
+    }
+
+    for (const benefit of [
+      "features", "personalization", "responsibleAI",
+      "clientOnboarding", "automation", "revenue",
+      "studio", "clientQuestions",
+    ]) {
+      expect(view.container).toHaveTextContent(copy(`benefits.${benefit}`));
+    }
+
+    if (language === "es") {
+      expect(view.container).not.toHaveTextContent("Your Professional Journey");
+      expect(view.container).not.toHaveTextContent("Learn every feature of the platform");
+    }
+
+    fireEvent.click(screen.getByRole("button", { name: copy("back") }));
+    expect(mockNavigate).toHaveBeenCalledWith("/business-center");
+
+    fireEvent.click(screen.getByRole("button", { name: copy("beginJourney") }));
+    expect(mockNavigate).toHaveBeenCalledWith(destination);
+
+    expect(screen.queryByRole("button", { name: /Listen|Escuchar/ })).not.toBeInTheDocument();
+    view.unmount();
+  }
+
+  expect(global.fetch).not.toHaveBeenCalled();
+});
+
+test("professional welcome follows global language changes without remounting", async () => {
+  mockPath = "/trainer-welcome";
+  await i18n.changeLanguage("en");
+  render(<ProCareWelcome />);
+
+  expect(screen.getByText("Your Professional Journey")).toBeInTheDocument();
+
+  await act(async () => {
+    await i18n.changeLanguage("es");
+  });
+
+  expect(screen.getByText("Su trayectoria profesional")).toBeInTheDocument();
+  expect(screen.queryByText("Your Professional Journey")).not.toBeInTheDocument();
+
+  await act(async () => {
+    await i18n.changeLanguage("en");
+  });
+
+  expect(screen.getByText("Your Professional Journey")).toBeInTheDocument();
+});
+
 test("Kitchen Network ignores a saved narration opt-in while preserving written Next navigation", async () => {
   localStorage.setItem("mpm.copilot.narration.enabled", "true");
   render(<ChefCoPilotWalkthrough isOpen onClose={jest.fn()} onApply={jest.fn()} onBook={jest.fn()} onContact={jest.fn()} />);

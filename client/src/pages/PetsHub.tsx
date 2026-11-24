@@ -1,3 +1,4 @@
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
@@ -32,9 +33,10 @@ const pets = [
 ];
 
 export default function PetsHub() {
+  const { t } = useConsumerCopy();
   const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
-  usePageTitle("My Perfect Pets");
+  usePageTitle(t("My Perfect Pets"));
 
   return (
     <motion.div
@@ -64,8 +66,8 @@ export default function PetsHub() {
 
         {/* Hub Intro — matches Pairings Hub pattern */}
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-white mb-2">Companion Nutrition</h2>
-          <p className="text-sm text-white/70">AI-powered meal planning, recipes, and ingredient safety for dogs and cats.</p>
+          <h2 className="text-2xl font-bold text-white mb-2">{t("Companion Nutrition")}</h2>
+          <p className="text-sm text-white/70">{t("AI-powered meal planning, recipes, and ingredient safety for dogs and cats.")}</p>
         </div>
         <div className="flex justify-end">
           <HowThisWorksLink featureKey="pets" labelKey="tutorialControl.howItWorks" />
@@ -92,16 +94,16 @@ export default function PetsHub() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                    <h3 className="text-sm font-bold text-white">{pet.title}</h3>
+                    <h3 className="text-sm font-bold text-white">{t(pet.title)}</h3>
                     {pet.badge && (
                       <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/50">
                         <Clock className="h-2.5 w-2.5" />
-                        {pet.badge}
+                        {t(pet.badge)}
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] font-medium text-orange-300 mb-1">{pet.subtitle}</p>
-                  <p className="text-xs text-white/80 leading-relaxed">{pet.description}</p>
+                  <p className="text-[11px] font-medium text-orange-300 mb-1">{t(pet.subtitle)}</p>
+                  <p className="text-xs text-white/80 leading-relaxed">{t(pet.description)}</p>
                 </div>
                 {pet.available && (
                   <ChevronRight className="h-4 w-4 text-white/30 flex-shrink-0" />
@@ -112,7 +114,7 @@ export default function PetsHub() {
         </div>
 
         <p className="text-center text-white/55 text-xs mt-6">
-          More species coming as the platform grows
+          {t("More species coming as the platform grows")}
         </p>
       </div>
     </motion.div>

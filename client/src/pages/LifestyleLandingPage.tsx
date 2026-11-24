@@ -71,7 +71,10 @@ export default function LifestyleLandingPage() {
   }, []);
 
   useEffect(() => {
-    document.title = "Lifestyle | My Perfect Meals";
+    document.title = t("Lifestyle | My Perfect Meals");
+  }, [t]);
+
+  useEffect(() => {
     scrollToTop("instant");
   }, []);
 
@@ -319,11 +322,11 @@ export default function LifestyleLandingPage() {
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
                     <span className={`text-base ${pregnancyLocked ? "opacity-50" : ""}`}>🩷</span>
-                    <h3 className={`text-sm font-semibold ${pregnancyLocked ? "text-white/50" : "text-white"}`}>{t("pregnancyTitle")}{!PREGNANCY_PAGE_VISIBLE ? " — Coming Soon (Clinical)" : ""}</h3>
+                    <h3 className={`text-sm font-semibold ${pregnancyLocked ? "text-white/50" : "text-white"}`}>{t("pregnancyTitle")}{!PREGNANCY_PAGE_VISIBLE ? " — " + t("Coming Soon (Clinical)") : ""}</h3>
                     {pregnancyLocked && <Lock className="h-3 w-3 text-orange-400/70 ml-auto" />}
                   </div>
                   <p className={`text-xs ml-6 ${pregnancyLocked ? "text-white/40" : "text-white/80"}`}>
-                    {PREGNANCY_CUSTOMER_AVAILABLE ? t("pregnancyDesc") : "Existing settings are preserved. Daily calorie and macro targets are not pregnancy-adjusted."}
+                    {PREGNANCY_CUSTOMER_AVAILABLE ? t("pregnancyDesc") : t("Existing settings are preserved. Daily calorie and macro targets are not pregnancy-adjusted.")}
                   </p>
                 </div>
               </CardContent>

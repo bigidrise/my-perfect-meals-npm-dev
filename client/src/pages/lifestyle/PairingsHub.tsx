@@ -1,3 +1,4 @@
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
@@ -52,12 +53,16 @@ const pairingFeatures: PairingFeature[] = [
 ];
 
 export default function PairingsHub() {
+  const { t } = useConsumerCopy();
   const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
   useCopilotPageExplanation();
 
   useEffect(() => {
-    document.title = "Pairings Hub | My Perfect Meals";
+    document.title = t("Pairings Hub | My Perfect Meals");
+  }, [t]);
+
+  useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
@@ -76,13 +81,13 @@ export default function PairingsHub() {
       >
         <MobileHeaderGuard>
           <header
-            aria-label="Pairings Hub"
+            aria-label={t("Pairings Hub")}
             className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
             style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
           >
             <div className="px-8 py-3 flex items-center gap-3">
               <Wine className="h-6 w-6 text-orange-500" aria-hidden="true" />
-              <h1 className="text-lg font-bold text-white">Pairings Hub</h1>
+              <h1 className="text-lg font-bold text-white">{t("Pairings Hub")}</h1>
             </div>
           </header>
         </MobileHeaderGuard>
@@ -107,10 +112,10 @@ export default function PairingsHub() {
             )}
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-white mb-2">
-                Drink Intelligence
+                {t("Drink Intelligence")}
               </h2>
               <p className="text-sm text-white/70">
-                AI-powered drink pairings, wine education, and health planning.
+                {t("AI-powered drink pairings, wine education, and health planning.")}
               </p>
             </div>
 
@@ -129,11 +134,11 @@ export default function PairingsHub() {
                         <div className="flex items-center gap-2">
                           <Icon className="h-4 w-4 flex-shrink-0 text-orange-500" />
                           <h3 className="text-sm font-semibold text-white">
-                            {feature.title}
+                            {t(feature.title)}
                           </h3>
                         </div>
                         <p className="text-xs text-white/80 ml-6">
-                          {feature.description}
+                          {t(feature.description)}
                         </p>
                       </div>
                     </CardContent>
@@ -145,8 +150,8 @@ export default function PairingsHub() {
                   className="block rounded-xl border border-white/10 bg-black/10 backdrop-blur-lg shadow-md overflow-hidden p-3 text-sm text-white/80 hover:border-orange-400/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400"
                   data-testid="pairingshub-advisor-coming-soon"
                 >
-                  <span className="font-semibold text-orange-300">AI Pairing Advisor — Coming Soon</span>
-                  <span className="mt-1 block text-xs">A future conversational experience. Existing drink pairing tools remain available above.</span>
+                  <span className="font-semibold text-orange-300">{t("AI Pairing Advisor — Coming Soon")}</span>
+                  <span className="mt-1 block text-xs">{t("A future conversational experience. Existing drink pairing tools remain available above.")}</span>
               </Link>
             </div>
           </div>

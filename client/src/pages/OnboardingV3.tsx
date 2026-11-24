@@ -23,7 +23,7 @@ import { getAuthHeaders, getCurrentUser } from "@/lib/auth";
 import { measurementPreference, type MeasurementPreference } from "@shared/units";
 import { saveMeasurementPreferences } from "@/lib/measurementPreferences";
 import { MeasurementPreferencesControls } from "@/components/profile/MeasurementPreferencesControls";
-import { useTranslation as useMeasurementTranslation } from "react-i18next";
+import { useTranslation as useMeasurementTranslation, Trans } from "react-i18next";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { useToast } from "@/hooks/use-toast";
 import { PillButton } from "@/components/ui/pill-button";
@@ -182,8 +182,9 @@ function AccountOnboardingV3() {
   const oncologyDevelopment = oncologyDevelopmentReviewEnabled();
   const [oncologySymptomsOpen, setOncologySymptomsOpen] = useState(false);
   const { toast } = useToast();
-  const { t } = useTranslation("onboarding");
+  const { t, i18n } = useTranslation("onboarding");
   const { t: measurementT } = useMeasurementTranslation("measurementPreferences");
+  const { t: profileT } = useMeasurementTranslation("editProfile");
 
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
@@ -312,9 +313,9 @@ function AccountOnboardingV3() {
     const serverMsg = body?.error || "";
     console.error(`[onboarding] saveProfile failed — step: ${step}, status: ${res.status}, code: ${code}, server: ${serverMsg}`);
     if (res.status === 401) return "Your session expired. Please sign out and sign back in to continue.";
-    if (res.status === 403) return serverMsg || "Action not permitted at this step.";
+    if (res.status === 403) return serverMsg || t("Action not permitted at this step.");
     if (res.status === 400) return serverMsg || "Some profile data was invalid. Please review your entries.";
-    return `Something went wrong saving your profile (step: ${step}). Please try again.`;
+    return t("Something went wrong saving your profile (step: {{step}}). Please try again.", { step });
   };
 
   const saveProfile = async (fields: Record<string, unknown>, step: string) => {
@@ -409,7 +410,7 @@ function AccountOnboardingV3() {
             throw new Error("Please wait for your nutrition support choices to finish saving before continuing.");
           }
           if (medicalConditions.length === 0) {
-            toast({ title: "Please select at least one condition, or choose 'None'", variant: "destructive" });
+            toast({ title: t("Please select at least one condition, or choose 'None'"), variant: "destructive" });
             setSaving(false);
             return;
           }
@@ -526,7 +527,7 @@ function AccountOnboardingV3() {
       setStep((s) => s + 1);
     } catch (err: any) {
       const msg = err?.message || "Something went wrong. Please try again.";
-      toast({ title: msg, variant: "destructive" });
+      toast({ title: t(msg), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -607,7 +608,7 @@ function AccountOnboardingV3() {
       }
     } catch (err: any) {
       const msg = err?.message || "Something went wrong. Please try again.";
-      toast({ title: msg, variant: "destructive" });
+      toast({ title: t(msg), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -665,7 +666,7 @@ function AccountOnboardingV3() {
                   active={allergies.includes(item)}
                   onClick={() => handleAllergyToggle(item)}
                 >
-                  {item}
+                  {t(item)}
                 </PillButton>
               ))}
               <PillButton
@@ -727,7 +728,7 @@ function AccountOnboardingV3() {
                           )
                         }
                       >
-                        {cat}
+                        {profileT("avoidedFoodCategories." + stored, { defaultValue: cat })}
                       </PillButton>
                     );
                   })}
@@ -787,7 +788,7 @@ function AccountOnboardingV3() {
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
-              <h1 className="text-2xl font-bold text-white">Any relevant medical conditions?</h1>
+              <h1 className="text-2xl font-bold text-white">{t("Any relevant medical conditions?")}</h1>
             </div>
             <div className="flex flex-wrap gap-2 max-w-sm mx-auto">
               {MEDICAL_CONDITIONS.map((item) => (
@@ -796,7 +797,7 @@ function AccountOnboardingV3() {
                   active={import.meta.env.DEV && item.value === "glp1" ? currentGlp1Use === true : medicalConditions.includes(item.value)}
                   onClick={() => handleMedicalToggle(item.value)}
                 >
-                  {import.meta.env.DEV && item.value === "glp1" ? "Currently taking GLP-1 medication" : item.label}
+                  {import.meta.env.DEV && item.value === "glp1" ? t("Currently taking GLP-1 medication") : t(item.label)}
                 </PillButton>
               ))}
             </div>
@@ -804,7 +805,7 @@ function AccountOnboardingV3() {
               <Input
                 value={customConditionInput}
                 onChange={(e) => setCustomConditionInput(e.target.value)}
-                placeholder="Add another condition..."
+                placeholder={t("Add another condition...")}
                 className="text-white bg-white/10 border-white/20 flex-1"
                 onKeyDown={(e) => e.key === "Enter" && handleAddCustomCondition()}
               />
@@ -839,12 +840,12 @@ function AccountOnboardingV3() {
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-base">🩺</span>
                 <span className="text-sky-300 font-semibold text-sm">
-                  Health information for your current meals
+                  {t("Health information for your current meals")}
                 </span>
                 <span className="text-white/40 text-xs">{t("(optional)")}</span>
               </div>
               <p className="text-white/60 text-xs mb-3">
-                Tell us what you already know applies to you. Health information is used by current meal settings and may require care-team or lab review.
+                {t("Tell us what you already know applies to you. Health information is used by current meal settings and may require care-team or lab review.")}
               </p>
               <div className="flex flex-wrap gap-2">
                 {[
@@ -883,7 +884,7 @@ function AccountOnboardingV3() {
                       );
                     }}
                   >
-                    {opt.label}{opt.value === "pregnancy-support" && !PREGNANCY_CUSTOMER_AVAILABLE ? " — Coming Soon (Clinical)" : ""}
+                    {profileT("clinicalConditionLabels." + opt.value, { defaultValue: opt.label })}{opt.value === "pregnancy-support" && !PREGNANCY_CUSTOMER_AVAILABLE ? " — " + t("Coming Soon (Clinical)") : ""}
                   </PillButton>
                 ))}
               </div>
@@ -892,9 +893,9 @@ function AccountOnboardingV3() {
                   <div className="flex items-start gap-2">
                     <span className="text-pink-400 text-base mt-0.5">🩷</span>
                     <div>
-                      <p className="text-pink-300 text-xs font-semibold mb-1">My Perfect Pregnancy — {PREGNANCY_CUSTOMER_AVAILABLE ? "Nutritional Guidance Only" : "Coming Soon (Clinical)"}</p>
+                      <p className="text-pink-300 text-xs font-semibold mb-1">My Perfect Pregnancy — {PREGNANCY_CUSTOMER_AVAILABLE ? t("Nutritional Guidance Only") : t("Coming Soon (Clinical)")}</p>
                       <p className="text-white/70 text-xs leading-relaxed">
-                        {PREGNANCY_CUSTOMER_AVAILABLE ? "General nutrition education only. Daily calorie and macro targets are not pregnancy-adjusted; follow your healthcare provider's guidance." : PREGNANCY_PAUSE_MESSAGE}
+                        {PREGNANCY_CUSTOMER_AVAILABLE ? t("General nutrition education only. Daily calorie and macro targets are not pregnancy-adjusted; follow your healthcare provider's guidance.") : t(PREGNANCY_PAUSE_MESSAGE)}
                       </p>
                     </div>
                   </div>
@@ -905,14 +906,14 @@ function AccountOnboardingV3() {
                   <div className="flex items-start gap-2">
                     <span className="text-teal-400 text-base mt-0.5">🦋</span>
                     <div>
-                      <p className="text-teal-300 text-xs font-semibold mb-1">Thyroid Support — Nutritional Guidance Only</p>
+                      <p className="text-teal-300 text-xs font-semibold mb-1">{t("Thyroid Support — Nutritional Guidance Only")}</p>
                       <p className="text-white/70 text-xs leading-relaxed">
-                        This activates anti-inflammatory, selenium-focused meal guidance designed to complement thyroid wellness. It is <span className="text-white font-medium">not a medical diagnosis</span>, not a treatment plan, and <span className="text-white font-medium">not a substitute for your doctor or endocrinologist's care</span>. Always follow your healthcare provider's recommendations first.
+                        <Trans ns="onboarding" i18nKey="thyroidGuidanceRich" components={[<span className="text-white font-medium" />, <span className="text-white font-medium" />]} />
                       </p>
                     </div>
                   </div>
                   <div>
-                    <p className="text-teal-300/80 text-xs font-medium mb-1.5">My thyroid condition <span className="text-white/40 font-normal">(optional — sharpens the protocol)</span></p>
+                    <p className="text-teal-300/80 text-xs font-medium mb-1.5">{t("My thyroid condition")} <span className="text-white/40 font-normal">{t("(optional — sharpens the protocol)")}</span></p>
                     <div className="flex flex-wrap gap-2">
                       {([
                         { label: "Hypothyroid", value: "hypothyroid" as const },
@@ -924,7 +925,7 @@ function AccountOnboardingV3() {
                           active={thyroidType === opt.value}
                           onClick={() => setThyroidType(prev => prev === opt.value ? null : opt.value)}
                         >
-                          {opt.label}
+                          {profileT("clinicalConditionLabels." + opt.value, { defaultValue: opt.label })}
                         </PillButton>
                       ))}
                     </div>
@@ -936,9 +937,9 @@ function AccountOnboardingV3() {
                   <div className="flex items-start gap-2">
                     <span className="text-orange-400 text-base mt-0.5">⚡</span>
                     <div>
-                      <p className="text-orange-300 text-xs font-semibold mb-1">Hormone Optimization — Nutritional Guidance Only</p>
+                      <p className="text-orange-300 text-xs font-semibold mb-1">{t("Hormone Optimization — Nutritional Guidance Only")}</p>
                       <p className="text-white/70 text-xs leading-relaxed">
-                        Activates hormone-supportive meal generation — healthy fats, zinc-rich proteins, minimal processed foods, no refined sugars or seed oils. This is <span className="text-white font-medium">not a medical protocol</span> and is <span className="text-white font-medium">not a substitute for your doctor's care</span>.
+                        <Trans ns="onboarding" i18nKey="hormoneGuidanceRich" components={[<span className="text-white font-medium" />, <span className="text-white font-medium" />]} />
                       </p>
                     </div>
                   </div>
@@ -951,7 +952,7 @@ function AccountOnboardingV3() {
                   <OncologySymptomDialog open={oncologySymptomsOpen} onOpenChange={setOncologySymptomsOpen}
                     symptoms={oncologySelection.symptoms} onChange={oncologySelection.setSymptoms}
                     readOnly={oncologySelection.readOnly} error={oncologySelection.error}
-                    saveHint="Continue onboarding to save these choices." />
+                    saveHint={t("Continue onboarding to save these choices.")} />
                 </>
               )}
               {specialtyConditions.includes("oncology-support") && (
@@ -959,9 +960,9 @@ function AccountOnboardingV3() {
                   <div className="flex items-start gap-2">
                     <span className="text-rose-400 text-base mt-0.5">🎗️</span>
                     <div>
-                      <p className="text-rose-300 text-xs font-semibold mb-1">Important — Not a Medical Diagnosis</p>
+                      <p className="text-rose-300 text-xs font-semibold mb-1">{t("Important — Not a Medical Diagnosis")}</p>
                       <p className="text-white/70 text-xs leading-relaxed">
-                        Selecting this activates general nutritional guidance designed to support people going through cancer treatment — things like managing appetite, nausea, and energy needs. This is <span className="text-white font-medium">not a diagnosis</span>, not a treatment plan, and <span className="text-white font-medium">not a substitute for your oncology team's medical care</span>. Always follow your doctor's guidance first.
+                        <Trans ns="onboarding" i18nKey="oncologyGuidanceRich" components={[<span className="text-white font-medium" />, <span className="text-white font-medium" />]} />
                       </p>
                     </div>
                   </div>
@@ -987,12 +988,10 @@ function AccountOnboardingV3() {
             <div className="text-center space-y-2">
               <div className="text-4xl mb-1">🎗️</div>
               <h1 className="text-2xl font-bold text-white">
-                Need extra support with treatment-related nutrition?
+                {t("Need extra support with treatment-related nutrition?")}
               </h1>
               <p className="text-white/60 text-sm max-w-sm mx-auto">
-                Appetite changes, nausea, or food intolerances during treatment can make
-                nutrition more complex. This step is completely optional — skip it and you
-                can revisit any time in your settings.
+                {t("Appetite changes, nausea, or food intolerances during treatment can make nutrition more complex. This step is completely optional — skip it and you can revisit any time in your settings.")}
               </p>
             </div>
 
@@ -1005,8 +1004,8 @@ function AccountOnboardingV3() {
                     : "bg-white/5 border-white/20 text-white/80"
                 }`}
               >
-                <div className="font-semibold">Yes, I may need this</div>
-                <div className="text-xs mt-1 opacity-70">Show me the support options</div>
+                <div className="font-semibold">{t("Yes, I may need this")}</div>
+                <div className="text-xs mt-1 opacity-70">{t("Show me the support options")}</div>
               </button>
               <button
                 onClick={() => {
@@ -1019,8 +1018,8 @@ function AccountOnboardingV3() {
                     : "bg-white/5 border-white/20 text-white/70"
                 }`}
               >
-                <div className="font-semibold">Skip for now</div>
-                <div className="text-xs mt-1 opacity-60">I can revisit this any time in settings</div>
+                <div className="font-semibold">{t("Skip for now")}</div>
+                <div className="text-xs mt-1 opacity-60">{t("I can revisit this any time in settings")}</div>
               </button>
             </div>
 
@@ -1028,10 +1027,9 @@ function AccountOnboardingV3() {
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="border-t border-white/10 pt-4">
                   <div className="text-center space-y-2">
-                    <h2 className="text-lg font-bold text-white">How would you like to proceed?</h2>
+                    <h2 className="text-lg font-bold text-white">{t("How would you like to proceed?")}</h2>
                     <p className="text-white/60 text-sm max-w-sm mx-auto">
-                      We recommend working with a qualified provider for oncology-related nutrition.
-                      Choose the path that fits your situation.
+                      {t("We recommend working with a qualified provider for oncology-related nutrition. Choose the path that fits your situation.")}
                     </p>
                   </div>
 
@@ -1069,9 +1067,9 @@ function AccountOnboardingV3() {
                           <span className="text-xl mt-0.5">{path.emoji}</span>
                           <div className="flex-1">
                             <div className={`font-semibold text-sm ${oncologySupportIntentChoice === path.value ? "text-rose-200" : ""}`}>
-                              {path.title}
+                              {t(path.title)}
                             </div>
-                            <div className="text-xs text-white/60 mt-0.5">{path.description}</div>
+                            <div className="text-xs text-white/60 mt-0.5">{t(path.description)}</div>
                           </div>
                           {oncologySupportIntentChoice === path.value && (
                             <Check className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
@@ -1082,8 +1080,7 @@ function AccountOnboardingV3() {
                   </div>
 
                   <p className="text-center text-xs text-white/40 mt-4 max-w-sm mx-auto px-2">
-                    My Perfect Meals provides supportive nutrition tools. It does not diagnose,
-                    prescribe, or replace medical care. Provider involvement may still be appropriate.
+                    {t("My Perfect Meals provides supportive nutrition tools. It does not diagnose, prescribe, or replace medical care. Provider involvement may still be appropriate.")}
                   </p>
                 </div>
               </div>
@@ -1112,7 +1109,7 @@ function AccountOnboardingV3() {
             {DIETARY_IDENTITY_HINTS[dietaryStyle] && (
               <div className="max-w-sm mx-auto animate-in fade-in slide-in-from-bottom-2 duration-200">
                 <p className="text-center text-xs text-white/50 leading-relaxed px-2">
-                  {DIETARY_IDENTITY_HINTS[dietaryStyle]}
+                  {t(DIETARY_IDENTITY_HINTS[dietaryStyle])}
                 </p>
               </div>
             )}
@@ -1345,7 +1342,7 @@ function AccountOnboardingV3() {
                     >
                       <div>
                         <p className="text-sm font-medium">{t(label)}</p>
-                        <p className="text-xs text-white/50 mt-0.5">{desc}</p>
+                        <p className="text-xs text-white/50 mt-0.5">{t(desc)}</p>
                       </div>
                     </button>
                   ))}
@@ -1483,16 +1480,16 @@ function AccountOnboardingV3() {
             <div className="bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-8 max-w-sm w-full text-center space-y-5 shadow-2xl">
               <div className="text-5xl">🎉</div>
               <h2 className="text-2xl font-bold text-white">
-                Your {actualDays}-Day Trial Has Started!
+                {t("Your {{days}}-Day Trial Has Started!", { days: actualDays })}
               </h2>
               <p className="text-white/60 text-sm leading-relaxed">
-                You have full access to everything in MPM through{" "}
-                <span className="font-semibold text-white">
-                  {trialEndsAt
-                    ? new Date(trialEndsAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-                    : `the next ${actualDays} days`}
-                </span>
-                . No credit card required to start.
+                {trialEndsAt
+                  ? <Trans ns="onboarding" i18nKey="trialAccessDateRich"
+                      values={{ date: new Date(trialEndsAt).toLocaleDateString(i18n.resolvedLanguage || i18n.language, { month: "long", day: "numeric", year: "numeric" }) }}
+                      components={[<span className="font-semibold text-white" />]} />
+                  : <Trans ns="onboarding" i18nKey="trialAccessDaysRich"
+                      values={{ days: actualDays }}
+                      components={[<span className="font-semibold text-white" />]} />}
               </p>
               <Button
                 className="w-full bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-semibold"
@@ -1501,7 +1498,7 @@ function AccountOnboardingV3() {
                   setLocation("/macro-counter?from=onboarding");
                 }}
               >
-                Let's Go →
+                {t("Let's Go →")}
               </Button>
             </div>
           </div>
@@ -1510,7 +1507,7 @@ function AccountOnboardingV3() {
 
       <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] space-y-2">
         <div className="mpm-onboarding-progress flex items-center justify-between text-xs text-white/50">
-          <span>{t("Step")} {step} {t("of")} {TOTAL_STEPS}</span>
+          <span>{t("Step {{step}} of {{total}}", { step, total: TOTAL_STEPS })}</span>
           <span>{Math.round(progress)}%</span>
         </div>
         <Progress value={progress} className="h-2" />
