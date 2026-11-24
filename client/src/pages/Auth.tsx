@@ -1,3 +1,4 @@
+import { LanguagePreferenceSelector } from "@/components/profile/LanguagePreferenceSelector";
 import { useState, useMemo } from "react";
 import "@/styles/entry-readability.css";
 import { entryReadabilityClassName } from "@/styles/entryReadabilityGate";
@@ -435,6 +436,10 @@ export default function Auth() {
             </div>
           </div>
         )}
+
+        <div className="relative z-10 mb-5">
+          <LanguagePreferenceSelector />
+        </div>
 
         <h1 className="relative z-10 text-2xl font-bold mb-1">
           {urlInvite

@@ -19,6 +19,8 @@ jest.mock("@/lib/auth", () => ({
   login: (...args: unknown[]) => mockLogin(...args), signUp: jest.fn(), getProCareSignupData: () => null,
 }));
 jest.mock("@/lib/resolveApiBase", () => ({ apiUrl: (path: string) => path }));
+// Isolate Vite-only visual styling from the Jest language tests.
+jest.mock("@/styles/entryReadabilityGate", () => ({ entryReadabilityClassName: "" }));
 jest.mock("@/lib/guestMode", () => ({ isGuestMode: () => false, getGuestSession: () => null }));
 jest.mock("@/lib/developmentAuthRoutes", () => ({ DEVELOPMENT_AUTH_PUBLIC_PATHS: [], IS_DEVELOPMENT: true }));
 jest.mock("@/demo-studio/runtimeAuthority", () => ({

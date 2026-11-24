@@ -1,3 +1,4 @@
+import { LanguagePreferenceSelector } from "@/components/profile/LanguagePreferenceSelector";
 import { useMemo, useState } from "react";
 import "@/styles/entry-readability.css";
 import { entryReadabilityClassName } from "@/styles/entryReadabilityGate";
@@ -40,6 +41,10 @@ export default function ConsumerWelcome() {
     <div className={`min-h-screen bg-black text-white flex flex-col ${entryReadabilityClassName}`}>
       <div className="flex-1 overflow-y-auto px-4 pb-40">
         <div className="pt-10 pb-2" />
+
+        <div className="mb-5">
+          <LanguagePreferenceSelector />
+        </div>
 
         <div className="flex flex-col items-center mb-4 -mt-2">
           <img

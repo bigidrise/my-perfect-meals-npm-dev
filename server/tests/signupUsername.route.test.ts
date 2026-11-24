@@ -272,3 +272,58 @@ test("an already-claimed invitation rolls back the account without treating it a
   expect(committedClaims).toBe(0);
   expect(db.transaction).toHaveBeenCalledTimes(1);
 });
+
+describe("signup language preference persistence", () => {
+  test.each([
+    { preference: "en", expected: "en" },
+    { preference: "es", expected: "es" },
+    { preference: "auto", expected: "auto" },
+    { preference: undefined, expected: "auto" },
+    { preference: null, expected: "auto" },
+    { preference: "fr", expected: "auto" },
+    { preference: "invalid", expected: "auto" },
+    { preference: 123, expected: "auto" },
+    { preference: { language: "es" }, expected: "auto" },
+  ])("validates and persists language $preference as $expected", async ({ preference, expected }) => {
+    const response = await request(app)
+      .post("/api/auth/signup")
+      .send({
+        email: "language@fixture.test",
+        password: "FixturePassphrase!2026",
+        preferredLanguage: preference,
+      });
+
+    expect(response.status).toBe(200);
+    expect(insertedValues).toHaveLength(1);
+    expect(insertedValues[0].preferredLanguage).toBe(expected);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].preferredLanguage).toBe(expected);
+    expect(response.body.preferredLanguage).toBe(expected);
+  });
+
+  test("separate accounts retain independent language preferences", async () => {
+    const agent = request.agent(app);
+
+    const first = await agent.post("/api/auth/signup").send({
+      email: "spanish@fixture.test",
+      password: "FixturePassphrase!2026",
+      preferredLanguage: "es",
+    });
+
+    const second = await agent.post("/api/auth/signup").send({
+      email: "english@fixture.test",
+      password: "FixturePassphrase!2026",
+      preferredLanguage: "en",
+    });
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(first.body.id).not.toBe(second.body.id);
+    expect(first.body.preferredLanguage).toBe("es");
+    expect(second.body.preferredLanguage).toBe("en");
+    expect(rows).toHaveLength(2);
+    expect(rows.find(row => row.id === first.body.id)?.preferredLanguage).toBe("es");
+    expect(rows.find(row => row.id === second.body.id)?.preferredLanguage).toBe("en");
+    expect((await agent.get("/fixture/session")).body.userId).toBe(second.body.id);
+  });
+});

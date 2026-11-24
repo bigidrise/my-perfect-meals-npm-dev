@@ -1,3 +1,4 @@
+import { LanguagePreferenceSelector } from "@/components/profile/LanguagePreferenceSelector";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { ArrowRight, ArrowLeft, GraduationCap, User, Rocket, CheckCircle2 } from "lucide-react";
@@ -122,6 +123,10 @@ export default function ProCareWelcome() {
           <ArrowLeft className="h-4 w-4" />
           {t("procare.welcome.back")}
         </button>
+
+        <div className="mb-5">
+          <LanguagePreferenceSelector />
+        </div>
 
         {/* Hero */}
         <div className="flex flex-col items-center mb-6 text-center">

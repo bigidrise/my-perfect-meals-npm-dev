@@ -1,3 +1,4 @@
+import { LanguagePreferenceSelector } from "@/components/profile/LanguagePreferenceSelector";
 import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
 import "@/styles/entry-readability.css";
 import { entryReadabilityClassName } from "@/styles/entryReadabilityGate";
@@ -630,6 +631,7 @@ function AccountOnboardingV3() {
       case 1:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <LanguagePreferenceSelector />
             <div className="text-center space-y-2">
               <h1 className="text-2xl font-bold text-white">{t("What's your name?")}</h1>
               <p className="text-white/60 text-sm">{t("You can personalize your display name later in settings")}</p>
