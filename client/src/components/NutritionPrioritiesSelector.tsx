@@ -109,6 +109,7 @@ export function NutritionPrioritiesSelector({
             >
               <button
                 type="button"
+                data-testid={`nutrition-priority-${definition.id}`}
                 aria-pressed={selected}
                 disabled={disabled}
                 onClick={() => onChange(toggleNutritionPrioritySelection(selectedPriorityIds, definition.id))}
@@ -136,7 +137,7 @@ export function NutritionPrioritiesSelector({
                 disabled={disabled}
                 onClick={() => setLearnMore(definition)}
                 className={`absolute right-3 top-3 rounded-full p-2 text-white/60 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 ${accentStyles.focus}`}
-                aria-label={`Learn more about ${definition.label}`}
+                aria-label={t("Learn more about {{priority}}", { priority: t(definition.label) })}
               >
                 <Info className="h-4 w-4" />
               </button>
@@ -156,46 +157,46 @@ export function NutritionPrioritiesSelector({
       <InformationModal
         open={Boolean(learnMore)}
         onOpenChange={(open) => { if (!open) setLearnMore(null); }}
-        title={learnMore?.label ?? "Nutrition Priority"}
+        title={t(learnMore?.label ?? "Nutrition Priority")}
         description={learnMore
-          ? audience === "pediatric"
+          ? t(audience === "pediatric"
             ? learnMore.pediatricProjection.shortSummary
-            : learnMore.shortSummary
+            : learnMore.shortSummary)
           : undefined}
         className="bg-zinc-950 text-white border-white/20"
-        footer={<Button className={`w-full ${accentStyles.button}`} onClick={() => setLearnMore(null)}>Done</Button>}
+        footer={<Button className={`w-full ${accentStyles.button}`} onClick={() => setLearnMore(null)}>{t("Done")}</Button>}
       >
         {learnMore && (
           <div className="space-y-5 text-sm">
-            <EducationSection title="What is this?" text={learnMore.whatItIs} />
+            <EducationSection title={t("What is this?")} text={t(learnMore.whatItIs)} />
             <EducationSection
-              title={audience === "pediatric" ? "Why might I choose this for my child?" : "Why might I choose this?"}
-              text={audience === "pediatric" ? learnMore.pediatricProjection.whyChooseIt : learnMore.whyChooseIt}
+              title={t(audience === "pediatric" ? "Why might I choose this for my child?" : "Why might I choose this?")}
+              text={t(audience === "pediatric" ? learnMore.pediatricProjection.whyChooseIt : learnMore.whyChooseIt)}
             />
             <EducationSection
-              title="What will My Perfect Meals do?"
-              text={audience === "pediatric" ? learnMore.pediatricProjection.whatMpmDoes : learnMore.whatMpmDoes}
+              title={t("What will My Perfect Meals do?")}
+              text={t(audience === "pediatric" ? learnMore.pediatricProjection.whatMpmDoes : learnMore.whatMpmDoes)}
             />
             <div>
-              <h3 className="font-semibold text-white">Food examples</h3>
-              <p className="mt-1 leading-relaxed text-white/70">{learnMore.foodExamples.join(", ")}.</p>
+              <h3 className="font-semibold text-white">{t("Food examples")}</h3>
+              <p className="mt-1 leading-relaxed text-white/70">{learnMore.foodExamples.map(food => t(food)).join(", ")}.</p>
             </div>
             <div>
-              <h3 className="font-semibold text-white">Important limitations</h3>
+              <h3 className="font-semibold text-white">{t("Important limitations")}</h3>
               <ul className="mt-2 space-y-2 text-white/70">
                 {(audience === "pediatric"
                   ? learnMore.pediatricProjection.limitations
                   : learnMore.limitations
-                ).map((limitation) => <li key={limitation}>• {limitation}</li>)}
+                ).map((limitation) => <li key={limitation}>• {t(limitation)}</li>)}
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold text-white">Sources</h3>
+              <h3 className="font-semibold text-white">{t("Sources")}</h3>
               <ul className="mt-2 space-y-2">
                 {learnMore.citations.map((citation) => (
                   <li key={citation.url}>
                     <a href={citation.url} target="_blank" rel="noreferrer" className={`${accentStyles.link} underline underline-offset-2`}>
-                      {citation.title}
+                      {t(citation.title)}
                     </a>
                   </li>
                 ))}
