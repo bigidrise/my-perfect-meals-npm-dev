@@ -20,12 +20,13 @@ export function ingredientMeasurementUnit(value: string): string {
   const aliases: Record<string, string> = {
     grams: "g", gram: "g", gramo: "g", gramos: "g",
     ounces: "oz", ounce: "oz", onza: "oz", onzas: "oz",
-    pounds: "lb", pound: "lb", lbs: "lb",
+    pounds: "lb", pound: "lb", lbs: "lb", libra: "lb", libras: "lb",
     cups: "cup", taza: "cup", tazas: "cup",
     tablespoons: "tbsp", tablespoon: "tbsp", cucharada: "tbsp", cucharadas: "tbsp",
     teaspoons: "tsp", teaspoon: "tsp", cucharadita: "tsp", cucharaditas: "tsp",
     milliliters: "ml", milliliter: "ml", mililitro: "ml", mililitros: "ml",
-    unidad: "each", unidades: "each",
+    unidad: "each", unidades: "each", huevo: "egg", huevos: "eggs",
+    grande: "large", grandes: "large", mediano: "medium", pequeno: "small",
   };
   return aliases[unit] ?? unit;
 }
@@ -38,7 +39,7 @@ export function freshEggPart(name: string): "whole" | "white" | "yolk" | null {
 }
 
 export const EGG_COUNT_UNITS = new Set([
-  "egg", "eggs", "whole", "large", "medium", "small", "jumbo", "extra-large",
+  "egg", "eggs", "whole", "large", "medium", "small", "jumbo", "extra-large", "xl",
   "each", "count", "piece", "pieces", "white", "whites", "yolk", "yolks",
 ]);
 

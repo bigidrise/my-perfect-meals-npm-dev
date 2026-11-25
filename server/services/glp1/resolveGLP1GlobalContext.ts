@@ -43,6 +43,7 @@ import type { ResolvedGLP1Targets } from "./resolveGLP1MealTargets";
 import { resolveDailyNutritionState } from "../nutritionStateService";
 import type { DailyNutritionState } from "../../../shared/dailyNutritionPrescription";
 import { resolveCurrentGLP1MealAuthority, type CurrentGLP1Source } from "./currentMealAuthority";
+import { GLP1_CHEESE_PRODUCT_GUIDANCE } from "../../../shared/glp1CheesePolicy";
 export type GLP1ActivationSource = CurrentGLP1Source;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -251,7 +252,8 @@ export function buildGLP1RecommendationBlock(ctx: GLP1GlobalContext): string {
     "",
     "FOOD SELECTION RULES for GLP-1-oriented nutrition support (do not infer medication use; guide CHOICES and PREPARATION):",
     `• PROTEIN FIRST: Always lead recommendations with the highest-protein option available. Target ≥${proteinTarget}g protein.`,
-    `• FAT CEILING: Avoid fried foods, heavy cream sauces, buttery preparations, and high-fat cheeses. Favor preparations ≤${fatCeiling}g fat.`,
+    `• FAT CEILING: Avoid fried foods, heavy cream sauces, and buttery preparations. Evaluate cheese type and measured amount within the whole-meal allowance of ≤${fatCeiling}g fat rather than banning high-fat cheese names.`,
+    GLP1_CHEESE_PRODUCT_GUIDANCE,
     "• PREPARATION: Prefer grilled, baked, steamed, or roasted. Avoid breaded, fried, or sauce-heavy dishes.",
     "• STARCH STRATEGY: Recommend skipping or reducing starchy sides (fries, rice, bun, bread). Suggest vegetables or salad instead.",
     "• PORTION AWARENESS: Suggest manageable portions and let the person adjust to their appetite. Do NOT encourage large plates or 'hearty' meals.",

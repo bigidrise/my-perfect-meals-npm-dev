@@ -1,6 +1,7 @@
 import type { ProductCandidate, ProductEligibilityDecision } from "../../../shared/productCandidateContract";
 import { canonicalShoppingIngredient, type ShoppingCatalogDecision, type ShoppingIngredientRequest } from "../../../shared/shoppingProductSelection";
 import type { ProductSubjectSnapshot } from "./subjectAuthority";
+import { isGLP1CompositionSensitiveCheese } from "../../../shared/glp1CheesePolicy";
 
 /** Presentation only: these flags never award eligibility or alter catalog ranking. */
 export function shoppingCatalogPresentation(
@@ -42,6 +43,10 @@ function hasReductionGuidance(guidance: readonly string[], nutrient: string): bo
 /** One generic shopping tip from the already-resolved profile or explicit request. */
 export function shoppingCatalogTip(input: ShoppingIngredientRequest, subject: ProductSubjectSnapshot): string {
   const ingredient = canonicalShoppingIngredient(input);
+  if (subject.status === "resolved" && subject.glp1Active &&
+      isGLP1CompositionSensitiveCheese(ingredient.originalName)) {
+    return "Keep the recipe's cheese type and measured amount. Compare label fat and protein at that amount within the whole meal; a low-fat claim isn't clearance. Missing amounts or label facts remain unverified.";
+  }
   const explicit = ingredient.requirements.filter(r => r.origin !== "profile_guidance");
   const requestsLowerSodium = explicit.some(r =>
     /^(?:low sodium|reduced sodium|no added salt|sodium free|salt free)$/i.test(r.value.trim().replace(/[-_]/g, " ")));

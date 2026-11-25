@@ -4727,7 +4727,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
     // A canonical request must never turn a verification/provider exception
     // into an unrelated, unverified template. Preserve fail-closed behavior.
     if (chefFoodContext) {
-      return mealVerificationFailure(error);
+      return mealVerificationFailure(error, preferredLanguage);
     }
     
     // Fallback to deterministic template

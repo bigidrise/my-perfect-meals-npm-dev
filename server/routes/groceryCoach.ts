@@ -20,6 +20,7 @@ import { findProductDevelopment, ProductSubjectContextUnavailableError } from ".
 import { canonicalShoppingIngredient } from "../../shared/shoppingProductSelection";
 import { GROCERY_COACH_CARB_PROMPT, groceryCoachCarbBreakdown, groceryCoachPerServingMacros } from "@shared/groceryCoachCarbs";
 import { repairGroceryCoachCarbs } from "../services/groceryCoachCarbRepair";
+import { groceryCoachGLP1Issue, groceryCoachGLP1IssueMessage } from "../services/groceryCoachGLP1Verification";
 
 const router = express.Router();
 
@@ -439,12 +440,15 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
       const prot = Number(mac.protein);
       const fatViolation = Number.isFinite(fat) && fat > t.maximumToleratedFatGrams;
       const protFloorViolation = Number.isFinite(prot) && prot < t.minimumProteinFloor * 0.75;
-      if (fatViolation) {
+      const initialGLP1Issue = groceryCoachGLP1Issue(result, groceryGlp1Targets);
+      if (fatViolation || initialGLP1Issue) {
         console.warn(`[GroceryCoach/GLP-1] Macro violation — fat:${fat}g cal:${cal} — retrying`);
         const glp1MacroFix =
           `\n\nCRITICAL GLP-1 MACRO CORRECTION: Your previous recommendation had ` +
           `${fat}g fat (independent tolerability limit is ${t.maximumToleratedFatGrams}g). Adapt the requested meal ` +
           `using lean proteins and non-oily cooking methods. ` +
+          `Preserve the requested dish and cheese; choose its type and positive measured quantity, including cheese already owned. ` +
+          `The previous result needs correction for: ${initialGLP1Issue ?? "fat_allowance"}. ` +
           `Per serving, fat must be ≤ ${t.maximumToleratedFatGrams}g. Calories are planning guidance, not a rejection limit. ` +
           `Return total-recipe macros across all meal.servings, not per-serving macros.`;
         try {
@@ -494,6 +498,13 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
           result.reasoning.push(`GLP-1 note: This meal's protein (${Math.round(prot)}g) is below your target of ${t.minimumProteinFloor}g. Consider adding a lean protein source such as egg whites, white fish, or legumes.`);
         }
       }
+    }
+    const initialFinalGLP1Issue = groceryCoachGLP1Issue(result, groceryGlp1Targets);
+    if (initialFinalGLP1Issue) {
+      return res.status(422).json({
+        error: "PROTOCOL_VIOLATION", failureReason: initialFinalGLP1Issue,
+        message: groceryCoachGLP1IssueMessage(initialFinalGLP1Issue, rawLang), retryable: true,
+      });
     }
 
     // ── Save to recommendation history (non-blocking, fire-and-forget) ────────
@@ -598,6 +609,13 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
               skipAdaptableConflicts: true,
             });
             if (retryScan.passed) {
+              const retryGLP1Issue = groceryCoachGLP1Issue(retryResult, groceryGlp1Targets);
+              if (retryGLP1Issue) {
+                return res.status(422).json({
+                  error: "PROTOCOL_VIOLATION", failureReason: retryGLP1Issue,
+                  message: groceryCoachGLP1IssueMessage(retryGLP1Issue, rawLang), retryable: true,
+                });
+              }
               const canonicalValidation = passesCanonicalFinalValidation(retryResult);
               if (!canonicalValidation.valid) {
                 console.warn("[GroceryCoach] Final validation rejected retry:", canonicalValidation.violations);

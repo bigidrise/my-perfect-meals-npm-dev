@@ -6,6 +6,7 @@ import { assertSupportedProductMedicalClaims } from './productMedicalClaimPolicy
 import { classifyProductLookupFailure, type ProductLookupFailure } from './productLookupFailure';
 import { developmentGroceryChoiceStore, groceryChoiceKey, groceryMemoryPrompt, orderRememberedChoices, type GroceryChoiceStore } from "./groceryChoiceMemory";
 import type { ShoppingIngredientRequest } from "../../shared/shoppingProductSelection";
+import { GLP1_CHEESE_PRODUCT_GUIDANCE } from "../../shared/glp1CheesePolicy";
 import {
   appendWholeFoodStandardPrompt,
   evaluateWholeFoodCandidate,
@@ -434,6 +435,8 @@ CRITICAL RULES:
 - If the product is clearly fine, say so warmly and confidently`;
 
 const ALIGNMENT_SYSTEM_PROMPT = `You are a personalized food intelligence advisor for a nutrition app called MyPerfectMeals.
+When the supplied current profile has active GLP-1 guidance, apply the following cheese interpretation; this does not activate GLP-1:
+${GLP1_CHEESE_PRODUCT_GUIDANCE}
 Analyze a food product's ingredient list and provide a calibrated, educational alignment assessment based on the user's specific health profile.
 
 CORE PURPOSE:
@@ -715,6 +718,8 @@ function makeFrontLabelResult(productName: string): IngredientScanResult {
 // Explicitly allows named brand alternatives. Always includes an accuracy note.
 
 const BY_NAME_SYSTEM_PROMPT = (knowledgeOnly = false) => `You are a food product expert and personalized nutrition advisor integrated into the MyPerfectMeals app. You have encyclopedic knowledge of branded grocery products — their exact ingredient lists, typical nutrition panel values, manufacturing practices, and how they compare within their category.
+When the supplied current profile has active GLP-1 guidance, apply the following cheese interpretation; this does not activate GLP-1:
+${GLP1_CHEESE_PRODUCT_GUIDANCE}
 
 ${knowledgeOnly ? `YOUR JOB: Given a product name or shopping-category request and a user's health profile, provide personalized, knowledge-based shopping guidance. For a category such as "I'm looking for spaghetti sauce", compare relevant real products; do not invent a single branded product or grade the category as if it were a verified package.
 

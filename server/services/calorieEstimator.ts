@@ -9,6 +9,12 @@
  * approximate and catch order-of-magnitude errors, not rounding differences.
  */
 
+import { parseMeasurementNumber } from "../../shared/units";
+import {
+  approximateEggGrams, EGG_COUNT_UNITS, freshEggPart,
+  ingredientMeasurementName, ingredientMeasurementUnit,
+} from "../../shared/ingredientMeasurements";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // estimateCaloriesFromIngredients
 // ─────────────────────────────────────────────────────────────────────────────
@@ -27,7 +33,7 @@ export function estimateCaloriesFromIngredients(
   // qty + unit → approximate grams
   const toGrams = (qty: number, unit: string, name: string): number => {
     const u = unit.toLowerCase().trim();
-    const n = name.toLowerCase();
+    const n = ingredientMeasurementName(name);
     if (u === 'cup' || u === 'cups') {
       if (n.includes('flour') && !n.includes('almond')) return qty * 125;
       if (n.includes('almond flour') || n.includes('almond meal')) return qty * 96;
@@ -71,7 +77,8 @@ export function estimateCaloriesFromIngredients(
     if (/\b(bread|tortilla|cracker|pita)\b/.test(n)) return 265;
     if (/\b(potato|sweet potato|yam)\b/.test(n)) return 85;
     if (/\b(chicken|turkey|beef|pork|lamb|fish|salmon|tuna|shrimp|cod)\b/.test(n)) return 165;
-    if (/\b(egg)\b/.test(n) && !/eggplant/.test(n)) return 155;
+    const egg = freshEggPart(n);
+    if (egg) return egg === "white" ? 52 : egg === "yolk" ? 322 : 155;
     if (/\b(milk|yogurt|kefir|buttermilk)\b/.test(n)) return 60;
     if (/\b(fruit|apple|banana|mango|berry|strawberry|blueberry|raspberry|cherry)\b/.test(n)) return 55;
     if (/\b(avocado)\b/.test(n)) return 160;
@@ -83,9 +90,10 @@ export function estimateCaloriesFromIngredients(
 
   let totalKcal = 0;
   for (const ing of ingredients) {
-    const qty = parseFloat(ing.quantity) || 0;
+    const qty = parseMeasurementNumber(ing.quantity) ?? 0;
     if (!qty || !ing.name) continue;
-    const grams = toGrams(qty, ing.unit || '', ing.name);
+    const grams = approximateEggGrams(ing.name, ing.quantity, ing.unit || '') ??
+      toGrams(qty, ingredientMeasurementUnit(ing.unit || ''), ing.name);
     totalKcal += (grams / 100) * kcalPer100g(ing.name);
   }
 
@@ -107,38 +115,19 @@ export interface SanityOption {
   ingredients?: SanityIngredient[];
 }
 
-/** Explicit quantities only: parseFloat would silently accept "2-20" or "2 dozen". */
-function eggQuantity(quantity: string): number | null {
-  const value = String(quantity).trim();
-  if (/^\d+(?:\.\d+)?$/.test(value)) {
-    const number = Number(value);
-    return Number.isFinite(number) && number > 0 ? number : null;
-  }
-  const fraction = value.match(/^(?:(\d+)\s+)?(\d+)\/(\d+)$/);
-  if (!fraction || Number(fraction[3]) === 0) return null;
-  const number = Number(fraction[1] ?? 0) + Number(fraction[2]) / Number(fraction[3]);
-  return Number.isFinite(number) && number > 0 ? number : null;
-}
-
 function eggCountEquivalent(ingredient: SanityIngredient): number | null {
-  const quantity = eggQuantity(ingredient.quantity);
-  if (quantity === null) return null;
-  const unit = (ingredient.unit || "").trim().toLowerCase();
-  const name = ingredient.name.toLowerCase();
+  const quantity = parseMeasurementNumber(ingredient.quantity);
+  if (quantity === null || quantity <= 0) return null;
+  const unit = ingredientMeasurementUnit(ingredient.unit || "");
+  const name = ingredientMeasurementName(ingredient.name);
   // Concentrated or formulated products cannot safely use fresh-egg conversions.
   if (/\b(powder|powdered|dried|substitute|replacer|mix)\b/.test(name)) return null;
-  if (/^(egg|eggs|whole|large|medium|small|each|count|piece|pieces|white|whites|yolk|yolks)$/.test(unit)) {
+  if (EGG_COUNT_UNITS.has(unit)) {
     return quantity;
   }
   const gramsPerEgg = /\bwhites?\b/.test(name) ? 33 : /\byolks?\b/.test(name) ? 17 : 50;
-  const gramsPerUnit: Record<string, number> = {
-    g: 1, gram: 1, grams: 1, oz: 28.3495, ounce: 28.3495, ounces: 28.3495,
-    kg: 1000, lb: 453.592, lbs: 453.592, pound: 453.592, pounds: 453.592,
-    ml: 1, milliliter: 1, milliliters: 1, cup: 240, cups: 240,
-    tbsp: 15, tablespoon: 15, tablespoons: 15, tsp: 5, teaspoon: 5, teaspoons: 5,
-  };
-  return Object.prototype.hasOwnProperty.call(gramsPerUnit, unit)
-    ? quantity * gramsPerUnit[unit] / gramsPerEgg : null;
+  const grams = approximateEggGrams(name, ingredient.quantity, unit);
+  return grams === null ? null : grams / gramsPerEgg;
 }
 
 /** Dish-class-aware ingredient quantity sanity check.
@@ -160,8 +149,8 @@ export function checkIngredientSanity(
 
   for (const opt of options) {
     for (const ing of (opt.ingredients || [])) {
-      const name = (ing.name || '').toLowerCase();
-      const unit = (ing.unit || '').toLowerCase();
+      const name = ingredientMeasurementName(ing.name || '');
+      const unit = ingredientMeasurementUnit(ing.unit || '');
       // Check before the legacy parseFloat/zero shortcut so invalid egg amounts
       // cannot bypass verification. All other ingredient limits stay unchanged.
       if (/\beggs?\b/.test(name) && !/\b(noodles?|eggplant)\b/.test(name)) {

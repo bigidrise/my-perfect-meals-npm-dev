@@ -23,7 +23,7 @@ SOLID FOODS — use oz or g:
 
 EGGS — counts include size; measured liquid whites do not need a size:
   - CORRECT: name="large eggs", quantity="3", unit="each"
-  - CORRECT: name="liquid egg whites", quantity="100", unit="g"
+  - CORRECT: name="liquid egg whites", quantity="3.5", unit="oz"
   - CORRECT: name="egg whites", quantity="1/2", unit="cup"
   - WRONG: "2 eggs" (no size = INVALID)
   - 1 large egg ≈ 50g for reference
@@ -69,7 +69,7 @@ export function validateIngredientPrecision(
     const name = ingredientMeasurementName(ing.name || '');
     const unit = ingredientMeasurementUnit(ing.unit || '');
     const egg = freshEggPart(name);
-    const countedEgg = !!egg && EGG_COUNT_UNITS.has(unit);
+    const countedEgg = !!egg && (EGG_COUNT_UNITS.has(unit) || unit === "");
 
     // Check for forbidden units
     if (FORBIDDEN_UNITS.includes(unit) && !(countedEgg && unit === "each")) {
