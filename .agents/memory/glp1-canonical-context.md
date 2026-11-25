@@ -6,6 +6,21 @@ description: Canonical GLP-1 signals and narrowly approved member-reported curre
 # GLP-1 Canonical Context Resolver
 
 ## Current product scope
+### Founder-stated food-choice objective
+The GLP-1 Builder should help people get the food they want, including cheese,
+by recommending which type and how much rather than blocking all cheese by name.
+The founder connects this guidance to Grocery Coach, Product Scan, Shopping
+Product Options and the future From Scratch workflow. Three ounces was an
+example, not a prescribed cheese allowance.
+
+**Why:** The founder explicitly clarified the product objective after reduced-fat
+cheddar was rejected by a blanket cheese-name check.
+
+**How to apply:** Propose portion/composition-aware adaptation while preserving
+independent allergies, dietary rules, physician directives, nutritional limits,
+and exact-product evidence. This objective is not authorization to remove every
+food restriction, infer product compatibility, or activate future workflows.
+
 New Development work is limited to explicit current-use reporting in onboarding
 and Edit Profile, the existing GLP-1 and Diabetic Builder pathways, their My Perfect
 Menu symptom preflight, and replacing the Diabetic Hub's broken activation banner
