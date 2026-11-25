@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Volume2, Square } from "lucide-react";
 import { ttsService } from "@/lib/tts";
+import { LegacyNarration } from "@/components/LegacyNarration";
 import type { DietClassification } from "@/components/MealClassificationPill";
 import { PillButton } from "@/components/ui/pill-button";
 
@@ -79,7 +80,7 @@ export default function KosherProTip({
   if (!category) return null;
 
   return (
-    <PillButton
+    <LegacyNarration><PillButton
       onClick={handleToggle}
       active={isPlaying}
       variant="amber"
@@ -90,6 +91,6 @@ export default function KosherProTip({
         <Volume2 className="h-2.5 w-2.5 shrink-0 mr-1" />
       )}
       {isPlaying ? "Stop" : "Kosher Tip"}
-    </PillButton>
+    </PillButton></LegacyNarration>
   );
 }

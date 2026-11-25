@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
 import { ttsService } from "@/lib/tts";
+import { LegacyNarration } from "@/components/LegacyNarration";
 import {
   TRAINER_INTRO_SCRIPT,
   PHYSICIAN_INTRO_SCRIPT,
@@ -285,7 +286,7 @@ export function ProfessionalIntroOverlay({
               </p>
 
               {/* Listen Button */}
-              <div className="flex flex-col items-center gap-1.5 mt-5">
+              <LegacyNarration><div className="flex flex-col items-center gap-1.5 mt-5">
                 <div
                   className="rounded-full overflow-hidden"
                   style={{
@@ -300,7 +301,7 @@ export function ProfessionalIntroOverlay({
                 <PillButton onClick={handleListenToggle} active={isPlaying}>
                   {isPlaying ? "Stop" : "Listen"}
                 </PillButton>
-              </div>
+              </div></LegacyNarration>
             </motion.div>
 
             <motion.div

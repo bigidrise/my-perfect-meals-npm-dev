@@ -1,4 +1,6 @@
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { useState, useRef, useCallback } from "react";
+import { INGREDIENT_MEASUREMENT_ERROR_COPY, isIngredientMeasurementError } from "@/lib/ingredientMeasurementError";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { handleDefinitiveAuthFailure, SESSION_EXPIRED_MESSAGE } from "@/lib/authRequired";
 import { getAuthHeaders } from "@/lib/auth";
@@ -63,6 +65,7 @@ interface UseSnackCreatorRequestResult {
 }
 
 export function useSnackCreatorRequest(userId?: string, householdProfileId?: string): UseSnackCreatorRequestResult {
+  const { t } = useConsumerCopy();
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -147,6 +150,9 @@ export function useSnackCreatorRequest(userId?: string, householdProfileId?: str
         // Check if this is a safety/allergy block with detailed message
         if (data.safetyBlocked && data.error) {
           throw new Error(data.error);
+        }
+        if (response.status === 422 && isIngredientMeasurementError(data)) {
+          throw new Error(t(INGREDIENT_MEASUREMENT_ERROR_COPY));
         }
         throw new Error(data.error || data.message || "Failed to generate snack");
       }

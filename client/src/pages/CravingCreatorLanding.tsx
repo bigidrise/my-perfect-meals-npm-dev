@@ -1,3 +1,4 @@
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
@@ -16,12 +17,16 @@ interface CravingFeature {
 }
 
 export default function CravingCreatorLanding() {
+  const { t } = useConsumerCopy();
   const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
-  usePageTitle("Craving Hub");
+  usePageTitle(t("Craving Hub"));
 
   useEffect(() => {
-    document.title = "Cravings, Sushi & Desserts Hub | My Perfect Meals";
+    document.title = t("Cravings, Sushi & Desserts Hub | My Perfect Meals");
+  }, [t]);
+
+  useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
     
     // Phase C.7: Emit "opened" event for hub walkthrough
@@ -91,7 +96,7 @@ export default function CravingCreatorLanding() {
           <Sparkles className="h-6 w-6 text-orange-500" />
 
           {/* Title */}
-          <h1 className="text-lg font-bold text-white">Cravings, Sushi & Desserts Hub</h1>
+          <h1 className="text-lg font-bold text-white">{t("Cravings, Sushi & Desserts Hub")}</h1>
 
           
         </div>
@@ -115,8 +120,8 @@ export default function CravingCreatorLanding() {
           )}
           {/* Hub Intro — matches Pairings Hub pattern */}
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-white mb-2">Food Creativity</h2>
-            <p className="text-sm text-white/70">AI-powered meal, dessert, and sushi creation built around what you want right now.</p>
+            <h2 className="text-2xl font-bold text-white mb-2">{t("Food Creativity")}</h2>
+            <p className="text-sm text-white/70">{t("AI-powered meal, dessert, and sushi creation built around what you want right now.")}</p>
           </div>
 
           {/* Craving Features - Vertical Stack */}
@@ -151,7 +156,7 @@ export default function CravingCreatorLanding() {
                       <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-pink-600 to-black rounded-full border border-pink-400/30 shadow-lg z-10">
                         <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-pulse"></div>
                         <span className="text-white font-semibold text-[8px] tracking-wide">
-                          Powered by Emotion AI™
+                          {t("Powered by Emotion AI™")}
                         </span>
                       </div>
                     )}
@@ -160,11 +165,11 @@ export default function CravingCreatorLanding() {
                         <div className="flex items-center gap-2">
                           <Icon className={`h-4 w-4 flex-shrink-0 ${isEmotionAI ? "text-pink-500" : "text-orange-500"}`} />
                           <h3 className="text-sm font-semibold text-white">
-                            {feature.title}
+                            {t(feature.title)}
                           </h3>
                         </div>
                         <p className="text-xs text-white/80 ml-6">
-                          {feature.description}
+                          {t(feature.description)}
                         </p>
                       </div>
                     </CardContent>

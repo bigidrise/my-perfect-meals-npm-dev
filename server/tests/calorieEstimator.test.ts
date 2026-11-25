@@ -451,12 +451,12 @@ describe('checkIngredientSanity', () => {
     expect(checkIngredientSanity([{ name: 'Empty', ingredients: [] }], 1, 'cake')).toBe(true);
   });
 
-  test('PASS: ingredient with zero quantity is skipped', () => {
+  test('FAIL: ingredient with zero quantity is rejected', () => {
     const options = [{
       name: 'Test',
       ingredients: [ing('coconut oil', 0, 'cups')],
     }];
-    expect(checkIngredientSanity(options, 1, 'chocolate cake')).toBe(true);
+    expect(checkIngredientSanity(options, 1, 'chocolate cake')).toBe(false);
   });
 
   test('PASS: multiple options — all valid options pass even when checked together', () => {

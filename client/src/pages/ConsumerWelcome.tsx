@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { NarrationBar } from "@/components/NarrationBar";
+import { LegacyNarration } from "@/components/LegacyNarration";
 import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 
 const COPILOT_SECTIONS = [
@@ -55,7 +56,7 @@ export default function ConsumerWelcome() {
           </p>
         </div>
 
-        <div className="mb-6 px-4 py-3 rounded-xl bg-gradient-to-r from-orange-900/50 to-amber-900/50 border border-orange-400/20">
+        <LegacyNarration><div className="mb-6 px-4 py-3 rounded-xl bg-gradient-to-r from-orange-900/50 to-amber-900/50 border border-orange-400/20">
           <p className="text-xs text-white/50 mb-2">
               {t("Hear a quick intro from Chef — your AI nutrition coach")}
           </p>
@@ -65,7 +66,7 @@ export default function ConsumerWelcome() {
             controlLabels={narrationControls}
             speedOverride="1.0"
           />
-        </div>
+        </div></LegacyNarration>
 
         <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-5 mb-6">
           <h2 className="text-lg font-bold text-white mb-3">

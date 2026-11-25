@@ -10,6 +10,7 @@
 import { glp1Rules, getGLP1SystemPrompt } from '../rules/glp1Rules';
 import type { ResolvedGLP1Targets } from '../../glp1/resolveGLP1MealTargets';
 import { getGLP1FatCeiling } from '../../glp1/resolveGLP1MealTargets';
+import { GLP1_CHEESE_ADAPTATION_GUIDANCE } from "../../../../shared/glp1CheesePolicy";
 
 export interface GLP1PromptContext {
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -164,7 +165,8 @@ ${glp1Rules.preferredIngredients.slice(0, 10).join(', ')}`;
 
   return `USER SELECTED INGREDIENTS (not yet nutritionally verified):
 ${selectedIngredients.join(', ')}
-Evaluate quantities, per-serving fat, added sugar, protein, and individual tolerability. Preserve recognizable requested desserts while adapting portions or composition.`;
+Evaluate quantities, per-serving fat, added sugar, protein, and individual tolerability. Preserve recognizable requested desserts while adapting portions or composition.
+${GLP1_CHEESE_ADAPTATION_GUIDANCE}`;
 }
 
 export function buildGLP1SnackPrompt(
@@ -265,6 +267,7 @@ export function buildGLP1ConstraintOverlay(
       `- Cooking: avoid fried, battered, breaded, or high-fat preparations; prefer baked, steamed, grilled, poached, or sautéed with minimal oil\n` +
       `- No carbonated drinks, heavy sauces, or high-fat condiments regardless of diet category\n` +
       `- Dessert names are not prohibitions; adapt portions and composition while preserving requested identity, and verify actual nutrition and all independent safety restrictions.\n` +
+      `${GLP1_CHEESE_ADAPTATION_GUIDANCE}\n` +
       (t.activeConstraints.length > 0
         ? `- Additional stacked protocols: ${t.activeConstraints.join(', ')}\n`
         : '')
@@ -280,6 +283,7 @@ export function buildGLP1ConstraintOverlay(
     `- Protein priority: minimum ${glp1Rules.portionGuidelines.minProteinGrams}g per meal\n` +
     `- Portion: SMALL to MODERATE — no large or restaurant-style portions\n` +
     `- Cooking: avoid fried, battered, breaded, or high-fat preparations; prefer baked, steamed, grilled, or poached\n` +
-    `- No carbonated drinks, heavy sauces, or high-fat condiments\n`
+    `- No carbonated drinks, heavy sauces, or high-fat condiments\n` +
+    `${GLP1_CHEESE_ADAPTATION_GUIDANCE}\n`
   );
 }

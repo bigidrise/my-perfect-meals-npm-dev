@@ -86,7 +86,7 @@ const meals = [
   {
     name: "Lean chicken bowl",
     description: "Chicken with vegetables.",
-    ingredients: [{ name: "chicken breast", quantity: "5", unit: "oz" }, { name: "broccoli" }],
+    ingredients: [{ name: "chicken breast", quantity: "5", unit: "oz" }, { name: "broccoli", quantity: "1", unit: "cup" }],
     instructions: "Grill the chicken and steam the broccoli.",
     calories: 380,
     protein: 40,
@@ -97,7 +97,7 @@ const meals = [
   {
     name: "Chicken spinach plate",
     description: "Chicken with spinach.",
-    ingredients: [{ name: "chicken breast" }, { name: "spinach" }],
+    ingredients: [{ name: "chicken breast", quantity: "5", unit: "oz" }, { name: "spinach", quantity: "1", unit: "cup" }],
     instructions: "Bake the chicken and wilt the spinach.",
     calories: 340,
     protein: 38,
@@ -258,5 +258,121 @@ describe("Fridge Rescue Human Food consumer contract", () => {
         "nutrition_evidence_unknown",
         "verified_carbs_missing",
       ]));
+  });
+});
+
+describe("Fridge Rescue final nutrition and measurement integrity", () => {
+  const evidence = {
+    protocolValidated: true,
+    glp1Validated: true,
+  };
+
+  const validMeal = {
+    name: "Chicken and broccoli",
+    description: "Measured chicken and vegetables.",
+    ingredients: [
+      { name: "chicken breast", quantity: "170", unit: "g" },
+      { name: "broccoli", quantity: "0.125", unit: "cup" },
+    ],
+    instructions: "Cook chicken thoroughly and steam broccoli.",
+    calories: 300,
+    protein: 40,
+    carbs: 6,
+    fat: 8,
+    starchyCarbs: 0,
+    fibrousCarbs: 6,
+  };
+
+  test.each([
+    ["missing ingredients", { ingredients: undefined }],
+    ["empty ingredients", { ingredients: [] }],
+    ["missing quantity", { ingredients: [{ name: "chicken", unit: "g" }] }],
+    ["missing unit", { ingredients: [{ name: "chicken", quantity: "170" }] }],
+    ["zero quantity", { ingredients: [{ name: "chicken", quantity: "0", unit: "g" }] }],
+    ["invalid quantity", { ingredients: [{ name: "chicken", quantity: "invalid", unit: "g" }] }],
+    ["vague unit", { ingredients: [{ name: "chicken", quantity: "1", unit: "handful" }] }],
+    ["missing protein", { protein: undefined }],
+    ["negative protein", { protein: -1 }],
+    ["invalid protein", { protein: NaN }],
+    ["missing starch", { starchyCarbs: undefined }],
+    ["missing fibrous carbs", { fibrousCarbs: undefined }],
+    ["negative starch", { starchyCarbs: -1 }],
+    ["negative fibrous carbs", { fibrousCarbs: -1 }],
+    ["contradictory carbohydrate total", { carbs: 20 }],
+    ["contradictory carbohydrate split", { starchyCarbs: 20 }],
+  ])("rejects %s at final validation", (_label, changes) => {
+    const result = validateFridgeRescueMealsWithHumanFood(
+      [{ ...validMeal, ...changes } as any],
+      context(),
+      evidence,
+    );
+
+    expect(result.accepted).toHaveLength(0);
+    expect(result.rejected).toHaveLength(1);
+  });
+
+  test("preserves valid measurements and nutrition without mutation", () => {
+    const before = JSON.stringify(validMeal);
+    const result = validateFridgeRescueMealsWithHumanFood(
+      [validMeal],
+      context(),
+      evidence,
+    );
+
+    expect(result.accepted).toEqual([validMeal]);
+    expect(result.rejected).toHaveLength(0);
+    expect(JSON.stringify(validMeal)).toBe(before);
+  });
+});
+
+describe("Fridge Rescue integrity without nutrition context", () => {
+  const evidence = {
+    protocolValidated: true,
+    glp1Validated: false,
+  };
+
+  const validMeal = {
+    ...meals[1],
+    carbs: 22,
+  };
+
+  const noNutritionContext = () => context({
+    nutrition: undefined,
+    executionContext: undefined,
+  } as Partial<HumanFoodContext>);
+
+  test("accepts a complete measured meal without nutrition context", () => {
+    const result = validateFridgeRescueMealsWithHumanFood(
+      [validMeal], noNutritionContext(), evidence,
+    );
+    expect(result.accepted).toEqual([validMeal]);
+    expect(result.rejected).toHaveLength(0);
+  });
+
+  test.each([
+    ["missing ingredients", { ingredients: undefined }],
+    ["empty ingredients", { ingredients: [] }],
+    ["missing quantity", { ingredients: [{ name: "chicken breast", unit: "oz" }] }],
+    ["missing unit", { ingredients: [{ name: "chicken breast", quantity: "5" }] }],
+    ["zero quantity", { ingredients: [{ name: "chicken breast", quantity: "0", unit: "oz" }] }],
+    ["invalid quantity", { ingredients: [{ name: "chicken breast", quantity: "invalid", unit: "oz" }] }],
+    ["missing calories", { calories: undefined }],
+    ["missing protein", { protein: undefined }],
+    ["negative protein", { protein: -1 }],
+    ["missing fat", { fat: undefined }],
+    ["negative fat", { fat: -1 }],
+    ["missing starch", { starchyCarbs: undefined }],
+    ["missing fibrous carbs", { fibrousCarbs: undefined }],
+    ["negative starch", { starchyCarbs: -1 }],
+    ["contradictory total carbs", { carbs: 40 }],
+    ["nonfinite calories", { calories: Infinity }],
+  ])("rejects %s without nutrition context", (_label, override) => {
+    const result = validateFridgeRescueMealsWithHumanFood(
+      [{ ...validMeal, ...override }],
+      noNutritionContext(),
+      evidence,
+    );
+    expect(result.accepted).toHaveLength(0);
+    expect(result.rejected).toHaveLength(1);
   });
 });

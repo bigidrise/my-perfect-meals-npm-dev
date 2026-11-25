@@ -9,6 +9,12 @@ import { getRetailQuantity } from "@/lib/retailIntelligence";
 import { ShoppingQuantity } from "@/components/shopping/ShoppingQuantity";
 import { selectionForRecipe, prepareShoppingSelection } from "@shared/mealShoppingSelection";
 jest.unmock("react-i18next");
+jest.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({
+    user: { measurementPreference: "imperial", country: "US" },
+  }),
+}));
+
 jest.mock("@/lib/shoppingMetadataGate", () => ({ shoppingMetadataEnabled: true }));
 const languages = ["en", "es", "fr", "de", "it", "pt", "zh", "ja", "ko", "ar", "hi", "ru", "vi", "tl"];
 const translations = Object.fromEntries(languages.map(language => [

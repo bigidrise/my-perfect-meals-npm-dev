@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { ArrowRight, ArrowLeft, GraduationCap, User, Rocket, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NarrationBar } from "@/components/NarrationBar";
+import { LegacyNarration } from "@/components/LegacyNarration";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useTranslation } from "react-i18next";
 
@@ -14,41 +15,36 @@ const COPILOT_SECTIONS = [
   },
 ];
 
-// i18n: leave for content team
 const JOURNEY_STEPS = [
   {
     number: "1",
     icon: <User className="w-5 h-5 text-orange-400" />,
-    title: "Experience My Perfect Meals as a User",
-    description:
-      "Complete your own personal profile and generate your first nutrition plan. You'll understand exactly what your clients experience before you ever guide one.",
+    titleKey: "procare.welcome.steps.experience.title",
+    descriptionKey: "procare.welcome.steps.experience.description",
   },
   {
     number: "2",
     icon: <GraduationCap className="w-5 h-5 text-orange-400" />,
-    title: "Professional Certification — Phase 1: Platform Fundamentals",
-    description:
-      "Master every feature of the platform. Learn to personalize nutrition, use AI responsibly, onboard clients, and save time through automation.",
+    titleKey: "procare.welcome.steps.fundamentals.title",
+    descriptionKey: "procare.welcome.steps.fundamentals.description",
   },
   {
     number: "3",
     icon: <Rocket className="w-5 h-5 text-orange-400" />,
-    title: "Professional Certification — Phase 2: Business & ProCare Success",
-    description:
-      "Learn to manage clients, use the Studio, build recurring revenue, run questionnaires, and grow your professional practice using ProCare.",
+    titleKey: "procare.welcome.steps.business.title",
+    descriptionKey: "procare.welcome.steps.business.description",
   },
 ];
 
-// i18n: leave for content team
 const CERT_BENEFITS = [
-  "Learn every feature of the platform",
-  "Learn how to personalize nutrition for each client",
-  "Learn how to use AI responsibly and effectively",
-  "Learn how to onboard clients efficiently",
-  "Learn how to save time through automation",
-  "Learn how to build and grow recurring revenue",
-  "Learn how to use the Studio and Business Suite",
-  "Learn how to confidently answer client questions",
+  "procare.welcome.benefits.features",
+  "procare.welcome.benefits.personalization",
+  "procare.welcome.benefits.responsibleAI",
+  "procare.welcome.benefits.clientOnboarding",
+  "procare.welcome.benefits.automation",
+  "procare.welcome.benefits.revenue",
+  "procare.welcome.benefits.studio",
+  "procare.welcome.benefits.clientQuestions",
 ];
 
 export default function ProCareWelcome() {
@@ -84,18 +80,18 @@ export default function ProCareWelcome() {
     }
   };
 
-  const roleLabel =
+  const accountReadyKey =
     role === "trainer"
-      ? "Trainer"
+      ? "procare.welcome.accountReady.trainer"
       : role === "physician"
-        ? "Physician"
-        : "Professional";
+        ? "procare.welcome.accountReady.physician"
+        : "procare.welcome.accountReady.professional";
 
   const cta = (
     <>
       {user?.onboardingCompletedAt ? (
         <div className="mb-2 text-center">
-          <p className="text-xs text-white/40">Personal profile already complete — continuing to certification</p>
+          <p className="text-xs text-white/40">{t("procare.welcome.profileComplete")}</p>
         </div>
       ) : null}
       <button
@@ -127,32 +123,30 @@ export default function ProCareWelcome() {
         <div className="flex flex-col items-center mb-6 text-center">
           <img
             src={heroChefSrc}
-            alt="Chef"
+            alt={t("procare.welcome.chefAlt")}
             className="w-56 h-auto"
           />
           <h1 className="text-3xl font-black mt-3 leading-tight">
-            Welcome to My Perfect Meals Professional
+            {t("procare.welcome.title")}
           </h1>
           <p className="text-white/60 text-sm leading-relaxed mt-2 max-w-xs">
-            {role
-              ? `Your ${roleLabel} account is ready.`
-              : "Your professional account is ready."}{" "}
-            Before you begin working with clients, every professional completes a three-step onboarding process.
+            {t(accountReadyKey)}{" "}
+            {t("procare.welcome.introduction")}
           </p>
         </div>
 
         {/* Copilot */}
-        <div className="mb-6 px-4 py-3 rounded-xl bg-black/30 border border-orange-500/30">
+        <LegacyNarration><div className="mb-6 px-4 py-3 rounded-xl bg-black/30 border border-orange-500/30">
           <p className="text-xs text-white/50 mb-2">
             Hear the full journey explained by Chef Copilot
           </p>
           <NarrationBar sections={COPILOT_SECTIONS} speedOverride="1.0" />
-        </div>
+        </div></LegacyNarration>
 
         {/* 3-Step Journey */}
         <div className="mb-6">
           <p className="text-xs font-semibold uppercase tracking-widest text-orange-400 mb-3">
-            Your Professional Journey
+            {t("procare.welcome.journeyHeading")}
           </p>
           <div className="space-y-3">
             {JOURNEY_STEPS.map((step) => (
@@ -164,8 +158,8 @@ export default function ProCareWelcome() {
                   <span className="text-sm font-black text-orange-400">{step.number}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white leading-snug mb-1">{step.title}</p>
-                  <p className="text-xs text-white/50 leading-relaxed">{step.description}</p>
+                  <p className="text-sm font-semibold text-white leading-snug mb-1">{t(step.titleKey)}</p>
+                  <p className="text-xs text-white/50 leading-relaxed">{t(step.descriptionKey)}</p>
                 </div>
               </div>
             ))}
@@ -174,12 +168,12 @@ export default function ProCareWelcome() {
 
         {/* Why it matters */}
         <div className="mb-6 p-4 rounded-2xl bg-black/30 border border-orange-500/20">
-          <p className="text-sm font-bold text-white mb-3">Why every professional begins with certification</p>
+          <p className="text-sm font-bold text-white mb-3">{t("procare.welcome.certificationHeading")}</p>
           <div className="space-y-2">
             {CERT_BENEFITS.map((benefit, i) => (
               <div key={i} className="flex items-start gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-orange-400 mt-0.5 shrink-0" />
-                <p className="text-xs text-white/70 leading-relaxed">{benefit}</p>
+                <p className="text-xs text-white/70 leading-relaxed">{t(benefit)}</p>
               </div>
             ))}
           </div>
@@ -188,9 +182,7 @@ export default function ProCareWelcome() {
         {/* Social proof */}
         <div className="p-4 rounded-2xl bg-black/20 border border-white/5">
           <p className="text-sm text-white/60 italic text-center leading-relaxed">
-            "Every My Perfect Meals professional completes this certification before entering the Studio.
-            Professionals who go through it are more confident, provide better client outcomes,
-            and grow their businesses faster."
+            {t("procare.welcome.closingStatement")}
           </p>
         </div>
 

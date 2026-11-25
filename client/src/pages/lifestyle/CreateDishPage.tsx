@@ -78,6 +78,7 @@ import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { PillButton } from "@/components/ui/pill-button";
 import { IconPillOption } from "@/components/ui/icon-pill-option";
 import { getCreateDishServerErrorMessage } from "@/lib/createDishError";
+import { INGREDIENT_MEASUREMENT_ERROR_COPY, isIngredientMeasurementError } from "@/lib/ingredientMeasurementError";
 import {
   getCreateDishAlternatives,
   normalizeCreateDishOptions,
@@ -1142,7 +1143,9 @@ export default function CreateDishPage() {
           });
           return;
         }
-        const safeServerMessage = getCreateDishServerErrorMessage(data);
+        const safeServerMessage = isIngredientMeasurementError(data)
+          ? t(INGREDIENT_MEASUREMENT_ERROR_COPY)
+          : getCreateDishServerErrorMessage(data);
         if (safeServerMessage) {
           stopProgressTicker();
           setIsGenerating(false);

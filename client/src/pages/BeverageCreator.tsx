@@ -74,6 +74,8 @@ import {
   type BeverageProtocolFailure,
 } from "@/components/BeverageProtocolFailurePanel";
 import { useTranslation } from "react-i18next";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
+import { INGREDIENT_MEASUREMENT_ERROR_COPY, isIngredientMeasurementError } from "@/lib/ingredientMeasurementError";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 const BEVERAGE_CATEGORIES = [
@@ -158,6 +160,7 @@ export default function BeverageCreator() {
   usePageTitle("Beverage Creator");
   const { toast } = useToast();
   const { t: tc } = useTranslation("common");
+  const { t: measurementCopy } = useConsumerCopy();
   const quickTour = useQuickTour("beverage-creator");
   const { user } = useAuth();
   const currentAccountRef = useRef(user?.id);
@@ -509,6 +512,16 @@ export default function BeverageCreator() {
 
         if (data?.error === "ALLERGY_SAFETY_BLOCK") {
           throw new Error(`🚨 Safety Alert: ${data.message}`);
+        }
+
+        if (res.status === 422 && isIngredientMeasurementError(data) && !isBeverageProtocolFailure(data)) {
+          stopProgressTicker();
+          setGenerationFailure({
+            show: true,
+            message: measurementCopy(INGREDIENT_MEASUREMENT_ERROR_COPY),
+            suggestedActions: [],
+          });
+          return;
         }
 
         if (import.meta.env.DEV && isBeverageProtocolFailure(data)) {

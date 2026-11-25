@@ -22,6 +22,16 @@ describe("Builder verification failure transport", () => {
     const route = readFileSync("server/routes.ts", "utf8");
     expect(route).toContain("res.json(result);");
     const pipeline = readFileSync("server/services/unifiedMealPipeline.ts", "utf8");
-    expect(pipeline).toContain("return mealVerificationFailure(error);");
+    expect(pipeline).toContain("return mealVerificationFailure(error, preferredLanguage);");
+  });
+  it("keeps GLP-1 exhaustion separate from ingredient measurement and hides private violations", () => {
+    const error = { code: "glp1_compliance_retry_exhausted", violations: ["private profile"], message: "private prompt" };
+    const result = mealVerificationFailure(error);
+    expect(result).toMatchObject({ code: error.code, status: 422, failureReason: "glp1_requirements" });
+    expect(result.error).toContain("current GLP-1 requirements");
+    expect(JSON.stringify(result)).not.toMatch(/private|prompt|profile/);
+    expect(mealVerificationFailure({ code: "INGREDIENT_SANITY_RETRY_EXHAUSTED" }).failureReason).toBe("ingredient_measurement");
+    expect(mealVerificationFailure(error, "es-MX").error).toContain("No se agregó ninguna comida");
+    expect(mealVerificationFailure({ code: "INGREDIENT_SANITY_RETRY_EXHAUSTED" }, "es").error).toContain("cantidades");
   });
 });

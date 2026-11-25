@@ -1,4 +1,10 @@
 {
+  "petTerminology": {
+    "sex": {
+      "male": "Macho",
+      "female": "Hembra"
+    }
+  },
   "measurementPreferences": {
     "title": "Preferencias de medidas",
     "country": "País",
@@ -714,6 +720,11 @@
     "checkoutErrorDesc": "Error al iniciar el pago. Por favor intenta de nuevo."
   },
   "onboarding": {
+    "thyroidGuidanceRich": "Esto activa una orientación alimentaria antiinflamatoria, centrada en el selenio, diseñada para complementar el bienestar tiroideo. <0>No constituye un diagnóstico médico</0> ni un plan de tratamiento, y <1>no sustituye la atención de tu médico o endocrinólogo</1>. Sigue siempre primero las recomendaciones de tu profesional de salud.",
+    "hormoneGuidanceRich": "Activa la generación de comidas de apoyo hormonal: grasas saludables, proteínas ricas en zinc, un mínimo de alimentos procesados y sin azúcares refinados ni aceites de semillas. <0>No es un protocolo médico</0> y <1>no sustituye la atención de tu médico</1>.",
+    "oncologyGuidanceRich": "Al seleccionar esta opción, se activa orientación nutricional general para apoyar a quienes reciben tratamiento contra el cáncer, por ejemplo, para manejar el apetito, las náuseas y las necesidades energéticas. <0>No es un diagnóstico</0> ni un plan de tratamiento, y <1>no sustituye la atención médica de tu equipo oncológico</1>. Sigue siempre primero las indicaciones de tu médico.",
+    "trialAccessDateRich": "Tienes acceso completo a todas las funciones de MPM hasta el <0>{{date}}</0>. No necesitas una tarjeta de crédito para comenzar.",
+    "trialAccessDaysRich": "Tienes acceso completo a todas las funciones de MPM durante <0>los próximos {{days}} días</0>. No necesitas una tarjeta de crédito para comenzar.",
     "goal": "¿Cuál es tu objetivo principal?",
     "goalSub": "Personalizaremos tu plan en torno a esto",
     "loseWeight": "Perder Peso",
@@ -1030,7 +1041,14 @@
     "foodsToAvoidDescription": "Alimentos o categorías que nunca quieres incluir en tus comidas. No necesitas un PIN: esta es una preferencia, no una configuración de seguridad médica.",
     "avoidedFoodPlaceholder": "Escribe un alimento específico...",
     "addAvoidedFood": "Agregar",
-    "avoidedFoodCategories": {"vegetables": "Verduras", "mushrooms": "Hongos", "onions": "Cebollas", "seafood": "Pescados y mariscos", "pork": "Cerdo", "red meat": "Carne roja"},
+    "avoidedFoodCategories": {
+      "vegetables": "Verduras",
+      "mushrooms": "Hongos",
+      "onions": "Cebollas",
+      "seafood": "Pescados y mariscos",
+      "pork": "Cerdo",
+      "red meat": "Carne roja"
+    },
     "specialtyHealthProtocol": "Protocolo de salud especializado",
     "oncologyManagedTitle": "Protocolo de cáncer / oncología — Administrado por tu equipo médico",
     "oncologyPreviouslyManagedTitle": "Protocolo de cáncer / oncología — Configurado anteriormente por tu equipo médico",
@@ -1049,7 +1067,22 @@
     "labActivatedGuidance": "Puedes desactivar Cardíaco / Enfermedad cardíaca aquí y guardar tu perfil sin modificar tus resultados de laboratorio. Esto detiene la orientación nutricional cardíaca, salvo que tu médico controle el protocolo. Los demás protocolos activados por resultados de laboratorio se administran desde Biométricas.",
     "clinicalReviewRequired": "Se requiere revisión del protocolo clínico",
     "clinicalReviewNotice": "Tu configuración clínica incluye indicaciones médicas o asignaciones clínicas anteriores. Comunícate con tu equipo médico para revisarlas antes de realizar cambios.",
-    "clinicalConditionLabels": {"renal": "Enfermedad renal", "cardiac": "Enfermedad cardíaca", "liver-disease": "Enfermedad hepática", "liver-support": "Apoyo hepático", "oncology-support": "Apoyo para cáncer / oncología", "thyroid-support": "Apoyo para la tiroides", "hashimotos": "Hashimoto", "hypothyroid": "Hipotiroidismo", "hyperthyroid": "Hipertiroidismo", "hormone-optimization": "Optimización hormonal", "menopause": "Menopausia", "perimenopause": "Perimenopausia", "metabolic-recovery": "Recuperación metabólica", "pregnancy-support": "🩷 My Perfect Pregnancy"},
+    "clinicalConditionLabels": {
+      "renal": "Enfermedad renal",
+      "cardiac": "Enfermedad cardíaca",
+      "liver-disease": "Enfermedad hepática",
+      "liver-support": "Apoyo hepático",
+      "oncology-support": "Apoyo para cáncer / oncología",
+      "thyroid-support": "Apoyo para la tiroides",
+      "hashimotos": "Hashimoto",
+      "hypothyroid": "Hipotiroidismo",
+      "hyperthyroid": "Hipertiroidismo",
+      "hormone-optimization": "Optimización hormonal",
+      "menopause": "Menopausia",
+      "perimenopause": "Perimenopausia",
+      "metabolic-recovery": "Recuperación metabólica",
+      "pregnancy-support": "🩷 My Perfect Pregnancy"
+    },
     "comingSoonClinicalSuffix": " — Próximamente (Clínico)",
     "comingSoonClinical": "Próximamente (Clínico)",
     "nutritionalGuidanceOnly": "Solo orientación nutricional",
@@ -1883,6 +1916,21 @@
   },
   "procare": {
     "bridge": {
+      "defineGoals": "Defina sus objetivos y preferencias alimentarias",
+      "exploreTools": "Explore los creadores de comidas y las herramientas",
+      "experienceAsClient": "Experimente la aplicación tal como lo harán sus clientes",
+      "personalExperienceQuote": "\"No puede guiar a alguien con confianza a través de una experiencia que usted mismo no ha vivido.\"",
+      "experienceCompleteTitle": "Ya ha experimentado My Perfect Meals como usuario",
+      "experienceCompleteDesc": "Ahora comprende lo que experimentarán sus clientes. A continuación, aprenderá a utilizar cada función de manera profesional para poder orientarlos con confianza.",
+      "majorFeatures": "Todas las funciones principales de la plataforma",
+      "clientPersonalization": "Cómo personalizar la nutrición para cada cliente",
+      "responsibleAI": "Cómo utilizar la IA de manera responsable",
+      "clientSetup": "Incorporación y configuración de clientes",
+      "mealBoardsTracking": "Tableros de comidas y seguimiento del progreso",
+      "personalProfileComplete": "Perfil personal completado",
+      "phase1Complete": "Fase 1 completada",
+      "affiliateBusinessSuite": "Programa de afiliados y Business Suite",
+      "clientRetention": "Retención de clientes y mejores prácticas",
       "step1Badge": "Paso 1 de 3",
       "step1Title": "Cree su cuenta ProCare",
       "step1Desc": "Configure su cuenta profesional para acceder a las herramientas de ProCare y a la gestión de clientes.",
@@ -1965,7 +2013,43 @@
     },
     "welcome": {
       "back": "Atrás",
-      "beginJourney": "Comience su viaje"
+      "beginJourney": "Comience su viaje",
+      "chefAlt": "Chef",
+      "title": "Bienvenido a My Perfect Meals Professional",
+      "accountReady": {
+        "trainer": "Su cuenta de entrenador está lista.",
+        "physician": "Su cuenta de médico está lista.",
+        "professional": "Su cuenta profesional está lista."
+      },
+      "introduction": "Antes de comenzar a trabajar con clientes, cada profesional completa un proceso de incorporación de tres pasos.",
+      "profileComplete": "Su perfil personal ya está completo — continuando con la certificación",
+      "journeyHeading": "Su trayectoria profesional",
+      "steps": {
+        "experience": {
+          "title": "Experimente My Perfect Meals como usuario",
+          "description": "Complete su perfil personal y genere su primer plan de nutrición. Comprenderá exactamente lo que experimentan sus clientes antes de comenzar a orientarlos."
+        },
+        "fundamentals": {
+          "title": "Certificación profesional — Fase 1: Fundamentos de la plataforma",
+          "description": "Domine todas las funciones de la plataforma. Aprenda a personalizar la nutrición, utilizar la IA de manera responsable, incorporar clientes y ahorrar tiempo mediante la automatización."
+        },
+        "business": {
+          "title": "Certificación profesional — Fase 2: Negocios y éxito con ProCare",
+          "description": "Aprenda a gestionar clientes, utilizar el Studio, generar ingresos recurrentes, administrar cuestionarios y hacer crecer su práctica profesional con ProCare."
+        }
+      },
+      "certificationHeading": "Por qué cada profesional comienza con la certificación",
+      "benefits": {
+        "features": "Conozca todas las funciones de la plataforma",
+        "personalization": "Aprenda a personalizar la nutrición para cada cliente",
+        "responsibleAI": "Aprenda a utilizar la IA de manera responsable y eficaz",
+        "clientOnboarding": "Aprenda a incorporar clientes de manera eficiente",
+        "automation": "Aprenda a ahorrar tiempo mediante la automatización",
+        "revenue": "Aprenda a generar y aumentar los ingresos recurrentes",
+        "studio": "Aprenda a utilizar el Studio y Business Suite",
+        "clientQuestions": "Aprenda a responder con confianza las preguntas de sus clientes"
+      },
+      "closingStatement": "\"Cada profesional de My Perfect Meals completa esta certificación antes de ingresar al Studio. Los profesionales que la completan tienen más confianza, obtienen mejores resultados para sus clientes y hacen crecer sus negocios más rápidamente.\""
     },
     "training": {
       "back": "Atrás",

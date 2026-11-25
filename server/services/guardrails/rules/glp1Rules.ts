@@ -1,3 +1,5 @@
+import { GLP1_CHEESE_ADAPTATION_GUIDANCE, GLP1_CHEESE_TERMS } from "../../../../shared/glp1CheesePolicy";
+
 /**
  * GLP-1 Guardrails Rules - Phase 3.3
  *
@@ -63,7 +65,6 @@ export interface GLP1Rules {
 export const glp1Rules: GLP1Rules = {
   blockedIngredients: [
     // Other existing ingredient safeguards are unchanged by the dessert review.
-    'brie', 'camembert',
     'mayonnaise', 'mayo', 'aioli',
     
     // Fried foods
@@ -79,10 +80,7 @@ export const glp1Rules: GLP1Rules = {
     'lamb chop', 'lamb shoulder', 'duck', 'goose',
     '80/20 beef', '70/30 beef', 'ground chuck',
     
-    // Full-fat cheeses (except cottage cheese)
-    'cheddar', 'mozzarella', 'parmesan', 'swiss',
-    'gouda', 'provolone', 'blue cheese', 'feta',
-    'american cheese', 'velveeta', 'cheese sauce',
+    // Cheese is composition-sensitive. Independent sauce/preparation rules below remain.
     
     // High-volume/hard-to-digest
     'raw broccoli', 'raw cauliflower', 'raw cabbage',
@@ -111,6 +109,7 @@ export const glp1Rules: GLP1Rules = {
   // Presence alone does not establish incompatibility. Evaluate actual fat,
   // sugar contribution, portions, and tolerability without changing dish identity.
   compositionSensitiveIngredients: [
+    ...GLP1_CHEESE_TERMS,
     'butter', 'cream', 'cream cheese', 'mascarpone', 'lard', 'shortening', 'margarine',
     'sugar', 'icing', 'frosting', 'honey', 'maple syrup', 'agave', 'molasses',
     'corn syrup', 'high fructose corn syrup',
@@ -226,6 +225,8 @@ TEXTURE: Soft, gentle, easy-to-digest textures. Well-cooked vegetables.
 PROTEIN: Prioritize lean protein and use the resolved occasion-specific targets supplied below.
 FAT: Moderate total fat per serving within the supplied allowance; adapt rich ingredients rather than banning an ingredient name.
 DIGESTION: Focus on easy-to-digest foods. Avoid raw cruciferous vegetables.
+
+${GLP1_CHEESE_ADAPTATION_GUIDANCE}
 
 REQUESTED FOOD IDENTITY:
 - Desserts and pastries, including Napoleon/mille-feuille, are eligible for a recognizable smaller-portion or lower-fat adaptation.

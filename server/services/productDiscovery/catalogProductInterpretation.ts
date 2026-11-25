@@ -1,6 +1,7 @@
 import type { ProductCandidate, ProductEligibilityDecision } from "../../../shared/productCandidateContract";
 import { chatJson } from "../../utils/openaiSafe";
 import type { ProductSubjectSnapshot } from "./subjectAuthority";
+import { GLP1_CHEESE_PRODUCT_GUIDANCE } from "../../../shared/glp1CheesePolicy";
 
 /**
  * Interpretation uses the exact resolved subject used for eligibility and
@@ -25,6 +26,7 @@ export async function interpretCatalogProduct(
       ...subject.explicitAvoidances.map((value) => `Avoid: ${value}`),
       ...subject.medicalOptimizationNames.map((value) => `Optimization: ${value}`),
       ...subject.preferences.map((value) => `Preference: ${value}`),
+      ...(subject.glp1Active ? [GLP1_CHEESE_PRODUCT_GUIDANCE] : []),
     ];
     const facts = candidate.facts.filter((fact) =>
       (fact.kind === "ingredients" || fact.kind === "nutrition") &&
@@ -44,6 +46,7 @@ This is an educational explanation, not an eligibility verdict.`,
         facts: facts.map((fact) => ({
           id: fact.id, statement: fact.statement,
           source: fact.provenance.source, observedAt: fact.provenance.observedAt,
+          ...(fact.nutritionMeasurement ? { nutritionMeasurement: fact.nutritionMeasurement } : {}),
         })),
       }),
       model: "gpt-4o",

@@ -27,3 +27,48 @@ test("older one-choice caches do not invent a rejection reason", () => {
 test("deleting cards from a previously complete result does not claim safety rejections", () => {
   expect(restoredFridgeRescueNotice(null, 1)).toBeNull();
 });
+
+describe("Fridge Rescue localized notices", () => {
+  test.each(["es", "es-MX", "es-419"])(
+    "localizes partial results for %s",
+    (language) => {
+      const message = fridgeRescueResultNotice(1, completion, false, language);
+      expect(message).toContain("1 de 3");
+      expect(message).toContain("No se flexibilizó ningún requisito");
+      expect(message).not.toContain("Showing");
+    },
+  );
+
+  test("explains client dietary filtering in Spanish", () => {
+    const message = fridgeRescueResultNotice(
+      1,
+      { ...completion, returnedCount: 3, partial: false, reasonCodes: [] },
+      true,
+      "es",
+    );
+    expect(message).toContain("dieta seleccionada");
+  });
+
+  test.each([0, 1, 2])(
+    "localizes older saved results with %i choices",
+    (count) => {
+      const message = restoredFridgeRescueNotice(undefined, count, "es");
+      expect(message).toContain("no registra por qué");
+      expect(message).toContain(String(count));
+    },
+  );
+
+  test("preserves existing historical explanations", () => {
+    expect(restoredFridgeRescueNotice("Original explanation", 1, "es"))
+      .toBe("Original explanation");
+  });
+
+  test("complete Spanish results need no notice", () => {
+    expect(fridgeRescueResultNotice(3, completion, false, "es")).toBeNull();
+    expect(restoredFridgeRescueNotice(undefined, 3, "es")).toBeNull();
+  });
+
+  test("deleted cards do not create false safety explanations", () => {
+    expect(restoredFridgeRescueNotice(null, 1, "es")).toBeNull();
+  });
+});

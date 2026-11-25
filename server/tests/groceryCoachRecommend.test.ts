@@ -672,6 +672,59 @@ describe("POST /api/grocery-coach/recommend — protocol scan + GLP-1 validation
         expect(capturedCalls).toHaveLength(0);
       },
     );
+    test.each(["full-fat cheddar", "reduced-fat cheddar", "queso cheddar reducido en grasa"])(
+      "keeps measured %s and the two-serving recipe quantities unchanged", async item => {
+        const cheese = { item, quantity: "1", unit: "oz", category: "Dairy" };
+        openAIResponseQueue.push(() => makeValidCoachResult({
+          meal: { name: "Chicken cheese omelette", description: "A measured cheese recipe.", prepTime: "15 minutes", servings: 2 },
+          macros: { calories: 500, protein: 60, carbs: 10, fat: 18, starchyCarbs: 5, fibrousCarbs: 2 },
+          shoppingList: [cheese],
+        }));
+        const res = await request(app).post("/api/grocery-coach/recommend").send({ ...BASE_BODY, servingCount: 2 });
+        expect(res.status).toBe(200);
+        expect(res.body.shoppingList).toEqual([cheese]);
+        expect(res.body.macros.fat).toBe(18);
+        expect(res.body.meal.servings).toBe(2);
+        expect(capturedCalls).toHaveLength(1);
+      },
+    );
+    test("adapts an unmeasured owned cheese portion before presenting the recipe", async () => {
+      openAIResponseQueue.push(() => makeValidCoachResult({
+        ownedIngredients: [{ item: "cheddar", quantity: "1", unit: "slice" }],
+      }));
+      openAIResponseQueue.push(() => makeValidCoachResult({
+        ownedIngredients: [{ item: "cheddar", quantity: "0.5", unit: "oz" }],
+      }));
+      const res = await request(app).post("/api/grocery-coach/recommend").send(BASE_BODY);
+      expect(res.status).toBe(200);
+      expect(res.body.ownedIngredients).toEqual([{ item: "cheddar", quantity: "0.5", unit: "oz" }]);
+      expect(capturedCalls).toHaveLength(2);
+      expect(capturedCalls[1].systemContent).toContain("Preserve the requested dish and cheese");
+    });
+    test("does not return an unmeasured cheese amount after the correction retry", async () => {
+      openAIResponseQueue.push(() => makeValidCoachResult({
+        shoppingList: [{ item: "queso cheddar", quantity: "1", unit: "slice", category: "Dairy" }],
+      }));
+      const res = await request(app).post("/api/grocery-coach/recommend").send(BASE_BODY);
+      expect(res.status).toBe(422);
+      expect(res.body.failureReason).toBe("ingredient_measurement");
+      expect(res.body.meal).toBeUndefined();
+    });
+    test("does not fall back to the original fat violation when its retry is malformed", async () => {
+      openAIResponseQueue.push(() => makeFatViolatingResult(), () => ({}));
+      const res = await request(app).post("/api/grocery-coach/recommend").send(BASE_BODY);
+      expect(res.status).toBe(422);
+      expect(res.body.failureReason).toBe("fat_allowance");
+      expect(res.body.meal).toBeUndefined();
+    });
+    test("rechecks the GLP-1 allowance when an allergy correction produces a different recipe", async () => {
+      activeEnvelope = makeShellfishEnvelope();
+      openAIResponseQueue.push(() => makeShrimpResult(), () => makeFatViolatingResult());
+      const res = await request(app).post("/api/grocery-coach/recommend").send(BASE_BODY);
+      expect(res.status).toBe(422);
+      expect(res.body.failureReason).toBe("fat_allowance");
+      expect(res.body.meal).toBeUndefined();
+    });
   });
 
   // ── 3. Scan error propagation ─────────────────────────────────────────────

@@ -1,3 +1,4 @@
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
@@ -18,11 +19,15 @@ interface SocialFeature {
 }
 
 export default function SocializingHub() {
+  const { t } = useConsumerCopy();
   const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
 
   useEffect(() => {
-    document.title = "Meals Away From Home | My Perfect Meals";
+    document.title = t("Meals Away From Home | My Perfect Meals");
+  }, [t]);
+
+  useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
     
     // Phase C.7: Emit "opened" event for hub walkthrough
@@ -95,7 +100,7 @@ export default function SocializingHub() {
           <Utensils className="h-6 w-6 text-orange-500" />
 
           {/* Title */}
-          <h1 className="text-lg font-bold text-white">Meals Away From Home</h1>
+          <h1 className="text-lg font-bold text-white">{t("Meals Away From Home")}</h1>
         </div>
       </div>
       </MobileHeaderGuard>
@@ -117,8 +122,8 @@ export default function SocializingHub() {
           )}
           {/* Hub Intro — matches Pairings Hub pattern */}
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-white mb-2">Smart Dining</h2>
-            <p className="text-sm text-white/70">Personalized food guidance for restaurants, travel, gatherings, and life away from home.</p>
+            <h2 className="text-2xl font-bold text-white mb-2">{t("Smart Dining")}</h2>
+            <p className="text-sm text-white/70">{t("Personalized food guidance for restaurants, travel, gatherings, and life away from home.")}</p>
           </div>
 
           {/* Social Features - Vertical Stack */}
@@ -137,11 +142,11 @@ export default function SocializingHub() {
                       <div className="flex items-center gap-2">
                         <Icon className="h-4 w-4 text-orange-500 flex-shrink-0" />
                         <h3 className="text-sm font-semibold text-white">
-                          {feature.title}
+                          {t(feature.title)}
                         </h3>
                       </div>
                       <p className="text-xs text-white/80 ml-6">
-                        {feature.description}
+                        {t(feature.description)}
                       </p>
                     </div>
                   </CardContent>

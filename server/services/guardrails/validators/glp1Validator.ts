@@ -17,10 +17,11 @@ import { glp1Rules } from '../rules/glp1Rules';
 import type { ValidationResult } from '../types';
 import type { ResolvedGLP1Targets } from '../../glp1/resolveGLP1MealTargets';
 import { getGLP1FatCeiling } from '../../glp1/resolveGLP1MealTargets';
+import { hasMeasuredCheeseQuantity, isGLP1CompositionSensitiveCheese } from "../../../../shared/glp1CheesePolicy";
 
 interface GLP1Meal {
   name: string;
-  ingredients: Array<{ name?: string; item?: string; quantity?: string; unit?: string }>;
+  ingredients: Array<{ name?: string; item?: string; quantity?: string; amount?: string | number; unit?: string }>;
   instructions?: string | string[];
   macros?: {
     calories?: number;
@@ -40,6 +41,13 @@ export function validateGLP1Meal(
   const blockedIngredients: string[] = [];
   const warnings: string[] = [];
 
+  for (const ingredient of meal.ingredients) {
+    if (isGLP1CompositionSensitiveCheese(ingredient.name || ingredient.item || "") &&
+        !hasMeasuredCheeseQuantity(ingredient)) {
+      violations.push("GLP-1 cheese quantity is not measurable; specify a positive weight or measured volume before verifying whole-meal per-serving nutrition.");
+    }
+  }
+
   const ingredientNames = meal.ingredients
     .map(ing => (ing.name || ing.item || '').toLowerCase())
     .filter(Boolean);
@@ -56,6 +64,7 @@ export function validateGLP1Meal(
   }
 
   const compositionSensitive = ingredientNames.filter(ing =>
+    isGLP1CompositionSensitiveCheese(ing) ||
     glp1Rules.compositionSensitiveIngredients.some(term => ing.includes(term)));
   if (compositionSensitive.length > 0) {
     warnings.push(

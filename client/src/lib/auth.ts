@@ -3,7 +3,7 @@ import type { AccountProfessionalRole, CanonicalPractitionerRole } from "@shared
 import { apiUrl } from '@/lib/resolveApiBase';
 import { Capacitor } from '@capacitor/core';
 import { clearNutritionCache } from '../hooks/nutritionStateCache';
-import { storeLanguagePreference } from "@/i18n/languagePreference";
+import { storeLanguagePreference, readLanguagePreference, isCustomerLanguage } from "@/i18n/languagePreference";
 
 export type MealBuilderType = "weekly" | "diabetic" | "glp1" | "anti_inflammatory" | "beach_body" | "general_nutrition" | "performance_competition";
 
@@ -502,6 +502,9 @@ export async function signUp(
   localStorage.removeItem("onboardingData");
   localStorage.removeItem("selectedBuilder");
 
+  const savedPreference = readLanguagePreference();
+  const preferredLanguage = savedPreference === "auto" || isCustomerLanguage(savedPreference) ? savedPreference : "en";
+
   try {
     const response = await fetch(apiUrl("/api/auth/signup"), {
       method: "POST",
@@ -510,6 +513,7 @@ export async function signUp(
       body: JSON.stringify({
         email,
         password,
+        preferredLanguage,
         ...(procareData ? { procare: procareData } : {}),
         ...(businessAccount ? { businessAccount: true } : {}),
         ...(signupSource ? { signupSource } : {}),
@@ -539,6 +543,7 @@ export async function signUp(
       id: userData.id,
       email: userData.email,
       name: userData.username,
+      preferredLanguage: userData.preferredLanguage ?? preferredLanguage,
       // New accounts have NO onboarding completion
       onboardingCompletedAt: null,
     };

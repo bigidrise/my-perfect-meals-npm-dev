@@ -145,7 +145,8 @@ const FridgeRescuePage = () => {
   const isDesktop = useIsDesktop();
   usePageTitle("Fridge Rescue");
   const { toast } = useToast();
-  const { t } = useTranslation("fridgeRescue");
+  const { t, i18n } = useTranslation("fridgeRescue");
+  const fridgeLanguage = i18n.resolvedLanguage || i18n.language || "en";
   const fridgeRescueTourSteps: TourStep[] = [
     {
       title: t("Enter Your Ingredients"),
@@ -383,7 +384,7 @@ const FridgeRescuePage = () => {
         imageUrl: m.imageUrl || lookupHydratedImageUrl(m.id) || undefined,
       }));
       setMeals(enrichedMeals);
-      setResultNotice(restoredFridgeRescueNotice(cached.resultNotice, enrichedMeals.length));
+      setResultNotice(restoredFridgeRescueNotice(cached.resultNotice, enrichedMeals.length, fridgeLanguage));
       setIngredients(cached.ingredients || "");
       setShowResults(true);
       // Re-fetch only meals still missing imageUrl after mini-cache lookup
@@ -575,7 +576,7 @@ const FridgeRescuePage = () => {
 
       console.log("✅ Setting meals:", mealsArray.length);
       setResultNotice(fridgeRescueResultNotice(
-        mealsArray.length, data.completion, mealsArray.length < serverMealCount,
+        mealsArray.length, data.completion, mealsArray.length < serverMealCount, fridgeLanguage,
       ));
       mealsArray = mealsArray.map((meal: MealData) => ({
         ...meal, servings: meal.servings ?? servings,

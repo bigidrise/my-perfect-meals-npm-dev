@@ -85,3 +85,38 @@ describe("Recipe Maker real generation pipeline with controlled model output", (
     expect(mockCreate).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("GLP-1 cheese generation and bounded retries with controlled model output", () => {
+  function cheeseOptions(fat = 4, spanish = false) {
+    return options("Cheese Omelette", fat, ["Bake gently until set, then serve with the measured cheese."])
+      .map(recipe => ({
+        ...recipe, calories: 250, protein: 30, fat, carbs: 5, starchyCarbs: 0, fibrousCarbs: 0,
+        ingredients: [
+          { name: spanish ? "claras de huevo grandes" : "large egg whites", quantity: "3", unit: "each" },
+          { name: spanish ? "queso cheddar reducido en grasa" : "reduced-fat cheddar", quantity: "0.25", unit: "oz" },
+          { name: "chicken breast", quantity: "2", unit: "oz" },
+        ],
+      }));
+  }
+  it.each([false, true])("returns measured cheese recipes without name-only rejection (Spanish: %s)", async spanish => {
+    mockCreate.mockResolvedValue(response(cheeseOptions(4, spanish)));
+    const result = await generateCravingMealOptions("Cheese Omelette", "snack", undefined, [], undefined, false, "recipe", undefined, targets());
+    expect(result).toHaveLength(3);
+    expect(result.every(meal => meal.ingredients.some(ingredient => /cheddar/.test(ingredient.name)))).toBe(true);
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+  });
+  it("retries actual excess fat rather than discarding the requested cheese", async () => {
+    mockCreate.mockResolvedValueOnce(response(cheeseOptions(12)))
+      .mockResolvedValueOnce(response(cheeseOptions(4)));
+    const result = await generateCravingMealOptions("Cheese Omelette", "snack", undefined, [], undefined, false, "recipe", undefined, targets());
+    expect(result).toHaveLength(3);
+    expect(result.every(meal => meal.ingredients.some(ingredient => ingredient.name.includes("cheddar")))).toBe(true);
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+  });
+  it("returns no unverified cheese recipes after all attempts still exceed the fat allowance", async () => {
+    mockCreate.mockResolvedValue(response(cheeseOptions(12)));
+    await expect(generateCravingMealOptions("Cheese Omelette", "snack", undefined, [], undefined, false, "recipe", undefined, targets()))
+      .rejects.toMatchObject({ code: "glp1_compliance_retry_exhausted" });
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+  });
+});

@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useCopilot } from "./CopilotContext";
 import { startCopilotIntro } from "./CopilotCommandRegistry";
 import { ttsService, TTSCallbacks } from "@/lib/tts";
+import { LEGACY_CHEF_NARRATION_ENABLED } from "@shared/legacyNarration";
+import { LegacyNarration } from "@/components/LegacyNarration";
 import { useCopilotGuidedMode } from "./CopilotGuidedModeContext";
 import { useGuestProgress } from "@/hooks/useGuestProgress";
 import { useWordHighlight } from "./useWordHighlight";
@@ -20,7 +22,7 @@ export const CopilotSheet: React.FC = () => {
   // word highlight runs at a fixed 150 WPM reading pace instead.
   // =========================================
   const [textOnly, setTextOnly] = useState<boolean>(() =>
-    localStorage.getItem("mpm.copilot.textOnly") === "true"
+    !LEGACY_CHEF_NARRATION_ENABLED || localStorage.getItem("mpm.copilot.textOnly") === "true"
   );
   const [textOnlyRunning, setTextOnlyRunning] = useState(false);
   const textOnlyTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -511,7 +513,7 @@ export const CopilotSheet: React.FC = () => {
 
                     <div className="flex items-center gap-2">
                       {/* Text-Only Mode Toggle — for hearing-impaired or silent environments */}
-                      <button
+                      <LegacyNarration><button
                         onClick={toggleTextOnly}
                         aria-pressed={textOnly}
                         aria-label={textOnly ? "Text-only mode on — tap to re-enable audio" : "Text-only mode off — tap to disable audio"}
@@ -546,7 +548,7 @@ export const CopilotSheet: React.FC = () => {
                         `}
                       >
                         {isGuidedModeEnabled ? "On" : "Off"}
-                      </button>
+                      </button></LegacyNarration>
                       <span
                         className="rounded-full px-2 py-1 text-xs text-transparent pointer-events-none select-none"
                         aria-hidden="true"
@@ -560,7 +562,7 @@ export const CopilotSheet: React.FC = () => {
                 {/* Input removed - Copilot is now tap-to-action only */}
 
                 {/* Playback controls - visible while playing or paused */}
-                {(isAudioPlaying || userPaused) && (
+                {LEGACY_CHEF_NARRATION_ENABLED && (isAudioPlaying || userPaused) && (
                   <div className="px-4 pt-2">
                     <div className="rounded-xl bg-orange-500/10 border border-orange-400/30 px-3 py-2 flex items-center justify-between">
                       <p className="text-xs text-orange-300/90">
@@ -597,7 +599,7 @@ export const CopilotSheet: React.FC = () => {
                 )}
 
                 {/* Audio Player - ElevenLabs audio with auto-close wiring */}
-                {audioUrl && (
+                {LEGACY_CHEF_NARRATION_ENABLED && audioUrl && (
                   <audio 
                     ref={audioRef}
                     autoPlay
@@ -672,7 +674,7 @@ export const CopilotSheet: React.FC = () => {
                         <h2 className="text-lg font-semibold text-white">{lastResponse.title}</h2>
                         <div className="flex items-center gap-2">
                           {/* Listen / Read Button — adapts to text-only mode */}
-                          {lastResponse.spokenText && (
+                          {LEGACY_CHEF_NARRATION_ENABLED && lastResponse.spokenText && (
                             <button
                               onClick={textOnly ? handleReadResponse : handleListenToResponse}
                               disabled={isHighlighting || userPaused}

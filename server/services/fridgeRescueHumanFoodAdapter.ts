@@ -4,6 +4,7 @@ import type {
   HumanFoodFinalValidationResult,
 } from "../../shared/humanFoodValidation";
 import { validateHumanFoodCandidate } from "./humanFoodContext/finalValidation";
+import { verifyGeneratedIngredients } from "./generatedIngredientAdapter";
 
 export interface FridgeRescueGeneratedMeal {
   name?: string;
@@ -21,7 +22,11 @@ export interface FridgeRescueGeneratedMeal {
 }
 
 function existingFiniteNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  return typeof value === "number" &&
+    Number.isFinite(value) &&
+    value >= 0
+    ? value
+    : undefined;
 }
 
 export function toFridgeRescueHumanFoodCandidate(
@@ -45,10 +50,20 @@ export function toFridgeRescueHumanFoodCandidate(
     fat: existingFiniteNumber(meal.fat),
     starchyCarbs,
   };
+  const hasVerifiedMeasurements =
+    verifyGeneratedIngredients(meal.ingredients) !== null;
+
   const hasRequiredNutrition =
     nutrition.calories !== undefined &&
+    nutrition.protein !== undefined &&
     nutrition.carbs !== undefined &&
-    nutrition.fat !== undefined;
+    nutrition.fat !== undefined &&
+    starchyCarbs !== undefined &&
+    fibrousCarbs !== undefined &&
+    derivedCarbs !== undefined &&
+    Number.isFinite(derivedCarbs) &&
+    (meal.carbs === undefined || explicitCarbs !== undefined) &&
+    Math.abs(nutrition.carbs - derivedCarbs) <= 0.1;
 
   return {
     name: meal.name,
@@ -58,9 +73,13 @@ export function toFridgeRescueHumanFoodCandidate(
     nutrition,
     evidence: {
       sourceType: "generated_recipe",
-      ingredientEvidence: "structured_generation",
+      ingredientEvidence: hasVerifiedMeasurements
+        ? "structured_generation"
+        : "unknown",
       preparationEvidence: "structured_generation",
-      nutritionEvidence: hasRequiredNutrition ? "structured_generation" : "unknown",
+      nutritionEvidence: hasRequiredNutrition && hasVerifiedMeasurements
+        ? "structured_generation"
+        : "unknown",
       dietaryIdentityCompliant: evidence.protocolValidated || undefined,
       clinicalDirectivesCompliant: evidence.protocolValidated || undefined,
       diabetesCompliant: evidence.protocolValidated || undefined,
@@ -92,10 +111,36 @@ export function validateFridgeRescueMealsWithHumanFood<
   }> = [];
 
   for (const meal of meals) {
-    const validation = validateHumanFoodCandidate(
-      toFridgeRescueHumanFoodCandidate(meal, evidence),
-      context,
-    );
+    const candidate = toFridgeRescueHumanFoodCandidate(meal, evidence);
+    let validation = validateHumanFoodCandidate(candidate, context);
+
+    // Recipe integrity is mandatory even without a nutrition prescription.
+    // Preserve existing clinical blocks and review findings.
+    if (
+      candidate.evidence?.nutritionEvidence === "unknown" &&
+      !validation.findings.some(
+        finding => finding.code === "nutrition_evidence_unknown",
+      )
+    ) {
+      validation = {
+        ...validation,
+        outcome: validation.outcome === "blocked"
+          ? "blocked"
+          : "review_required",
+        findings: [
+          ...validation.findings,
+          {
+            dimension: "nutrition",
+            outcome: "review_required",
+            code: "nutrition_evidence_unknown",
+            message: "Recipe measurements or nutrition could not be verified.",
+            assurance: "structured_evidence",
+          },
+        ],
+        repairInstructions: [],
+      };
+    }
+
     if (validation.outcome === "pass") {
       accepted.push(meal);
     } else {

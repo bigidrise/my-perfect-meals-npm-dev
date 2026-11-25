@@ -5,6 +5,8 @@ import OpenAI from "openai";
 import { getMeasurementPromptBlock, MeasurementSystem } from "../../shared/units";
 import { computeMedicalBadges, computeAlphaGalBadge } from "../services/medicalBadges";
 import { normalizeIngredients } from "../services/ingredientNormalizer";
+import { validateGeneratedIngredientMeasurements } from "../services/calorieEstimator";
+import { enforceGeneratedMeasurementValidation } from "../services/humanFoodContext/generatedMeasurementValidation";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -817,7 +819,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         },
       };
     };
-    const validateFinalBeverageCandidate = (candidate: any): HumanFoodFinalValidationResult => {
+    const validateFinalBeverageCandidateBase = (candidate: any): HumanFoodFinalValidationResult => {
       const result = validateHumanFoodCandidate(toFinalBeverageCandidate(candidate), humanFoodContext, {
         requestedDish: requestedBeverage,
         requestedCategory: requestedBeverageCategory,
@@ -881,6 +883,18 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
           : [],
       };
     };
+
+    let originalMeasurementsValid = false;
+
+    const validateFinalBeverageCandidate = (
+      candidate: any,
+      measurementsValid = originalMeasurementsValid,
+    ): HumanFoodFinalValidationResult =>
+      enforceGeneratedMeasurementValidation(
+        validateFinalBeverageCandidateBase(candidate),
+        candidate?.ingredients,
+        measurementsValid,
+      );
 
     async function generateValidatedAlternatives(
       rejection: BeverageProtocolRejection,
@@ -955,6 +969,8 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
             if (candidateIdentity.catastrophicDeviation) continue;
           }
 
+          if (!validateGeneratedIngredientMeasurements(candidate.ingredients)) continue;
+
           const normalizedCandidateIngredients = normalizeIngredients(
             candidate.ingredients,
           );
@@ -997,7 +1013,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
             servingSize: candidate.servingSize,
             imageUrl: null,
           };
-          if (validateFinalBeverageCandidate(finalAlternative).outcome !== "pass") continue;
+          if (validateFinalBeverageCandidate(finalAlternative, true).outcome !== "pass") continue;
           alternatives.push(finalAlternative);
           if (alternatives.length === 2) break;
         }
@@ -1254,6 +1270,9 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
       }
     }
 
+    originalMeasurementsValid =
+      validateGeneratedIngredientMeasurements(meal?.ingredients);
+
     const normalizedIngredients = normalizeIngredients(meal.ingredients || []);
     meal.ingredients = normalizedIngredients;
     const liquidValidation = validateLiquidNutritionOutput(meal, activeLiquidProtocol);
@@ -1382,6 +1401,10 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
           response_format: { type: "json_object" },
         });
         let repaired = JSON.parse(repairCompletion.choices[0]?.message?.content || "{}");
+        originalMeasurementsValid =
+          validateGeneratedIngredientMeasurements(repaired?.ingredients);
+        if (!originalMeasurementsValid) return [];
+
         repaired.ingredients = normalizeIngredients(repaired.ingredients || []);
         const repairedMedical = validateBeverageOutput(
           repaired,

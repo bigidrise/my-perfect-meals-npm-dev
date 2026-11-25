@@ -30,6 +30,7 @@ function recipeSignature(meal: MealIdentity): string {
  */
 export async function completeFridgeRescueChoices<T extends MealIdentity>(options: {
   enabled: boolean;
+  language?: string;
   generate: (request: { count: number; excludedMeals: string[] }) => Promise<T[]>;
   validate: (meals: T[]) => Promise<{ accepted: T[]; reasonCodes: string[] }>;
 }): Promise<{ meals: T[]; completion: FridgeRescueCompletion }> {
@@ -84,7 +85,7 @@ export async function completeFridgeRescueChoices<T extends MealIdentity>(option
       attempts,
       maxAttempts,
       reasonCodes: [...reasons],
-      message: describeFridgeRescueShortfall(accepted.length, requestedCount, [...reasons]),
+      message: describeFridgeRescueShortfall(accepted.length, requestedCount, [...reasons], options.language),
     },
   };
 }

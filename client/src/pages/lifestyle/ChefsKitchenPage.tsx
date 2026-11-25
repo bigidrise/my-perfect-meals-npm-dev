@@ -1,7 +1,8 @@
 import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { formatAmount } from "@/utils/formatAmount";
+import { ingredientLine } from "@/lib/ingredientDisplay";
+import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,6 +32,7 @@ import {
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { useChefVoice } from "@/components/chefs-kitchen/useChefVoice";
+import { LegacyNarration } from "@/components/LegacyNarration";
 import { useToast } from "@/hooks/use-toast";
 import {
   isAllergyRelatedError,
@@ -138,7 +140,8 @@ export default function ChefsKitchenPage() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { t } = useTranslation("chefsKitchen");
+  const { t, i18n } = useTranslation("chefsKitchen");
+  const measurementSystem = useMeasurementSystem();
   const quickTour = useQuickTour("chefs-kitchen");
 
   const initialState = getInitialMode();
@@ -1012,7 +1015,7 @@ export default function ChefsKitchenPage() {
                       </h4>
                       <ul className="text-sm text-white/80 space-y-1">
                         {mealToShow.ingredients.map((ing, i) => (
-                          <li key={i}>{formatAmount(ing.amount ?? ing.quantity)} {ing.unit} {ing.name}</li>
+                          <li key={i}>{ingredientLine(ing, measurementSystem, i18n.resolvedLanguage || i18n.language)}</li>
                         ))}
                       </ul>
                     </div>
@@ -1187,12 +1190,12 @@ export default function ChefsKitchenPage() {
                       </ul>
                     </div>
 
-                    <button
+                    <LegacyNarration><button
                       className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 border border-orange-400/50 text-white text-sm font-medium hover:from-orange-500 hover:to-amber-400 animate-pulse transition"
                       onClick={() => speak(KITCHEN_COOK_SETUP)}
                     >
                       👉 Press to Start
-                    </button>
+                    </button></LegacyNarration>
 
                     <button
                       className="w-full py-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-semibold text-sm"
@@ -1232,12 +1235,12 @@ export default function ChefsKitchenPage() {
                             </p>
                           </div>
 
-                          <button
+                          <LegacyNarration><button
                             className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 border border-orange-400/50 text-white text-sm font-medium hover:from-orange-500 hover:to-amber-400 animate-pulse transition"
                             onClick={() => speak(KITCHEN_PLATING)}
                           >
                             👉 Press to Start
-                          </button>
+                          </button></LegacyNarration>
 
                           <div className="flex gap-3">
                             <button
@@ -1284,12 +1287,12 @@ export default function ChefsKitchenPage() {
                           <p className="text-sm text-white/90 leading-relaxed">{currentInstruction}</p>
                         </div>
 
-                        <button
+                        <LegacyNarration><button
                           className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 border border-orange-400/50 text-white text-sm font-medium hover:from-orange-500 hover:to-amber-400 animate-pulse transition"
                           onClick={() => speak(currentInstruction)}
                         >
                           👉 Press to Start
-                        </button>
+                        </button></LegacyNarration>
 
                         {(detectedTimer || isTimerRunning || timerSeconds > 0) && (
                           <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-4">

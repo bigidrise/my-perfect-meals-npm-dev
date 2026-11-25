@@ -4,6 +4,8 @@
 // Layer 3 of the ingredient precision system — fixes borderline cases before display
 
 import { Ingredient, LegacyIngredient, US_SOLID_UNITS } from '@shared/types';
+import { parseMeasurementNumber } from '@shared/units';
+import { ingredientMeasurementUnit, isProteinPowder, freshEggPart, EGG_COUNT_UNITS } from '../../shared/ingredientMeasurements';
 
 const METRIC_TO_US: Record<string, { factor: number; unit: string }> = {
   'g': { factor: 0.035274, unit: 'oz' },
@@ -30,8 +32,6 @@ const DAIRY_INGREDIENTS = [
   'yogurt', 'milk', 'cheese', 'cream', 'butter', 'sour cream', 'cottage cheese'
 ];
 
-// Protein powder / supplement powder keywords — these MUST stay in scoops, not weight
-const PROTEIN_POWDER_PATTERN = /\b(protein\s+powder|whey\s+protein|casein\s+protein|plant[- ]based\s+protein|vegan\s+protein|pea\s+protein|soy\s+protein|rice\s+protein|collagen\s+powder|collagen\s+peptides|pre[- ]workout|creatine|bcaa|mass\s+gainer|weight\s+gainer|supplement\s+powder|protein\s+shake\s+powder)\b/i;
 
 // Egg keywords (name-based detection)
 const EGG_PATTERN = /\begg(s)?\b/i;
@@ -55,9 +55,7 @@ const SIZE_UNIT_PATTERN = /^(medium|large|small|whole)$/i;
 // Vague unit set
 const VAGUE_UNITS = new Set(['serving', 'servings', 'handful', 'handfuls']);
 
-function isProteinPowder(name: string): boolean {
-  return PROTEIN_POWDER_PATTERN.test(name);
-}
+
 
 function isProtein(name: string): boolean {
   const lower = name.toLowerCase();
@@ -82,100 +80,93 @@ function hasEggSize(name: string): boolean {
 }
 
 function parseAmount(value: any): number {
-  if (typeof value === 'number') return value;
-  if (typeof value === 'string') {
-    if (value.includes('/')) {
-      const parts = value.split('/');
-      if (parts.length === 2) {
-        return parseFloat(parts[0]) / parseFloat(parts[1]);
-      }
-    }
-    return parseFloat(value) || 0;
-  }
-  return 0;
+  if (typeof value !== 'number' && typeof value !== 'string') return 0;
+  return parseMeasurementNumber(value) ?? 0;
 }
 
 function formatAmount(num: number): string {
+  if (!Number.isFinite(num)) return String(num);
   if (num === 0) return '0';
+
   const fractions: Record<number, string> = {
+    0.125: '1/8',
     0.25: '1/4',
-    0.33: '1/3',
+    0.375: '3/8',
     0.5: '1/2',
-    0.67: '2/3',
+    0.625: '5/8',
     0.75: '3/4',
+    0.875: '7/8',
   };
+
   const whole = Math.floor(num);
   const decimal = num - whole;
-  const roundedDecimal = Math.round(decimal * 100) / 100;
-  
-  for (const [key, frac] of Object.entries(fractions)) {
-    if (Math.abs(roundedDecimal - parseFloat(key)) < 0.05) {
-      return whole > 0 ? `${whole} ${frac}` : frac;
+
+  for (const [key, fraction] of Object.entries(fractions)) {
+    if (Math.abs(decimal - Number(key)) < 1e-10) {
+      return whole > 0 ? `${whole} ${fraction}` : fraction;
     }
   }
-  
-  if (decimal === 0) return whole.toString();
-  return num.toFixed(1).replace(/\.0$/, '');
-}
 
-// Reference scoop size for weight→scoop fallback (grams). Scoop sizes vary widely by brand
-// (typically 25–42g for whey, 28–50g for vegan blends). We use 30g as a conservative
-// midpoint. This fallback only runs when the AI ignored the prompt rule; the prompt itself
-// is the primary enforcement mechanism.
-const REFERENCE_SCOOP_GRAMS = 30;
+  const rounded = Number(num.toPrecision(10));
+  const text = String(rounded);
+  if (!/[eE]/.test(text)) return text;
 
-function weightToScoops(grams: number): string {
-  const scoops = Math.round((grams / REFERENCE_SCOOP_GRAMS) * 2) / 2; // round to nearest 0.5
-  if (scoops <= 0.5) return '1/2';
-  if (scoops === 1.5) return '1 1/2';
-  return String(Math.round(scoops));
+  return rounded.toLocaleString('en-US', {
+    useGrouping: false,
+    maximumSignificantDigits: 10,
+  });
 }
 
 function convertUnit(amount: number, unit: string, ingredientName: string): { amount: string; unit: string } {
-  const lowerUnit = unit.toLowerCase().trim();
+  const lowerUnit = ingredientMeasurementUnit(unit);
 
-  // ── Protein powder / supplement powder: always preserve scoops ────────────
-  // The AI prompt instructs scoop usage, but this is a post-generation safety net
-  // in case the AI returned a weight unit anyway. We convert weight → scoop count
-  // using a reference scoop size with a note that users should adjust to their brand.
+  // Preserve explicit fresh egg counts without inventing a weight.
+  if (freshEggPart(ingredientName) && EGG_COUNT_UNITS.has(lowerUnit)) {
+    return { amount: formatAmount(amount), unit: lowerUnit };
+  }
+
+  // Preserve explicitly measured garlic cloves and whole peppers.
+  if (
+    (lowerUnit === 'clove' || lowerUnit === 'cloves') &&
+    /\b(garlic|ajo)\b/i.test(ingredientName)
+  ) {
+    return { amount: formatAmount(amount), unit: amount === 1 ? 'clove' : 'cloves' };
+  }
+
+  if (
+    lowerUnit === 'whole' &&
+    /\b(bell peppers?|pimientos?)\b/i.test(ingredientName)
+  ) {
+    return { amount: formatAmount(amount), unit: 'whole' };
+  }
+
+  // Preserve explicit supplement measurements.
+  // Never infer scoop weight without product-specific evidence.
   if (isProteinPowder(ingredientName)) {
-    // Already in scoops — pass through unchanged
     if (lowerUnit === 'scoop' || lowerUnit === 'scoops') {
       return { amount: formatAmount(amount), unit: amount === 1 ? 'scoop' : 'scoops' };
     }
-    // Weight units: convert to approximate scoop count
-    let grams = amount;
-    if (lowerUnit === 'oz' || lowerUnit === 'ounce' || lowerUnit === 'ounces') grams = amount * 28.3495;
-    else if (lowerUnit === 'lb' || lowerUnit === 'lbs') grams = amount * 453.592;
-    else if (lowerUnit === 'kg') grams = amount * 1000;
-    // g / grams: already in grams
-    const scoopAmount = weightToScoops(grams);
-    const scoopCount = parseFloat(scoopAmount.replace(' 1/2', '.5').replace('1/2', '0.5'));
-    return { amount: scoopAmount, unit: scoopCount === 1 ? 'scoop' : 'scoops' };
+    return { amount: formatAmount(amount), unit: lowerUnit };
   }
 
   if (METRIC_TO_US[lowerUnit]) {
     const conversion = METRIC_TO_US[lowerUnit];
     let convertedAmount = amount * conversion.factor;
     let targetUnit = conversion.unit;
-    
-    if (isProtein(ingredientName)) {
-      targetUnit = 'oz';
-      if (lowerUnit === 'g' || lowerUnit === 'gram' || lowerUnit === 'grams') {
-        convertedAmount = amount * 0.035274;
-      }
-      if (convertedAmount >= 16) {
-        convertedAmount = convertedAmount / 16;
-        targetUnit = 'lb';
-      }
-    } else if (isDairy(ingredientName) && convertedAmount > 8) {
-      convertedAmount = convertedAmount / 8;
-      targetUnit = 'cup';
+
+    // Preserve measurement dimension. Ingredient names must
+    // never reinterpret volume as mass or mass as volume.
+    if (targetUnit === 'oz' && convertedAmount >= 16) {
+      convertedAmount /= 16;
+      targetUnit = 'lb';
     }
-    
-    return { amount: formatAmount(convertedAmount), unit: targetUnit };
+
+    return {
+      amount: formatAmount(convertedAmount),
+      unit: targetUnit,
+    };
   }
-  
+
   // "piece"/"pieces" — convert to oz for proteins, estimate for others
   if (lowerUnit === 'piece' || lowerUnit === 'pieces') {
     if (isProtein(ingredientName)) {

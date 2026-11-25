@@ -5,6 +5,8 @@
  * Layer 2: Validator that rejects vague measurements and triggers retry.
  */
 
+import { EGG_COUNT_UNITS, freshEggPart, hasEggSize, ingredientMeasurementName, ingredientMeasurementUnit } from "../../../shared/ingredientMeasurements";
+
 // ─── LAYER 1: Prompt Block ─────────────────────────────────────────────────
 
 export const INGREDIENT_PRECISION_PROMPT_BLOCK = `
@@ -19,8 +21,10 @@ SOLID FOODS — use oz or g:
   - Dense vegetables (broccoli, asparagus, green beans): oz or cup — e.g. "4 oz broccoli florets"
   - Leafy greens: cup — e.g. "2 cup spinach"
 
-EGGS — always include size:
-  - CORRECT: "3 large eggs" or "2 medium eggs"
+EGGS — counts include size; measured liquid whites do not need a size:
+  - CORRECT: name="large eggs", quantity="3", unit="each"
+  - CORRECT: name="liquid egg whites", quantity="3.5", unit="oz"
+  - CORRECT: name="egg whites", quantity="1/2", unit="cup"
   - WRONG: "2 eggs" (no size = INVALID)
   - 1 large egg ≈ 50g for reference
 
@@ -29,7 +33,7 @@ LIQUIDS — use tbsp, tsp, fl oz, or cup:
   - Milk, broth, beverages: cup or fl oz — e.g. "8 fl oz almond milk"
 
 FORBIDDEN UNITS — never use:
-  - "each" (except as a size qualifier for eggs)
+  - "each" (EXCEPTION: counted fresh eggs, whites or yolks with source size)
   - "piece" or "pieces"
   - "serving" or "servings"
   - "handful"
@@ -53,8 +57,6 @@ export interface IngredientPrecisionResult {
 }
 
 const FORBIDDEN_UNITS = ['each', 'piece', 'pieces', 'serving', 'servings', 'handful', 'handfuls'];
-const EGG_PATTERN = /\begg(s)?\b/i;
-const EGG_SIZE_PATTERN = /\b(large|medium|small|jumbo|extra-large|xl)\b/i;
 const POTATO_PATTERN = /\b(potato|potatoes|yam|yams|sweet potato|sweet potatoes)\b/i;
 const WEIGHT_UNIT_PATTERN = /\b(oz|g|gram|grams|lb|lbs)\b/i;
 
@@ -64,17 +66,19 @@ export function validateIngredientPrecision(
   const violations: string[] = [];
 
   for (const ing of ingredients) {
-    const name = (ing.name || '').toLowerCase().trim();
-    const unit = (ing.unit || '').toLowerCase().trim();
+    const name = ingredientMeasurementName(ing.name || '');
+    const unit = ingredientMeasurementUnit(ing.unit || '');
+    const egg = freshEggPart(name);
+    const countedEgg = !!egg && (EGG_COUNT_UNITS.has(unit) || unit === "");
 
     // Check for forbidden units
-    if (FORBIDDEN_UNITS.includes(unit)) {
+    if (FORBIDDEN_UNITS.includes(unit) && !(countedEgg && unit === "each")) {
       violations.push(`Ingredient "${ing.name}" uses forbidden unit "${ing.unit}" — must use oz, g, cup, tbsp, or tsp`);
       continue;
     }
 
     // Eggs must include size in the name
-    if (EGG_PATTERN.test(name) && !EGG_SIZE_PATTERN.test(name)) {
+    if (countedEgg && !hasEggSize(name, unit)) {
       violations.push(`Ingredient "${ing.name}" — eggs must specify size (large/medium), e.g. "large eggs"`);
     }
 

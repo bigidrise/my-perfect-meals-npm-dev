@@ -208,3 +208,6 @@ test("MFA manual setup copy is Spanish but the setup key and enrollment request 
   expect(apiRequest).toHaveBeenCalledWith("/api/auth/mfa/setup/begin", { method: "POST" });
   expect(apiRequest).toHaveBeenCalledTimes(2);
 });
+
+// Isolate Vite-only visual styling from Jest localization tests.
+jest.mock("@/styles/entryReadabilityGate", () => ({ entryReadabilityClassName: "" }));

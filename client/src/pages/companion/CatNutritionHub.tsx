@@ -1,3 +1,4 @@
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useState } from "react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
@@ -46,6 +47,7 @@ interface SavedMeal {
 }
 
 export default function CatNutritionHub() {
+  const { t } = useConsumerCopy("petTerminology");
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
@@ -59,10 +61,13 @@ export default function CatNutritionHub() {
   const [statusLoading, setStatusLoading] = useState<string | null>(null);
   const [showPrevious, setShowPrevious] = useState(false);
 
-  usePageTitle("My Perfect Cat");
+  usePageTitle(t("My Perfect Cat"));
 
   useEffect(() => {
-    document.title = "My Perfect Cat | My Perfect Meals";
+    document.title = t("My Perfect Cat | My Perfect Meals");
+  }, [t]);
+
+  useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
@@ -97,7 +102,7 @@ export default function CatNutritionHub() {
   }, []);
 
   async function handleArchiveProfile(id: string, name: string) {
-    if (!confirm(`Move ${name} to Previous Companions?`)) return;
+    if (!confirm(t("Move {{name}} to Previous Companions?", { name }))) return;
     setStatusLoading(id);
     try {
       await fetch(apiUrl(`/api/companion/profiles/${id}/archive`), {
@@ -131,7 +136,7 @@ export default function CatNutritionHub() {
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        alert(d.error || "Could not restore profile.");
+        alert(t(d.error || "Could not restore profile."));
       } else {
         setProfiles((prev) => prev.map((p) => p.id === id ? { ...p, status: "active" } : p));
       }
@@ -166,7 +171,7 @@ export default function CatNutritionHub() {
             </button>
             <div className="flex items-center gap-2">
               <span className="text-base">🐈</span>
-              <h1 className="text-base font-bold text-white">My Perfect Cat</h1>
+              <h1 className="text-base font-bold text-white">{t("My Perfect Cat")}</h1>
             </div>
             <div className="w-8" />
           </div>
@@ -195,9 +200,9 @@ export default function CatNutritionHub() {
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           {[
-            { icon: Plus, label: "Add a Cat", sub: "Create profile", action: () => guardAction(PREMIUM_MSG, () => setLocation("/companion/cat-setup")), color: "from-orange-600/30 to-orange-800/20" },
-            { icon: ChefHat, label: "Meal Generator", sub: "Make a meal", action: () => guardAction(PREMIUM_MSG, () => setLocation("/companion/cat-generator")), color: "from-amber-600/30 to-orange-700/20" },
-            { icon: Search, label: "Scan Ingredients", sub: "Feline safety check", action: () => guardAction(PREMIUM_MSG, () => setLocation("/companion/cat-scanner")), color: "from-teal-600/30 to-orange-700/20" },
+            { icon: Plus, label: "Add a Cat", sub: "Create profile", action: () => guardAction(t(PREMIUM_MSG), () => setLocation("/companion/cat-setup")), color: "from-orange-600/30 to-orange-800/20" },
+            { icon: ChefHat, label: "Meal Generator", sub: "Make a meal", action: () => guardAction(t(PREMIUM_MSG), () => setLocation("/companion/cat-generator")), color: "from-amber-600/30 to-orange-700/20" },
+            { icon: Search, label: "Scan Ingredients", sub: "Feline safety check", action: () => guardAction(t(PREMIUM_MSG), () => setLocation("/companion/cat-scanner")), color: "from-teal-600/30 to-orange-700/20" },
           ].map((item) => (
             <button
               key={item.label}
@@ -205,8 +210,8 @@ export default function CatNutritionHub() {
               className={`bg-gradient-to-br ${item.color} border border-white/10 rounded-xl p-3 flex flex-col items-center gap-1.5 text-center`}
             >
               <item.icon className="h-5 w-5 text-orange-400" />
-              <span className="text-white text-xs font-semibold">{item.label}</span>
-              <span className="text-white/50 text-[10px]">{item.sub}</span>
+              <span className="text-white text-xs font-semibold">{t(item.label)}</span>
+              <span className="text-white/50 text-[10px]">{t(item.sub)}</span>
             </button>
           ))}
         </div>
@@ -214,14 +219,14 @@ export default function CatNutritionHub() {
         {/* ── Active Companions ───────────────────────────────── */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-white font-bold text-sm">Active Companions</h2>
-            <PillButton onClick={() => guardAction(PREMIUM_MSG, () => setLocation("/companion/cat-setup"))}>
-              <Plus className="h-3 w-3" /> Add Cat
+            <h2 className="text-white font-bold text-sm">{t("Active Companions")}</h2>
+            <PillButton onClick={() => guardAction(t(PREMIUM_MSG), () => setLocation("/companion/cat-setup"))}>
+              <Plus className="h-3 w-3" /> {t("Add Cat")}
             </PillButton>
           </div>
 
           {loading ? (
-            <div className="bg-white/5 rounded-xl p-8 text-center text-white/40 text-sm">Loading profiles...</div>
+            <div className="bg-white/5 rounded-xl p-8 text-center text-white/40 text-sm">{t("Loading profiles...")}</div>
           ) : activeProfiles.length === 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
@@ -229,12 +234,12 @@ export default function CatNutritionHub() {
               className="bg-black/40 border border-white/10 rounded-xl p-6 text-center"
             >
               <PawPrint className="h-8 w-8 text-orange-400/50 mx-auto mb-3" />
-              <p className="text-white font-semibold text-sm mb-1">No cats added yet</p>
+              <p className="text-white font-semibold text-sm mb-1">{t("No cats added yet")}</p>
               <p className="text-white/50 text-xs mb-4">
-                Create your cat's profile to generate personalized meals and wellness guidance.
+                {t("Create your cat's profile to generate personalized meals and wellness guidance.")}
               </p>
-              <PillButton onClick={() => guardAction(PREMIUM_MSG, () => setLocation("/companion/cat-setup"))}>
-                Create First Profile
+              <PillButton onClick={() => guardAction(t(PREMIUM_MSG), () => setLocation("/companion/cat-setup"))}>
+                {t("Create First Profile")}
               </PillButton>
             </motion.div>
           ) : (
@@ -259,42 +264,42 @@ export default function CatNutritionHub() {
                             />
                           ) : (
                             <button
-                              onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/cat-setup/${profile.id}?photos=true`))}
+                              onClick={() => guardAction(t(PREMIUM_MSG), () => setLocation(`/companion/cat-setup/${profile.id}?photos=true`))}
                               className="w-16 h-16 rounded-full bg-orange-500/20 border-2 border-dashed border-orange-400/40 flex flex-col items-center justify-center flex-shrink-0 gap-0.5"
                             >
                               <Camera className="h-5 w-5 text-orange-400" />
-                              <span className="text-orange-300 text-[8px] font-semibold leading-none">Add Photo</span>
+                              <span className="text-orange-300 text-[8px] font-semibold leading-none">{t("Add Photo")}</span>
                             </button>
                           )}
                           <div className="min-w-0">
                             <p className="text-white font-bold text-sm leading-tight">{profile.name}</p>
                             <p className="text-white/60 text-xs mt-0.5">
-                              {profile.breed}{profile.isMixedBreed ? " Mix" : ""}
+                              {profile.breed}{profile.isMixedBreed ? " " + t("Mix") : ""}
                             </p>
                             <p className="text-white/50 text-xs">
-                              {profile.sex ? `${profile.sex} · ` : ""}{profile.ageYears}yr · {profile.weightLbs} lbs
-                              {profile.isNeutered ? " · Neutered/Spayed" : ""}
+                              {profile.sex ? `${profile.sex === "Male" ? t("sex.male", { defaultValue: "Male" }) : profile.sex === "Female" ? t("sex.female", { defaultValue: "Female" }) : profile.sex} · ` : ""}{t("{{age}}yr", { age: profile.ageYears })} · {profile.weightLbs} lbs
+                              {profile.isNeutered ? " · " + t("Neutered/Spayed") : ""}
                             </p>
                             {Array.isArray(profile.wellnessGoals) && profile.wellnessGoals.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-1.5">
                                 {profile.wellnessGoals.slice(0, 2).map((goal) => (
                                   <span key={goal} className="bg-orange-500/15 border border-orange-400/25 text-orange-300 text-[9px] px-1.5 py-0.5 rounded-full">
-                                    {goal}
+                                    {t(goal)}
                                   </span>
                                 ))}
                                 {profile.wellnessGoals.length > 2 && (
-                                  <span className="text-white/30 text-[9px]">+{profile.wellnessGoals.length - 2} more</span>
+                                  <span className="text-white/30 text-[9px]">{t("+{{count}} more", { count: profile.wellnessGoals.length - 2 })}</span>
                                 )}
                               </div>
                             )}
                           </div>
                         </div>
                         <div className="flex flex-col gap-1.5 flex-shrink-0">
-                          <PillButton onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/cat-generator?profileId=${profile.id}`))}>
-                            <ChefHat className="h-3 w-3" /> Cook
+                          <PillButton onClick={() => guardAction(t(PREMIUM_MSG), () => setLocation(`/companion/cat-generator?profileId=${profile.id}`))}>
+                            <ChefHat className="h-3 w-3" /> {t("Cook")}
                           </PillButton>
-                          <PillButton onClick={() => guardAction(PREMIUM_MSG, () => setLocation(`/companion/cat-setup/${profile.id}`))}>
-                            Edit
+                          <PillButton onClick={() => guardAction(t(PREMIUM_MSG), () => setLocation(`/companion/cat-setup/${profile.id}`))}>
+                            {t("Edit")}
                           </PillButton>
                           <PillButton onClick={() => {
                             setExpandedActionId(actionOpen ? null : profile.id);
@@ -314,21 +319,21 @@ export default function CatNutritionHub() {
                             className="overflow-hidden"
                           >
                             <div className="pt-3 mt-3 border-t border-white/8 space-y-3">
-                              <p className="text-white/40 text-[10px] font-semibold uppercase">Profile Status</p>
+                              <p className="text-white/40 text-[10px] font-semibold uppercase">{t("Profile Status")}</p>
                               <div className="flex gap-2">
                                 <PillButton
                                   onClick={() => handleArchiveProfile(profile.id, profile.name)}
                                   disabled={statusLoading === profile.id}
                                 >
                                   <Archive className="h-3 w-3" />
-                                  Move to Previous
+                                  {t("Move to Previous")}
                                 </PillButton>
                               </div>
                               <div className="space-y-2">
-                                <p className="text-white/40 text-[10px]">Create a memorial for {profile.name}</p>
+                                <p className="text-white/40 text-[10px]">{t("Create a memorial for {{name}}", { name: profile.name })}</p>
                                 <input
                                   className="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-white text-xs placeholder-white/30 focus:outline-none focus:border-orange-500/60"
-                                  placeholder={`e.g. "Forever my sunshine. 2012–2026."`}
+                                  placeholder={t("e.g. \"Forever my sunshine. 2012–2026.\"")}
                                   value={memorialMsg}
                                   onChange={(e) => setMemorialMsg(e.target.value)}
                                 />
@@ -337,7 +342,7 @@ export default function CatNutritionHub() {
                                   disabled={statusLoading === profile.id}
                                 >
                                   <Heart className="h-3 w-3" />
-                                  Create Memorial
+                                  {t("Create Memorial")}
                                 </PillButton>
                               </div>
                             </div>
@@ -354,9 +359,9 @@ export default function CatNutritionHub() {
 
         {/* Feline Nutrition Intelligence banner */}
         <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3 mb-6">
-          <p className="text-white font-semibold text-sm">Feline Nutrition Intelligence</p>
+          <p className="text-white font-semibold text-sm">{t("Feline Nutrition Intelligence")}</p>
           <p className="text-white/65 text-xs mt-1 leading-relaxed">
-            Obligate carnivore meal planning with taurine-optimized recipes and cat-safe ingredient guidance.
+            {t("Obligate carnivore meal planning with taurine-optimized recipes and cat-safe ingredient guidance.")}
           </p>
         </div>
 
@@ -365,7 +370,7 @@ export default function CatNutritionHub() {
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <Heart className="h-4 w-4 text-orange-400/70" />
-              <h2 className="text-white font-bold text-sm">In Memory</h2>
+              <h2 className="text-white font-bold text-sm">{t("In Memory")}</h2>
             </div>
             <div className="space-y-3">
               {memorialProfiles.map((profile) => (
@@ -375,11 +380,11 @@ export default function CatNutritionHub() {
                       <PawPrint className="h-4 w-4 text-orange-400/50" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-orange-200/90 text-xs font-semibold">In Memory of {profile.name}</p>
+                      <p className="text-orange-200/90 text-xs font-semibold">{t("In Memory of {{name}}", { name: profile.name })}</p>
                       {profile.memorialMessage && (
                         <p className="text-white/45 text-[11px] mt-0.5 leading-relaxed italic">"{profile.memorialMessage}"</p>
                       )}
-                      <p className="text-white/30 text-[10px] mt-0.5">{profile.breed}{profile.isMixedBreed ? " Mix" : ""}</p>
+                      <p className="text-white/30 text-[10px] mt-0.5">{profile.breed}{profile.isMixedBreed ? " " + t("Mix") : ""}</p>
                     </div>
                   </div>
                 </div>
@@ -396,7 +401,7 @@ export default function CatNutritionHub() {
               onClick={() => setShowPrevious((v) => !v)}
             >
               <Archive className="h-4 w-4 text-white/40" />
-              <h2 className="text-white font-bold text-sm">Previous Companions</h2>
+              <h2 className="text-white font-bold text-sm">{t("Previous Companions")}</h2>
               <span className="bg-white/10 text-white/50 text-[9px] px-1.5 py-0.5 rounded-full">{previousProfiles.length}</span>
               {showPrevious ? <ChevronUp className="h-3 w-3 text-white/30 ml-auto" /> : <ChevronDown className="h-3 w-3 text-white/30 ml-auto" />}
             </button>
@@ -412,13 +417,13 @@ export default function CatNutritionHub() {
                     <div key={profile.id} className="bg-black/30 border border-white/8 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-white/70 text-sm font-semibold">{profile.name}</p>
-                        <p className="text-white/35 text-xs">{profile.breed}{profile.isMixedBreed ? " Mix" : ""}</p>
+                        <p className="text-white/35 text-xs">{profile.breed}{profile.isMixedBreed ? " " + t("Mix") : ""}</p>
                       </div>
                       <PillButton
                         onClick={() => handleRestoreProfile(profile.id)}
                         disabled={statusLoading === profile.id}
                       >
-                        <RotateCcw className="h-3 w-3" /> Restore
+                        <RotateCcw className="h-3 w-3" /> {t("Restore")}
                       </PillButton>
                     </div>
                   ))}
@@ -433,9 +438,9 @@ export default function CatNutritionHub() {
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <BookOpen className="h-4 w-4 text-orange-400" />
-              <h2 className="text-white font-bold text-sm">Recipe Collection</h2>
+              <h2 className="text-white font-bold text-sm">{t("Recipe Collection")}</h2>
               <span className="bg-orange-500/20 border border-orange-400/30 text-orange-300 text-[9px] font-semibold px-2 py-0.5 rounded-full">
-                {savedMeals.length} saved
+                {t("{{count}} saved", { count: savedMeals.length })}
               </span>
             </div>
             <div className="space-y-2">
@@ -446,7 +451,7 @@ export default function CatNutritionHub() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white/80 text-xs truncate font-medium">{meal.title}</p>
-                    <p className="text-white/35 text-[10px] capitalize">{meal.mealType}</p>
+                    <p className="text-white/35 text-[10px] capitalize">{t(({ main: "Main Meal", treat: "Treat", snack: "Snack", "meal-prep": "Meal Prep" } as Record<string, string>)[meal.mealType] || meal.mealType, { defaultValue: meal.mealType })}</p>
                   </div>
                 </div>
               ))}
@@ -457,7 +462,7 @@ export default function CatNutritionHub() {
       </div>
 
       {showLockModal && (
-        <UpgradeLockModal message={lockMessage} onClose={closeLockModal} />
+        <UpgradeLockModal open={showLockModal} message={lockMessage} onClose={closeLockModal} />
       )}
     </motion.div>
   );

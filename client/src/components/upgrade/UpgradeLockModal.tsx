@@ -1,4 +1,5 @@
 import { useLocation } from "wouter";
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { UniversalDialog } from "@/components/ui/universal-modal";
 import { Lock } from "lucide-react";
 
@@ -9,6 +10,7 @@ interface UpgradeLockModalProps {
 }
 
 export function UpgradeLockModal({ open, onClose, message }: UpgradeLockModalProps) {
+  const { t } = useConsumerCopy();
   const [, setLocation] = useLocation();
 
   return (
@@ -25,13 +27,13 @@ export function UpgradeLockModal({ open, onClose, message }: UpgradeLockModalPro
               onClick={() => { onClose(); setLocation("/pricing"); }}
               className="w-full bg-orange-600 hover:bg-orange-500 text-white font-semibold py-2.5 rounded-lg transition-colors text-sm"
             >
-              View Plans
+              {t("View Plans")}
             </button>
             <button
               onClick={onClose}
               className="w-full bg-white/10 hover:bg-white/15 text-white/70 font-medium py-2.5 rounded-lg transition-colors text-sm"
             >
-              Maybe Later
+              {t("Maybe Later")}
             </button>
           </div>
         </div>

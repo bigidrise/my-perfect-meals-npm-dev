@@ -2,6 +2,10 @@ import fs from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
 import {
+  validateGeneratedIngredientMeasurements,
+  checkIngredientSanity,
+} from "../services/calorieEstimator";
+import {
   filterPreparedMealResponse, RECIPE_PREPARATION_GUIDANCE, validateRecipePreparation,
 } from "../services/recipePreparationValidator";
 
@@ -46,6 +50,7 @@ describe("actual unified recipe-release wrappers with isolated generators", () =
       proceduralBlock: "", fastMode: false,
       buildVarietyPrompt: () => "Lentil salad within current protections.",
       parseVarietyContent: JSON.parse, validateRecipePreparation, RECIPE_PREPARATION_GUIDANCE,
+      validateGeneratedIngredientMeasurements, checkIngredientSanity,
       openai: { chat: { completions: { create } } },
     });
     const attempt = vm.runInContext(`${compiled}\nattempt`, context);

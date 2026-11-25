@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import { useNarration } from "@/hooks/useNarration";
+import { LEGACY_CHEF_NARRATION_ENABLED } from "@shared/legacyNarration";
 
 interface NarrationSection {
   heading: string;
@@ -26,7 +27,11 @@ interface NarrationBarProps {
   controlLabels?: Partial<Record<string, string>>;
 }
 
-export function NarrationBar({
+export function NarrationBar(props: NarrationBarProps) {
+  return LEGACY_CHEF_NARRATION_ENABLED ? <EnabledNarrationBar {...props} /> : null;
+}
+
+function EnabledNarrationBar({
   sections,
   onSectionChange,
   className = "",

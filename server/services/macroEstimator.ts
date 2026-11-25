@@ -1,5 +1,7 @@
 // server/services/macroEstimator.ts
 // Tiny macro table to estimate when model leaves fields blank or to verify bands.
+import { verifyGeneratedIngredient } from "./generatedIngredientAdapter";
+
 export type Macro = { kcal: number; protein: number; carbs: number; fat: number };
 
 const per100g: Record<string, Macro> = {
@@ -20,27 +22,35 @@ const per100g: Record<string, Macro> = {
 // Basic parser for common units to grams (best-effort; conservative)
 const gramsPerUnit: Record<string, number> = {
   oz: 28.35, ounce: 28.35, ounces: 28.35,
+  lb: 453.59237,
   cup: 240, cups: 240,
   tbsp: 14, tsp: 5, g: 1, kg: 1000,
   piece: 100, medium: 100, large: 120, small: 80, clove: 5, slice: 30,
 };
 
-export function estimateMacros(ingredients: { name: string; amount: string }[]): Macro | null {
+export function estimateMacros(ingredients: unknown): Macro | null {
+  if (!Array.isArray(ingredients) || ingredients.length === 0) return null;
   let total: Macro = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
   
-  for (const ing of (ingredients || [])) {
-    const name = ing.name.toLowerCase();
+  for (const ing of ingredients) {
+    const verified = verifyGeneratedIngredient(ing);
+    if (!verified) return null;
+
+    const name = verified.name.toLowerCase();
     const baseKey = Object.keys(per100g).find(k => name.includes(k));
-    if (!baseKey) continue;
-    
-    const amt = String(ing.amount || "").toLowerCase();
-    const m = amt.match(/(\d+(?:\.\d+)?)\s*(oz|ounce|ounces|cup|cups|tbsp|tsp|g|kg|piece|medium|large|small|clove|slice)?/);
-    const qty = m ? parseFloat(m[1]) : 0;
-    const unit = (m?.[2] || "g") as keyof typeof gramsPerUnit;
-    const grams = qty * (gramsPerUnit[unit] ?? 0);
-    
-    if (!grams) continue;
-    
+
+    if (!baseKey) return null;
+
+    const unit = verified.unit;
+
+    if (!Object.prototype.hasOwnProperty.call(gramsPerUnit, unit)) {
+      return null;
+    }
+
+    const grams = verified.quantity * gramsPerUnit[unit];
+
+    if (!Number.isFinite(grams) || grams <= 0) return null;
+
     const per = per100g[baseKey];
     total.kcal += (per.kcal * grams) / 100;
     total.protein += (per.protein * grams) / 100;
@@ -51,6 +61,8 @@ export function estimateMacros(ingredients: { name: string; amount: string }[]):
   // If we have nothing, return null so caller can skip enforcing macro bands
   if (total.kcal === 0 && total.protein === 0 && total.carbs === 0 && total.fat === 0) return null;
   
+  if (!Object.values(total).every(Number.isFinite)) return null;
+
   // Round sensibly
   total = { 
     kcal: Math.round(total.kcal), 

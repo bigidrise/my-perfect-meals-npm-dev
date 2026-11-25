@@ -170,3 +170,26 @@ describe("Whole-dessert recipe yields", () => {
     expect(resolveDessertYield(undefined, "")?.count).toBe(12);
   });
 });
+
+describe("Source-backed measurement conversion integrity", () => {
+  it.each([
+    ["gramos", 6],
+    ["kilogramos", 6000],
+    ["cucharaditas", 12],
+    ["cucharadas", 36],
+  ])("supports Spanish measurement unit %s", (unit, grams) => {
+    expect(dessertIngredientGrams({
+      name: "lemon zest",
+      amount: "6",
+      unit,
+    }, lemon())?.grams).toBeCloseTo(grams);
+  });
+
+  it("rejects overflowing mass conversions", () => {
+    expect(dessertIngredientGrams({
+      name: "lemon zest",
+      amount: "1" + "0".repeat(307),
+      unit: "kg",
+    }, lemon())).toBeNull();
+  });
+});

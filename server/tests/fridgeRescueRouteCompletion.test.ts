@@ -60,6 +60,12 @@ async function invoke(body: Record<string, unknown> = {}, mode = "development") 
     "./services/humanFoodContext/buildHumanFoodPromptBlock": { buildHumanFoodPromptBlock: () => "fixture food context" },
     "./services/glp1/resolveGLP1GlobalContext": { resolveGLP1GlobalContext: async () => ({ isActive: true, resolvedTargets: targets, activationSources: ["fixture"] }) },
     "./services/fridgeRescueChoiceCompletion": { completeFridgeRescueChoices },
+    "./utils/languageInstruction": {
+      resolveRequestLanguagePreference: (preference: string | null | undefined) =>
+        preference && preference !== "auto"
+          ? preference.split("-")[0].toLowerCase()
+          : "en",
+    },
     "./services/fridgeRescueCuisineCompliance": { enforceFridgeRescueCuisineCompliance: cuisine },
     "./services/guardrails/index": { validateMealForDiet: glp1 },
     "./services/fridgeRescueHumanFoodAdapter": { getFridgeRescueReleaseStatus, validateFridgeRescueMealsWithHumanFood: humanFood },

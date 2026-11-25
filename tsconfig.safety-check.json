@@ -1,6 +1,13 @@
 {
   "extends": "./tsconfig.json",
   "include": [
+    "shared/glp1CheesePolicy.ts",
+    "shared/ingredientMeasurements.ts",
+    "server/services/guardrails/ingredientPrecision.ts",
+    "server/services/guardrails/validators/glp1Validator.ts",
+    "server/services/calorieEstimator.ts",
+    "server/services/mealVerificationFailure.ts",
+    "server/services/groceryCoachGLP1Verification.ts",
     "server/services/dessertChoiceEvidence.ts",
     "shared/shoppingProductSelection.ts",
     "shared/shoppingIngredientMetadata.ts",

@@ -44,3 +44,47 @@ describe("MealGen V2 shared preparation gate with offline HTTP", () => {
     expect(global.fetch).toHaveBeenCalledTimes(5);
   });
 });
+
+describe("MealGen V2 measurement integrity", () => {
+  const originalFetch = global.fetch;
+  afterEach(() => { global.fetch = originalFetch; });
+
+  it.each([
+    ["0,5", "cup", "0.5"],
+    ["0.125", "cup", "0.125"],
+    ["0.005", "cup", "0.005"],
+    ["0.249", "cup", "0.249"],
+    ["1/8", "cup", "0.125"],
+    ["1 1/2", "cup", "1.5"],
+    ["0,5", "taza", "0.5"],
+  ])("preserves quantity %s %s", async (quantity, unit, expected) => {
+    global.fetch = jest.fn().mockResolvedValue(completion({
+      ...base,
+      ingredients: [{ name: "lentils", quantity, unit, notes: "canned, drained" }],
+    }));
+    const meal = await generateMealV2(opts);
+    const { parseMeasurementNumber } = await import("../../shared/units");
+    const amount = meal.ingredients[0].amount;
+    expect(parseMeasurementNumber(amount.replace(/\s+(cup|cups|taza|tazas)$/, ""))).toBe(Number(expected));
+  });
+
+  it.each([
+    { quantity: "invalid", unit: "cup" },
+    { quantity: "1/0", unit: "cup" },
+    { quantity: 0, unit: "cup" },
+    { quantity: -1, unit: "cup" },
+    { quantity: 1, unit: "" },
+    { quantity: 1, unit: "handful" },
+    { unit: "cup" },
+    { quantity: 1, amount: 2, unit: "cup" },
+  ])("rejects unverifiable measurements: %j", async (measurement) => {
+    global.fetch = jest.fn().mockResolvedValue(completion({
+      ...base,
+      ingredients: [{ name: "lentils", notes: "canned, drained", ...measurement }],
+    }));
+    await expect(generateMealV2(opts)).rejects.toMatchObject({
+      name: "MealRecipeValidationError",
+    });
+    expect(global.fetch).toHaveBeenCalledTimes(5);
+  });
+});

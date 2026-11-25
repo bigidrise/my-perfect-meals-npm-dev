@@ -201,11 +201,11 @@ test.each(["en", "es"])("existing preference controls show three modes and exact
 
 test("view quantities follow the current account with no independent unit cache; original product evidence stays primary", () => {
   const { rerender } = render(<><MeasurementQuantity amount="1/2" unit="cup" /><ProductLabelQuantity label="100 g" /></>);
-  expect(screen.getByText("120 ml")).toBeInTheDocument();
+  expect(screen.getByText("120 mL")).toBeInTheDocument();
   expect(screen.getByText("100 g")).toBeInTheDocument();
   mockUser = { ...mockUser, id: "fixture-b", countryCode: "US" };
   rerender(<><MeasurementQuantity amount="1/2" unit="cup" /><ProductLabelQuantity label="100 g" /></>);
-  expect(screen.queryByText("120 ml")).not.toBeInTheDocument();
+  expect(screen.queryByText("120 mL")).not.toBeInTheDocument();
   expect(screen.getByText("100 g")).toBeInTheDocument();
   expect(screen.getByText(/Equivalent: 3.5 oz/)).toBeInTheDocument();
 });

@@ -32,7 +32,10 @@ describe("Stage 2E dessert and beverage final enforcement", () => {
       beverage.indexOf("const MAX_BEVERAGE_ATTEMPTS"),
     );
     expect(alternativeBlock).toContain(
-      'validateFinalBeverageCandidate(finalAlternative).outcome !== "pass"',
+      "if (!validateGeneratedIngredientMeasurements(candidate.ingredients)) continue;",
+    );
+    expect(alternativeBlock).toContain(
+      'validateFinalBeverageCandidate(finalAlternative, true).outcome !== "pass"',
     );
   });
 

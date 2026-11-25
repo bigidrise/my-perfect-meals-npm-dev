@@ -104,3 +104,50 @@ test("empty batches reach the retry limit and never fabricate a recipe", async (
   expect(result.completion.reasonCodes).toEqual(expect.arrayContaining(["GENERATOR_SHORTFALL", "RETRY_LIMIT_REACHED"]));
   expect(generate).toHaveBeenCalledTimes(3);
 });
+
+describe("Fridge Rescue completion language", () => {
+  test.each(["es", "es-MX", "es-419"])(
+    "explains rejected choices in Spanish for %s",
+    async (language) => {
+      const generate = jest.fn().mockResolvedValue([meal("Unsafe", false)]);
+      const result = await completeFridgeRescueChoices({
+        enabled: true,
+        generate,
+        validate,
+        language,
+      } as Parameters<typeof completeFridgeRescueChoices>[0]);
+      expect(result.completion.message).toContain("0 de 3");
+      expect(result.completion.message).toContain("No se flexibilizó ningún requisito");
+      expect(result.completion.message).not.toContain("Showing");
+      expect(result.meals).toHaveLength(0);
+      expect(generate).toHaveBeenCalledTimes(3);
+    },
+  );
+
+  test("explains duplicate choices in Spanish", async () => {
+    const generate = jest.fn().mockResolvedValue([meal("Skillet")]);
+    const result = await completeFridgeRescueChoices({
+      enabled: true,
+      generate,
+      validate,
+      language: "es",
+    } as Parameters<typeof completeFridgeRescueChoices>[0]);
+    expect(result.completion.message).toContain("1 de 3");
+    expect(result.completion.message).toContain("repitieron");
+    expect(result.meals).toHaveLength(1);
+  });
+
+  test("complete Spanish results require no shortage notice", async () => {
+    const generate = jest.fn().mockResolvedValue([
+      meal("Skillet"), meal("Soup"), meal("Salad"),
+    ]);
+    const result = await completeFridgeRescueChoices({
+      enabled: true,
+      generate,
+      validate,
+      language: "es",
+    } as Parameters<typeof completeFridgeRescueChoices>[0]);
+    expect(result.completion.message).toBeNull();
+    expect(result.meals).toHaveLength(3);
+  });
+});

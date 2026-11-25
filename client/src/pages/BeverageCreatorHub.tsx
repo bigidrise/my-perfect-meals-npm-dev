@@ -1,3 +1,4 @@
+import { useConsumerCopy } from "@/i18n/useConsumerCopy";
 import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
@@ -43,14 +44,18 @@ const HUB_CARDS: HubCard[] = [
 ];
 
 export default function BeverageCreatorHub() {
+  const { t } = useConsumerCopy();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const isAdmin = user?.id === ADMIN_ID;
   const isDesktop = useIsDesktop();
-  usePageTitle("Beverage Creator Hub");
+  usePageTitle(t("Beverage Creator Hub"));
 
   useEffect(() => {
-    document.title = "Beverage Hub | My Perfect Meals";
+    document.title = t("Beverage Hub | My Perfect Meals");
+  }, [t]);
+
+  useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
@@ -79,7 +84,7 @@ export default function BeverageCreatorHub() {
               <ArrowLeft className="h-4 w-4" /><span className="sr-only"><BackNavigationLabel /></span>
             </button>
             <Wine className="h-6 w-6 text-blue-400" />
-            <h1 className="text-lg font-bold text-white">Beverage Hub</h1>
+            <h1 className="text-lg font-bold text-white">{t("Beverage Hub")}</h1>
           </div>
         </div>
       </MobileHeaderGuard>
@@ -92,8 +97,8 @@ export default function BeverageCreatorHub() {
 
           {/* Hub Intro — matches Pairings Hub pattern */}
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-white mb-2">Drink Design</h2>
-            <p className="text-sm text-white/70">AI-powered drinks for wellness, performance, refreshment, and everyday enjoyment.</p>
+            <h2 className="text-2xl font-bold text-white mb-2">{t("Drink Design")}</h2>
+            <p className="text-sm text-white/70">{t("AI-powered drinks for wellness, performance, refreshment, and everyday enjoyment.")}</p>
           </div>
 
           {/* Cards */}
@@ -128,7 +133,7 @@ export default function BeverageCreatorHub() {
                       <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-black via-violet-600 to-black rounded-full border border-violet-400/30 shadow-lg z-10">
                         <div className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />
                         <span className="text-white font-semibold text-[8px] tracking-wide">
-                          Admin Preview
+                          {t("Admin Preview")}
                         </span>
                       </div>
                     )}
@@ -147,11 +152,11 @@ export default function BeverageCreatorHub() {
                             }`}
                           />
                           <h3 className="text-sm font-semibold text-white">
-                            {card.title}
+                            {t(card.title)}
                           </h3>
                         </div>
                         <p className="text-xs text-white/80 ml-6">
-                          {card.description}
+                          {t(card.description)}
                         </p>
                       </div>
                     </CardContent>

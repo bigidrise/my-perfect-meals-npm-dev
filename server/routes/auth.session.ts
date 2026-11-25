@@ -104,6 +104,13 @@ function isAdminEmail(email: string): boolean {
 router.post("/api/auth/signup", async (req, res) => {
   try {
     const { password, procare } = req.body;
+    const requestedLanguage = req.body.preferredLanguage;
+    const preferredLanguage =
+      requestedLanguage === "en" ||
+      requestedLanguage === "es" ||
+      requestedLanguage === "auto"
+        ? requestedLanguage
+        : "auto";
     const email = typeof req.body.email === "string" ? req.body.email.toLowerCase().trim() : req.body.email;
 
     if (!email || !password) {
@@ -264,7 +271,7 @@ router.post("/api/auth/signup", async (req, res) => {
     // record was claimed by another request, the user insert rolls back rather
     // than issuing an untracked 30-day entitlement.
     const newUser = await createWithUniqueSignupUsername(userValues.username, username => db.transaction(async (tx) => {
-      const [createdUser] = await tx.insert(users).values({ ...userValues, username, measurementSystem: "auto" }).returning();
+      const [createdUser] = await tx.insert(users).values({ ...userValues, username, measurementSystem: "auto", preferredLanguage }).returning();
       if (clinicPilotToken) {
         await enrollClinicPatientInTransaction(tx, clinicPilotToken, createdUser.id);
       }
@@ -352,6 +359,7 @@ router.post("/api/auth/signup", async (req, res) => {
       id: newUser.id,
       email: newUser.email,
       username: newUser.username,
+      preferredLanguage: newUser.preferredLanguage ?? "auto",
       authToken: issuedCredential?.authToken ?? null,
       mfaEnrollmentRequired: privilegedSignup,
       isProCare: newUser.isProCare || !!inviteResult.membership,

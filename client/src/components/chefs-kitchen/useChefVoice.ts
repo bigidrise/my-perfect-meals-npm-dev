@@ -1,5 +1,6 @@
 import { useRef, useCallback } from "react";
 import { ttsService } from "@/lib/tts";
+import { LEGACY_CHEF_NARRATION_ENABLED } from "@shared/legacyNarration";
 
 export function useChefVoice(
   setIsPlaying: (v: boolean) => void
@@ -9,6 +10,11 @@ export function useChefVoice(
 
   const speak = useCallback(
     async (text: string, onListened?: () => void): Promise<void> => {
+      if (!LEGACY_CHEF_NARRATION_ENABLED) {
+        setIsPlaying(false);
+        onListened?.();
+        return;
+      }
       // Stop any audio that is already playing / loading
       if (audioRef.current) {
         audioRef.current.pause();

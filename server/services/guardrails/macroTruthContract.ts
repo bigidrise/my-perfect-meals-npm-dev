@@ -83,10 +83,17 @@ export function canInjectBaselineMacros(context: string | undefined): boolean {
  * NEVER returns a fabricated default.
  */
 export function safeMacroValue(value: unknown): number | null {
-  if (value === null || value === undefined) return null;
+  if (typeof value !== "number" && typeof value !== "string") {
+    return null;
+  }
+
+  if (typeof value === "string" &&
+      !/^(?:\d+(?:\.\d+)?|\.\d+)$/.test(value.trim())) {
+    return null;
+  }
+
   const n = Number(value);
-  if (isNaN(n) || n < 0) return null;
-  return n;
+  return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
 /**
@@ -96,7 +103,7 @@ export function safeMacroValue(value: unknown): number | null {
  * Logic:
  *   1. If AI returned a direct `carbs` field, use it.
  *   2. If AI returned starchy + fibrous splits (even if one is 0), sum them.
- *   3. If AI returned nothing → null (unknown, do not invent).
+ *   3. If either component is missing or invalid → null (unknown, do not invent).
  */
 export function resolveAICarbsStrict(aiMeal: {
   carbs?: unknown;
@@ -107,16 +114,13 @@ export function resolveAICarbsStrict(aiMeal: {
   const direct = safeMacroValue(aiMeal.carbs) ?? safeMacroValue(aiMeal.carbs_g);
   if (direct !== null) return direct;
 
-  const hasStarchy = aiMeal.starchyCarbs !== undefined && aiMeal.starchyCarbs !== null;
-  const hasFibrous = aiMeal.fibrousCarbs !== undefined && aiMeal.fibrousCarbs !== null;
+  const starchy = safeMacroValue(aiMeal.starchyCarbs);
+  const fibrous = safeMacroValue(aiMeal.fibrousCarbs);
 
-  if (hasStarchy || hasFibrous) {
-    const starchy = safeMacroValue(aiMeal.starchyCarbs) ?? 0;
-    const fibrous = safeMacroValue(aiMeal.fibrousCarbs) ?? 0;
-    return starchy + fibrous;
-  }
+  if (starchy === null || fibrous === null) return null;
 
-  return null;
+  const total = starchy + fibrous;
+  return Number.isFinite(total) ? total : null;
 }
 
 /**

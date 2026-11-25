@@ -7,6 +7,7 @@
 
 import { apiUrl } from '@/lib/resolveApiBase';
 import { getAuthHeaders } from '@/lib/auth';
+import { LEGACY_CHEF_NARRATION_ENABLED } from "@shared/legacyNarration";
 
 export type VoiceStatus = 'not_ready' | 'ready' | 'loading' | 'speaking' | 'paused' | 'error';
 
@@ -56,6 +57,7 @@ class VoiceManagerSingleton {
    * This validates the API connection and locks the session
    */
   async preload(): Promise<boolean> {
+    if (!LEGACY_CHEF_NARRATION_ENABLED) return false;
     if (this.preloadPromise) return this.preloadPromise;
     if (this.state.sessionLocked) return true;
 
@@ -99,6 +101,10 @@ class VoiceManagerSingleton {
    * RULE: If voice isn't ready, returns 'not_ready' - never falls back
    */
   async speak(text: string, onEnd?: () => void): Promise<SpeakResult> {
+    if (!LEGACY_CHEF_NARRATION_ENABLED) {
+      onEnd?.();
+      return { status: 'silent', reason: 'Legacy narration disabled' };
+    }
     if (!text || text.trim().length === 0) {
       onEnd?.();
       return { status: 'silent', reason: 'Empty text' };

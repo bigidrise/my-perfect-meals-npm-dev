@@ -8,6 +8,8 @@
  *   import { convertWeightDisplay, convertVolumeDisplay, getMeasurementPromptBlock } from "@shared/units";
  */
 
+import { ingredientMeasurementUnit } from "./ingredientMeasurementUnits";
+
 export type MeasurementSystem = "imperial" | "metric";
 /** Saved intent is distinct from the two-value contract consumed by converters. */
 export type MeasurementPreference = "auto" | MeasurementSystem;
@@ -37,9 +39,19 @@ export function parseMeasurementNumber(value: string | number): number | null {
   const fraction = text.match(/^([+-])?(?:(\d+)\s+)?(\d+)\s*\/\s*(\d+)$/);
   if (fraction) {
     const denominator = Number(fraction[4]);
-    if (!denominator) return null;
-    return (fraction[1] === "-" ? -1 : 1) * (Number(fraction[2] || 0) + Number(fraction[3]) / denominator);
+    if (!Number.isFinite(denominator) || denominator <= 0) return null;
+    const result = (fraction[1] === "-" ? -1 : 1) * (Number(fraction[2] || 0) + Number(fraction[3]) / denominator);
+    return Number.isFinite(result) ? result : null;
   }
+  // Accept lossless numeric serialization without accepting malformed quantities.
+  if (/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)[eE][+-]?\d+$/.test(text)) {
+    const number = Number(text);
+    const mantissa = Number(text.split(/[eE]/)[0]);
+    if (!Number.isFinite(number)) return null;
+    if (number === 0 && mantissa !== 0) return null;
+    return number;
+  }
+
   if (/^[+-]?[1-9]\d{0,2},\d{3}$/.test(text)) return null;
   if (!/^[+-]?(?:\d+(?:[.,]\d+)?|[.,]\d+)$/.test(text)) return null;
   const number = Number(text.replace(",", "."));
@@ -146,6 +158,16 @@ export function convertVolumeDisplay(ml: number, system: MeasurementSystem): str
 
 // ─── Serving display (for recipe ingredients) ────────────────────────────────
 
+/** Recipe-specific volume display without coarse kitchen rounding. */
+function convertRecipeVolumeDisplay(ml: number): string {
+  if (!Number.isFinite(ml) || ml < 0) return "—";
+  if (ml === 0) return "0 cup";
+  if (ml >= 240) return `${preciseSmallQuantity(ml / 240)} cup`;
+  if (ml >= 15) return `${preciseSmallQuantity(ml / 15)} tbsp`;
+  if (ml >= 5) return `${preciseSmallQuantity(ml / 5)} tsp`;
+  return `${preciseSmallQuantity(ml)} ml`;
+}
+
 /** Convert a serving amount+unit from generated recipe to display string. */
 export function convertServingDisplay(
   amount: string | number,
@@ -156,12 +178,12 @@ export function convertServingDisplay(
   const num = parseMeasurementNumber(amount);
   if (num === null || num < 0) return original;
 
-  const u = unit.toLowerCase().trim();
+  const u = ingredientMeasurementUnit(unit);
   if (system === "imperial") {
     if (u === "g" || u === "gram" || u === "grams") return convertWeightDisplay(num, system);
     if (u === "kg" || u === "kilogram" || u === "kilograms") return convertWeightDisplay(num * 1000, system);
-    if (u === "ml" || u === "milliliter" || u === "milliliters") return convertVolumeDisplay(num, system);
-    if (u === "l" || u === "liter" || u === "liters") return convertVolumeDisplay(num * 1000, system);
+    if (u === "ml" || u === "milliliter" || u === "milliliters") return convertRecipeVolumeDisplay(num);
+    if (u === "l" || u === "liter" || u === "liters") return convertRecipeVolumeDisplay(num * 1000);
     return original;
   }
 

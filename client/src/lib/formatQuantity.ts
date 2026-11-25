@@ -1,20 +1,20 @@
 import { convertServingDisplay, parseMeasurementNumber, type MeasurementSystem } from "@shared/units";
 
-const FRACTION_MAP: Record<string, string> = {
-  "0.25": "¼",
-  "0.33": "⅓",
-  "0.5": "½",
-  "0.67": "⅔",
-  "0.75": "¾",
-};
-
-const FRACTION_TOLERANCE = 0.01;
+const FRACTIONS: ReadonlyArray<readonly [number, string]> = [
+  [1 / 8, "⅛"],
+  [1 / 4, "¼"],
+  [1 / 3, "⅓"],
+  [3 / 8, "⅜"],
+  [1 / 2, "½"],
+  [5 / 8, "⅝"],
+  [2 / 3, "⅔"],
+  [3 / 4, "¾"],
+  [7 / 8, "⅞"],
+];
 
 function toFraction(decimal: number): string | null {
-  for (const [key, glyph] of Object.entries(FRACTION_MAP)) {
-    if (Math.abs(decimal - parseFloat(key)) < FRACTION_TOLERANCE) {
-      return glyph;
-    }
+  for (const [value, glyph] of FRACTIONS) {
+    if (Math.abs(decimal - value) < 1e-10) return glyph;
   }
   return null;
 }
@@ -50,17 +50,10 @@ export function formatQuantity(
   const whole = Math.floor(finalQty);
   const frac = finalQty - whole;
 
-  let display: string;
-  if (frac < FRACTION_TOLERANCE) {
-    display = String(whole);
-  } else {
-    const glyph = toFraction(frac);
-    if (glyph) {
-      display = whole > 0 ? `${whole}${glyph}` : glyph;
-    } else {
-      display = String(Math.round(finalQty * 100) / 100);
-    }
-  }
+  const glyph = toFraction(frac);
+  const display = glyph
+    ? (whole > 0 ? `${whole}${glyph}` : glyph)
+    : String(Number(finalQty.toPrecision(15)));
 
   return finalUnit ? `${display} ${finalUnit}` : display;
 }

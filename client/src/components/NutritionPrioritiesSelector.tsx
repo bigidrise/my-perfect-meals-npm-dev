@@ -128,7 +128,7 @@ export function NutritionPrioritiesSelector({
                   </span>
                   <span>
                     <span className="block text-sm font-semibold text-white">{t(definition.label)}</span>
-                    <span className="mt-1 block text-xs leading-relaxed text-white/65">{audience === "adult" ? t(summary) : summary}</span>
+                    <span className="mt-1 block text-xs leading-relaxed text-white/65">{t(summary)}</span>
                   </span>
                 </span>
               </button>

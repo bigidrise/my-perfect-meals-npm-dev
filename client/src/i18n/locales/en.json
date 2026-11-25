@@ -1,4 +1,10 @@
 {
+  "petTerminology": {
+    "sex": {
+      "male": "Male",
+      "female": "Female"
+    }
+  },
   "measurementPreferences": {
     "title": "Measurement preferences",
     "country": "Country",
@@ -741,6 +747,11 @@
     "checkoutErrorDesc": "Failed to start checkout. Please try again."
   },
   "onboarding": {
+    "thyroidGuidanceRich": "This activates anti-inflammatory, selenium-focused meal guidance designed to complement thyroid wellness. It is <0>not a medical diagnosis</0>, not a treatment plan, and <1>not a substitute for your doctor or endocrinologist's care</1>. Always follow your healthcare provider's recommendations first.",
+    "hormoneGuidanceRich": "Activates hormone-supportive meal generation — healthy fats, zinc-rich proteins, minimal processed foods, no refined sugars or seed oils. This is <0>not a medical protocol</0> and is <1>not a substitute for your doctor's care</1>.",
+    "oncologyGuidanceRich": "Selecting this activates general nutritional guidance designed to support people going through cancer treatment — things like managing appetite, nausea, and energy needs. This is <0>not a diagnosis</0>, not a treatment plan, and <1>not a substitute for your oncology team's medical care</1>. Always follow your doctor's guidance first.",
+    "trialAccessDateRich": "You have full access to everything in MPM through <0>{{date}}</0>. No credit card required to start.",
+    "trialAccessDaysRich": "You have full access to everything in MPM through <0>the next {{days}} days</0>. No credit card required to start.",
     "goal": "What's your main goal?",
     "goalSub": "We'll personalize your plan around this",
     "loseWeight": "Lose Weight",
@@ -1057,7 +1068,14 @@
     "foodsToAvoidDescription": "Foods or categories you never want in your meals. No PIN needed — this is a preference, not a medical safety setting.",
     "avoidedFoodPlaceholder": "Type a specific food...",
     "addAvoidedFood": "Add",
-    "avoidedFoodCategories": {"vegetables": "Vegetables", "mushrooms": "Mushrooms", "onions": "Onions", "seafood": "Seafood", "pork": "Pork", "red meat": "Red Meat"},
+    "avoidedFoodCategories": {
+      "vegetables": "Vegetables",
+      "mushrooms": "Mushrooms",
+      "onions": "Onions",
+      "seafood": "Seafood",
+      "pork": "Pork",
+      "red meat": "Red Meat"
+    },
     "specialtyHealthProtocol": "Specialty Health Protocol",
     "oncologyManagedTitle": "Cancer / Oncology Protocol — Managed by Your Care Team",
     "oncologyPreviouslyManagedTitle": "Cancer / Oncology Protocol — Previously Set by Your Care Team",
@@ -1076,7 +1094,22 @@
     "labActivatedGuidance": "You can turn off Cardiac / Heart Disease here and save your profile without changing your lab values. This stops Cardiac nutrition guidance unless your physician controls it. Other lab-activated protocols are managed through Biometrics.",
     "clinicalReviewRequired": "Clinical Protocol Review Required",
     "clinicalReviewNotice": "Your clinical settings include physician-directed or earlier clinical assignments. Contact your care team for review before changing them.",
-    "clinicalConditionLabels": {"renal": "Kidney / Renal Disease", "cardiac": "Cardiac / Heart Disease", "liver-disease": "Liver Disease", "liver-support": "Liver Support", "oncology-support": "Cancer / Oncology Support", "thyroid-support": "Thyroid Support", "hashimotos": "Hashimoto's", "hypothyroid": "Hypothyroid", "hyperthyroid": "Hyperthyroid", "hormone-optimization": "Hormone Optimization", "menopause": "Menopause", "perimenopause": "Perimenopause", "metabolic-recovery": "Metabolic Recovery", "pregnancy-support": "🩷 My Perfect Pregnancy"},
+    "clinicalConditionLabels": {
+      "renal": "Kidney / Renal Disease",
+      "cardiac": "Cardiac / Heart Disease",
+      "liver-disease": "Liver Disease",
+      "liver-support": "Liver Support",
+      "oncology-support": "Cancer / Oncology Support",
+      "thyroid-support": "Thyroid Support",
+      "hashimotos": "Hashimoto's",
+      "hypothyroid": "Hypothyroid",
+      "hyperthyroid": "Hyperthyroid",
+      "hormone-optimization": "Hormone Optimization",
+      "menopause": "Menopause",
+      "perimenopause": "Perimenopause",
+      "metabolic-recovery": "Metabolic Recovery",
+      "pregnancy-support": "🩷 My Perfect Pregnancy"
+    },
     "comingSoonClinicalSuffix": " — Coming Soon (Clinical)",
     "comingSoonClinical": "Coming Soon (Clinical)",
     "nutritionalGuidanceOnly": "Nutritional Guidance Only",
@@ -1824,6 +1857,21 @@
   },
   "procare": {
     "bridge": {
+      "defineGoals": "Define your goals and dietary preferences",
+      "exploreTools": "Explore the meal builders and tools",
+      "experienceAsClient": "Experience the app as your clients will",
+      "personalExperienceQuote": "\"You can't confidently guide someone through an experience you haven't had yourself.\"",
+      "experienceCompleteTitle": "You've Experienced My Perfect Meals as a User",
+      "experienceCompleteDesc": "You now understand what your clients will experience. Next, you'll learn how to use every feature professionally so you can confidently guide them.",
+      "majorFeatures": "Every major feature of the platform",
+      "clientPersonalization": "How to personalize nutrition for each client",
+      "responsibleAI": "How to use AI responsibly",
+      "clientSetup": "Client onboarding and setup",
+      "mealBoardsTracking": "Meal boards and progress tracking",
+      "personalProfileComplete": "Personal Profile Complete",
+      "phase1Complete": "Phase 1 Complete",
+      "affiliateBusinessSuite": "Affiliate program and Business Suite",
+      "clientRetention": "Client retention and best practices",
       "step1Badge": "Step 1 of 3",
       "step1Title": "Create Your ProCare Account",
       "step1Desc": "Set up your professional account to access ProCare tools and client management.",
@@ -1906,7 +1954,43 @@
     },
     "welcome": {
       "back": "Back",
-      "beginJourney": "Begin your journey"
+      "beginJourney": "Begin your journey",
+      "chefAlt": "Chef",
+      "title": "Welcome to My Perfect Meals Professional",
+      "accountReady": {
+        "trainer": "Your Trainer account is ready.",
+        "physician": "Your Physician account is ready.",
+        "professional": "Your professional account is ready."
+      },
+      "introduction": "Before you begin working with clients, every professional completes a three-step onboarding process.",
+      "profileComplete": "Personal profile already complete — continuing to certification",
+      "journeyHeading": "Your Professional Journey",
+      "steps": {
+        "experience": {
+          "title": "Experience My Perfect Meals as a User",
+          "description": "Complete your own personal profile and generate your first nutrition plan. You'll understand exactly what your clients experience before you ever guide one."
+        },
+        "fundamentals": {
+          "title": "Professional Certification — Phase 1: Platform Fundamentals",
+          "description": "Master every feature of the platform. Learn to personalize nutrition, use AI responsibly, onboard clients, and save time through automation."
+        },
+        "business": {
+          "title": "Professional Certification — Phase 2: Business & ProCare Success",
+          "description": "Learn to manage clients, use the Studio, build recurring revenue, run questionnaires, and grow your professional practice using ProCare."
+        }
+      },
+      "certificationHeading": "Why every professional begins with certification",
+      "benefits": {
+        "features": "Learn every feature of the platform",
+        "personalization": "Learn how to personalize nutrition for each client",
+        "responsibleAI": "Learn how to use AI responsibly and effectively",
+        "clientOnboarding": "Learn how to onboard clients efficiently",
+        "automation": "Learn how to save time through automation",
+        "revenue": "Learn how to build and grow recurring revenue",
+        "studio": "Learn how to use the Studio and Business Suite",
+        "clientQuestions": "Learn how to confidently answer client questions"
+      },
+      "closingStatement": "\"Every My Perfect Meals professional completes this certification before entering the Studio. Professionals who go through it are more confident, provide better client outcomes, and grow their businesses faster.\""
     },
     "training": {
       "back": "Back",

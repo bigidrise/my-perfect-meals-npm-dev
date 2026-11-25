@@ -136,122 +136,17 @@ const unitConversions: Record<string, UnitConversion> = {
 export function convertToUserFriendlyUnits(ingredients: Array<{name: string, amount: number, unit: string, notes: string}>): Array<{name: string, amount: number, unit: string, notes: string}>;
 export function convertToUserFriendlyUnits(ingredientText: string): string;
 export function convertToUserFriendlyUnits(input: any): any {
-  // Handle array of ingredient objects
+  // Preserve source measurements used for nutrition calculations.
+  // Presentation-layer conversion must not change ingredient quantities.
   if (Array.isArray(input)) {
-    return input.map(ingredient => {
-      if (ingredient.unit === 'g' || ingredient.unit === 'grams') {
-        const inputText = `${ingredient.amount}g ${ingredient.name}`;
-        const convertedText = convertMetricToUnits(inputText);
-
-        // A gram-fallback result starts with digits followed immediately by "g " (e.g. "150g salmon fillet").
-        // A real cooking-unit hit returns just the measurement without the ingredient name (e.g. "5 oz", "1/2 cup").
-        // Detect which case we're in so we don't try to re-parse the wrong format.
-        const isGramsFallback = /^\d+g\s/.test(convertedText);
-
-        if (!isGramsFallback && convertedText !== inputText) {
-          // Real cooking-unit conversion found — set displayText which the frontend checks first.
-          // convertedText is something like "5 oz" or "1/2 cup"; append the ingredient name.
-          return {
-            ...ingredient,
-            displayText: `${convertedText} ${ingredient.name}`
-          };
-        }
-
-        // Grams fallback (e.g. "150g exotic spice") — parse the metric text to get structured fields.
-        const match = convertedText.match(/^([\d\/\.\s]+)\s*([a-zA-Z]+)\s+(.+)$/);
-        if (match) {
-          const [, amountStr, unit, name] = match;
-          const amount = amountStr.includes('/')
-            ? parseFloat(amountStr.split('/')[0].trim()) / parseFloat(amountStr.split('/')[1].trim())
-            : parseFloat(amountStr.trim());
-          const rounded = Math.round(amount * 100) / 100;
-          return {
-            name: name.trim(),
-            amount: rounded,
-            unit: unit.toLowerCase(),
-            notes: ingredient.notes || '',
-            displayText: `${rounded} ${unit} ${name.trim()}`
-          };
-        }
-      }
-      // Return original if not a gram-based ingredient
-      return ingredient;
-    });
+    return input.map(ingredient => ({ ...ingredient }));
   }
-  
-  // Handle single string (existing functionality)
-  return convertMetricToUnits(input);
+
+  return input;
 }
 
 /**
- * Convert metric measurements to user-friendly cooking units (internal function)
- */
-function convertMetricToUnits(ingredientText: string): string {
-  // Clean up the ingredient text
-  let cleanText = ingredientText.trim();
-  
-  // Extract quantity and unit using regex
-  const metricPattern = /^(\d+(?:\.\d+)?)\s*(g|ml|grams?|milliliters?)\s+(.+)$/i;
-  const match = cleanText.match(metricPattern);
-  
-  if (!match) {
-    return ingredientText; // Return original if no metric pattern found
-  }
-  
-  const [, quantityStr, unit, ingredient] = match;
-  const quantity = parseFloat(quantityStr);
-  const normalizedUnit = unit.toLowerCase().replace(/s$/, ''); // Remove plural 's'
-  const normalizedIngredient = ingredient.toLowerCase().trim();
-  
-  // Look for exact match first
-  if (unitConversions[normalizedIngredient]) {
-    const conversion = unitConversions[normalizedIngredient];
-    
-    // Check if the quantity matches the conversion base
-    if ((normalizedUnit === 'g' || normalizedUnit === 'gram') && conversion.grams) {
-      const ratio = quantity / conversion.grams;
-      if (ratio <= 1.2 && ratio >= 0.8) { // Within 20% tolerance
-        return conversion.to;
-      }
-    } else if ((normalizedUnit === 'ml' || normalizedUnit === 'milliliter') && conversion.ml) {
-      const ratio = quantity / conversion.ml;
-      if (ratio <= 1.2 && ratio >= 0.8) { // Within 20% tolerance
-        return conversion.to;
-      }
-    }
-  }
-  
-  // Look for partial matches (ingredient contains key ingredient)
-  for (const [key, conversion] of Object.entries(unitConversions)) {
-    if (normalizedIngredient.includes(key) || key.includes(normalizedIngredient)) {
-      if ((normalizedUnit === 'g' || normalizedUnit === 'gram') && conversion.grams) {
-        const ratio = quantity / conversion.grams;
-        if (ratio <= 1.2 && ratio >= 0.8) { // Within 20% tolerance
-          return conversion.to;
-        }
-      } else if ((normalizedUnit === 'ml' || normalizedUnit === 'milliliter') && conversion.ml) {
-        const ratio = quantity / conversion.ml;
-        if (ratio <= 1.2 && ratio >= 0.8) { // Within 20% tolerance
-          return conversion.to;
-        }
-      }
-    }
-  }
-  
-  // Fallback: round the metric measurements for readability
-  if (normalizedUnit === 'g' || normalizedUnit === 'gram') {
-    const roundedQuantity = Math.round(quantity / 5) * 5; // Round to nearest 5g
-    return `${roundedQuantity}g ${ingredient}`;
-  } else if (normalizedUnit === 'ml' || normalizedUnit === 'milliliter') {
-    const roundedQuantity = Math.round(quantity / 25) * 25; // Round to nearest 25ml
-    return `${roundedQuantity}ml ${ingredient}`;
-  }
-  
-  return ingredientText; // Return original if no conversion possible
-}
-
-/**
- * Process an entire ingredients list and convert measurements
+ * Process an entire ingredients list without altering source measurements.
  */
 export function convertIngredientsToUserFriendly(ingredients: string[]): string[] {
   return ingredients.map(ingredient => convertToUserFriendlyUnits(ingredient));

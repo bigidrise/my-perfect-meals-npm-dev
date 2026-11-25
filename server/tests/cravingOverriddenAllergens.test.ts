@@ -36,6 +36,25 @@ jest.mock("../services/protocolEnvelope", () => {
   return {
     ...actual,
     loadUserProtocolEnvelope: (...args: any[]) => mockLoadEnvelope(...args),
+    loadGenerationProtocolEnvelope: (...args: any[]) => mockLoadEnvelope(...args),
+  };
+});
+
+jest.mock("../services/safetyProfileService", () => {
+  const actual = jest.requireActual("../services/safetyProfileService");
+  return {
+    ...actual,
+    loadSafetyProfile: async (userId: string) => {
+      const envelope = await mockLoadEnvelope(userId);
+      if (!envelope) return null;
+      return {
+        userId,
+        allergies: [...envelope.allergies],
+        dietaryRestrictions: [],
+        healthConditions: [],
+        avoidIngredients: [],
+      };
+    },
   };
 });
 
@@ -60,8 +79,8 @@ const shrimpMeal = {
   id: "cached-1",
   name: "Shrimp Fried Rice",
   description: "Fried rice with shrimp.",
-  ingredients: [{ name: "shrimp", quantity: "6", unit: "oz" }, { name: "rice", quantity: "4", unit: "oz" }],
-  instructions: "Fry everything.",
+  ingredients: [{ name: "raw shrimp", quantity: "6", unit: "oz" }, { name: "cooked rice", quantity: "4", unit: "oz" }],
+  instructions: "Cook the shrimp in a nonstick skillet until opaque and the internal temperature reaches 145°F. Add the cooked rice and stir until heated through.",
   calories: 500, protein: 30, carbs: 50, starchyCarbs: 40, fibrousCarbs: 5, fat: 12,
   cookingTime: "20 minutes", difficulty: "Easy" as const,
   imageUrl: "https://example.com/x.jpg", medicalBadges: [], source: "ai" as const,
@@ -89,6 +108,9 @@ describe("generateCravingMealUnified — PIN override on the craving path", () =
       undefined, false, undefined, undefined, undefined,
       ["shellfish"],
     );
+    if (!result.success) {
+      throw new Error(`Authorized override rejected: ${JSON.stringify(result)}`);
+    }
     expect(result.success).toBe(true);
     expect(result.meal?.name).toBe("Shrimp Fried Rice");
   });

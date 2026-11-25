@@ -1,3 +1,5 @@
+import { parseMeasurementNumber } from "../../shared/units";
+import { ingredientMeasurementUnit } from "../../shared/ingredientMeasurements";
 import {
   lookupUsdaIngredient, type IngredientComposition,
 } from "./productDiscovery/usdaIngredientAdapter";
@@ -108,14 +110,11 @@ export function dessertNutritionDiscrepancies(candidate: any, servings: number):
 }
 
 export function dessertQuantity(value: string): number | null {
-  const fractions: Record<string, string> = { "½": "1/2", "¼": "1/4", "¾": "3/4", "⅓": "1/3", "⅔": "2/3" };
-  const text = value.replace(/[½¼¾⅓⅔]/g, character => ` ${fractions[character]}`).trim();
-  const match = /^(?:(\d+)\s+)?(\d+)\/(\d+)$/.exec(text);
-  const amount = match ? Number(match[1] ?? 0) + Number(match[2]) / Number(match[3])
-    : /^\d+(?:\.\d+)?$/.test(text) ? Number(text) : NaN;
-  return Number.isFinite(amount) && amount > 0 ? amount : null;
+  if (typeof value !== "string") return null;
+  const amount = parseMeasurementNumber(value);
+  return amount !== null && amount > 0 ? amount : null;
 }
-const unitName = (value: string) => value.trim().toLowerCase()
+const unitName = (value: string) => ingredientMeasurementUnit(value)
   .replace(/^grams?$/, "g").replace(/^kilograms?$/, "kg")
   .replace(/^ounces?$/, "oz").replace(/^pounds?$/, "lb")
   .replace(/^teaspoons?$/, "tsp").replace(/^tablespoons?$/, "tbsp")
@@ -126,7 +125,12 @@ export function dessertIngredientGrams(row: DessertIngredient, source: Ingredien
   if (amount === null) return null;
   const unit = unitName(row.unit);
   const mass: Record<string, number> = { g: 1, kg: 1000, mg: 0.001, oz: 28.349523125, lb: 453.59237 };
-  if (mass[unit]) return { grams: amount * mass[unit], conversion: `Exact mass conversion: ${unit} to g` };
+  if (Object.prototype.hasOwnProperty.call(mass, unit)) {
+    const grams = amount * mass[unit];
+    return Number.isFinite(grams) && grams > 0
+      ? { grams, conversion: `Exact mass conversion: ${unit} to g` }
+      : null;
+  }
   const volume: Record<string, number> = { tsp: 1, tbsp: 3, cup: 48, ml: 1 / 4.92892159375, l: 1000 / 4.92892159375, "fl oz": 6 };
   const matches = source.portions.flatMap(portion => {
     const text = portion.measure.toLowerCase().trim();

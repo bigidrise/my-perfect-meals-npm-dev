@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { ttsService } from "@/lib/tts";
 import { useNarrationSpeed } from "@/contexts/NarrationSpeedContext";
+import { LEGACY_CHEF_NARRATION_ENABLED } from "@shared/legacyNarration";
 
 interface Section {
   heading: string;
@@ -75,6 +76,7 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
 
   // Attach and play an already-fetched audio URL (used by cache replay and skipBack10)
   const playAudioUrl = useCallback((url: string, sectionIndex: number) => {
+    if (!LEGACY_CHEF_NARRATION_ENABLED) return;
     const audio = new Audio(url);
     audio.playbackRate = parseFloat(narrationSpeed);
     audioRef.current = audio;
@@ -113,7 +115,7 @@ export function useNarration(sections: Section[], options: UseNarrationOptions =
   const speakSectionRef = useRef<(index: number) => void>(() => {});
 
   const speakSection = useCallback(async (index: number) => {
-    if (index >= sections.length || isCancelledRef.current) {
+    if (!LEGACY_CHEF_NARRATION_ENABLED || index >= sections.length || isCancelledRef.current) {
       setIsPlaying(false);
       setIsPaused(false);
       onEnd?.();
