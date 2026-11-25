@@ -28,10 +28,11 @@ const gramsPerUnit: Record<string, number> = {
   piece: 100, medium: 100, large: 120, small: 80, clove: 5, slice: 30,
 };
 
-export function estimateMacros(ingredients: { name: string; amount: string }[]): Macro | null {
+export function estimateMacros(ingredients: unknown): Macro | null {
+  if (!Array.isArray(ingredients) || ingredients.length === 0) return null;
   let total: Macro = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
   
-  for (const ing of (ingredients || [])) {
+  for (const ing of ingredients) {
     const verified = verifyGeneratedIngredient(ing);
     if (!verified) return null;
 
