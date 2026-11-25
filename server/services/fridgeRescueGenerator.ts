@@ -3,12 +3,10 @@ import OpenAI from 'openai';
 import { getLanguageInstruction } from '../utils/languageInstruction';
 import { fridgeRescueDisplayCopy } from "../utils/fridgeRescueDisplayCopy";
 import { getMeasurementPromptBlock } from '../../shared/units';
-import { deriveCarbSplit } from './generators/macros/carbSplit';
-import { convertStructuredIngredients } from '../utils/unitConverter';
-import { enforceCarbs } from '../utils/carbClassifier';
 import { buildPalateSection, PalatePreferences, buildStrictModeBlock } from './promptBuilder';
 import { getBaselineMacroPrompt } from './guardrails/promptPolicyGate';
-import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
+import { resolveAICarbsStrict, safeMacroValue } from './guardrails/macroTruthContract';
+import { verifyGeneratedIngredients } from './generatedIngredientAdapter';
 import { buildDietPromptBlock, violatesDietaryConstraints } from './allergyGuardrails';
 import { enforceBeforeGenerate, UserProtocolEnvelope } from './protocolEnvelope';
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
@@ -478,63 +476,60 @@ ${strictMode ? "Do not add any ingredient not listed." : "Complementary pantry a
         continue;
       }
       
-      // Normalize ingredients from AI response (may have amount or quantity field)
-      const rawIngredients = meal.ingredients || fridgeItems.map(item => ({ name: item, amount: 100, unit: "g" }));
-      
-      // Convert grams to user-friendly units (e.g., 170g chicken → 6 oz chicken breast)
-      const normalizedIngredients = rawIngredients.map((ing: any) => ({
-        name: ing.name,
-        amount: ing.amount || ing.quantity || 100,
-        unit: ing.unit || 'g',
-        notes: ''
+      // Validate original measurements before any presentation conversion.
+      const verifiedIngredients = verifyGeneratedIngredients(meal.ingredients);
+      if (!verifiedIngredients) {
+        throw new Error("FRIDGE_RESCUE_INVALID_MEASUREMENTS");
+      }
+
+      const mealIngredients = verifiedIngredients.map(ingredient => ({
+        name: ingredient.name,
+        quantity: String(ingredient.quantity),
+        unit: ingredient.unit,
       }));
-      
-      // Apply conversion to user-friendly units (same as Craving Creator)
-      const convertedIngredients = convertStructuredIngredients(normalizedIngredients);
-      
-      // Map to expected format with quantity field for frontend compatibility
-      const mealIngredients = convertedIngredients.map((ing: any) => ({
-        name: ing.name,
-        quantity: ing.displayText || `${ing.amount} ${ing.unit}`,
-        unit: ing.unit,
-        displayText: ing.displayText || `${ing.amount} ${ing.unit} ${ing.name}`
-      }));
-      
-      // Prefer AI-provided starchyCarbs/fibrousCarbs, fallback to deriveCarbSplit
-      const aiStarchyCarbs = meal.starchyCarbs ?? null;
-      const aiFibrousCarbs = meal.fibrousCarbs ?? null;
+
+      // Preserve supplied nutrition, including genuine zero values.
+      const calories = safeMacroValue(meal.calories);
+      const protein = safeMacroValue(meal.protein);
+      const fat = safeMacroValue(meal.fat);
       const totalCarbs = resolveAICarbsStrict(meal);
-      if (totalCarbs === null) {
-        throw new Error(`Fridge rescue meal "${meal.name ?? index + 1}" is missing carbohydrate data`);
+      const starchyCarbs = safeMacroValue(meal.starchyCarbs);
+      const fibrousCarbs = safeMacroValue(meal.fibrousCarbs);
+
+      if (
+        calories === null ||
+        protein === null ||
+        fat === null ||
+        totalCarbs === null ||
+        starchyCarbs === null ||
+        fibrousCarbs === null
+      ) {
+        throw new Error("FRIDGE_RESCUE_INVALID_NUTRITION");
       }
-      
-      // Use AI values if provided, otherwise derive from ingredients
-      let starchyCarbs: number;
-      let fibrousCarbs: number;
-      if (aiStarchyCarbs !== null && aiFibrousCarbs !== null) {
-        starchyCarbs = aiStarchyCarbs;
-        fibrousCarbs = aiFibrousCarbs;
-      } else {
-        const { starchyGrams, fibrousGrams } = deriveCarbSplit(mealIngredients, totalCarbs);
-        starchyCarbs = starchyGrams;
-        fibrousCarbs = fibrousGrams;
+
+      const splitTotal = starchyCarbs + fibrousCarbs;
+      if (
+        !Number.isFinite(splitTotal) ||
+        Math.abs(splitTotal - totalCarbs) > 0.1
+      ) {
+        throw new Error("FRIDGE_RESCUE_INCONSISTENT_CARBS");
       }
-      
+
       const processedMeal: FridgeRescueMeal = {
         id: `fridge-rescue-${index}-${Date.now()}`,
         name: meal.name || displayCopy.missingName(index + 1),
         description: meal.description || displayCopy.missingDescription,
         ingredients: mealIngredients,
         instructions: meal.instructions || displayCopy.missingInstructions,
-        calories: meal.calories || 300,
-        protein: meal.protein || 20,
+        calories,
+        protein,
         carbs: totalCarbs,
-        fat: meal.fat || 12,
+        fat,
         starchyCarbs: starchyCarbs,
         fibrousCarbs: fibrousCarbs,
         cookingTime: meal.cookingTime || displayCopy.minutes(20),
         difficulty: meal.difficulty || "Easy",
-        medicalBadges: getMedicalBadges(meal, userConditions)
+        medicalBadges: getMedicalBadges({ ...meal, calories, protein, fat, carbs: totalCarbs, starchyCarbs, fibrousCarbs }, userConditions)
       };
 
       processedMeals.push(processedMeal);
@@ -542,89 +537,16 @@ ${strictMode ? "Do not add any ingredient not listed." : "Complementary pantry a
 
     // Images are generated client-side in parallel — return meals immediately
     console.log("✅ Fridge rescue meals generated — images will hydrate client-side");
-    // ENFORCE CARBS: Final safety net - ensure all meals have valid starchy/fibrous values
-    return processedMeals.map(meal => enforceCarbs(meal));
+    if (!processedMeals.length) {
+      throw new Error("FRIDGE_RESCUE_EMPTY_RESULT");
+    }
+    return processedMeals;
 
   } catch (error: any) {
     console.error('OpenAI API error for fridge rescue meals:', error);
     
-    // Fallback meals using only provided ingredients
-    const fallbackIngredients1 = fridgeItems.map(item => ({ name: item, quantity: displayCopy.quantities[0], unit: "" }));
-    const fallback1Split = deriveCarbSplit(fallbackIngredients1, 22);
-    const fallbackIngredients2 = fridgeItems.map(item => ({ name: item, quantity: displayCopy.quantities[1], unit: "" }));
-    const fallback2Split = deriveCarbSplit(fallbackIngredients2, 28);
-    const fallbackIngredients3 = fridgeItems.map(item => ({ name: item, quantity: displayCopy.quantities[2], unit: "" }));
-    const fallback3Split = deriveCarbSplit(fallbackIngredients3, 24);
-    
-    const fallbackMeals: FridgeRescueMeal[] = [
-      {
-        id: `fallback-fridge-1-${Date.now()}`,
-        name: displayCopy.fallbacks[0].name,
-        description: displayCopy.fallbacks[0].description,
-        ingredients: fallbackIngredients1,
-        instructions: displayCopy.fallbacks[0].instructions,
-        calories: 285,
-        protein: 18,
-        carbs: 22,
-        fat: 12,
-        starchyCarbs: fallback1Split.starchyGrams,
-        fibrousCarbs: fallback1Split.fibrousGrams,
-        cookingTime: displayCopy.minutes(15),
-        difficulty: "Easy" as const,
-        medicalBadges: getMedicalBadges({
-          name: `Simple ${fridgeItems[0]} Skillet`,
-          description: "simple skillet meal",
-          ingredients: fridgeItems,
-          carbs: 22,
-          fat: 12
-        }, userConditions)
-      },
-      {
-        id: `fallback-fridge-2-${Date.now()}`,
-        name: displayCopy.fallbacks[1].name,
-        description: displayCopy.fallbacks[1].description,
-        ingredients: fallbackIngredients2,
-        instructions: displayCopy.fallbacks[1].instructions,
-        calories: 320,
-        protein: 22,
-        carbs: 28,
-        fat: 10,
-        starchyCarbs: fallback2Split.starchyGrams,
-        fibrousCarbs: fallback2Split.fibrousGrams,
-        cookingTime: displayCopy.minutes(10),
-        difficulty: "Easy" as const,
-        medicalBadges: getMedicalBadges({
-          name: `Mixed ${fridgeItems.length > 1 ? fridgeItems[1] : fridgeItems[0]} Bowl`,
-          description: "mixed bowl meal",
-          ingredients: fridgeItems,
-          carbs: 28,
-          fat: 10
-        }, userConditions)
-      },
-      {
-        id: `fallback-fridge-3-${Date.now()}`,
-        name: displayCopy.fallbacks[2].name,
-        description: displayCopy.fallbacks[2].description,
-        ingredients: fallbackIngredients3,
-        instructions: displayCopy.fallbacks[2].instructions,
-        calories: 265,
-        protein: 16,
-        carbs: 24,
-        fat: 14,
-        starchyCarbs: fallback3Split.starchyGrams,
-        fibrousCarbs: fallback3Split.fibrousGrams,
-        cookingTime: displayCopy.minutes(20),
-        difficulty: "Easy" as const,
-        medicalBadges: getMedicalBadges({
-          name: `Creative ${fridgeItems[0]} Combo`,
-          description: "creative combo meal",
-          ingredients: fridgeItems,
-          carbs: 24,
-          fat: 14
-        }, userConditions)
-      }
-    ];
-
-    return fallbackMeals;
+    // Allow the unified pipeline to evaluate its guarded fallback.
+    // Never manufacture ingredient measurements or nutrition here.
+    throw error;
   }
 }

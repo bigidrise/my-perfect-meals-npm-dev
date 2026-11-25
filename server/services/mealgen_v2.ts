@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { allergenViolated, banViolated } from "./ontology";
 import { estimateMacros } from "./macroEstimator";
+import { verifyGeneratedIngredients } from "./generatedIngredientAdapter";
 import { getOnboarding, onboardingHash } from "./mealgenV2";
 import { validateDietPacks } from "./dietRules";
 
@@ -103,34 +104,40 @@ function validateMealTypeAppropriate(meal: StrictMeal, targetMealType: string): 
 // 3) Macro band checker (fail-closed if we have estimates)
 function validateMacros(meal: StrictMeal, ob: any, slotsPerDay = 3): string | null {
   const kcalTarget = ob?.caloriesTarget ? Number(ob.caloriesTarget) : null;
-  if (!kcalTarget) return null;
-  
-  const perMeal = kcalTarget / slotsPerDay;
-  const floor = perMeal * 0.9; 
-  const ceil = perMeal * 1.1;
-  const cal = meal.calories ?? estimateMacros(meal.ingredients as any)?.kcal ?? null;
-  
-  if (cal == null) return null; // we can't assert without data
-  if (cal < floor) return `kcal_low:${cal} < ${Math.round(floor)}`;
-  if (cal > ceil) return `kcal_high:${cal} > ${Math.round(ceil)}`;
-  
-  // Optional protein floor
-  if (ob?.proteinPerMeal) {
-    const p = (meal as any).protein ?? estimateMacros(meal.ingredients as any)?.protein ?? null;
-    if (p != null && p < Number(ob.proteinPerMeal)) {
-      return `protein_low:${p} < ${ob.proteinPerMeal}`;
+  const proteinTarget = ob?.proteinPerMeal ? Number(ob.proteinPerMeal) : null;
+
+  if (kcalTarget) {
+    const perMeal = kcalTarget / slotsPerDay;
+    const floor = perMeal * 0.9;
+    const ceil = perMeal * 1.1;
+    const cal = meal.calories ?? estimateMacros(meal.ingredients)?.kcal ?? null;
+
+    if (cal == null || !Number.isFinite(cal)) {
+      return "calorie_evidence_missing";
+    }
+
+    if (cal < floor) return `kcal_low:${cal} < ${Math.round(floor)}`;
+    if (cal > ceil) return `kcal_high:${cal} > ${Math.round(ceil)}`;
+  }
+
+  if (proteinTarget) {
+    const protein = meal.protein ?? estimateMacros(meal.ingredients)?.protein ?? null;
+
+    if (protein == null || !Number.isFinite(protein)) {
+      return "protein_evidence_missing";
+    }
+
+    if (protein < proteinTarget) {
+      return `protein_low:${protein} < ${proteinTarget}`;
     }
   }
-  
+
   return null;
 }
 
 // 4) Measurement enforcement
 function allMeasured(meal: StrictMeal): boolean {
-  return meal.ingredients.every(i => 
-    /\d/.test(i.amount) && 
-    /(tsp|tbsp|cup|cups|oz|lb|g|kg|ml|l|clove|slice|piece|small|medium|large)/i.test(i.amount)
-  );
+  return verifyGeneratedIngredients(meal.ingredients) !== null;
 }
 
 // 5) Deterministic request body
@@ -182,15 +189,21 @@ export async function generateStrictMeal({
     try {
       const raw = await postJSON<any>(CC_GENERATE, genBody(userId, courseStyle, ob, t));
       
-      // normalize minimal fields before schema
-      if (raw.ingredients) {
-        raw.ingredients = raw.ingredients.map((x: any) => ({
-          name: x.name ?? x.ingredient,
-          amount: x.amount ?? x.quantity ?? x.qty ?? ""
-        }));
+      // Verify original measurements before normalization.
+      const verified = verifyGeneratedIngredients(raw?.ingredients);
+
+      if (!verified) {
+        lastErr = "measurements";
+        continue;
       }
-      
-      const meal = MealSchema.parse(raw);
+
+      const meal = MealSchema.parse({
+        ...raw,
+        ingredients: verified.map(ingredient => ({
+          name: ingredient.name,
+          amount: `${ingredient.quantity} ${ingredient.unit}`
+        }))
+      });
       
       // gates
       const vio = validateOnboarding(meal, ob);

@@ -18,6 +18,7 @@ import { buildForbiddenIngredients, scanForViolations, logSafetyEnforcement, Use
 import { estimateMacros } from "./macroEstimator";
 import { varietyBank } from "./varietyBank";
 import { generateStrictMeal } from "./mealgen_v2";
+import { verifyGeneratedIngredients } from "./generatedIngredientAdapter";
 
 // --- SCHEMA ---
 export const WMC2PlanSchema = z.object({
@@ -213,7 +214,13 @@ function normalizeStringArray(raw:any):string[]{
 
 function normalizeMeal(base:{dayIndex:number;slot:"meal"|"snack";label:string;time:string;order:number}, raw: MealResultRaw): WMC2Item {
   const fatsRaw = raw?.fats ?? raw?.fat ?? raw?.nutrition?.fat;
-  const ingredients = enforceMeasuredIngredients(normalizeIngredients(raw?.ingredients));
+  const verified = verifyGeneratedIngredients(raw?.ingredients);
+  const ingredients = verified
+    ? verified.map(ingredient => ({
+        name: ingredient.name,
+        amount: `${ingredient.quantity} ${ingredient.unit}`
+      }))
+    : [];
   
   return {
     ...base,
@@ -336,6 +343,17 @@ function violatesOnboarding(meal: WMC2Item, onboarding: any): boolean {
   return false;
 }
 
+function rejectsGeneratedMeal(meal: WMC2Item, onboarding: any): boolean {
+  return !verifyGeneratedIngredients(meal.ingredients)
+    || violatesOnboarding(meal, onboarding);
+}
+
+function assertGeneratedMeal(meal: WMC2Item, onboarding: any): void {
+  if (rejectsGeneratedMeal(meal, onboarding)) {
+    throw new Error("WMC2_GENERATED_MEAL_VALIDATION_FAILED");
+  }
+}
+
 // --- PUBLIC API ---
 export async function wmc2Generate(input: z.infer<typeof WMC2PlanSchema>): Promise<WMC2Plan> {
   const t0 = Date.now();
@@ -401,7 +419,7 @@ export async function wmc2Generate(input: z.infer<typeof WMC2PlanSchema>): Promi
     } as any, mealData);
     
     // Check for onboarding violations and regenerate if needed
-    for (let t = 0; t < 3 && violatesOnboarding(baseMeal, onboarding); t++) {
+    for (let t = 0; t < 3 && rejectsGeneratedMeal(baseMeal, onboarding); t++) {
       violationsFixed++;
       const regenData = await postJSON<MealResultRaw>(CC_GENERATE, {
         userId: req.userId, 
@@ -418,6 +436,8 @@ export async function wmc2Generate(input: z.infer<typeof WMC2PlanSchema>): Promi
       } as any, regenData.meal || regenData);
     }
     
+    assertGeneratedMeal(baseMeal, onboarding);
+
     // Duplicate the validated meal across all slots
     for (let d=0; d<req.days; d++) {
       for (const s of uniqueSlots) {
@@ -508,7 +528,7 @@ export async function wmc2Generate(input: z.infer<typeof WMC2PlanSchema>): Promi
         } as any, mealData);
 
         // Check for onboarding violations and regenerate if needed
-        for (let t = 0; t < 4 && violatesOnboarding(normalized, onboarding); t++) {
+        for (let t = 0; t < 4 && rejectsGeneratedMeal(normalized, onboarding); t++) {
           violationsFixed++;
           const regenData = await postJSON<MealResultRaw>(CC_GENERATE, {
             userId: req.userId, 
@@ -525,11 +545,21 @@ export async function wmc2Generate(input: z.infer<typeof WMC2PlanSchema>): Promi
           } as any, regenData.meal || regenData);
         }
         
+        assertGeneratedMeal(normalized, onboarding);
         dayResults.push(normalized);
       }));
     }
     
-    await Promise.allSettled(tasks);
+    const settled = await Promise.allSettled(tasks);
+    const failed = settled.find(result => result.status === "rejected");
+
+    if (failed?.status === "rejected") {
+      throw failed.reason;
+    }
+
+    if (dayResults.length !== uniqueSlots.length) {
+      throw new Error("WMC2_INCOMPLETE_GENERATED_PLAN");
+    }
     
     // Duplicate prevention within each day
     const seen = new Set<string>();
@@ -553,6 +583,7 @@ export async function wmc2Generate(input: z.infer<typeof WMC2PlanSchema>): Promi
           time: cur.time, 
           order: cur.order 
         }, regenData.meal || regenData);
+        assertGeneratedMeal(cur, onboarding);
         sigm = mealSig(cur); 
         tries++;
       }
@@ -575,11 +606,13 @@ export async function wmc2Generate(input: z.infer<typeof WMC2PlanSchema>): Promi
           time: cur.time, 
           order: cur.order 
         }, regenData.meal || regenData);
+        assertGeneratedMeal(cur, onboarding);
         sigVB = mealSig(cur);
         triesVB++;
       }
       
-      seen.add(sigm);
+      assertGeneratedMeal(cur, onboarding);
+      seen.add(mealSig(cur));
       varietyBank.add(req.userId, mealSig(cur)); // Track in variety bank
       dayResults[i] = cur;
     }
@@ -604,12 +637,17 @@ export async function wmc2Regenerate(userId:string, payload:{ slot:"meal"|"snack
   
   const mealData = gen.meal || gen;
   
+  const onboarding = await getOnboarding(userId);
+
   // dayIndex/order filled in by client replacement; keep placeholders
-  return normalizeMeal({ 
+  const meal = normalizeMeal({
     dayIndex:0, 
     slot:payload.slot, 
     label:payload.label, 
     time:payload.time, 
     order:0 
   }, mealData);
+
+  assertGeneratedMeal(meal, onboarding);
+  return meal;
 }

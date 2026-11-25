@@ -14,6 +14,12 @@ import type { ShoppingListItem } from "@/stores/shoppingListStore";
 
 jest.mock("@/components/shopping/GroceryExportModal.css", () => ({}));
 jest.unmock("react-i18next");
+jest.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({
+    user: { measurementPreference: "imperial", country: "US" },
+  }),
+}));
+
 
 const i18n = createInstance();
 beforeAll(async () => {

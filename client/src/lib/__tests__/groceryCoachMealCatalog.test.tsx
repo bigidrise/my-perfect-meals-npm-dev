@@ -16,7 +16,7 @@ jest.mock("@tanstack/react-query", () => ({ useQuery: () => ({ data: { items: []
 jest.mock("@/stores/shoppingListStore", () => ({ useShoppingListStore: jest.fn() }));
 jest.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: { id: "catalog-user" } }) }));
 jest.mock("@/components/ui/pill-button", () => ({ PillButton: () => null }));
-jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+jest.mock("react-i18next", () => ({ useTranslation: () => ({ i18n: { language: "en", resolvedLanguage: "en" }, t: (key: string) => key }) }));
 
 import React from "react";
 import { render, screen, fireEvent, waitFor, act, within } from "@testing-library/react";
@@ -167,7 +167,7 @@ describe("Development ingredient-level Product Scan reuse", () => {
     const header = screen.getByText("ingredientSheet.header.intelligence").parentElement!.parentElement!;
     fireEvent.click(within(header).getByRole("button"));
     expect(screen.getByText("Turkey Spaghetti")).toBeInTheDocument();
-    expect(screen.getByText("½ cups")).toBeInTheDocument();
+    expect(screen.getByText("½ cup")).toBeInTheDocument();
     expect(screen.queryByText("Example Tomato Sauce")).not.toBeInTheDocument();
   });
 

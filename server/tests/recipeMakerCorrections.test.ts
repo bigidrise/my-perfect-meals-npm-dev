@@ -60,8 +60,9 @@ describe("Recipe Maker nutrition formatting", () => {
       ...missing, nutrition: toPerServingNutrition({ nutrition: formatCreatorNutrition(missing, 2) }, 2),
     };
     const validation = validateHumanFoodCandidate(candidate, context);
-    expect(validation.outcome).toBe("review_required");
-    expect(validation.findings.map(f => f.code)).toContain("starch_evidence_missing");
+    expect(candidate.nutrition.starchyCarbs).toBeUndefined();
+    expect(validation.outcome).toBe("pass");
+    expect(validation.findings.map(f => f.code)).not.toContain("starch_evidence_missing");
   });
 
   it("preserves the same nested-nutrition precedence as initial validation", () => {
@@ -206,4 +207,25 @@ describe("Recipe Maker bounded recovery and errors", () => {
     expect(source).toContain('validMealType === "snack" ? t.resolvedSnackCalories : t.resolvedMealCalories');
     expect(source).not.toContain('"Apple Pie" → "Spiced Apple Protein Bowl"');
   });
+});
+
+
+describe("Creator nutrient formatting integrity", () => {
+  it.each([-1, "-1", "0x10", "1e2", "+5"])(
+    "rejects invalid nutrient representation %p",
+    value => {
+      expect(formatCreatorNutrition({
+        ...recipe, starchyCarbs: value,
+      }, 2).starchyCarbs).toBeUndefined();
+    },
+  );
+
+  it.each([0, "0", 12.5, "12.5"])(
+    "preserves valid nutrient representation %p",
+    value => {
+      expect(formatCreatorNutrition({
+        ...recipe, starchyCarbs: value,
+      }, 2).starchyCarbs).toBe(Number(value) * 2);
+    },
+  );
 });

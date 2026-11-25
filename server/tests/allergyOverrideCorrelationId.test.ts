@@ -90,6 +90,7 @@ const GUEST_ENVELOPE = {
 jest.mock("../services/protocolEnvelope", () => ({
   buildGuestEnvelope: jest.fn(() => ({ ...GUEST_ENVELOPE })),
   loadUserProtocolEnvelope: jest.fn().mockResolvedValue({ ...GUEST_ENVELOPE }),
+  loadGenerationProtocolEnvelope: jest.fn(async () => ({ ...GUEST_ENVELOPE })),
   enforceBeforeGenerate: jest.fn(() => ({ combined: "", blocks: [] })),
   scanGeneratedOutput: jest.fn(() => ({
     passed: true,
@@ -116,6 +117,8 @@ jest.mock("../services/nutritionContext/getActiveNutritionContext", () => ({
 jest.mock("../services/humanFoodContext/requestScope", () => ({
   createHumanFoodRequestScope: jest.fn((input: any) => ({
     executionState: { rejectedCandidateSignatures: [] },
+    completeAuthorization: jest.fn().mockResolvedValue(undefined),
+    releaseAuthorization: jest.fn().mockResolvedValue(undefined),
     resolve: jest.fn().mockResolvedValue({
       version: "human-food-context.v1",
       status: "resolved",
@@ -143,8 +146,17 @@ jest.mock("../services/humanFoodContext/requestScope", () => ({
         dislikedFoods: [],
         healthConditions: [],
       },
+      authorization: {
+        status: "none",
+        action: null,
+        reservationId: null,
+        waivers: [],
+      },
       nutrition: null,
       behavior: null,
+      foodsIEnjoy: { explicit: [], legacyLikes: [] },
+      sweeteners: { preferred: [], avoided: [] },
+      diabetesFoodPreferences: null,
       gaps: [],
       notices: [],
       blockedReasons: [],
@@ -258,7 +270,7 @@ function mockMealForPrompt(prompt: string) {
           description: "A sliceable peanut butter pie in a crisp pie crust.",
           ingredients: [
             { name: "peanut butter", amount: "2", unit: "tbsp" },
-            { name: "pie crust", amount: "1", unit: "each" },
+            { name: "pie crust", amount: "4", unit: "oz" },
           ],
           instructions: "Fill the pie crust, chill until set, then slice.",
           servingSize: "1 serving",
@@ -278,7 +290,7 @@ function mockMealForPrompt(prompt: string) {
             description: "A blended peanut butter smoothie.",
             ingredients: [
               { name: "peanut butter", amount: "2", unit: "tbsp" },
-              { name: "banana", amount: "1", unit: "each" },
+              { name: "banana", amount: "4", unit: "oz" },
             ],
             instructions: "Blend everything until smooth.",
             servingSize: "1 drink",

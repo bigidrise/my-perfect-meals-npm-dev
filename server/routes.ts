@@ -2773,6 +2773,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Released choice completion. Every batch reuses the exact
       // resolved context and runs the same complete validation chain below.
       const { completeFridgeRescueChoices } = await import("./services/fridgeRescueChoiceCompletion");
+      const { resolveRequestLanguagePreference } = await import("./utils/languageInstruction");
+      const fridgeLanguage = resolveRequestLanguagePreference(fridgeProtocolEnvelope.preferredLanguage);
       const generateFridgeBatch = async ({ count, excludedMeals }: { count: number; excludedMeals: string[] }) =>
         generateFridgeRescueMeals({
         fridgeItems, 
@@ -2783,7 +2785,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         palatePrefs: palatePrefs as any,
         strictMode: strictMode === true,
         protocolEnvelope: fridgeProtocolEnvelope,
-        preferredLanguage: fridgeProtocolEnvelope.preferredLanguage ?? undefined,
+        preferredLanguage: fridgeLanguage,
         builderBlock: combinedBuilderBlock,
         count, excludedMeals,
       });
@@ -2897,6 +2899,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       const fridgeChoices = await completeFridgeRescueChoices({
         enabled: true,
+        language: fridgeLanguage,
         generate: generateFridgeBatch,
         validate: validateFridgeBatch,
       });
@@ -3489,8 +3492,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const { meal } = await mealResponse.json();
               if (meal) {
                 // Normalize ingredients for proper measurements
-                let normalizedIngredients = Array.isArray(meal.ingredients) ? meal.ingredients : [];
-                normalizedIngredients = enforceMeasuredIngredients(normalizedIngredients);
+                const { verifyGeneratedIngredients } = await import("./services/generatedIngredientAdapter");
+                const verifiedIngredients = verifyGeneratedIngredients(meal.ingredients);
+
+                if (!verifiedIngredients) {
+                  console.warn("Weekly plan ingredient measurements failed validation; retrying.");
+                  tries++;
+                  continue;
+                }
+
+                const normalizedIngredients = verifiedIngredients.map(ingredient => ({
+                  name: ingredient.name,
+                  amount: `${ingredient.quantity} ${ingredient.unit}`
+                }));
 
                 const normalizedMeal = {
                   ...meal,
@@ -3695,6 +3709,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (attempt < maxRetries - 1) continue;
             return res.status(422).json({ error: "GLP-1_VALIDATION_ERROR", message: "Could not validate the regenerated meal." });
           }
+        }
+
+        const { verifyGeneratedIngredients } = await import("./services/generatedIngredientAdapter");
+
+        if (!verifyGeneratedIngredients(meal.ingredients)) {
+          console.warn("Regenerated meal ingredient measurements failed validation.");
+          if (attempt < maxRetries - 1) continue;
+
+          return res.status(422).json({
+            error: "INGREDIENT_SANITY_RETRY_EXHAUSTED",
+            code: "INGREDIENT_SANITY_RETRY_EXHAUSTED",
+            message: "We could not verify the ingredient measurements. Please try again."
+          });
         }
 
         updatedMeal = { ...meal, dayIndex, slot, label, time, badges: meal.medicalBadges || [] };

@@ -1,6 +1,7 @@
 // server/services/mealgenV2.ts
 // Centralized meal generation with mandatory onboarding integration
 import crypto from "crypto";
+import { verifyGeneratedIngredients } from "./generatedIngredientAdapter";
 import { storage } from "../storage";
 import { 
   buildForbiddenIngredients, 
@@ -85,15 +86,17 @@ export async function generateMealV2(opts: {
     constraints: constraints
   });
 
-  let meal = normalizeMeal(raw);
-  meal.ingredients = enforceMeasuredIngredients(meal.ingredients);
+  let verifiedIngredients = verifyGeneratedIngredients(raw?.ingredients);
+  let meal = normalizeMeal(raw, verifiedIngredients);
 
   // Validate against onboarding; auto-regen up to 4 tries
   let tries = 0;
   while (tries < 4) {
     const dietaryIssue = violatesOnboarding(meal, opts.onboarding);
     const preparation = validateRecipePreparation(meal, { strictIngredientForms: true });
-    const why = dietaryIssue || preparation.errors.join("; ");
+    const why = dietaryIssue ||
+      (!verifiedIngredients ? "Provide explicit, valid ingredient quantities and units without guessing." : "") ||
+      preparation.errors.join("; ");
     if (!why) break;
     
     const regen = await callCravingCreator({
@@ -105,17 +108,18 @@ export async function generateMealV2(opts: {
       constraints: constraints
     });
     
-    meal = normalizeMeal(regen);
-    meal.ingredients = enforceMeasuredIngredients(meal.ingredients);
+    verifiedIngredients = verifyGeneratedIngredients(regen?.ingredients);
+    meal = normalizeMeal(regen, verifiedIngredients);
     tries++;
   }
   
   const finalDietaryIssue = violatesOnboarding(meal, opts.onboarding);
   const finalPreparation = validateRecipePreparation(meal, { strictIngredientForms: true });
 
-  if (finalDietaryIssue || !finalPreparation.isValid) {
+  if (finalDietaryIssue || !verifiedIngredients || !finalPreparation.isValid) {
     const reasons = [
       finalDietaryIssue,
+      !verifiedIngredients ? "Ingredient measurements could not be verified." : "",
       ...finalPreparation.errors
     ].filter(Boolean).join("; ");
 
@@ -285,33 +289,16 @@ function mapOnboardingToConstraints(ob: Onboarding) {
   };
 }
 
-function normalizeMeal(raw: any): Meal {
+function normalizeMeal(
+  raw: any,
+  verifiedIngredients: ReturnType<typeof verifyGeneratedIngredients>
+): Meal {
   const fatsRaw = raw?.fats ?? raw?.fat ?? raw?.nutrition?.fat;
-  const normalizedIngredients = normalizeIngredients(raw?.ingredients);
-  
-  // Final validation: ensure all ingredients match universal schema
-  const validatedIngredients = normalizedIngredients.map(ing => {
-    // Always re-normalize to ensure universal schema compliance
-    const universal = normalizeIngredientToUniversal(ing);
-    
-    // Final validation: ensure all fields are present and valid
-    if (!universal.name || typeof universal.quantity !== 'number' || !universal.unit) {
-      console.warn('⚠️ Invalid ingredient detected, applying fallback:', ing);
-      return {
-        name: String(ing?.name || (ing as any)?.item || 'Unknown ingredient').trim(),
-        amount: '1 portion'
-      };
-    }
-    
-    const original = (ing as any)._universal;
-    const notes = original?.notes || universal.notes || "";
+  const validatedIngredients = (verifiedIngredients ?? []).map(ingredient => ({
+    name: ingredient.name,
+    amount: `${ingredient.quantity} ${ingredient.unit}`
+  }));
 
-    return {
-      name: notes ? `${universal.name} (${notes})` : universal.name,
-      amount: `${original?.quantity ?? universal.quantity} ${original?.unit || universal.unit}`.trim()
-    };
-  });
-  
   return {
     name: String(raw?.name ?? raw?.title ?? raw?.mealName ?? "Chef's Choice"),
     description: raw?.description ?? raw?.summary ?? undefined,

@@ -20,7 +20,7 @@ jest.mock("@/stores/shoppingListStore", () => ({
 }));
 jest.mock("wouter", () => ({ useLocation: () => [mockLocation, mockNavigate] }));
 jest.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
-jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => ({
+jest.mock("react-i18next", () => ({ useTranslation: () => ({ i18n: { language: "en", resolvedLanguage: "en" }, t: (key: string) => ({
   more: "More", "savedMeals.addToMacros": "Add to Macros",
   "savedMeals.remove": "Remove", "savedMeals.cal": "Cal",
 }[key] || key) }) }));

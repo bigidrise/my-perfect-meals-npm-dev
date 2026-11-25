@@ -1,3 +1,4 @@
+import { INGREDIENT_IDENTITY_ENTRIES } from "../../shared/catalog/ingredientIdentity.catalog";
 /**
  * Template Matcher Service
  * 
@@ -9,11 +10,126 @@ import { BREAKFAST_TEMPLATES } from '../../shared/catalog/mealTemplates.catalog'
 import { LUNCH_TEMPLATES } from '../../shared/catalog/lunchTemplates.catalog';
 import { DINNER_TEMPLATES } from '../../shared/catalog/dinnerTemplates.catalog';
 import { MealTemplate } from '../../shared/catalog/_types';
+import { getIngredientById } from '../../shared/catalog/ingredients.catalog';
+import { classifyCarbohydrateSource } from '../../shared/carbSourcePolicy';
+
+
+export class TemplateNutritionError extends Error {
+  readonly code = 'TEMPLATE_NUTRITION_UNVERIFIED';
+
+  constructor() {
+    super('Template ingredient nutrition could not be verified.');
+  }
+}
+
+export function calculateTemplateNutrition(template: MealTemplate) {
+  const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+  const keys = ['calories', 'protein', 'carbs', 'fat'] as const;
+
+  if (!Array.isArray(template.ingredients) || !template.ingredients.length) {
+    throw new TemplateNutritionError();
+  }
+
+  for (const row of template.ingredients) {
+    if (typeof row.grams !== 'number' ||
+        !Number.isFinite(row.grams) || row.grams <= 0) {
+      throw new TemplateNutritionError();
+    }
+
+    const ingredient = getIngredientById(row.ingredientId);
+    const macros = ingredient?.macrosPer100g;
+
+    if (!macros || keys.some(key =>
+      typeof macros[key] !== 'number' ||
+      !Number.isFinite(macros[key]) ||
+      macros[key] < 0
+    ) || keys.every(key => macros[key] === 0)) {
+      throw new TemplateNutritionError();
+    }
+
+    for (const key of keys) {
+      totals[key] += macros[key] * (row.grams / 100);
+      if (!Number.isFinite(totals[key])) {
+        throw new TemplateNutritionError();
+      }
+    }
+  }
+
+  return totals;
+}
+
 import { 
   createIngredientSignature, 
   calculateSignatureSimilarity,
   IngredientSignatureInput 
 } from './ingredientSignature';
+
+export function calculateTemplateCarbohydrateSplit(
+  template: MealTemplate
+): { starchyCarbs: number; fibrousCarbs: number } {
+  const nutrition = calculateTemplateNutrition(template);
+  const totals = { starchyCarbs: 0, fibrousCarbs: 0 };
+
+  for (const row of template.ingredients) {
+    const ingredient = getIngredientById(row.ingredientId);
+
+    if (!ingredient) {
+      throw new TemplateNutritionError();
+    }
+
+    const carbs = ingredient.macrosPer100g.carbs * (row.grams / 100);
+
+    if (!Number.isFinite(carbs) || carbs < 0) {
+      throw new TemplateNutritionError();
+    }
+
+    if (carbs === 0) continue;
+
+    const classification = classifyCarbohydrateSource(ingredient.name);
+
+    if (classification.requiresExplicitEvidence) {
+      throw new TemplateNutritionError();
+    }
+
+    if (classification.category === 'starchy_concentrated') {
+      totals.starchyCarbs += carbs;
+    } else if (classification.category === 'non_starchy_fibrous') {
+      totals.fibrousCarbs += carbs;
+    } else {
+      throw new TemplateNutritionError();
+    }
+  }
+
+  const combined = totals.starchyCarbs + totals.fibrousCarbs;
+
+  if (!Number.isFinite(combined) ||
+      Math.abs(combined - nutrition.carbs) >
+        1e-10 * Math.max(1, nutrition.carbs)) {
+    throw new TemplateNutritionError();
+  }
+
+  return totals;
+}
+
+function hasVerifiedTemplateCarbSplit(template: MealTemplate): boolean {
+  try {
+    calculateTemplateCarbohydrateSplit(template);
+    return true;
+  } catch (error) {
+    if (error instanceof TemplateNutritionError) return false;
+    throw error;
+  }
+}
+
+function hasTemplateNutrition(template: MealTemplate): boolean {
+  try {
+    calculateTemplateNutrition(template);
+    return true;
+  } catch (error) {
+    if (error instanceof TemplateNutritionError) return false;
+    throw error;
+  }
+}
 
 interface MatchResult {
   template: MealTemplate;
@@ -101,7 +217,9 @@ export function findMatchingTemplates(
   maxResults: number = 3
 ): MatchResult[] {
   const inputSignature = createIngredientSignature(input);
-  const templates = getAllTemplates().filter(t => t.mealType === input.mealType);
+  const templates = getAllTemplates().filter(t =>
+    t.mealType === input.mealType && hasTemplateNutrition(t)
+  );
   
   const scored: MatchResult[] = templates.map(template => {
     const templateIngredients = template.ingredients.map(i => i.ingredientId);
@@ -132,7 +250,8 @@ export function findMatchingTemplates(
  */
 export function getDeterministicFallback(
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack',
-  requestedIngredients: string[]
+  requestedIngredients: string[],
+  requireVerifiedCarbSplit = false
 ): {
   id: string;
   name: string;
@@ -142,15 +261,23 @@ export function getDeterministicFallback(
   calories: number;
   protein: number;
   carbs: number;
+  starchyCarbs?: number;
+  fibrousCarbs?: number;
   fat: number;
   imageUrl: string;
   source: 'template';
 } {
-  const templates = getAllTemplates().filter(t => t.mealType === mealType);
+  const templates = getAllTemplates().filter(t =>
+    t.mealType === mealType && hasTemplateNutrition(t) &&
+    (!requireVerifiedCarbSplit || (
+      hasVerifiedTemplateCarbSplit(t) &&
+      templateUsesAvailableIngredients(t, requestedIngredients)
+    ))
+  );
   
   if (templates.length > 0) {
     // Deterministic selection: use ingredient hash to pick template
-    const ingredientStr = requestedIngredients.sort().join('');
+    const ingredientStr = [...requestedIngredients].sort().join('');
     let hash = 0;
     for (let i = 0; i < ingredientStr.length; i++) {
       hash = ((hash << 5) - hash) + ingredientStr.charCodeAt(i);
@@ -172,41 +299,17 @@ export function getDeterministicFallback(
         unit: 'g'
       })),
       instructions: template.baseInstructions || `Prepare the ${template.name} using standard cooking methods.`,
-      calories: 350,
-      protein: 25,
-      carbs: 30,
-      fat: 12,
+      ...calculateTemplateNutrition(template),
+      ...(requireVerifiedCarbSplit
+        ? calculateTemplateCarbohydrateSplit(template)
+        : {}),
       imageUrl: resolveImageKey(template.imageKey, mealType),
       source: 'template'
     };
   }
   
-  // Generic fallback with stable ID based on ingredients
-  const ingredientStr = requestedIngredients.sort().join('');
-  let hash = 0;
-  for (let i = 0; i < ingredientStr.length; i++) {
-    hash = ((hash << 5) - hash) + ingredientStr.charCodeAt(i);
-    hash = hash & hash;
-  }
-  const stableId = `fallback-generic-${mealType}-${Math.abs(hash).toString(36)}`;
-  
-  return {
-    id: stableId,
-    name: `Healthy ${mealType.charAt(0).toUpperCase() + mealType.slice(1)}`,
-    description: `A nutritious ${mealType} with balanced macros`,
-    ingredients: requestedIngredients.map(ing => ({
-      name: ing,
-      quantity: 'as needed',
-      unit: ''
-    })),
-    instructions: 'Prepare ingredients and cook to your preference.',
-    calories: 350,
-    protein: 25,
-    carbs: 30,
-    fat: 12,
-    imageUrl: FALLBACK_IMAGES[mealType] || FALLBACK_IMAGES.default,
-    source: 'template'
-  };
+  // No supported recipe: never manufacture quantities or nutrition.
+  throw new TemplateNutritionError();
 }
 
 /**
@@ -218,6 +321,17 @@ export function templateToMeal(
   overrides?: Partial<{ calories: number; protein: number; carbs: number; fat: number }>,
   index: number = 0
 ) {
+  const nutrition = calculateTemplateNutrition(template);
+
+  if (overrides) {
+    for (const key of ['calories', 'protein', 'carbs', 'fat'] as const) {
+      const value = overrides[key];
+      if (value !== undefined && value !== nutrition[key]) {
+        throw new TemplateNutritionError();
+      }
+    }
+  }
+
   // Use stable ID: template ID + index for uniqueness in multi-meal responses
   const stableId = `template-${template.id}${index > 0 ? `-${index}` : ''}`;
   
@@ -231,11 +345,51 @@ export function templateToMeal(
       unit: 'g'
     })),
     instructions: template.baseInstructions || `Prepare the ${template.name} using the selected cooking methods.`,
-    calories: overrides?.calories || 350,
-    protein: overrides?.protein || 25,
-    carbs: overrides?.carbs ?? null,
-    fat: overrides?.fat || 12,
+    ...nutrition,
     imageUrl: resolveImageKey(template.imageKey, template.mealType),
     source: 'template' as const
   };
+}
+
+function exactIngredientIdentity(value: string): string {
+  return value.normalize("NFC")
+    .trim()
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ");
+}
+
+export function templateUsesAvailableIngredients(
+  template: MealTemplate,
+  available: string[],
+): boolean {
+  if (!template.ingredients.length || !available.length) {
+    return false;
+  }
+
+  const availableNames = new Set(
+    available
+      .filter(value => typeof value === "string")
+      .map(exactIngredientIdentity)
+      .filter(Boolean)
+  );
+
+  return template.ingredients.every(({ ingredientId }) => {
+    const catalogIngredient = getIngredientById(ingredientId);
+    if (!catalogIngredient) return false;
+
+    const registryEntry = INGREDIENT_IDENTITY_ENTRIES.find(
+      entry => entry.ingredientKey === ingredientId
+    );
+
+    const aliases = [
+      ingredientId,
+      catalogIngredient.name,
+      ...Object.values(registryEntry?.aliasesByLanguage ?? {}).flat(),
+    ];
+
+    return aliases.some(alias =>
+      availableNames.has(exactIngredientIdentity(alias))
+    );
+  });
 }

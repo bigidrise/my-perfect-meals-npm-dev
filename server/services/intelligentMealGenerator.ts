@@ -3,7 +3,7 @@
 import OpenAI from "openai";
 import { resolveRequestLanguagePreference } from "../utils/languageInstruction";
 import { storage } from "../storage";
-import { enforceMeasuredIngredients } from "./mealgenV2";
+import { verifyGeneratedIngredients } from "./generatedIngredientAdapter";
 import { generateMealImageUnified } from "./mealImageGenerator";
 
 let _openai: OpenAI | null = null;
@@ -48,6 +48,8 @@ export interface IntelligentMealResponse {
 }
 
 export async function generateIntelligentMeal(request: IntelligentMealRequest): Promise<IntelligentMealResponse> {
+  let baseLang = resolveRequestLanguagePreference("auto");
+
   try {
     const user = await storage.getUser(request.userId);
     const userContext = buildUserContext(user);
@@ -58,7 +60,7 @@ export async function generateIntelligentMeal(request: IntelligentMealRequest): 
       hi: "Hindi", ru: "Russian", vi: "Vietnamese", tl: "Filipino (Tagalog)",
     };
     const rawLang = (user as any)?.preferredLanguage || "auto";
-    const baseLang = resolveRequestLanguagePreference(rawLang);
+    baseLang = resolveRequestLanguagePreference(rawLang);
     const langInstr = baseLang !== "en" && langNames[baseLang]
       ? `\n\n🌐 LANGUAGE REQUIREMENT — MANDATORY: Generate ALL content entirely in ${langNames[baseLang]}. Every word must be in ${langNames[baseLang]}.`
       : "";
@@ -71,6 +73,9 @@ ${userContext}
 Provide responses in JSON format with:
 - conversationalResponse: friendly, conversational explanation
 - meal: complete meal with ingredients, instructions, macros
+- Each ingredient must contain name, quantity, and unit as separate fields.
+- Use explicit positive quantities and supported measurement units.
+- Never guess missing quantities or units. Preserve exact fractions.
 - suggestions: 2-3 alternative options
 - followUpQuestions: relevant questions to refine the recommendation${langInstr}`;
 
@@ -88,8 +93,18 @@ Provide responses in JSON format with:
     const result = JSON.parse(response.choices[0].message.content || "{}");
     
     // Post-process to ensure quality
-    if (result.meal?.ingredients) {
-      result.meal.ingredients = enforceMeasuredIngredients(result.meal.ingredients);
+    if (result.meal != null) {
+      const verified = verifyGeneratedIngredients(result.meal.ingredients);
+
+      if (!verified) {
+        throw new Error("Ingredient measurements could not be verified.");
+      }
+
+      result.meal.ingredients = verified.map(ingredient => ({
+        name: ingredient.name,
+        quantity: String(ingredient.quantity),
+        unit: ingredient.unit
+      }));
     }
 
     // Generate image if requested — routes through unified pipeline (cache → S3 → DALL-E)
@@ -114,6 +129,21 @@ Provide responses in JSON format with:
     console.error("Intelligent meal generation failed:", error);
     
     // Fallback response
+    if (baseLang === "es") {
+      return {
+        conversationalResponse: "Tengo problemas para generar una comida personalizada en este momento. Inténtalo de nuevo.",
+        suggestions: [
+          "Prueba nuestro generador básico de comidas",
+          "Explora nuestra biblioteca de recetas",
+          "Contacta con el equipo de soporte"
+        ],
+        followUpQuestions: [
+          "¿Quieres que pruebe otro enfoque?",
+          "¿Puedes darme más detalles sobre lo que buscas?"
+        ]
+      };
+    }
+
     return {
       conversationalResponse: "I'm having trouble generating a personalized meal right now. Let me suggest a simple, healthy option based on your dietary needs.",
       suggestions: [

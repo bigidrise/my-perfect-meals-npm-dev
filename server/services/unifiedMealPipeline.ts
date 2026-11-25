@@ -1,3 +1,4 @@
+import { verifyGeneratedIngredients } from './generatedIngredientAdapter';
 import { isPregnancyRecommendationPause, PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
 import {
   CARDIAC_DESSERT_ADAPTATION,
@@ -30,7 +31,7 @@ import { parseGeneratedRecipeSteps } from './recipeInstructions';
 import { getMeasurementPromptBlock, resolveMeasurementSystem, MeasurementSystem } from '../../shared/units';
 import { loadUserProtocolEnvelope, loadGenerationProtocolEnvelope, ProtocolContextUnavailableError, enforceBeforeGenerate, scanGeneratedOutput, filterMealsByProtocol, buildGuestEnvelope, deriveProcedureRules, type UserProtocolEnvelope } from './protocolEnvelope';
 import { buildVegetableStrategyPrompt, NutritionStrategyContext, buildStrictModeBlock } from './promptBuilder';
-import { getDeterministicFallback, findMatchingTemplates, templateToMeal } from './templateMatcher';
+import { getDeterministicFallback, findMatchingTemplates, templateToMeal, TemplateNutritionError } from './templateMatcher';
 import { STARCHY_KEYWORDS } from '../../shared/starchKeywords';
 import { createIngredientSignature, hashSignature } from './ingredientSignature';
 import { getCachedMeals, cacheMeals } from './mealCachePersistent';
@@ -87,7 +88,7 @@ import {
 } from './safetyProfileService';
 import { storage } from '../storage';
 import OpenAI from 'openai';
-import { getLanguageInstruction } from '../utils/languageInstruction';
+import { getLanguageInstruction, resolveRequestLanguagePreference } from '../utils/languageInstruction';
 import { resolveAICarbsStrict } from './guardrails/macroTruthContract';
 import { macroAudit, macroAuditPrompt, macroAuditCache } from '../utils/macroAuditLogger';
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from './behavioralMemoryService';
@@ -100,7 +101,7 @@ import { scoreOncologySnackQuality } from './guardrails/validators/oncologySnack
 import { applyOncologySymptomPriority, oncologySymptomPriorityEnabled } from './guardrails/prompt/oncologySymptomPriority';
 import { generateMealImageUnified } from './mealImageGenerator';
 import { normalizeMealName, culturalNameTransform } from './mealNameNormalizer';
-import { estimateCaloriesFromIngredients, checkIngredientSanity } from './calorieEstimator';
+import { estimateCaloriesFromIngredients, checkIngredientSanity, validateGeneratedIngredientMeasurements } from './calorieEstimator';
 import { mealVerificationFailure } from "./mealVerificationFailure";
 import { isClinicalAdaptationActive } from './clinicalMacroGate';
 import { resolveVarietyClassificationInput } from './createDish/varietyClassificationInput';
@@ -775,6 +776,16 @@ function normalizeMedicalBadges(badges: any[]): Array<{ id: string; label: strin
  * Flow: Cache → Templates → AI (deterministic first, AI second)
  * NOTE: This is Craving Creator - DO NOT MODIFY per user directive
  */
+function unavailableTemplateResponse(language?: string): MealGenerationResponse {
+  return {
+    success: false,
+    source: 'error',
+    error: /^es(?:[-_]|$)/i.test(language ?? '')
+      ? 'No pudimos verificar la información nutricional de una receta alternativa. Inténtalo de nuevo.'
+      : 'We could not verify the nutrition of an alternative recipe. Please try again.',
+  };
+}
+
 export async function generateCravingMealUnified(
   cravingInput: string,
   mealType: string,
@@ -1442,7 +1453,15 @@ The instructions field MUST be an array of ordered strings; each element is one 
       // AI failed for a non-GLP-1 reason - fall back to deterministic catalog
       console.error(`❌ AI generation failed, using catalog fallback:`, aiError.message);
       
-      const fallback = getDeterministicFallback(validMealType, [cravingInput]);
+      let fallback: ReturnType<typeof getDeterministicFallback>;
+    try {
+      fallback = getDeterministicFallback(validMealType, [cravingInput]);
+    } catch (fallbackError) {
+      if (fallbackError instanceof TemplateNutritionError) {
+        return unavailableTemplateResponse(preferredLanguage);
+      }
+      throw fallbackError;
+    }
       const CRAVING_DIET_VALIDATION_REQUIRED = ['vegan', 'vegetarian', 'pescatarian'];
       const rawFallbackMeal: UnifiedMeal = {
         id: fallback.id,
@@ -2575,6 +2594,16 @@ export async function generateCravingMealOptions(
     const parsed = parseVarietyContent(content);
     preparationIssues = [];
     const prepared = parsed.filter(candidate => {
+      if (
+        !validateGeneratedIngredientMeasurements(candidate?.ingredients) ||
+        !checkIngredientSanity([candidate], 1, cravingInput)
+      ) {
+        preparationIssues.push(
+          "Provide explicit positive ingredient quantities and supported measurement units. " +
+          "Preserve the requested dish and all active dietary and clinical protections."
+        );
+        return false;
+      }
       const check = validateRecipePreparation(candidate, { strictIngredientForms: true });
       preparationIssues.push(...check.errors);
       return check.isValid;
@@ -2973,6 +3002,8 @@ export async function generateFridgeRescueUnified(
   overriddenAllergens?: string[]
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
+  const fridgeLanguage = resolveRequestLanguagePreference(preferredLanguage);
+  const fridgeSpanish = fridgeLanguage === "es";
 
   // Fetch dietary restrictions FIRST to ensure diet-aware cache key
   let fridgeDietRestrictions: string[] = [];
@@ -3004,7 +3035,8 @@ export async function generateFridgeRescueUnified(
   const signature = createIngredientSignature({
     ingredients: fridgeItems,
     mealType: validMealType,
-    primaryDiet: fridgePrimaryDiet
+    primaryDiet: fridgePrimaryDiet,
+    policyVersion: `fridge-integrity-v2-${fridgeLanguage}`
   });
 
   // ── Load protocol envelope (same pattern as create-with-chef / craving / snack) ─
@@ -3025,12 +3057,49 @@ export async function generateFridgeRescueUnified(
       overriddenAllergens: overriddenAllergens?.length ? overriddenAllergens : undefined,
     });
 
+  const hasFridgeMealIntegrity = (m: {
+    ingredients?: unknown;
+    calories?: unknown;
+    protein?: unknown;
+    carbs?: unknown;
+    fat?: unknown;
+    starchyCarbs?: unknown;
+    fibrousCarbs?: unknown;
+  }): boolean => {
+        if (!m) {
+          return false;
+        }
+
+        if (!verifyGeneratedIngredients(m.ingredients)) {
+          return false;
+        }
+
+        const values = [
+          m.calories, m.protein, m.carbs, m.fat,
+          m.starchyCarbs, m.fibrousCarbs
+        ];
+
+        if (!values.every(value =>
+          typeof value === 'number' &&
+          Number.isFinite(value) &&
+          value >= 0
+        )) {
+          return false;
+        }
+
+        const split = Number(m.starchyCarbs) + Number(m.fibrousCarbs);
+
+        return Number.isFinite(split) &&
+          Math.abs(Number(m.carbs) - split) <= 0.1;
+  };
+
   if (!isOncologyFridge) {
     const cached = await getCachedMeals(signature);
     if (cached && cached.meals.length >= count) {
-      const hasValidData = cached.meals.slice(0, count).every(m => 
-        m.imageUrl && m.imageUrl.length > 0 && 
-        m.ingredients && Array.isArray(m.ingredients) && m.ingredients.length > 0
+      const hasValidData = cached.meals.slice(0, count).every(m =>
+        typeof m?.imageUrl === 'string' &&
+        Boolean(m.imageUrl.trim()) &&
+        hasFridgeMealIntegrity(m)
       );
       if (hasValidData) {
         const _scannedCached = _fridgeScanMeals(cached.meals.slice(0, count), 'cache');
@@ -3143,21 +3212,21 @@ export async function generateFridgeRescueUnified(
       macroTargets,
       protocolEnvelope: fridgeEnvelope,
       builderBlock: oncologyFridgeEnhancement,
-      preferredLanguage,
+      preferredLanguage: fridgeLanguage,
     });
     
-    // Convert to UnifiedMeal format + normalize ingredients to US units
-    const resultMeals: UnifiedMeal[] = fridgeRescueMeals.slice(0, count).map(meal => ({
+    // Convert verified meals without changing ingredient measurements
+    const resultMeals: UnifiedMeal[] = fridgeRescueMeals.filter(hasFridgeMealIntegrity).slice(0, count).map(meal => ({
       id: meal.id,
       name: meal.name,
       description: meal.description,
-      ingredients: normalizeIngredients(meal.ingredients || []),
+      ingredients: meal.ingredients.map(ingredient => ({ ...ingredient })),
       instructions: meal.instructions,
       calories: meal.calories,
       protein: meal.protein,
       carbs: meal.carbs,
-      starchyCarbs: meal.starchyCarbs || 0,
-      fibrousCarbs: meal.fibrousCarbs || 0,
+      starchyCarbs: meal.starchyCarbs,
+      fibrousCarbs: meal.fibrousCarbs,
       fat: meal.fat,
       cookingTime: meal.cookingTime,
       difficulty: meal.difficulty,
@@ -3195,19 +3264,19 @@ export async function generateFridgeRescueUnified(
             protocolEnvelope: fridgeEnvelope,
             strictMode: true,
             builderBlock: oncologyFridgeEnhancement,
-            preferredLanguage,
+            preferredLanguage: fridgeLanguage,
           });
-          const retryConverted: UnifiedMeal[] = retryMeals.slice(0, violatingMeals.length).map(meal => ({
+          const retryConverted: UnifiedMeal[] = retryMeals.filter(hasFridgeMealIntegrity).slice(0, violatingMeals.length).map(meal => ({
             id: meal.id,
             name: meal.name,
             description: meal.description,
-            ingredients: normalizeIngredients(meal.ingredients || []),
+            ingredients: meal.ingredients.map(ingredient => ({ ...ingredient })),
             instructions: meal.instructions,
             calories: meal.calories,
             protein: meal.protein,
             carbs: meal.carbs,
-            starchyCarbs: meal.starchyCarbs || 0,
-            fibrousCarbs: meal.fibrousCarbs || 0,
+            starchyCarbs: meal.starchyCarbs,
+            fibrousCarbs: meal.fibrousCarbs,
             fat: meal.fat,
             cookingTime: meal.cookingTime,
             difficulty: meal.difficulty,
@@ -3256,13 +3325,15 @@ export async function generateFridgeRescueUnified(
     }
 
     // ── Post-generation safety scan (full envelope + PIN override context) ──
-    const _scannedResultMeals = _fridgeScanMeals(resultMeals, 'generated');
+    const _scannedResultMeals = _fridgeScanMeals(resultMeals.filter(hasFridgeMealIntegrity), 'generated');
     if (_scannedResultMeals.length === 0) {
       console.error(`🚫 [FRIDGE/Unified] All ${resultMeals.length} generated meals failed the post-generation protocol scan.`);
       return {
         success: false,
         source: 'error',
-        error: 'Generated meals did not pass your dietary safety requirements. Please try again.',
+        error: fridgeSpanish
+          ? 'Las comidas generadas no cumplen tus requisitos de seguridad alimentaria. Inténtalo de nuevo.'
+          : 'Generated meals did not pass your dietary safety requirements. Please try again.',
       };
     }
 
@@ -3281,9 +3352,26 @@ export async function generateFridgeRescueUnified(
       return { success: false, source: "error", error: PREGNANCY_PAUSE_MESSAGE };
     }
     
+    // Catalog fallback recipes currently contain English-only content.
+    if (fridgeSpanish) {
+      return {
+        success: false,
+        source: 'error',
+        error: 'No hay una receta alternativa verificada disponible en español. Inténtalo de nuevo.',
+      };
+    }
+
     // Fallback to deterministic templates only if AI fails
     console.log('⚠️ Falling back to deterministic templates...');
-    const fallback = getDeterministicFallback(validMealType, fridgeItems);
+    let fallback: ReturnType<typeof getDeterministicFallback>;
+    try {
+      fallback = getDeterministicFallback(validMealType, fridgeItems, true);
+    } catch (fallbackError) {
+      if (fallbackError instanceof TemplateNutritionError) {
+        return unavailableTemplateResponse(fridgeLanguage);
+      }
+      throw fallbackError;
+    }
     const fallbackMeal: UnifiedMeal = {
       id: fallback.id,
       name: fallback.name,
@@ -3293,8 +3381,8 @@ export async function generateFridgeRescueUnified(
       calories: fallback.calories,
       protein: fallback.protein,
       carbs: fallback.carbs,
-      starchyCarbs: 0,
-      fibrousCarbs: 0,
+      starchyCarbs: fallback.starchyCarbs,
+      fibrousCarbs: fallback.fibrousCarbs,
       fat: fallback.fat,
       cookingTime: '15 minutes',
       difficulty: 'Easy' as const,
@@ -3306,13 +3394,19 @@ export async function generateFridgeRescueUnified(
     // ── Post-scan the deterministic fallback too (full envelope + override) ──
     // The resilience path must never bypass safety: a fallback template can
     // contain a non-overridden allergen, avoidance, or dietary violation.
+    if (!hasFridgeMealIntegrity(fallbackMeal)) {
+      return unavailableTemplateResponse(fridgeLanguage);
+    }
+
     const _scannedFallback = _fridgeScanMeals([fallbackMeal], 'fallback');
     if (_scannedFallback.length === 0) {
       console.error(`🚫 [FRIDGE/Unified] Deterministic fallback "${fallbackMeal.name}" failed the protocol scan — returning safe failure.`);
       return {
         success: false,
         source: 'error',
-        error: 'We could not generate a meal that meets your dietary safety requirements right now. Please try again.',
+        error: fridgeSpanish
+          ? 'No pudimos generar una comida que cumpla tus requisitos de seguridad alimentaria en este momento. Inténtalo de nuevo.'
+          : 'We could not generate a meal that meets your dietary safety requirements right now. Please try again.',
       };
     }
 
@@ -4185,6 +4279,25 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       }
       
       const mealData = JSON.parse(content);
+      // Validate original measurements before normalization can conceal defects.
+      if (
+        !validateGeneratedIngredientMeasurements(mealData?.ingredients) ||
+        !checkIngredientSanity([{ ingredients: mealData.ingredients }], requestedServings, description)
+      ) {
+        if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
+          lastFixHint =
+            "INGREDIENT MEASUREMENT ERROR: Provide every ingredient with a name, " +
+            "an explicit positive numeric quantity and a supported measurement unit. " +
+            "Do not use vague portions or invent conversions. Preserve the requested dish " +
+            "and all active dietary and clinical protections.";
+          continue;
+        }
+        throw Object.assign(
+          new Error("Ingredient quantities remained unsafe after bounded regeneration."),
+          { status: 422, code: "INGREDIENT_SANITY_RETRY_EXHAUSTED" },
+        );
+      }
+
       const starchyCarbs = typeof mealData.starchyCarbs === 'number' ? mealData.starchyCarbs : 0;
       const fibrousCarbs = typeof mealData.fibrousCarbs === 'number' ? mealData.fibrousCarbs : 0;
       const totalCarbs = resolveAICarbsStrict(mealData);
@@ -4731,28 +4844,20 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
     }
     
     // Fallback to deterministic template
-    const fallback = glp1Targets
-      ? {
-          ...getDeterministicFallback(validMealType, [description]),
-          name: "Lean Turkey and Steamed Vegetable Plate",
-          description: "A small, high-protein plate designed for GLP-1 tolerance.",
-          ingredients: [
-            { name: "skinless turkey breast", quantity: "5", unit: "oz" },
-            { name: "steamed broccoli", quantity: "1", unit: "cup" },
-            { name: "lemon juice", quantity: "1", unit: "tsp" },
-            { name: "salt", quantity: "1/4", unit: "tsp" },
-          ],
-          instructions: [
-            "Cook the turkey breast thoroughly without added oil.",
-            "Steam the broccoli until tender.",
-            "Plate a small portion and finish with lemon juice and salt.",
-          ],
-          calories: Math.min(glp1Targets.resolvedMealCalories, 280),
-          protein: Math.max(glp1Targets.targetProteinGrams, 35),
-          carbs: 12,
-          fat: Math.min(glp1Targets.maximumToleratedFatGrams, 2),
-        }
-      : getDeterministicFallback(validMealType, [description]);
+    // Never manufacture nutrition to satisfy clinical targets.
+    if (glp1Targets) {
+      return unavailableTemplateResponse(preferredLanguage);
+    }
+
+    let fallback: ReturnType<typeof getDeterministicFallback>;
+    try {
+      fallback = getDeterministicFallback(validMealType, [description]);
+    } catch (fallbackError) {
+      if (fallbackError instanceof TemplateNutritionError) {
+        return unavailableTemplateResponse(preferredLanguage);
+      }
+      throw fallbackError;
+    }
     const CHEF_DIET_VALIDATION_REQUIRED = ['vegan', 'vegetarian', 'pescatarian'];
     const chefFallbackPrimaryDiet = dietType ? String(dietType).toLowerCase() : '';
     const fallbackMeal: UnifiedMeal = {
@@ -5064,6 +5169,25 @@ Create the personalized snack for: "${cravingDescription}"`;
       }
       
       const snackData = JSON.parse(content);
+      // Validate original measurements before normalization can conceal defects.
+      if (
+        !validateGeneratedIngredientMeasurements(snackData?.ingredients) ||
+        !checkIngredientSanity([{ ingredients: snackData.ingredients }], 1)
+      ) {
+        if (snackAttemptCount < SNACK_MAX_REGENERATION_ATTEMPTS) {
+          snackLastFixHint =
+            "INGREDIENT MEASUREMENT ERROR: Provide every ingredient with a name, " +
+            "an explicit positive numeric quantity and a supported measurement unit. " +
+            "Do not use vague portions or invent conversions. Preserve the requested dish " +
+            "and all active dietary and clinical protections.";
+          continue;
+        }
+        throw Object.assign(
+          new Error("Ingredient quantities remained unsafe after bounded regeneration."),
+          { status: 422, code: "INGREDIENT_SANITY_RETRY_EXHAUSTED" },
+        );
+      }
+
       const snackStarchyCarbs = typeof snackData.starchyCarbs === 'number' ? snackData.starchyCarbs : 0;
       const snackFibrousCarbs = typeof snackData.fibrousCarbs === 'number' ? snackData.fibrousCarbs : 0;
       const snackTotalCarbs = resolveAICarbsStrict(snackData);
@@ -5365,26 +5489,20 @@ Create the personalized snack for: "${cravingDescription}"`;
     }
     
     // Fallback to deterministic template for snacks
-    const fallback = glp1Targets
-      ? {
-          ...getDeterministicFallback('snack', [cravingDescription]),
-          name: "Strawberry Egg White Protein Cup",
-          description: "A small, very low-fat protein snack with fresh strawberry.",
-          ingredients: [
-            { name: "liquid egg whites", quantity: "1", unit: "cup" },
-            { name: "sliced strawberries", quantity: "1/2", unit: "cup" },
-            { name: "cinnamon", quantity: "1/4", unit: "tsp" },
-          ],
-          instructions: [
-            "Cook the egg whites gently in a nonstick pan without added oil.",
-            "Serve with the sliced strawberries and cinnamon.",
-          ],
-          calories: Math.min(glp1Targets.resolvedSnackCalories, 180),
-          protein: Math.max(Math.round(glp1Targets.minimumProteinFloor * 0.5), 26),
-          carbs: 8,
-          fat: 0,
-        }
-      : getDeterministicFallback('snack', [cravingDescription]);
+    // Never manufacture nutrition to satisfy clinical targets.
+    if (glp1Targets) {
+      return unavailableTemplateResponse(preferredLanguage);
+    }
+
+    let fallback: ReturnType<typeof getDeterministicFallback>;
+    try {
+      fallback = getDeterministicFallback('snack', [cravingDescription]);
+    } catch (fallbackError) {
+      if (fallbackError instanceof TemplateNutritionError) {
+        return unavailableTemplateResponse(preferredLanguage);
+      }
+      throw fallbackError;
+    }
     const SNACK_DIET_VALIDATION_REQUIRED = ['vegan', 'vegetarian', 'pescatarian'];
     const snackFallbackPrimaryDiet = dietType ? String(dietType).toLowerCase() : '';
     const fallbackSnack: UnifiedMeal = {

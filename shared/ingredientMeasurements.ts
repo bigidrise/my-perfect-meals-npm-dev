@@ -1,4 +1,7 @@
 import { parseMeasurementNumber } from "./units";
+import { ingredientMeasurementUnit } from "./ingredientMeasurementUnits";
+export { ingredientMeasurementUnit } from "./ingredientMeasurementUnits";
+
 
 /** Literal measurement aliases only. This is not safety or nutrition clearance. */
 export function ingredientMeasurementName(value: string): string {
@@ -7,28 +10,12 @@ export function ingredientMeasurementName(value: string): string {
     .replace(/\byemas? de huevo\b/g, "egg yolks")
     .replace(/\bhuevos?\b/g, "eggs")
     .replace(/\b(grandes?|grande)\b/g, "large")
-    .replace(/\bmedianos?\b/g, "medium")
-    .replace(/\bpequenos?\b/g, "small")
+    .replace(/\bmedian[oa]s?\b/g, "medium")
+    .replace(/\bpequen[oa]s?\b/g, "small")
     .replace(/\b(liquidas?|liquidos?)\b/g, "liquid")
     .replace(/\ben polvo\b/g, "powdered")
     .replace(/\b(sustituto|reemplazo) de\b/g, "substitute")
     .trim();
-}
-
-export function ingredientMeasurementUnit(value: string): string {
-  const unit = value.toLowerCase().trim();
-  const aliases: Record<string, string> = {
-    grams: "g", gram: "g", gramo: "g", gramos: "g",
-    ounces: "oz", ounce: "oz", onza: "oz", onzas: "oz",
-    pounds: "lb", pound: "lb", lbs: "lb", libra: "lb", libras: "lb",
-    cups: "cup", taza: "cup", tazas: "cup",
-    tablespoons: "tbsp", tablespoon: "tbsp", cucharada: "tbsp", cucharadas: "tbsp",
-    teaspoons: "tsp", teaspoon: "tsp", cucharadita: "tsp", cucharaditas: "tsp",
-    milliliters: "ml", milliliter: "ml", mililitro: "ml", mililitros: "ml",
-    unidad: "each", unidades: "each", huevo: "egg", huevos: "eggs",
-    grande: "large", grandes: "large", mediano: "medium", pequeno: "small",
-  };
-  return aliases[unit] ?? unit;
 }
 
 export function freshEggPart(name: string): "whole" | "white" | "yolk" | null {
@@ -67,4 +54,12 @@ export function approximateEggGrams(name: string, quantity: string, rawUnit: str
     ml: 1, cup: 240, tbsp: 15, tsp: 5, "fl oz": 29.5735,
   };
   return Object.prototype.hasOwnProperty.call(grams, unit) ? amount * grams[unit] : null;
+}
+
+
+// Shared supplement identification for measurement handling only.
+const PROTEIN_POWDER_PATTERN = /\b(protein\s+powder|whey\s+protein|casein\s+protein|plant[- ]based\s+protein|vegan\s+protein|pea\s+protein|soy\s+protein|rice\s+protein|collagen\s+powder|collagen\s+peptides|pre[- ]workout|creatine|bcaa|mass\s+gainer|weight\s+gainer|supplement\s+powder|protein\s+shake\s+powder|prote[ií]na\s+en\s+polvo|prote[ií]na\s+de\s+suero|creatina|pre[- ]?entrenamiento|col[aá]geno\s+en\s+polvo|p[eé]ptidos\s+de\s+col[aá]geno|suplemento\s+en\s+polvo)\b/i;
+
+export function isProteinPowder(name: string): boolean {
+  return PROTEIN_POWDER_PATTERN.test(name);
 }

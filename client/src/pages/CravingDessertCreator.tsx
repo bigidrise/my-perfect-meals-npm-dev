@@ -71,6 +71,7 @@ import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } 
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
 import { dessertRecipeServings, dessertFavoritePayload, dessertFailureCopy, dessertChoiceFailureMessage } from "@/lib/dessertResult";
+import { INGREDIENT_MEASUREMENT_ERROR_COPY, isIngredientMeasurementError } from "@/lib/ingredientMeasurementError";
 import { dessertYieldOptions, LEGACY_DESSERT_YIELDS } from "@shared/dessertYields";
 import RecipeChoiceCards, { useRecipeChoices, readRecipeChoiceResponse } from "@/components/beverage/BeverageChoiceCards";
 import { useConsumerCopy } from "@/i18n/useConsumerCopy";
@@ -569,7 +570,9 @@ export default function DessertCreator() {
         const ownedMessage = dessertChoiceFailureMessage(responseStatus, responseData);
         setGenerationFailure({
           ...failureCopy,
-          message: ownedMessage ? localizedChoiceFailures[ownedMessage] : failureCopy.message,
+          message: isIngredientMeasurementError(responseData) && responseStatus === 422
+            ? t(INGREDIENT_MEASUREMENT_ERROR_COPY)
+            : ownedMessage ? localizedChoiceFailures[ownedMessage] : failureCopy.message,
         });
       }
     } finally {

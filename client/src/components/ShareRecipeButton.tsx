@@ -17,7 +17,9 @@ import { Share2, Lock } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
-import { formatAmount } from "@/utils/formatAmount";
+import { ingredientLine } from "@/lib/ingredientDisplay";
+import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
+import { useTranslation } from "react-i18next";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import SharePanel from "@/components/SharePanel";
@@ -32,7 +34,7 @@ interface ShareRecipeButtonProps {
       carbs?: number;
       fat?: number;
     };
-    ingredients?: Array<{ name: string; amount?: string; unit?: string }>;
+    ingredients?: Array<{ name: string; amount?: string | number; quantity?: string | number; unit?: string }>;
     instructions?: string[] | string;
     image?: string;
   };
@@ -51,6 +53,9 @@ export default function ShareRecipeButton({
   const [shareUrl, setShareUrl]   = useState<string | null>(null);
   const [sharing, setSharing]     = useState(false);
 
+  const measurementSystem = useMeasurementSystem();
+  const { i18n } = useTranslation();
+
   if (!recipe) return null;
 
   const title       = recipe.name || "My Perfect Meal";
@@ -63,9 +68,7 @@ export default function ShareRecipeButton({
   const ingredientsList =
     recipe.ingredients
       ?.map((i) => {
-        const amount = formatAmount(i.amount);
-        const parts  = [amount, i.unit, i.name].filter(Boolean);
-        return `• ${parts.join(" ")}`;
+        return `• ${ingredientLine(i, measurementSystem, i18n.resolvedLanguage || i18n.language)}`;
       })
       .join("\n") || "";
 

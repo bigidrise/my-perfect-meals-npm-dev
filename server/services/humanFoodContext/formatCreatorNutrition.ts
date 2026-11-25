@@ -15,7 +15,10 @@ export function formatCreatorNutrition(meal: any, servings: number) {
     if (value == null) return [];
     const numeric = typeof value === "number"
       ? value
-      : typeof value === "string" && value.trim() ? Number(value) : NaN;
+      : typeof value === "string" && /^\d+(?:\.\d+)?$/.test(value.trim())
+        ? Number(value)
+        : NaN;
+    if (!Number.isFinite(numeric) || numeric < 0) return [];
     const scaled = numeric * servings;
     return Number.isFinite(scaled) ? [[field, scaled]] : [];
   }));

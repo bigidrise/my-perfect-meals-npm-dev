@@ -1,7 +1,8 @@
 import { BackNavigationLabel } from "@/components/navigation/BackNavigationLabel";
 import { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { formatAmount } from "@/utils/formatAmount";
+import { ingredientLine } from "@/lib/ingredientDisplay";
+import { useMeasurementSystem } from "@/hooks/useMeasurementSystem";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
@@ -139,7 +140,8 @@ export default function ChefsKitchenPage() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { t } = useTranslation("chefsKitchen");
+  const { t, i18n } = useTranslation("chefsKitchen");
+  const measurementSystem = useMeasurementSystem();
   const quickTour = useQuickTour("chefs-kitchen");
 
   const initialState = getInitialMode();
@@ -1013,7 +1015,7 @@ export default function ChefsKitchenPage() {
                       </h4>
                       <ul className="text-sm text-white/80 space-y-1">
                         {mealToShow.ingredients.map((ing, i) => (
-                          <li key={i}>{formatAmount(ing.amount ?? ing.quantity)} {ing.unit} {ing.name}</li>
+                          <li key={i}>{ingredientLine(ing, measurementSystem, i18n.resolvedLanguage || i18n.language)}</li>
                         ))}
                       </ul>
                     </div>

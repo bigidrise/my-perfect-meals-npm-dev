@@ -8,6 +8,8 @@ import { getMeasurementPromptBlock, MeasurementSystem } from "../../shared/units
 import OpenAI from "openai";
 import { computeMedicalBadges, computeAlphaGalBadge } from "../services/medicalBadges";
 import { normalizeIngredients } from "../services/ingredientNormalizer";
+import { validateGeneratedIngredientMeasurements } from "../services/calorieEstimator";
+import { enforceGeneratedMeasurementValidation } from "../services/humanFoodContext/generatedMeasurementValidation";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -508,6 +510,8 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
     };
     const validateDessert = async (rawMeal: any, signal?: AbortSignal): Promise<DessertResponse> => {
     let meal = rawMeal;
+    let originalMeasurementsValid =
+      validateGeneratedIngredientMeasurements(rawMeal?.ingredients);
 
     // ── Post-gen protocol scan ──────────────────────────────────────────────
     const dessertScan = scanGeneratedOutput(meal, dessertEnvelope, {
@@ -676,7 +680,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
         },
       };
     };
-    const validateFinalDessert = (candidate: any): HumanFoodFinalValidationResult => {
+    const validateFinalDessertBase = (candidate: any): HumanFoodFinalValidationResult => {
       const result = validateHumanFoodCandidate(toFinalDessertCandidate(candidate), humanFoodContext, {
         requestedDish: requestedDessert,
         requestedCategory,
@@ -741,6 +745,13 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
         ] : [],
       };
     };
+    const validateFinalDessert = (candidate: any): HumanFoodFinalValidationResult =>
+      enforceGeneratedMeasurementValidation(
+        validateFinalDessertBase(candidate),
+        candidate?.ingredients,
+        originalMeasurementsValid,
+      );
+
     const finalDessertEnforcement = await enforceFinalCreatorCandidates({
       candidates: [meal],
       validate: validateFinalDessert,
@@ -751,6 +762,9 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
               `${JSON.stringify(meal)}\n\n${repairInstructions.join("\n")}`,
           signal,
         );
+        originalMeasurementsValid =
+          validateGeneratedIngredientMeasurements(repaired?.ingredients);
+        if (!originalMeasurementsValid) return [];
         if (dessertCreatorSystem) {
           repaired = await applyCreatorTransformation(repaired, dessertCreatorSystem, "dessert");
         }

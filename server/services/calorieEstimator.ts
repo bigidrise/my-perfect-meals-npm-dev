@@ -12,7 +12,7 @@
 import { parseMeasurementNumber } from "../../shared/units";
 import {
   approximateEggGrams, EGG_COUNT_UNITS, freshEggPart,
-  ingredientMeasurementName, ingredientMeasurementUnit,
+  ingredientMeasurementName, ingredientMeasurementUnit, hasEggSize, isProteinPowder,
 } from "../../shared/ingredientMeasurements";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -25,13 +25,14 @@ import {
  *  Accuracy is intentionally approximate; tolerances are loose enough to allow
  *  cooking-loss variance while catching order-of-magnitude failures. */
 export function estimateCaloriesFromIngredients(
-  ingredients: Array<{ name: string; quantity: string; unit: string }>,
+  ingredients: SanityIngredient[],
   servings: number = 1
 ): number {
-  const s = Math.max(1, servings);
+  if (!Number.isInteger(servings) || servings <= 0) return 0;
+  const s = servings;
 
   // qty + unit → approximate grams
-  const toGrams = (qty: number, unit: string, name: string): number => {
+  const toGrams = (qty: number, unit: string, name: string): number | null => {
     const u = unit.toLowerCase().trim();
     const n = ingredientMeasurementName(name);
     if (u === 'cup' || u === 'cups') {
@@ -49,7 +50,9 @@ export function estimateCaloriesFromIngredients(
     if (u === 'g' || u === 'gram' || u === 'grams') return qty;
     if (u === 'kg') return qty * 1000;
     if (u === 'ml' || u === 'milliliter' || u === 'milliliters') return qty;
-    return qty; // fallback: assume grams
+    if (u === 'l') return qty * 1000;
+    if (u === 'fl oz') return qty * 29.5735295625;
+    return null; // No defensible conversion available.
   };
 
   // kcal per 100g by ingredient category
@@ -90,14 +93,17 @@ export function estimateCaloriesFromIngredients(
 
   let totalKcal = 0;
   for (const ing of ingredients) {
-    const qty = parseMeasurementNumber(ing.quantity) ?? 0;
-    if (!qty || !ing.name) continue;
-    const grams = approximateEggGrams(ing.name, ing.quantity, ing.unit || '') ??
+    if (!ing || typeof ing.name !== "string" || !ing.name.trim()) return 0;
+    if (typeof ing.unit !== "string" || !ing.unit.trim()) return 0;
+    const qty = resolveIngredientQuantity(ing);
+    if (qty === null) return 0;
+    const grams = approximateEggGrams(ing.name, String(qty), ing.unit || '') ??
       toGrams(qty, ingredientMeasurementUnit(ing.unit || ''), ing.name);
+    if (grams === null || !Number.isFinite(grams) || grams <= 0) return 0;
     totalKcal += (grams / 100) * kcalPer100g(ing.name);
   }
 
-  return totalKcal / s; // per-serving estimate
+  return Number.isFinite(totalKcal) ? totalKcal / s : 0; // per-serving estimate
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -106,7 +112,8 @@ export function estimateCaloriesFromIngredients(
 
 export interface SanityIngredient {
   name: string;
-  quantity: string;
+  quantity?: string | number;
+  amount?: string | number;
   unit: string;
 }
 
@@ -115,8 +122,73 @@ export interface SanityOption {
   ingredients?: SanityIngredient[];
 }
 
+// Accept either supported measurement field without concealing conflicts.
+function resolveIngredientQuantity(ingredient: SanityIngredient): number | null {
+  const values = [ingredient.amount, ingredient.quantity]
+    .filter(value => value !== undefined && value !== null);
+
+  if (values.length === 0) return null;
+
+  const parsed = values.map(value =>
+    typeof value === "string" || typeof value === "number"
+      ? parseMeasurementNumber(value)
+      : null
+  );
+
+  if (parsed.some(value =>
+    value === null || !Number.isFinite(value) || value <= 0
+  )) return null;
+
+  const quantity = parsed[0]!;
+  if (parsed.some(value => value !== quantity)) return null;
+
+  return quantity;
+}
+
+const GENERATED_MEASURED_UNITS = new Set([
+  "g", "kg", "oz", "lb", "ml", "l",
+  "cup", "tbsp", "tsp", "fl oz",
+]);
+
+/** Strict measurement boundary for newly generated recipes. */
+export function validateGeneratedIngredientMeasurements(input: unknown): boolean {
+  if (!Array.isArray(input) || input.length === 0) return false;
+
+  return input.every(row => {
+    if (!row || typeof row !== "object") return false;
+    if (typeof row.name !== "string" || !row.name.trim()) return false;
+    if (typeof row.unit !== "string" || !row.unit.trim()) return false;
+
+    const quantity = resolveIngredientQuantity(row);
+    if (quantity === null) return false;
+
+    const unit = ingredientMeasurementUnit(row.unit);
+    const name = ingredientMeasurementName(row.name);
+
+    if (unit === "scoop" || unit === "scoops") {
+      return isProteinPowder(row.name);
+    }
+
+    if (GENERATED_MEASURED_UNITS.has(unit)) return true;
+
+    if (freshEggPart(row.name) && EGG_COUNT_UNITS.has(unit)) {
+      return hasEggSize(row.name, unit);
+    }
+
+    if (unit === "clove" || unit === "cloves") {
+      return /\b(garlic|ajo)\b/.test(name);
+    }
+
+    if (unit === "whole") {
+      return /\b(bell peppers?|pimientos?)\b/.test(name);
+    }
+
+    return false;
+  });
+}
+
 function eggCountEquivalent(ingredient: SanityIngredient): number | null {
-  const quantity = parseMeasurementNumber(ingredient.quantity);
+  const quantity = resolveIngredientQuantity(ingredient);
   if (quantity === null || quantity <= 0) return null;
   const unit = ingredientMeasurementUnit(ingredient.unit || "");
   const name = ingredientMeasurementName(ingredient.name);
@@ -126,7 +198,7 @@ function eggCountEquivalent(ingredient: SanityIngredient): number | null {
     return quantity;
   }
   const gramsPerEgg = /\bwhites?\b/.test(name) ? 33 : /\byolks?\b/.test(name) ? 17 : 50;
-  const grams = approximateEggGrams(name, ingredient.quantity, unit);
+  const grams = approximateEggGrams(name, String(quantity), unit);
   return grams === null ? null : grams / gramsPerEgg;
 }
 
@@ -150,15 +222,24 @@ export function checkIngredientSanity(
   for (const opt of options) {
     for (const ing of (opt.ingredients || [])) {
       const name = ingredientMeasurementName(ing.name || '');
-      const unit = ingredientMeasurementUnit(ing.unit || '');
-      // Check before the legacy parseFloat/zero shortcut so invalid egg amounts
-      // cannot bypass verification. All other ingredient limits stay unchanged.
+      if (typeof ing.unit !== "string" || !ing.unit.trim()) return false;
+      const unit = ingredientMeasurementUnit(ing.unit);
+      const measuredUnits = new Set([
+        "g", "kg", "oz", "lb", "ml", "l",
+        "cup", "tbsp", "tsp", "fl oz",
+        "scoop", "scoops", "clove", "cloves", "whole",
+      ]);
+      const countedEgg = freshEggPart(ing.name || "") !== null &&
+        EGG_COUNT_UNITS.has(unit);
+      if (!measuredUnits.has(unit) && !countedEgg) return false;
+      // Reject missing, malformed, nonfinite and nonpositive quantities
+      // before applying existing culinary sanity thresholds.
+      const qty = resolveIngredientQuantity(ing);
+      if (qty === null) return false;
       if (/\beggs?\b/.test(name) && !/\b(noodles?|eggplant)\b/.test(name)) {
         const eggCount = eggCountEquivalent(ing);
         if (eggCount === null || eggCount > Math.max(6, 4 * s)) return false;
       }
-      const qty = parseFloat(ing.quantity) || 0;
-      if (!qty) continue;
       const isCup = unit === 'cup' || unit === 'cups';
 
       // Flour — baked goods: ≤1.5 cups/serving; standard: ≤4 cups/serving

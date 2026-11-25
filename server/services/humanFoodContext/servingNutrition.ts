@@ -8,8 +8,14 @@ export function perServingNumber(
   value: unknown,
   servingCount: number,
 ): unknown {
+  if (!Number.isInteger(servingCount) || servingCount <= 0) return NaN;
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "number" &&
+      (typeof value !== "string" || !/^\d+(?:\.\d+)?$/.test(value.trim()))) return NaN;
   const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric / servingCount : value;
+  return Number.isFinite(numeric) && numeric >= 0
+    ? numeric / servingCount
+    : NaN;
 }
 
 export function toPerServingNutrition(

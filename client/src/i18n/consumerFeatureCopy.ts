@@ -1573,6 +1573,7 @@ export const consumerFeatureSpanish: Record<string, string> = {
   "Clear dessert choices": "Borrar las opciones de postres",
   "Dessert identity could not be verified.": "No se pudo verificar la identidad del postre.",
   "The dessert must include ingredients and complete preparation instructions.": "El postre debe incluir los ingredientes y las instrucciones completas de preparación.",
+  "We could not verify the ingredient measurements. Please try again.": "No pudimos verificar las medidas de los ingredientes. Inténtalo de nuevo.",
   "The final dessert did not pass recipe safety and identity checks.": "El postre final no superó las comprobaciones de seguridad e identidad de la receta.",
   "No distinct dessert passed the recipe checks within this request's generation budget.": "Ningún postre distinto superó las comprobaciones de la receta dentro del límite de generación de esta solicitud.",
 };
