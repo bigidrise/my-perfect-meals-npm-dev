@@ -23,6 +23,7 @@ jest.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ i18n: { language: "en", resolvedLanguage: "en" }, t: (key: string) => ({
   more: "More", "savedMeals.addToMacros": "Add to Macros",
   "savedMeals.remove": "Remove", "savedMeals.cal": "Cal",
+  "savedMeals.serving": require("../../i18n/locales/en.json").savedMeals.serving,
 }[key] || key) }) }));
 jest.mock("@/hooks/useTranslatedMeal", () => ({ useTranslatedMeal: () => ({ data: null, isLoading: false }) }));
 jest.mock("@/lib/groceryCoachCatalogGate", () => ({ groceryCoachCatalogEnabled: false }));

@@ -116,6 +116,98 @@ function analyze(owner, text, resources, protectedTexts = new Set(), displayOwne
       add(node, `${namespace}:${key}`, "connection", "protected-review", "New use of protected/clinical wording; use existing approval process, not automatic translation.");
     }
   });
+  function validRichMarkup(en, es, props) {
+    const components = props.filter(prop =>
+      prop.name.getText(ast) === "components");
+    if (components.length !== 1) return false;
+    const initializer = components[0].initializer;
+    if (!initializer || !ts.isJsxExpression(initializer) ||
+        !initializer.expression ||
+        !ts.isArrayLiteralExpression(initializer.expression)) return false;
+    const elements = initializer.expression.elements;
+    if (elements.some(element =>
+        !ts.isJsxSelfClosingElement(element))) return false;
+
+    function signature(value) {
+      const stack = [], pairs = [];
+      for (const match of value.matchAll(/<[^>]*>/g)) {
+        const tag = /^<(\/?)(\d+)>$/.exec(match[0]);
+        if (!tag) return null;
+        const index = Number(tag[2]);
+        if (!Number.isSafeInteger(index) ||
+            index >= elements.length) return null;
+        if (tag[1]) {
+          if (stack.pop() !== index) return null;
+          pairs.push(index);
+        } else {
+          stack.push(index);
+        }
+      }
+      if (stack.length || /[<>]/.test(value.replace(/<[^>]*>/g, "")))
+        return null;
+      return JSON.stringify(pairs.sort((a, b) => a - b));
+    }
+
+    const a = signature(en), b = signature(es);
+    return a !== null && b !== null && a === b;
+  }
+
+  // Recognize explicitly bound react-i18next rich-text translations.
+  walk(ast, node => {
+    if (!ts.isJsxSelfClosingElement(node)) return;
+    const tag = node.tagName.getText(ast);
+    const imported = imports.get(tag);
+    if (imported?.module !== "react-i18next" ||
+        imported.original !== "Trans") return;
+
+    const props = node.attributes.properties;
+    const allowed = new Set(["ns", "i18nKey", "components"]);
+    if (resolve(node, tag)?.unknown ||
+        props.some(prop => !ts.isJsxAttribute(prop) ||
+          !allowed.has(prop.name.getText(ast)))) {
+      add(node, node.getText(ast), "connection", "review",
+        "Rich-text translation requires bounded ownership evidence.");
+      return;
+    }
+
+    const attribute = name => {
+      const matches = props.filter(prop =>
+        prop.name.getText(ast) === name);
+      return matches.length === 1 ? literal(matches[0].initializer) : null;
+    };
+    const namespace = attribute("ns");
+    const key = attribute("i18nKey");
+    if (!namespace || !key) {
+      add(node, node.getText(ast), "connection", "review",
+        "Rich-text translation requires literal namespace and key.");
+      return;
+    }
+
+    const en = lookup(resources, "en", namespace, key);
+    const es = lookup(resources, "es", namespace, key);
+    const identity = `${namespace}:${key}`;
+
+    if ([en, es].some(value =>
+        typeof value !== "string" || !value.trim())) {
+      add(node, identity, "connection", "missing-connection",
+        "Rich-text translation requires exact EN/ES resources.");
+    } else if (variables(en) !== variables(es)) {
+      add(node, identity, "connection", "missing-connection",
+        "EN/ES rich-text interpolation mismatch.");
+    } else if (!validRichMarkup(en, es, props)) {
+      add(node, identity, "connection", "missing-connection",
+        "EN/ES rich-text component markup mismatch.");
+    } else if ([en, es].some(value =>
+        protectedWords.test(value) ||
+        [...protectedTexts].some(phrase =>
+          phrase.trim() &&
+          normalize(value.replace(/<\/?\d+>/g, ""))
+            .includes(normalize(phrase))))) {
+      add(node, identity, "connection", "protected-review",
+        "Rich-text clinical wording remains subject to controlled review.");
+    }
+  });
+
   function insideConnection(node) {
     for (let p = node; p; p = p.parent) if (connected.has(p)) return true;
     return false;

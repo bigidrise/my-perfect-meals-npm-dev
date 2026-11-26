@@ -6,7 +6,7 @@
  * Exits with code 1 if any required gate fails — suitable for CI/pre-push.
  *
  * Gates:
- *   GATE_02  Key parity — all locales have every English key
+ *   GATE_02  Key parity — customer-facing locales have every English key
  *   GATE_03  Value quality — no empty, placeholder, or interpolation mismatches
  *   GATE_07  Clinical protection — clinical strings flagged, not silently altered
  *   GATE_08  Hardcoded-string count on ACTIVE surfaces (baseline regression)
@@ -20,8 +20,9 @@ import fs from "fs";
 import path from "path";
 import { execSync, execFileSync } from "child_process";
 import { createRequire } from "node:module";
+import { CUSTOMER_UI_LANGUAGES } from "../client/src/i18n/languagePreference";
 const requireValidation = createRequire(import.meta.url);
-const { validateSourceDispositions } = requireValidation("./localization-check/clinical-source.cjs");
+const { validateSourceDispositions, hasSourceDisposition } = requireValidation("./localization-check/clinical-source.cjs");
 const { loadResources } = requireValidation("./localization-check/resources.cjs");
 const { incrementalArguments } = requireValidation("./localization-check/phase0-comparison.cjs");
 
@@ -66,7 +67,7 @@ console.log("  Zero production files modified.");
 console.log("═══════════════════════════════════════════════════════════");
 
 // ── GATE 02: Key parity ────────────────────────────────────────────────────
-section("GATE_02 — Key Parity (all locales vs en.json)");
+section("GATE_02 — Key Parity (customer-facing locales vs en.json)");
 
 const enRaw = JSON.parse(fs.readFileSync(path.join(LOCALES_DIR, "en.json"), "utf8"));
 const enEntries = flattenEntries(enRaw);
@@ -77,8 +78,20 @@ const locales = fs.readdirSync(LOCALES_DIR)
   .map(f => f.replace(".json", ""))
   .filter(l => l !== "en");
 
+const releaseLocales = CUSTOMER_UI_LANGUAGES.filter(locale => locale !== "en");
+const deferredLocales = locales.filter(locale =>
+  !(CUSTOMER_UI_LANGUAGES as readonly string[]).includes(locale));
+
+console.log(`  Customer-facing languages: ${CUSTOMER_UI_LANGUAGES.join(", ")}`);
+console.log(`  Deferred completeness: ${deferredLocales.join(", ") || "none"}`);
+
 let parityFailed = false;
-for (const locale of locales) {
+for (const locale of releaseLocales) {
+  if (!locales.includes(locale)) {
+    fail(`[${locale}] Customer-facing locale resource is missing`);
+    parityFailed = true;
+    continue;
+  }
   const raw = JSON.parse(fs.readFileSync(path.join(LOCALES_DIR, `${locale}.json`), "utf8"));
   const keys = new Set(flattenEntries(raw).map(([k]) => k));
   const missing = [...enMap.keys()].filter(k => !keys.has(k));
@@ -89,7 +102,7 @@ for (const locale of locales) {
     pass(`[${locale}] All ${enMap.size} English keys present`);
   }
 }
-if (!parityFailed) pass("All 13 non-English locales have complete key coverage");
+if (!parityFailed) pass("All customer-facing locales have complete key coverage");
 
 // ── GATE 03: Value quality ─────────────────────────────────────────────────
 section("GATE_03 — Value Quality (no empty/placeholder/interpolation errors)");
@@ -196,7 +209,7 @@ if (!fs.existsSync(CLINICAL_REGISTRY)) {
     if (src === null) {
       sourceMissing++;
       fail(`Clinical source file missing: ${s.file} — registry is stale or file deleted without clinical sign-off`);
-    } else if (!src!.includes(s.text) && !dispositions.has(`${s.file}#${s.proposedKey}`)) {
+    } else if (!src!.includes(s.text) && !hasSourceDisposition(dispositions, s)) {
       sourceMissing++;
       fail(`Clinical string changed/removed without controlled process: ${s.file}:${s.line} "${s.text.slice(0, 60)}${s.text.length > 60 ? "…" : ""}" — regenerate registry with [clinical-translation] sign-off`);
     }

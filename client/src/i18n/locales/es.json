@@ -488,6 +488,10 @@
     "generationFailed": "Generación Fallida"
   },
   "savedMeals": {
+    "recipeCount_one": "{{count}} receta",
+    "recipeCount_other": "{{count}} recetas",
+    "preparationGuide": "Guía de preparación",
+    "translating": "Traduciendo…",
     "pageTitle": "Comidas Guardadas",
     "noMeals": "Aún no hay comidas guardadas",
     "noMealsHint": "Toca el ícono de corazón en cualquier comida para guardarla aquí.",

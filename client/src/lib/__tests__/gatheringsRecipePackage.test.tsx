@@ -30,7 +30,15 @@ jest.mock("@/contexts/UpgradeModalContext", () => ({ useUpgradeModal: () => ({ r
 jest.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: jest.fn() }) }));
 jest.mock("@/hooks/useIsDesktop", () => ({ useIsDesktop: () => true }));
 jest.mock("wouter", () => ({ useLocation: () => ["/lifestyle/my-perfect-gatherings", jest.fn()] }));
-const translate = (key: string, values?: Record<string, unknown>) => key.replace(/\{\{(\w+)\}\}/g, (_, name) => String(values?.[name] ?? name));
+const translate = (key: string, values?: Record<string, unknown>) => {
+  const savedMeals = require("../../i18n/locales/en.json").savedMeals;
+  const name = key.startsWith("savedMeals.") ? key.slice("savedMeals.".length) : "";
+  const pluralKey = name === "recipeCount"
+    ? `recipeCount_${values?.count === 1 ? "one" : "other"}`
+    : name;
+  const text: string = name ? savedMeals[pluralKey] ?? key : key;
+  return text.replace(/\{\{(\w+)\}\}/g, (_, name) => String(values?.[name] ?? name));
+};
 jest.mock("@/i18n/useConsumerCopy", () => ({ useConsumerCopy: () => ({ t: translate }) }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: translate, i18n: { language: "en" } }) }));
 jest.mock("@/i18n/useCreatorOptionLabels", () => ({ useCreatorOptionLabels: () => ({}) }));

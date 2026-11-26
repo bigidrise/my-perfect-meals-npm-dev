@@ -1,0 +1,91 @@
+{
+  "_meta": {
+    "locale": "es",
+    "status": "pending",
+    "description": "Six clinical source review candidates. Five revised explanations and one retained physician banner.",
+    "founderWordingReview": {
+      "decision": "accepted",
+      "scope": "Founder wording authorization only. No clinical certification or release authorization."
+    },
+    "governanceRule": "Qualified clinical review required. Existing registry, approval manifests and release protections remain unchanged."
+  },
+  "entries": [
+    {
+      "key": "clinicalLearn.glucoseGuardSubtitle",
+      "file": "client/src/pages/Learn.tsx",
+      "sourceText": "Logged glucose context for supported meal tools",
+      "proposedTranslation": "Contexto de glucosa registrada para herramientas de comidas compatibles",
+      "category": "diabetes_glp1",
+      "founderWordingStatus": "accepted",
+      "status": "pending",
+      "reviewer": null,
+      "reviewedAt": null,
+      "notes": "Revised wording prepared in Development following technical source review. Not authorized for release pending qualified clinical review."
+    },
+    {
+      "key": "clinicalLearn.glucoseGuardExplanation",
+      "file": "client/src/pages/Learn.tsx",
+      "sourceText": "GlucoseGuard can display your latest logged blood glucose reading in supported meal tools. Eligible meal-generation workflows may use logged glucose context alongside your nutrition and clinical settings. It does not continuously monitor glucose or provide treatment for abnormal glucose levels.",
+      "proposedTranslation": "GlucoseGuard puede mostrar tu última lectura registrada de glucosa en sangre en las herramientas de comidas compatibles. Los procesos de generación de comidas que correspondan pueden utilizar ese contexto junto con tu configuración nutricional y clínica. No monitorea continuamente la glucosa ni proporciona tratamiento para niveles anormales de glucosa.",
+      "category": "diabetes_glp1",
+      "founderWordingStatus": "accepted",
+      "status": "pending",
+      "reviewer": null,
+      "reviewedAt": null,
+      "notes": "Revised wording prepared in Development following technical source review. Not authorized for release pending qualified clinical review."
+    },
+    {
+      "key": "clinicalLearn.glucoseGuardStarchDistinction",
+      "file": "client/src/pages/Learn.tsx",
+      "sourceText": "Starch Guard provides guidance about starchy carbohydrate choices and your remaining starch budget. GlucoseGuard displays logged glucose information and may provide context for eligible meal-generation workflows. These features serve different purposes and may work together when applicable.",
+      "proposedTranslation": "Starch Guard ofrece orientación sobre la elección de carbohidratos con almidón y la cantidad de almidón restante de tu objetivo. GlucoseGuard muestra información de glucosa registrada y puede aportar contexto a los procesos de generación de comidas que correspondan. Estas funciones tienen propósitos distintos y pueden funcionar juntas cuando corresponda.",
+      "category": "diabetes_glp1",
+      "founderWordingStatus": "accepted",
+      "status": "pending",
+      "reviewer": null,
+      "reviewedAt": null,
+      "notes": "Revised wording prepared in Development following technical source review. Not authorized for release pending qualified clinical review."
+    },
+    {
+      "key": "editProfile.existingGlp1Guidance",
+      "file": "client/src/pages/profile/EditProfilePage.tsx",
+      "sourceText": "GLP-1 profile information — Nutritional guidance only",
+      "proposedTranslation": "Información de GLP-1 del perfil — Solo orientación nutricional",
+      "category": "diabetes_glp1",
+      "founderWordingStatus": "accepted",
+      "status": "pending",
+      "reviewer": null,
+      "reviewedAt": null,
+      "notes": "Revised wording prepared in Development following technical source review. Not authorized for release pending qualified clinical review."
+    },
+    {
+      "key": "editProfile.existingGlp1GuidanceNotice",
+      "file": "client/src/pages/profile/EditProfilePage.tsx",
+      "sourceText": "Earlier GLP-1 profile information may affect meal generation, including alongside a Diabetic Builder, depending on the applicable activation rules. It does not confirm current medication use. The separate personal GLP-1 nutrition support choice does not currently activate meal guidance. This nutritional guidance is not a substitute for your prescribing clinician's advice.",
+      "proposedTranslation": "La información anterior sobre GLP-1 de tu perfil puede influir en la generación de comidas, incluso cuando utilizas el generador para diabetes, según las reglas de activación aplicables. No confirma el uso actual de medicamentos. La opción independiente de apoyo nutricional personal de GLP-1 no activa actualmente la orientación alimentaria. Esta orientación nutricional no sustituye las indicaciones del profesional de salud que prescribe tu medicación.",
+      "category": "diabetes_glp1",
+      "founderWordingStatus": "accepted",
+      "status": "pending",
+      "reviewer": null,
+      "reviewedAt": null,
+      "notes": "Revised wording prepared in Development following technical source review. Not authorized for release pending qualified clinical review."
+    },
+    {
+      "key": "editProfile.clinicalReviewRequired",
+      "file": "client/src/pages/profile/EditProfilePage.tsx",
+      "sourceText": "Clinical Protocol Review Required",
+      "proposedTranslation": "Se requiere revisión del protocolo clínico",
+      "category": "general_clinical",
+      "founderWordingStatus": "accepted",
+      "status": "pending",
+      "reviewer": null,
+      "reviewedAt": null,
+      "notes": "Existing physician banner heading and explanation retained. Both require review together. Physician authority and modification restrictions remain unchanged.",
+      "associatedNotice": {
+        "key": "editProfile.clinicalReviewNotice",
+        "sourceText": "Your clinical settings include physician-directed or earlier clinical assignments. Contact your care team for review before changing them.",
+        "proposedTranslation": "Tu configuración clínica incluye indicaciones médicas o asignaciones clínicas anteriores. Comunícate con tu equipo médico para revisarlas antes de realizar cambios."
+      }
+    }
+  ]
+}

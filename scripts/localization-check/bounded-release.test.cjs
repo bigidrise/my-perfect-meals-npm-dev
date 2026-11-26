@@ -6,7 +6,7 @@ const { analyze, introduced } = require("./analyze.cjs");
 const { loadResources } = require("./resources.cjs");
 const { loadDisplayOwners } = require("./display-owners.cjs");
 const { auditContext } = require("./audit-context.cjs");
-const { validateSourceDispositions } = require("./clinical-source.cjs");
+const { validateSourceDispositions, hasSourceDisposition } = require("./clinical-source.cjs");
 const read = file => fs.readFileSync(file, "utf8");
 const resources = loadResources(read);
 const displays = loadDisplayOwners(read, resources);
@@ -133,10 +133,139 @@ test("all approved current source dispositions validate without clearing six cli
   const registry = JSON.parse(read("docs/localization/clinical-registry.json"));
   const document = JSON.parse(read("docs/localization/release-source-dispositions.json"));
   const accepted = validateSourceDispositions(registry, document, read, resources);
-  assert.equal([...accepted.values()].filter(x => x === "retired").length, 5);
+  assert.equal(accepted.size, 15);
+  assert.equal([...accepted.values()].filter(x => x === "retired").length, 6);
   assert.equal([...accepted.values()].filter(x => x === "localized-display-owner").length, 1);
+  assert.equal([...accepted.values()].filter(x => x === "localized-rich-text-owner").length, 8);
   const missing = registry.allStrings.filter(entry =>
-    !read(entry.file).includes(entry.text) && !accepted.has(`${entry.file}#${entry.proposedKey}`));
+    !read(entry.file).includes(entry.text) && !hasSourceDisposition(accepted, entry));
   assert.equal(missing.length, 6);
   assert.ok(missing.every(entry => /(?:Learn|EditProfilePage)\.tsx$/.test(entry.file)));
+});
+
+test("bound Trans components retain protected clinical review", () => {
+  const source = `import { Trans } from "react-i18next";
+    const X = () => <Trans ns="onboarding" i18nKey="thyroidGuidanceRich"
+      components={[<span />, <span />]} />;`;
+  assert.ok(scan(source).some(item =>
+    item.kind === "connection" &&
+    item.text === "onboarding:thyroidGuidanceRich" &&
+    item.classification === "protected-review"));
+});
+
+test("rich-text translation connections reject missing Spanish resources", () => {
+  const broken = structuredClone(resources);
+  delete broken.es.onboarding.thyroidGuidanceRich;
+  const source = `import { Trans } from "react-i18next";
+    const X = () => <Trans ns="onboarding" i18nKey="thyroidGuidanceRich"
+      components={[<span />, <span />]} />;`;
+  assert.ok(scan(source, broken).some(item =>
+    item.text === "onboarding:thyroidGuidanceRich" &&
+    item.classification === "missing-connection"));
+});
+
+test("unrelated Trans components cannot claim clinical translation ownership", () => {
+  const source = `import { Trans } from "other-package";
+    const X = () => <Trans ns="onboarding" i18nKey="thyroidGuidanceRich"
+      components={[<span />, <span />]} />;`;
+  assert.ok(!scan(source).some(item =>
+    item.kind === "connection" &&
+    item.text === "onboarding:thyroidGuidanceRich" &&
+    item.classification === "protected-review"));
+});
+
+test("rich-text paragraphs preserve embedded registered clinical phrases", () => {
+  const source = `import { Trans } from "react-i18next";
+    const X = () => <Trans ns="onboarding" i18nKey="hormoneGuidanceRich"
+      components={[<span />, <span />]} />;`;
+  const protectedTexts = new Set(["not a medical protocol"]);
+  assert.ok(scan(source, resources, displays, protectedTexts).some(item =>
+    item.kind === "connection" &&
+    item.text === "onboarding:hormoneGuidanceRich" &&
+    item.classification === "protected-review"));
+});
+
+test("rich-text translations reject mismatched component markup", () => {
+  const broken = structuredClone(resources);
+  broken.es.onboarding.thyroidGuidanceRich =
+    broken.es.onboarding.thyroidGuidanceRich.replace(/<\/?1>/g, "");
+  const source = `import { Trans } from "react-i18next";
+    const X = () => <Trans ns="onboarding" i18nKey="thyroidGuidanceRich"
+      components={[<span />, <span />]} />;`;
+  assert.ok(scan(source, broken).some(item =>
+    item.text === "onboarding:thyroidGuidanceRich" &&
+    item.classification === "missing-connection"));
+});
+
+test("clinical source dispositions distinguish duplicate historical occurrences", () => {
+  const file = "client/src/pages/Example.tsx";
+  const source = "export default function Example() { return null; }";
+  const first = { file, proposedKey: "example.disclaimer", text: "not a medical protocol", line: 823 };
+  const second = { ...first, line: 867 };
+  const registry = { allStrings: [first, second] };
+  const entry = {
+    ...first,
+    disposition: "retired",
+    sourceSha256: require("node:crypto").createHash("sha256").update(source).digest("hex"),
+    reason: "Synthetic regression fixture",
+    evidence: "docs/localization/test-review.md"
+  };
+  const reader = path => path === file ? source : "Test evidence";
+  const document = { version: 1, entries: [entry] };
+  const accepted = validateSourceDispositions(registry, document, reader, resources);
+
+  assert.equal(accepted.size, 1);
+  assert.equal(hasSourceDisposition(accepted, first), true);
+  assert.equal(hasSourceDisposition(accepted, second), false);
+
+  delete entry.line;
+  assert.throws(() =>
+    validateSourceDispositions(registry, document, reader, resources),
+    /identity/);
+});
+
+test("clinical rich-text ownership requires exact bilingual wording and a protected connection", () => {
+  const file = "client/src/pages/Example.tsx";
+  const source = `import { Trans } from "react-i18next";
+    const X = () => <Trans ns="onboarding" i18nKey="hormoneGuidanceRich"
+      components={[<span />, <span />]} />;`;
+  const hash = value => require("node:crypto").createHash("sha256").update(value).digest("hex");
+  const registered = {
+    file, line: 867,
+    proposedKey: "example.disclaimer",
+    text: "not a medical protocol"
+  };
+  const registry = { allStrings: [registered] };
+  const entry = {
+    ...registered,
+    disposition: "localized-rich-text-owner",
+    sourceSha256: hash(source),
+    reason: "Synthetic ownership regression fixture",
+    evidence: "docs/localization/test-review.md",
+    resource: {
+      namespace: "onboarding",
+      key: "hormoneGuidanceRich",
+      enSha256: hash(resources.en.onboarding.hormoneGuidanceRich),
+      esSha256: hash(resources.es.onboarding.hormoneGuidanceRich)
+    }
+  };
+  const document = { version: 1, entries: [entry] };
+  const reader = path => path === file ? source : "Test evidence";
+
+  assert.equal(validateSourceDispositions(registry, document, reader, resources).size, 1);
+
+  for (const lang of ["en", "es"]) {
+    const changed = structuredClone(resources);
+    changed[lang].onboarding.hormoneGuidanceRich += " Changed.";
+    assert.throws(() =>
+      validateSourceDispositions(registry, document, reader, changed),
+      /source\/resource mismatch/);
+  }
+
+  const unbound = source.replace("react-i18next", "other-package");
+  entry.sourceSha256 = hash(unbound);
+  assert.throws(() =>
+    validateSourceDispositions(registry, document,
+      path => path === file ? unbound : "Test evidence", resources),
+    /no unique protected translation connection/);
 });
