@@ -1,10 +1,10 @@
 {
   "generatedAt": "2026-08-15T00:12:54.129Z",
   "note": "Per-file hardcoded-string baseline for ALL ACTIVE client/src/components/ .tsx files (including zero-finding files). Generated from the uncapped audit reports. GATE_08b uses this to detect per-file regressions — any file whose count exceeds its baseline triggers a CI failure. New ACTIVE component files absent from this baseline also trigger a CI failure.",
-  "totalComponentFiles": 547,
+  "totalComponentFiles": 551,
   "totalComponentFilesWithFindings": 298,
   "totalComponentFindings": 2553,
-  "controlledEnrollment": "2026-11-19: 68 classified omissions enrolled at verified counts; all 479 existing file thresholds unchanged. See release-gate-corrections.md.",
+  "controlledEnrollment": "2026-11-19: 68 classified omissions enrolled at verified counts; all 479 existing file thresholds unchanged. See release-gate-corrections.md. 2026-11-25: Corrected stale component-count metadata from 547 to 548; three new ACTIVE components enrolled at verified zero findings. All 548 existing thresholds unchanged.",
   "files": {
     "client/src/components/ClinicalSupportLabel.tsx": 0,
     "client/src/components/HydrationEverydayCreatorButton.tsx": 1,
@@ -553,6 +553,9 @@
     "client/src/components/upgrade/LockedBuilderCard.tsx": 0,
     "client/src/components/upgrade/UpgradeLockModal.tsx": 0,
     "client/src/components/voice/TalkToChefButton.tsx": 0,
-    "client/src/components/voice/VoiceModeOverlay.tsx": 1
+    "client/src/components/voice/VoiceModeOverlay.tsx": 1,
+    "client/src/components/LegacyNarration.tsx": 0,
+    "client/src/components/chef/AskChefNavButton.tsx": 0,
+    "client/src/components/shopping/ShoppingReferenceAction.tsx": 0
   }
 }

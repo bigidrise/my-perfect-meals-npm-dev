@@ -515,6 +515,10 @@
     "generationFailed": "Generation Failed"
   },
   "savedMeals": {
+    "recipeCount_one": "{{count}} recipe",
+    "recipeCount_other": "{{count}} recipes",
+    "preparationGuide": "Preparation guide",
+    "translating": "Translating…",
     "pageTitle": "Saved Meals",
     "noMeals": "No saved meals yet",
     "noMealsHint": "Tap the heart icon on any meal to save it here.",

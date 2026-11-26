@@ -137,8 +137,8 @@ export default function SavedMealRow({
               <span>{sourceLabel(row.sourceType, row.mealData)}</span>
               <span aria-hidden="true" className="text-white/25">·</span>
               <span>{recipePackage
-                ? `${recipePackage.meals.length} recipes`
-                : <>{Math.round(perServingNutrition.calories)} {t("savedMeals.cal")} / serving</>}</span>
+                ? t("savedMeals.recipeCount", { count: recipePackage.meals.length })
+                : <>{Math.round(perServingNutrition.calories)} {t("savedMeals.cal")} / {t("savedMeals.serving")}</>}</span>
             </div>
           </div>
           <div
@@ -186,7 +186,7 @@ export default function SavedMealRow({
       {/* ── Expanded body ─────────────────────────────────────────────────── */}
       {isExpanded && recipePackage && (
         <div id={`saved-meal-details-${row.id}`} className="space-y-4 border-t border-white/10 p-4">
-          <section aria-label="Preparation guide" className="space-y-4">
+          <section aria-label={t("savedMeals.preparationGuide")} className="space-y-4">
             <h3 className="font-bold text-orange-400">{recipePackage.preparationGuide.title}</h3>
             {recipePackage.preparationGuide.sections.map((section, index) => (
               <div key={index}>
@@ -247,7 +247,7 @@ export default function SavedMealRow({
           {isTranslating && (
             <div className="flex items-center gap-2 text-xs text-white/40">
               <Loader2 className="h-3 w-3 animate-spin" />
-              <span>Translating…</span>
+              <span>{t("savedMeals.translating")}</span>
             </div>
           )}
 

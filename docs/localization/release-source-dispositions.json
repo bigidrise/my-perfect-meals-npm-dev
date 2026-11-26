@@ -58,6 +58,144 @@
         "namespace": "translation",
         "key": "diabeticBuilder.backLabel"
       }
+    },
+    {
+      "file": "client/src/pages/OnboardingV3.tsx",
+      "line": 823,
+      "proposedKey": "onboardingv3.not_a_medical_protocol",
+      "text": "not a medical protocol",
+      "disposition": "retired",
+      "sourceSha256": "3c0b4e1ae7fc2826dfcedc838a98717e69a98dd113a2cf2b814b50a1dfb78089",
+      "reason": "Founder-authorized retirement of obsolete pregnancy wording only; feature and current safeguards preserved.",
+      "evidence": "docs/localization/onboarding-clinical-source-review.md"
+    },
+    {
+      "file": "client/src/pages/OnboardingV3.tsx",
+      "line": 836,
+      "proposedKey": "onboardingv3.not_a_medical_diagnosis",
+      "text": "not a medical diagnosis",
+      "disposition": "localized-rich-text-owner",
+      "sourceSha256": "3c0b4e1ae7fc2826dfcedc838a98717e69a98dd113a2cf2b814b50a1dfb78089",
+      "reason": "Exact historical wording retained in a protected bilingual rich-text translation.",
+      "evidence": "docs/localization/onboarding-clinical-source-review.md",
+      "resource": {
+        "namespace": "onboarding",
+        "key": "thyroidGuidanceRich",
+        "enSha256": "5dab556f96195063044b9a0ab00d0506e55dbca02bf4e38d3299e3fd183a96b7",
+        "esSha256": "92b9389661594a8001542c99fc7628ad882e0c3c0ed9f7a81e4c9c4caf90aa06"
+      }
+    },
+    {
+      "file": "client/src/pages/OnboardingV3.tsx",
+      "line": 836,
+      "proposedKey": "onboardingv3.not_a_treatment_plan",
+      "text": ", not a treatment plan, and",
+      "disposition": "localized-rich-text-owner",
+      "sourceSha256": "3c0b4e1ae7fc2826dfcedc838a98717e69a98dd113a2cf2b814b50a1dfb78089",
+      "reason": "Exact historical wording retained in a protected bilingual rich-text translation.",
+      "evidence": "docs/localization/onboarding-clinical-source-review.md",
+      "resource": {
+        "namespace": "onboarding",
+        "key": "thyroidGuidanceRich",
+        "enSha256": "5dab556f96195063044b9a0ab00d0506e55dbca02bf4e38d3299e3fd183a96b7",
+        "esSha256": "92b9389661594a8001542c99fc7628ad882e0c3c0ed9f7a81e4c9c4caf90aa06"
+      }
+    },
+    {
+      "file": "client/src/pages/OnboardingV3.tsx",
+      "line": 836,
+      "proposedKey": "onboardingv3.not_a_substitute_for",
+      "text": "not a substitute for your doctor or endocrinologist's care",
+      "disposition": "localized-rich-text-owner",
+      "sourceSha256": "3c0b4e1ae7fc2826dfcedc838a98717e69a98dd113a2cf2b814b50a1dfb78089",
+      "reason": "Exact historical wording retained in a protected bilingual rich-text translation.",
+      "evidence": "docs/localization/onboarding-clinical-source-review.md",
+      "resource": {
+        "namespace": "onboarding",
+        "key": "thyroidGuidanceRich",
+        "enSha256": "5dab556f96195063044b9a0ab00d0506e55dbca02bf4e38d3299e3fd183a96b7",
+        "esSha256": "92b9389661594a8001542c99fc7628ad882e0c3c0ed9f7a81e4c9c4caf90aa06"
+      }
+    },
+    {
+      "file": "client/src/pages/OnboardingV3.tsx",
+      "line": 867,
+      "proposedKey": "onboardingv3.not_a_medical_protocol",
+      "text": "not a medical protocol",
+      "disposition": "localized-rich-text-owner",
+      "sourceSha256": "3c0b4e1ae7fc2826dfcedc838a98717e69a98dd113a2cf2b814b50a1dfb78089",
+      "reason": "Exact historical wording retained in a protected bilingual rich-text translation.",
+      "evidence": "docs/localization/onboarding-clinical-source-review.md",
+      "resource": {
+        "namespace": "onboarding",
+        "key": "hormoneGuidanceRich",
+        "enSha256": "847f9867779292fc01dd4b694e95067015e6c68eef560d9fc664204e240109ed",
+        "esSha256": "83497c859bd0e3b9106921d11856104d168581b7ed66f7b164a262b1dc25314c"
+      }
+    },
+    {
+      "file": "client/src/pages/OnboardingV3.tsx",
+      "line": 867,
+      "proposedKey": "onboardingv3.not_a_substitute_for_2",
+      "text": "not a substitute for your doctor's care",
+      "disposition": "localized-rich-text-owner",
+      "sourceSha256": "3c0b4e1ae7fc2826dfcedc838a98717e69a98dd113a2cf2b814b50a1dfb78089",
+      "reason": "Exact historical wording retained in a protected bilingual rich-text translation.",
+      "evidence": "docs/localization/onboarding-clinical-source-review.md",
+      "resource": {
+        "namespace": "onboarding",
+        "key": "hormoneGuidanceRich",
+        "enSha256": "847f9867779292fc01dd4b694e95067015e6c68eef560d9fc664204e240109ed",
+        "esSha256": "83497c859bd0e3b9106921d11856104d168581b7ed66f7b164a262b1dc25314c"
+      }
+    },
+    {
+      "file": "client/src/pages/OnboardingV3.tsx",
+      "line": 880,
+      "proposedKey": "onboardingv3.not_a_diagnosis",
+      "text": "not a diagnosis",
+      "disposition": "localized-rich-text-owner",
+      "sourceSha256": "3c0b4e1ae7fc2826dfcedc838a98717e69a98dd113a2cf2b814b50a1dfb78089",
+      "reason": "Exact historical wording retained in a protected bilingual rich-text translation.",
+      "evidence": "docs/localization/onboarding-clinical-source-review.md",
+      "resource": {
+        "namespace": "onboarding",
+        "key": "oncologyGuidanceRich",
+        "enSha256": "1bf78a9b76204db71e5fd4edb5cd9715ed001ecbc971f12a5dca06ea40c94e02",
+        "esSha256": "463c92f0afc1cc88608358e3212c1e39ee803057af2bfd828d7295592ec828d5"
+      }
+    },
+    {
+      "file": "client/src/pages/OnboardingV3.tsx",
+      "line": 880,
+      "proposedKey": "onboardingv3.not_a_treatment_plan",
+      "text": ", not a treatment plan, and",
+      "disposition": "localized-rich-text-owner",
+      "sourceSha256": "3c0b4e1ae7fc2826dfcedc838a98717e69a98dd113a2cf2b814b50a1dfb78089",
+      "reason": "Exact historical wording retained in a protected bilingual rich-text translation.",
+      "evidence": "docs/localization/onboarding-clinical-source-review.md",
+      "resource": {
+        "namespace": "onboarding",
+        "key": "oncologyGuidanceRich",
+        "enSha256": "1bf78a9b76204db71e5fd4edb5cd9715ed001ecbc971f12a5dca06ea40c94e02",
+        "esSha256": "463c92f0afc1cc88608358e3212c1e39ee803057af2bfd828d7295592ec828d5"
+      }
+    },
+    {
+      "file": "client/src/pages/OnboardingV3.tsx",
+      "line": 880,
+      "proposedKey": "onboardingv3.not_a_substitute_for_3",
+      "text": "not a substitute for your oncology team's medical care",
+      "disposition": "localized-rich-text-owner",
+      "sourceSha256": "3c0b4e1ae7fc2826dfcedc838a98717e69a98dd113a2cf2b814b50a1dfb78089",
+      "reason": "Exact historical wording retained in a protected bilingual rich-text translation.",
+      "evidence": "docs/localization/onboarding-clinical-source-review.md",
+      "resource": {
+        "namespace": "onboarding",
+        "key": "oncologyGuidanceRich",
+        "enSha256": "1bf78a9b76204db71e5fd4edb5cd9715ed001ecbc971f12a5dca06ea40c94e02",
+        "esSha256": "463c92f0afc1cc88608358e3212c1e39ee803057af2bfd828d7295592ec828d5"
+      }
     }
   ]
 }
